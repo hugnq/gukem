@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Battle - Free Lane Base Defense</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Tiny Battle - Kenney Pixel Strategy</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="main.css">
@@ -12,25 +11,17 @@
 <body>
 
     <div id="game-wrapper">
-        <!-- Main Menu Screen -->
         <div id="main-menu" class="menu-screen active">
             <div class="menu-hero-art">
                 <div class="radar-circle"></div>
-                <svg class="hero-tank-svg" viewBox="0 0 120 120">
-                    <rect x="24" y="25" width="16" height="72" rx="5" fill="#1e293b" stroke="#475569" stroke-width="2"/>
-                    <rect x="80" y="25" width="16" height="72" rx="5" fill="#1e293b" stroke="#475569" stroke-width="2"/>
-                    <rect x="34" y="32" width="52" height="58" rx="8" fill="#2563eb" stroke="#93c5fd" stroke-width="3"/>
-                    <circle cx="60" cy="62" r="18" fill="#1d4ed8" stroke="#bfdbfe" stroke-width="2.5"/>
-                    <rect x="55" y="8" width="10" height="42" rx="3" fill="#e2e8f0" stroke="#0f172a" stroke-width="2"/>
-                </svg>
+                <canvas id="menuHeroCanvas" width="120" height="120" class="hero-tank-svg"></canvas>
             </div>
-            <div class="menu-badge">TACTICAL ASSAULT BATTLE</div>
+            <div class="menu-badge">KENNEY PIXEL ASSAULT</div>
             <h1 class="menu-title">TINY BATTLE</h1>
             <p class="menu-subtitle">Xuất quân từ pháo đài & Chen nhau áp đảo kẻ thù</p>
             <button id="btn-open-levels" class="play-main-btn">CHƠI</button>
         </div>
 
-        <!-- Level Selection Screen -->
         <div id="level-select-screen" class="menu-screen">
             <div class="level-rect-board">
                 <div class="level-board-header">
@@ -41,12 +32,12 @@
             </div>
         </div>
 
-        <!-- HUD Top -->
         <div class="hud-top">
             <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-600 px-2.5 py-1 rounded-full text-xs text-white shadow">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span id="current-level-label" class="font-bold tracking-wider text-amber-300">LV.1</span>
-                <span id="speed-indicator" class="text-[11px] text-sky-300 font-semibold ml-1">⛽ 3.0s/bình</span>
+                <img class="gas-inline-sprite w-3.5 h-3.5 pixel-art ml-1" alt="Gas" />
+                <span id="speed-indicator" class="text-[11px] text-sky-300 font-semibold">3.0s/bình</span>
             </div>
 
             <div class="flex items-center gap-1.5">
@@ -62,12 +53,9 @@
             </div>
         </div>
 
-        <!-- Main Battle Canvas -->
         <canvas id="battleCanvas"></canvas>
 
-        <!-- Bottom Deck Controls -->
         <div class="bottom-deck">
-            <!-- Gas Card -->
             <div id="gas-generator-btn" class="gas-card" title="Chạm để nạp nhanh một lượng nhỏ">
                 <div class="flex items-center justify-between w-full px-1">
                     <span class="text-[9px] font-bold uppercase tracking-wider text-sky-300">KHO XĂNG</span>
@@ -75,10 +63,7 @@
                 </div>
 
                 <div class="flex items-center gap-1.5 my-0.5">
-                    <svg class="w-7 h-7 text-rose-500 drop-shadow" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18 10a1 1 0 0 1-1-1V5a1 1 0 0 0-1-1H8a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-7a1 1 0 0 1 1-1h1v4a1 1 0 0 0 2 0v-5a2 2 0 0 0-2-2h-2zm-8-4h4v2h-4V6zm6 11H8v-6h8v6z"/>
-                        <path d="M10 13h4v2h-4z" fill="#fde047"/>
-                    </svg>
+                    <img id="icon-gas-can" class="w-7 h-7 pixel-art drop-shadow" alt="Gas" />
                     <span id="gas-count-text" class="text-2xl font-extrabold text-amber-300 leading-none tracking-tight">0</span>
                 </div>
 
@@ -92,96 +77,84 @@
                 <div class="text-[8.5px] text-slate-400 leading-none mt-0.5">Chạm để nạp nhanh</div>
             </div>
 
-            <!-- Upgrade Gas Rate Button -->
             <div id="btnUpgradeGas" class="unit-btn upgrade-btn" onclick="upgradeGasRate()">
                 <div class="text-[9.5px] font-bold text-emerald-300 uppercase tracking-tight">Nâng Xăng</div>
                 <div class="my-0.5 flex flex-col items-center justify-center">
-                    <svg class="w-8 h-8 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                    </svg>
+                    <img id="icon-upgrade-building" class="w-8 h-8 pixel-art" alt="Upgrade" />
                     <span id="upgrade-next-speed" class="text-[9px] text-sky-200 font-bold leading-none mt-0.5">➔ 2.0s</span>
                 </div>
                 <div id="upgrade-cost-badge" class="cost-badge cost-badge-upg">
-                    <span>⛽</span><span id="upgrade-cost-text">4</span>
+                    <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    <span id="upgrade-cost-text">4</span>
                 </div>
 
                 <div id="blockUpgrade" class="lock-overlay">
-                    <svg class="w-4 h-4 text-slate-300 mb-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                    </svg>
-                    <span id="upgrade-lock-cost" class="text-[9.5px] font-bold text-amber-400">4 ⛽</span>
+                    <img class="lock-sprite w-5 h-5 pixel-art mb-0.5" alt="Lock" />
+                    <div class="flex items-center gap-1">
+                        <span id="upgrade-lock-cost" class="text-[9.5px] font-bold text-amber-400">4</span>
+                        <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    </div>
                 </div>
             </div>
 
-            <!-- Infantry Unit Button -->
             <div id="btnU1" class="unit-btn" onclick="buyUnit1()">
                 <div class="text-[9.5px] font-bold text-sky-200 uppercase tracking-tight">Bộ Binh</div>
                 <div class="my-0.5 flex items-center justify-center">
-                    <svg class="w-8 h-8" viewBox="0 0 40 40">
-                        <circle cx="20" cy="14" r="7" fill="#3b82f6" stroke="#93c5fd" stroke-width="2"/>
-                        <rect x="12" y="21" width="16" height="12" rx="4" fill="#1d4ed8" stroke="#60a5fa" stroke-width="1.5"/>
-                        <rect x="24" y="13" width="12" height="4" rx="1" fill="#38bdf8"/>
-                        <circle cx="18" cy="13" r="1.5" fill="#fff"/>
-                    </svg>
+                    <img id="icon-u1" class="w-9 h-9 pixel-art" alt="Infantry" />
                 </div>
                 <div class="cost-badge">
-                    <span>⛽</span><span>3</span>
+                    <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    <span>3</span>
                 </div>
 
                 <div id="blockU1" class="lock-overlay">
-                    <svg class="w-4 h-4 text-slate-300 mb-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="text-[9.5px] font-bold text-amber-400">3 ⛽</span>
+                    <img class="lock-sprite w-5 h-5 pixel-art mb-0.5" alt="Lock" />
+                    <div class="flex items-center gap-1">
+                        <span class="text-[9.5px] font-bold text-amber-400">3</span>
+                        <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    </div>
                 </div>
             </div>
 
-            <!-- Heavy Tank Unit Button -->
             <div id="btnU2" class="unit-btn" onclick="buyUnit2()">
                 <div class="text-[9.5px] font-bold text-sky-200 uppercase tracking-tight">Xe Tăng</div>
                 <div class="my-0.5 flex items-center justify-center">
-                    <svg class="w-8 h-8" viewBox="0 0 40 40">
-                        <rect x="7" y="12" width="6" height="22" rx="2" fill="#334155"/>
-                        <rect x="27" y="12" width="6" height="22" rx="2" fill="#334155"/>
-                        <rect x="11" y="14" width="18" height="18" rx="3" fill="#2563eb" stroke="#93c5fd" stroke-width="1.5"/>
-                        <circle cx="20" cy="23" r="6" fill="#1d4ed8" stroke="#bfdbfe" stroke-width="1.5"/>
-                        <rect x="18" y="5" width="4" height="14" rx="1.5" fill="#93c5fd"/>
-                    </svg>
+                    <img id="icon-u2" class="w-9 h-9 pixel-art" alt="Tank" />
                 </div>
                 <div class="cost-badge">
-                    <span>⛽</span><span>5</span>
+                    <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    <span>5</span>
                 </div>
 
                 <div id="blockU2" class="lock-overlay">
-                    <svg class="w-4 h-4 text-slate-300 mb-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="text-[9.5px] font-bold text-amber-400">5 ⛽</span>
+                    <img class="lock-sprite w-5 h-5 pixel-art mb-0.5" alt="Lock" />
+                    <div class="flex items-center gap-1">
+                        <span class="text-[9.5px] font-bold text-amber-400">5</span>
+                        <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    </div>
                 </div>
             </div>
 
-            <!-- Airstrike Unit Button -->
             <div id="btnU3" class="unit-btn" onclick="buyUnit3()">
                 <div class="text-[9.5px] font-bold text-amber-200 uppercase tracking-tight">Không Kích</div>
                 <div class="my-0.5 flex items-center justify-center">
-                    <svg class="w-8 h-8" viewBox="0 0 40 40">
-                        <path d="M20 4 L24 15 L36 22 L36 26 L24 23 L23 32 L28 35 L28 37 L20 35 L12 37 L12 35 L17 32 L16 23 L4 26 L4 22 L16 15 Z" fill="#38bdf8" stroke="#e0f2fe" stroke-width="1.5"/>
-                    </svg>
+                    <img id="icon-u3" class="w-9 h-9 pixel-art" alt="Airstrike" />
                 </div>
                 <div class="cost-badge">
-                    <span>⛽</span><span>8</span>
+                    <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    <span>8</span>
                 </div>
 
                 <div id="blockU3" class="lock-overlay">
-                    <svg class="w-4 h-4 text-slate-300 mb-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
-                    </svg>
-                    <span class="text-[9.5px] font-bold text-amber-400">8 ⛽</span>
+                    <img class="lock-sprite w-5 h-5 pixel-art mb-0.5" alt="Lock" />
+                    <div class="flex items-center gap-1">
+                        <span class="text-[9.5px] font-bold text-amber-400">8</span>
+                        <img class="gas-inline-sprite w-3 h-3 pixel-art" alt="Gas" />
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Victory Modal -->
         <div id="win-panel" class="result-modal win-bg">
             <div class="w-20 h-20 rounded-full bg-blue-500/30 border-4 border-sky-300 flex items-center justify-center mb-3 shadow-lg">
                 <span class="text-4xl">🏆</span>
@@ -218,7 +191,6 @@
             </div>
         </div>
 
-        <!-- Defeat Modal -->
         <div id="lose-panel" class="result-modal lose-bg">
             <div class="w-20 h-20 rounded-full bg-red-500/30 border-4 border-rose-300 flex items-center justify-center mb-3 shadow-lg">
                 <span class="text-4xl">💥</span>
@@ -256,7 +228,6 @@
         </div>
     </div>
 
-    <!-- Main Logic Script -->
     <script src="main.js"></script>
 </body>
 </html>
