@@ -110,11 +110,378 @@ class SoundFX {
 
 const sfx = new SoundFX();
 
+// ============================================================================
+// ĐỊNH NGHĨA 15 MAP THEO ĐÚNG ẢNH "15 maps.png" (3 CỘT x 5 HÀNG)
+// ============================================================================
+const MAPS_DATA = [
+    {
+        level: 1,
+        name: 'Cầu Qua Sông',
+        hasWater: true,
+        waterZones: [{ x: 0, y: 310, w: 420, h: 95 }],
+        bridgeLanes: [210],
+        desc: 'Sông lớn cắt ngang chiến trường với cây cầu trung tâm.'
+    },
+    {
+        level: 2,
+        name: 'Đường Đèo Rừng Thông',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [210],
+        desc: 'Đường đèo uốn lượn chữ S xuyên qua rừng thông và núi đá.'
+    },
+    {
+        level: 3,
+        name: 'Đại Lộ Đô Thị',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [90, 210, 330],
+        desc: 'Đường phố đô thị chia ô vuông với nhiều tòa nhà cao tầng.'
+    },
+    {
+        level: 4,
+        name: 'Pháo Đài Hồ Nước',
+        hasWater: true,
+        waterZones: [
+            { x: 25, y: 150, w: 120, h: 410 },
+            { x: 275, y: 150, w: 120, h: 410 }
+        ],
+        bridgeLanes: [210],
+        desc: 'Hồ nước bao quanh pháo đài đảo giữa cùng 2 cầu gỗ.'
+    },
+    {
+        level: 5,
+        name: 'Mê Cung Rừng Rậm',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [130, 210, 290],
+        desc: 'Mạng lưới đường rừng nhiều nhánh rẽ hiểm trở.'
+    },
+    {
+        level: 6,
+        name: 'Khu Công Nghiệp',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [95, 210, 325],
+        desc: 'Khu nhà máy công nghiệp nặng với mặt đường bê tông.'
+    },
+    {
+        level: 7,
+        name: 'Hồ Đôi Vách Đá',
+        hasWater: true,
+        waterZones: [
+            { x: 65, y: 185, w: 230, h: 130 },
+            { x: 125, y: 395, w: 230, h: 130 }
+        ],
+        bridgeLanes: [210],
+        desc: 'Hai hồ nước lớn nằm kẹp giữa đường đèo và vách núi đá.'
+    },
+    {
+        level: 8,
+        name: 'Hẻm Núi Đá Hiểm Trở',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [210],
+        desc: 'Đường độc đạo xuyên qua hẻm núi đá dựng đứng.'
+    },
+    {
+        level: 9,
+        name: 'Vòng Xoay Thị Trấn',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [110, 210, 310],
+        desc: 'Hai vòng xoay giao thông bao quanh khu dân cư.'
+    },
+    {
+        level: 10,
+        name: 'Bờ Biển Cát Vàng',
+        hasWater: true,
+        waterZones: [{ x: 0, y: 100, w: 135, h: 520 }],
+        bridgeLanes: [240, 310],
+        desc: 'Biển rộng phía Tây, bãi cát vàng ở giữa và dãy núi phía Đông.'
+    },
+    {
+        level: 11,
+        name: 'Căn Cứ Tên Lửa',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [100, 210, 320],
+        desc: 'Tổ hợp quân sự kiên cố với bệ phóng tên lửa và radar.'
+    },
+    {
+        level: 12,
+        name: 'Thành Cổ Kiên Cố',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [105, 210, 315],
+        desc: 'Vòng tường thành đá bao quanh pháo đài trung tâm.'
+    },
+    {
+        level: 13,
+        name: 'Quần Đảo Cầu Gỗ',
+        hasWater: true,
+        waterZones: [
+            { x: 0, y: 150, w: 420, h: 420 }
+        ],
+        bridgeLanes: [95, 210, 325],
+        desc: 'Quần đảo ngập nước nối liền bằng hệ thống 10 cây cầu gỗ.'
+    },
+    {
+        level: 14,
+        name: 'Vòng Xoay Hồ Trung Tâm',
+        hasWater: true,
+        waterZones: [{ x: 145, y: 295, w: 130, h: 125 }],
+        bridgeLanes: [110, 210, 310],
+        desc: 'Đường cao tốc hình tròn ôm trọn hồ nước giữa rừng thông.'
+    },
+    {
+        level: 15,
+        name: 'Chiến Tuyến Phòng Thủ',
+        hasWater: false,
+        waterZones: [],
+        bridgeLanes: [105, 210, 315],
+        desc: 'Hai lớp tường thành đá kiên cố chắn ngang chiến trường.'
+    }
+];
+
+const LEVELS = MAPS_DATA.map((m, idx) => {
+    const lv = idx + 1;
+    return {
+        ...m,
+        enemyBaseHp: 95 + lv * 30,
+        playerBaseHp: 100 + Math.floor(lv / 3) * 10,
+        aiGasInterval: Math.max(0.85, 2.75 - lv * 0.11),
+        aiPlaneInterval: Math.max(14, 32 - lv * 1.1),
+        initialRedUnits: Math.min(5, Math.floor((lv + 1) / 2)),
+        startingGas: lv <= 2 ? 5 : 4
+    };
+});
+
+// ============================================================================
+// DANH SÁCH BINH CHỦNG (GIÁ XĂNG TƯƠNG ỨNG VỚI SÁT THƯƠNG)
+// ============================================================================
+const UNIT_CATALOG = [
+    {
+        id: 'infantry',
+        name: 'Bộ Binh',
+        role: 'Bộ binh',
+        spriteCol: 16,
+        damage: 2,
+        cost: 2,
+        hp: 8,
+        speed: 52,
+        fireRate: 0.95,
+        range: 46,
+        radius: 13,
+        attackType: 'beam',
+        isNaval: false,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'bazooka',
+        name: 'Lính Tên Lửa',
+        role: 'Chống tăng',
+        spriteCol: 17,
+        damage: 3,
+        cost: 3,
+        hp: 10,
+        speed: 45,
+        fireRate: 1.15,
+        range: 95,
+        radius: 14,
+        attackType: 'bullet',
+        projSpeed: 230,
+        projRadius: 5,
+        isNaval: false,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'humvee',
+        name: 'Xe Thiết Giáp',
+        role: 'Cơ giới',
+        spriteCol: 5,
+        damage: 4,
+        cost: 4,
+        hp: 15,
+        speed: 62,
+        fireRate: 1.0,
+        range: 110,
+        radius: 16,
+        attackType: 'bullet',
+        projSpeed: 260,
+        projRadius: 5,
+        isNaval: false,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'apc',
+        name: 'Pháo Tự Hành',
+        role: 'Thiết giáp',
+        spriteCol: 7,
+        damage: 5,
+        cost: 5,
+        hp: 19,
+        speed: 40,
+        fireRate: 1.2,
+        range: 145,
+        radius: 17,
+        attackType: 'bullet',
+        projSpeed: 250,
+        projRadius: 6,
+        isNaval: false,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'gunboat',
+        name: 'Thuyền Tuần Tra',
+        role: 'Thủy quân 🌊',
+        spriteCol: 15,
+        damage: 5,
+        cost: 5,
+        hp: 20,
+        speed: 50,
+        fireRate: 1.05,
+        range: 165,
+        radius: 17,
+        attackType: 'bullet',
+        projSpeed: 270,
+        projRadius: 6,
+        isNaval: true,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'tank',
+        name: 'Xe Tăng Nặng',
+        role: 'Chủ lực',
+        spriteCol: 8,
+        damage: 6,
+        cost: 6,
+        hp: 26,
+        speed: 35,
+        fireRate: 1.25,
+        range: 155,
+        radius: 19,
+        attackType: 'bullet',
+        projSpeed: 250,
+        projRadius: 6.5,
+        isNaval: false,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'heli',
+        name: 'Trực Thăng',
+        role: 'Không quân',
+        spriteCol: 11,
+        damage: 7,
+        cost: 7,
+        hp: 20,
+        speed: 58,
+        fireRate: 1.1,
+        range: 140,
+        radius: 17,
+        attackType: 'bullet',
+        projSpeed: 280,
+        projRadius: 6,
+        isNaval: false,
+        isAir: true,
+        isAirstrike: false
+    },
+    {
+        id: 'destroyer',
+        name: 'Tàu Khu Trục',
+        role: 'Thủy quân 🌊',
+        spriteCol: 13,
+        damage: 8,
+        cost: 8,
+        hp: 30,
+        speed: 38,
+        fireRate: 1.2,
+        range: 190,
+        radius: 19,
+        attackType: 'bullet',
+        projSpeed: 280,
+        projRadius: 7,
+        isNaval: true,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'rocket',
+        name: 'Pháo Phản Lực',
+        role: 'Pháo binh',
+        spriteCol: 9,
+        damage: 9,
+        cost: 9,
+        hp: 22,
+        speed: 32,
+        fireRate: 1.45,
+        range: 205,
+        radius: 18,
+        attackType: 'bullet',
+        projSpeed: 290,
+        projRadius: 7.5,
+        isNaval: false,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'battleship',
+        name: 'Chiến Hạm Lớn',
+        role: 'Thủy quân 🌊',
+        spriteCol: 14,
+        damage: 11,
+        cost: 11,
+        hp: 40,
+        speed: 30,
+        fireRate: 1.35,
+        range: 215,
+        radius: 21,
+        attackType: 'bullet',
+        projSpeed: 300,
+        projRadius: 8,
+        isNaval: true,
+        isAir: false,
+        isAirstrike: false
+    },
+    {
+        id: 'airstrike',
+        name: 'Không Kích',
+        role: 'Oanh tạc ✈️',
+        spriteCol: 10,
+        damage: 14,
+        baseDamage: 20,
+        cost: 12,
+        hp: 1,
+        speed: 350,
+        fireRate: 1,
+        range: 999,
+        radius: 20,
+        attackType: 'airstrike',
+        isNaval: false,
+        isAir: true,
+        isAirstrike: true
+    }
+];
+
+const UNIT_BY_ID = {};
+UNIT_CATALOG.forEach(u => { UNIT_BY_ID[u.id] = u; });
+
+// ============================================================================
+// QUẢN LÝ ATLAS SPRITE ("Preview.png") VÀ ẢNH 15 BẢN ĐỒ ("15 maps.png")
+// ============================================================================
 class SpriteAtlas {
     constructor() {
         this.ready = false;
+        this.mapsImageReady = false;
         this.tiles = new Map();
         this.bakedMapCanvas = null;
+
         this.image = new Image();
         this.image.src = 'Preview.png';
         this.image.onload = () => this.processAtlas();
@@ -122,6 +489,14 @@ class SpriteAtlas {
             if (!this.image.src.endsWith('preview.png')) {
                 this.image.src = 'preview.png';
             }
+        };
+
+        this.mapsSheet = new Image();
+        this.mapsSheet.src = '15 maps.png';
+        this.mapsSheet.onload = () => {
+            this.mapsImageReady = true;
+            buildStaticMapCanvas(game.currentLevel);
+            renderMapPreviewThumb(pendingSelectLevel);
         };
     }
 
@@ -210,9 +585,7 @@ class SpriteAtlas {
                 }
 
                 for (let i = 0; i < total; i++) {
-                    if (!keep[i]) {
-                        d[i * 4 + 3] = 0;
-                    }
+                    if (!keep[i]) d[i * 4 + 3] = 0;
                 }
             }
 
@@ -490,7 +863,11 @@ class SpriteAtlas {
         this.ready = true;
         this.populateUIDeckIcons();
         this.renderMenuHeroArt();
-        buildStaticMapCanvas();
+        buildStaticMapCanvas(game.currentLevel);
+        renderBattleDeckButtons();
+        if (unitSelectEl.classList.contains('active')) {
+            renderUnitSelectionUI();
+        }
     }
 
     get(col, row) {
@@ -527,9 +904,6 @@ class SpriteAtlas {
         const gasUrl = this.toDataURL(12, 10);
         setImg('icon-gas-can', 12, 10);
         setImg('icon-upgrade-building', 11, 2);
-        setImg('icon-u1', 16, 7);
-        setImg('icon-u2', 8, 7);
-        setImg('icon-u3', 10, 7);
 
         document.querySelectorAll('.gas-inline-sprite').forEach(img => {
             img.src = gasUrl;
@@ -557,7 +931,7 @@ class SpriteAtlas {
         this.draw(hCtx, 9, 2, 60, 34, 38, 38);
         this.draw(hCtx, 16, 2, 28, 34, 28, 28);
         this.draw(hCtx, 8, 7, 46, 76, 44, 44);
-        this.draw(hCtx, 17, 7, 82, 78, 36, 36);
+        this.draw(hCtx, 14, 7, 82, 78, 38, 38);
         this.draw(hCtx, 10, 7, 62, 24, 34, 34, { rotation: -Math.PI / 4 });
     }
 }
@@ -581,53 +955,10 @@ const GAS_UPGRADE_LEVELS = [
     { level: 6, interval: 0.55, cost: 0, label: 'MAX' }
 ];
 
-const LEVELS = Array.from({ length: 12 }, (_, idx) => {
-    const lv = idx + 1;
-    return {
-        level: lv,
-        enemyBaseHp: 90 + lv * 28,
-        playerBaseHp: 100,
-        aiGasInterval: Math.max(1.0, 2.7 - lv * 0.13),
-        aiTankChance: Math.min(0.65, 0.18 + lv * 0.04),
-        aiPlaneInterval: Math.max(14, 30 - lv * 1.3),
-        initialRedUnits: Math.min(5, Math.floor((lv + 1) / 2)),
-        startingGas: lv === 1 ? 4 : 3
-    };
-});
-
-const UNIT_SPECS = {
-    1: {
-        name: 'Bộ Binh',
-        cost: 3,
-        hp: 6,
-        speed: 48,
-        damage: 1,
-        fireRate: 1.0,
-        beamDuration: 0.18,
-        range: 42,
-        radius: 14
-    },
-    2: {
-        name: 'Xe Tăng',
-        cost: 5,
-        hp: 10,
-        speed: 35,
-        damage: 2,
-        fireRate: 1.25,
-        range: 155,
-        radius: 19,
-        projSpeed: 240,
-        projRadius: 6
-    },
-    3: {
-        name: 'Không Kích',
-        cost: 8,
-        unitDamage: 10,
-        baseDamage: 16
-    }
-};
-
 let completedLevels = new Set();
+let pendingSelectLevel = 1;
+// Đội hình tối đa 4 nhân vật người chơi chọn
+let selectedDeckIds = ['infantry', 'bazooka', 'tank', 'airstrike'];
 
 let game = {
     inMenu: true,
@@ -683,106 +1014,91 @@ let game = {
     }
 };
 
-function buildStaticMapCanvas() {
+// ============================================================================
+// VẼ 15 BẢN ĐỒ TỪ FILE "15 maps.png" (HOẶC DỰNG TỪ TILES NẾU CHƯA TẢI XONG)
+// ============================================================================
+function drawMapFromSheetOrProcedural(targetCtx, targetW, targetH, levelNum) {
+    const idx = Math.max(0, Math.min(14, levelNum - 1));
+    const col = idx % 3;
+    const row = Math.floor(idx / 3);
+
+    if (atlas.mapsImageReady && atlas.mapsSheet.naturalWidth > 0) {
+        const sheetW = atlas.mapsSheet.naturalWidth;
+        const sheetH = atlas.mapsSheet.naturalHeight;
+        const cellW = sheetW / 3;
+        const cellH = sheetH / 5;
+        const borderPad = Math.max(3, Math.round(cellW * 0.015));
+
+        const sx = col * cellW + borderPad;
+        const sy = row * cellH + borderPad;
+        const sw = cellW - borderPad * 2;
+        const sh = cellH - borderPad * 2;
+
+        targetCtx.save();
+        targetCtx.imageSmoothingEnabled = false;
+        // Lật dọc ảnh ô map để Pháo đài Đỏ ở phía trên và Căn cứ Xanh ở phía dưới khớp chiều quân chạy
+        targetCtx.translate(0, targetH);
+        targetCtx.scale(1, -1);
+        targetCtx.drawImage(atlas.mapsSheet, sx, sy, sw, sh, 0, 0, targetW, targetH);
+        targetCtx.restore();
+        return;
+    }
+
+    // Fallback dựng bằng Tile từ Preview.png nếu 15 maps.png chưa sẵn sàng
+    targetCtx.fillStyle = '#58a846';
+    targetCtx.fillRect(0, 0, targetW, targetH);
     if (!atlas.ready) return;
+
+    const TILE = 30;
+    const cols = Math.ceil(targetW / TILE);
+    const rows = Math.ceil(targetH / TILE);
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const tile = atlas.get((r + c) % 3, 0);
+            if (tile) targetCtx.drawImage(tile, c * TILE, r * TILE, TILE, TILE);
+        }
+    }
+
+    const mapCfg = LEVELS[idx];
+    if (mapCfg && mapCfg.waterZones) {
+        targetCtx.fillStyle = '#38bdf8';
+        for (const wz of mapCfg.waterZones) {
+            const scaleX = targetW / LOGICAL_WIDTH;
+            const scaleY = targetH / PLAYFIELD_HEIGHT;
+            targetCtx.fillRect(wz.x * scaleX, wz.y * scaleY, wz.w * scaleX, wz.h * scaleY);
+        }
+    }
+}
+
+function buildStaticMapCanvas(levelNum = game.currentLevel) {
     const off = document.createElement('canvas');
     off.width = LOGICAL_WIDTH;
     off.height = PLAYFIELD_HEIGHT;
     const mCtx = off.getContext('2d');
     mCtx.imageSmoothingEnabled = false;
 
-    const TILE = 30;
-    const cols = Math.ceil(LOGICAL_WIDTH / TILE);
-    const rows = Math.ceil(PLAYFIELD_HEIGHT / TILE);
-    const midCol = Math.floor(cols / 2);
-    const riverRow = Math.floor(rows / 2);
-
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            const hash = (r * 37 + c * 19) % 17;
-            let grassCol = 0;
-            if (hash === 0 || hash === 5) grassCol = 1;
-            else if (hash === 2) grassCol = 2;
-
-            const tile = atlas.get(grassCol, 0);
-            if (tile) {
-                mCtx.drawImage(tile, c * TILE, r * TILE, TILE, TILE);
-            }
-        }
-    }
-
-    const drawPond2x2 = (startCol, startRow) => {
-        for (let dy = 0; dy < 2; dy++) {
-            for (let dx = 0; dx < 2; dx++) {
-                const t = atlas.get(3 + dx, dy);
-                if (t) mCtx.drawImage(t, (startCol + dx) * TILE, (startRow + dy) * TILE, TILE, TILE);
-            }
-        }
-    };
-    drawPond2x2(1, 5);
-    drawPond2x2(cols - 3, rows - 7);
-
-    for (let c = 0; c < cols; c++) {
-        const riverTile = atlas.get(c % 2 === 0 ? 0 : 2, 4) || atlas.get(1, 2);
-        if (riverTile) {
-            mCtx.drawImage(riverTile, c * TILE, riverRow * TILE, TILE, TILE);
-        }
-    }
-
-    const roadLanes = [3, midCol, cols - 4];
-    for (const laneCol of roadLanes) {
-        for (let r = 2; r < rows - 2; r++) {
-            if (r === riverRow) {
-                const bridge = atlas.get(4, 9) || atlas.get(1, 4);
-                if (bridge) mCtx.drawImage(bridge, laneCol * TILE, r * TILE, TILE, TILE);
-            } else {
-                const vRoad = atlas.get(0, 8);
-                if (vRoad) mCtx.drawImage(vRoad, laneCol * TILE, r * TILE, TILE, TILE);
-            }
-        }
-    }
-
-    for (const hRow of [4, rows - 5]) {
-        for (let c = 3; c <= cols - 4; c++) {
-            let roadTile = atlas.get(2, 6);
-            if (c === 3) roadTile = atlas.get(1, 8);
-            else if (c === cols - 4) roadTile = atlas.get(3, 8);
-            else if (c === midCol) roadTile = atlas.get(2, 8);
-            if (roadTile) mCtx.drawImage(roadTile, c * TILE, hRow * TILE, TILE, TILE);
-        }
-    }
-
-    const mapProps = [
-        { col: 4, row: 5, x: 18, y: 120, size: 30 },
-        { col: 4, row: 6, x: 22, y: 152, size: 32 },
-        { col: 5, row: 0, x: 52, y: 215, size: 30 },
-        { col: 5, row: 1, x: 52, y: 246, size: 26 },
-        { col: 4, row: 6, x: 18, y: 290, size: 32 },
-        { col: 4, row: 5, x: 24, y: 330, size: 30 },
-        { col: 16, row: 0, x: 64, y: riverRow * TILE - 12, size: 28 },
-        { col: 7, row: 4, x: 126, y: riverRow * TILE - 12, size: 24 },
-        { col: 4, row: 6, x: 20, y: 430, size: 32 },
-        { col: 5, row: 0, x: 52, y: 485, size: 30 },
-        { col: 5, row: 1, x: 52, y: 454, size: 26 },
-        { col: 4, row: 5, x: 22, y: 590, size: 30 },
-        { col: 4, row: 6, x: LOGICAL_WIDTH - 20, y: 125, size: 32 },
-        { col: 4, row: 5, x: LOGICAL_WIDTH - 24, y: 225, size: 30 },
-        { col: 5, row: 0, x: LOGICAL_WIDTH - 52, y: 215, size: 30 },
-        { col: 5, row: 1, x: LOGICAL_WIDTH - 52, y: 246, size: 26 },
-        { col: 4, row: 6, x: LOGICAL_WIDTH - 18, y: 310, size: 32 },
-        { col: 17, row: 0, x: LOGICAL_WIDTH - 64, y: riverRow * TILE - 12, size: 28 },
-        { col: 7, row: 4, x: LOGICAL_WIDTH - 126, y: riverRow * TILE - 12, size: 24 },
-        { col: 4, row: 5, x: LOGICAL_WIDTH - 22, y: 425, size: 30 },
-        { col: 5, row: 0, x: LOGICAL_WIDTH - 52, y: 485, size: 30 },
-        { col: 5, row: 1, x: LOGICAL_WIDTH - 52, y: 454, size: 26 },
-        { col: 4, row: 6, x: LOGICAL_WIDTH - 20, y: 585, size: 32 }
-    ];
-
-    for (const p of mapProps) {
-        atlas.draw(mCtx, p.col, p.row, p.x, p.y, p.size, p.size);
-    }
-
+    drawMapFromSheetOrProcedural(mCtx, LOGICAL_WIDTH, PLAYFIELD_HEIGHT, levelNum);
     atlas.bakedMapCanvas = off;
+}
+
+function renderMapPreviewThumb(levelNum) {
+    const thumbCanvas = document.getElementById('selected-map-preview');
+    if (!thumbCanvas) return;
+    const tCtx = thumbCanvas.getContext('2d');
+    tCtx.imageSmoothingEnabled = false;
+    tCtx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+    drawMapFromSheetOrProcedural(tCtx, thumbCanvas.width, thumbCanvas.height, levelNum);
+}
+
+function isPointInWater(x, y, levelNum = game.currentLevel) {
+    const cfg = LEVELS[levelNum - 1];
+    if (!cfg || !cfg.hasWater) return false;
+    for (const wz of cfg.waterZones) {
+        if (x >= wz.x && x <= wz.x + wz.w && y >= wz.y && y <= wz.y + wz.h) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function resizeCanvas() {
@@ -797,6 +1113,7 @@ resizeCanvas();
 
 const mainMenuEl = document.getElementById('main-menu');
 const levelSelectEl = document.getElementById('level-select-screen');
+const unitSelectEl = document.getElementById('unit-select-screen');
 const levelGridEl = document.getElementById('level-grid');
 const gasCountTextEl = document.getElementById('gas-count-text');
 const speedIndicatorEl = document.getElementById('speed-indicator');
@@ -817,29 +1134,23 @@ const gasLoadEls = [
     document.getElementById('L5')
 ];
 
-const unitLockEls = {
-    1: document.getElementById('blockU1'),
-    2: document.getElementById('blockU2'),
-    3: document.getElementById('blockU3')
-};
-
-const unitBtnEls = {
-    1: document.getElementById('btnU1'),
-    2: document.getElementById('btnU2'),
-    3: document.getElementById('btnU3')
-};
-
+// ============================================================================
+// MÀN HÌNH CHỌN 15 MAP & UI CHỌN NHÂN VẬT ĐẦU TRẬN
+// ============================================================================
 function renderLevelGrid() {
     levelGridEl.innerHTML = '';
     LEVELS.forEach(cfg => {
         const cell = document.createElement('button');
         cell.className = 'level-cell' + (completedLevels.has(cfg.level) ? ' completed' : '');
         cell.innerHTML = `
-            <span>${cfg.level}</span>
+            <span class="level-water-tag" title="${cfg.hasWater ? 'Bản đồ có nước' : 'Không có nước'}">${cfg.hasWater ? '🌊' : '⛰️'}</span>
+            <span class="level-num-badge">MAP ${cfg.level}</span>
+            <span class="level-map-name">${cfg.name}</span>
             <span class="level-stars">${completedLevels.has(cfg.level) ? '★★★' : '☆☆☆'}</span>
         `;
         cell.addEventListener('click', () => {
-            startLevel(cfg.level);
+            sfx.play('spawn');
+            openUnitSelectForLevel(cfg.level);
         });
         levelGridEl.appendChild(cell);
     });
@@ -850,9 +1161,168 @@ window.openLevelSelect = function() {
     document.getElementById('win-panel').classList.remove('active');
     document.getElementById('lose-panel').classList.remove('active');
     mainMenuEl.classList.remove('active');
+    unitSelectEl.classList.remove('active');
     renderLevelGrid();
     levelSelectEl.classList.add('active');
 };
+
+window.openUnitSelectForLevel = function(levelNum) {
+    pendingSelectLevel = levelNum;
+    const cfg = LEVELS[levelNum - 1] || LEVELS[0];
+
+    // Nếu map KHÔNG có nước, tự động loại bỏ các Thuyền ra khỏi đội hình đang chọn
+    if (!cfg.hasWater) {
+        selectedDeckIds = selectedDeckIds.filter(id => {
+            const u = UNIT_BY_ID[id];
+            return u && !u.isNaval;
+        });
+        // Nếu đội hình bị trống, tự bù các nhân vật bộ binh cơ bản
+        if (selectedDeckIds.length === 0) {
+            selectedDeckIds = ['infantry', 'bazooka', 'tank', 'airstrike'];
+        }
+    }
+
+    game.inMenu = true;
+    document.getElementById('win-panel').classList.remove('active');
+    document.getElementById('lose-panel').classList.remove('active');
+    mainMenuEl.classList.remove('active');
+    levelSelectEl.classList.remove('active');
+
+    renderUnitSelectionUI();
+    unitSelectEl.classList.add('active');
+};
+
+function renderUnitSelectionUI() {
+    const cfg = LEVELS[pendingSelectLevel - 1] || LEVELS[0];
+    document.getElementById('select-map-num').textContent = `MAP ${cfg.level}`;
+    document.getElementById('select-map-title').textContent = cfg.name;
+
+    const waterBadge = document.getElementById('select-map-water-badge');
+    if (cfg.hasWater) {
+        waterBadge.className = 'water-status-badge has-water mt-1';
+        waterBadge.textContent = '🌊 CÓ NƯỚC: Được phép chọn Thuyền / Tàu chiến';
+    } else {
+        waterBadge.className = 'water-status-badge no-water mt-1';
+        waterBadge.textContent = '🚫 KHÔNG CÓ NƯỚC: Thuyền bị khóa ở Map này';
+    }
+
+    const stars = '★'.repeat(Math.min(5, Math.ceil(cfg.level / 3))) + '☆'.repeat(5 - Math.min(5, Math.ceil(cfg.level / 3)));
+    document.getElementById('select-map-desc').textContent = `HP Địch: ${cfg.enemyBaseHp} | Độ khó: ${stars}`;
+
+    renderMapPreviewThumb(cfg.level);
+
+    // Render 4 ô đội hình đã chọn
+    const slotsContainer = document.getElementById('selected-deck-slots');
+    slotsContainer.innerHTML = '';
+    document.getElementById('deck-count-badge').textContent = `${selectedDeckIds.length} / 4`;
+
+    const gasIconUrl = atlas.ready ? atlas.toDataURL(12, 10) : '';
+
+    for (let i = 0; i < 4; i++) {
+        const unitId = selectedDeckIds[i];
+        const card = document.createElement('div');
+
+        if (unitId && UNIT_BY_ID[unitId]) {
+            const u = UNIT_BY_ID[unitId];
+            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+            card.className = 'deck-slot-card';
+            card.innerHTML = `
+                <div class="deck-slot-remove">✕</div>
+                <div class="text-[8.5px] font-bold text-sky-200 truncate w-full text-center">${u.name}</div>
+                <img src="${spriteUrl}" class="w-7 h-7 pixel-art" alt="${u.name}" />
+                <div class="flex items-center justify-between w-full px-1 text-[8.5px] font-extrabold">
+                    <span class="text-rose-300">⚔️${u.damage}</span>
+                    <span class="text-amber-300">⛽${u.cost}</span>
+                </div>
+            `;
+            card.addEventListener('click', () => {
+                selectedDeckIds.splice(i, 1);
+                sfx.play('gas');
+                renderUnitSelectionUI();
+            });
+        } else {
+            card.className = 'deck-slot-card empty';
+            card.innerHTML = `<span>+ Ô trống ${i + 1}</span>`;
+        }
+        slotsContainer.appendChild(card);
+    }
+
+    // Render danh sách toàn bộ binh chủng
+    const rosterGrid = document.getElementById('unit-roster-grid');
+    rosterGrid.innerHTML = '';
+
+    UNIT_CATALOG.forEach(u => {
+        const isSelected = selectedDeckIds.includes(u.id);
+        const isLockedByWater = u.isNaval && !cfg.hasWater;
+        const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
+        const item = document.createElement('div');
+        item.className = 'roster-card' +
+            (isSelected ? ' selected' : '') +
+            (isLockedByWater ? ' disabled-water' : '');
+
+        item.innerHTML = `
+            <img src="${spriteUrl}" class="w-9 h-9 pixel-art flex-shrink-0" alt="${u.name}" />
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-extrabold text-white truncate">${u.name}</span>
+                    <span class="bg-amber-400/20 border border-amber-400 text-amber-300 text-[9.5px] font-extrabold px-1.5 rounded-full flex items-center gap-0.5">
+                        ⛽ ${u.cost}
+                    </span>
+                </div>
+                <div class="text-[9px] text-sky-300 font-semibold">${u.role}</div>
+                <div class="flex items-center gap-2 mt-0.5 text-[9.5px] font-bold">
+                    <span class="text-rose-400">⚔️ DMG: ${u.damage}</span>
+                    <span class="text-emerald-400">${u.isAirstrike ? '💥 Nhà: ' + u.baseDamage : '❤️ HP: ' + u.hp}</span>
+                </div>
+            </div>
+            ${isLockedByWater ? '<div class="water-ban-badge">🚫 MAP KHÔNG CÓ NƯỚC</div>' : ''}
+        `;
+
+        item.addEventListener('click', () => {
+            if (isLockedByWater) {
+                sfx.play('cannon');
+                return;
+            }
+            const existingIdx = selectedDeckIds.indexOf(u.id);
+            if (existingIdx !== -1) {
+                selectedDeckIds.splice(existingIdx, 1);
+                sfx.play('gas');
+            } else {
+                if (selectedDeckIds.length >= 4) {
+                    // Thay thế ô cuối nếu đã đủ 4 nhân vật hoặc báo đầy
+                    selectedDeckIds.shift();
+                }
+                selectedDeckIds.push(u.id);
+                sfx.play('spawn');
+            }
+            renderUnitSelectionUI();
+        });
+
+        rosterGrid.appendChild(item);
+    });
+}
+
+// Nút đề xuất đội hình thông minh theo Map
+document.getElementById('btn-auto-deck').addEventListener('click', () => {
+    const cfg = LEVELS[pendingSelectLevel - 1] || LEVELS[0];
+    if (cfg.hasWater) {
+        selectedDeckIds = ['infantry', 'gunboat', 'destroyer', 'airstrike'];
+    } else {
+        selectedDeckIds = ['infantry', 'humvee', 'tank', 'airstrike'];
+    }
+    sfx.play('upgrade');
+    renderUnitSelectionUI();
+});
+
+// Nút Bắt đầu trận chiến từ UI chọn nhân vật
+document.getElementById('btn-start-battle').addEventListener('click', () => {
+    if (selectedDeckIds.length === 0) {
+        alert('Vui lòng chọn ít nhất 1 nhân vật để ra trận!');
+        return;
+    }
+    startLevel(pendingSelectLevel);
+});
 
 document.getElementById('btn-open-levels').addEventListener('click', () => {
     sfx.play('spawn');
@@ -864,9 +1334,66 @@ document.getElementById('btn-back-menu').addEventListener('click', () => {
     mainMenuEl.classList.add('active');
 });
 
+document.getElementById('btn-back-levels').addEventListener('click', () => {
+    unitSelectEl.classList.remove('active');
+    openLevelSelect();
+});
+
 document.getElementById('menu-return-btn').addEventListener('click', () => {
     openLevelSelect();
 });
+
+document.getElementById('deck-reselect-btn').addEventListener('click', () => {
+    openUnitSelectForLevel(game.currentLevel);
+});
+
+// ============================================================================
+// KHỞI TẠO TRẬN ĐẤU VÀ 4 NÚT GỌI QUÂN TRONG TRẬN
+// ============================================================================
+function renderBattleDeckButtons() {
+    const container = document.getElementById('battle-deck-slots');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const gasUrl = atlas.ready ? atlas.toDataURL(12, 10) : '';
+    const lockUrl = atlas.ready ? atlas.toDataURL(13, 10) : '';
+
+    for (let i = 0; i < 4; i++) {
+        const unitId = selectedDeckIds[i];
+        const btn = document.createElement('div');
+
+        if (unitId && UNIT_BY_ID[unitId]) {
+            const u = UNIT_BY_ID[unitId];
+            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+            btn.id = `btnSlot${i}`;
+            btn.className = 'unit-btn' + (u.isNaval ? ' naval-btn' : '');
+            btn.innerHTML = `
+                <div class="text-[8.5px] font-bold text-sky-200 uppercase tracking-tight truncate w-full text-center px-0.5">${u.name}</div>
+                <div class="flex flex-col items-center justify-center">
+                    <img src="${spriteUrl}" class="w-7 h-7 pixel-art" alt="${u.name}" />
+                    <span class="dmg-mini-tag">⚔️DMG ${u.damage}</span>
+                </div>
+                <div class="cost-badge">
+                    <img src="${gasUrl}" class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
+                    <span>${u.cost}</span>
+                </div>
+                <div id="blockSlot${i}" class="lock-overlay">
+                    <img src="${lockUrl}" class="lock-sprite w-4 h-4 pixel-art mb-0.5" alt="Lock" />
+                    <div class="flex items-center gap-0.5">
+                        <span class="text-[9px] font-bold text-amber-400">${u.cost}</span>
+                        <img src="${gasUrl}" class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
+                    </div>
+                </div>
+            `;
+            btn.addEventListener('click', () => buyUnitFromSlot(i));
+        } else {
+            btn.className = 'unit-btn empty-slot-btn';
+            btn.innerHTML = `<span class="text-[9px] text-slate-500 font-bold m-auto">TRỐNG</span>`;
+        }
+
+        container.appendChild(btn);
+    }
+}
 
 function startLevel(levelNum) {
     const cfg = LEVELS[levelNum - 1] || LEVELS[0];
@@ -887,7 +1414,7 @@ function startLevel(levelNum) {
     game.redBase.maxHp = cfg.enemyBaseHp;
     game.redBase.hp = cfg.enemyBaseHp;
 
-    game.aiGas = 2;
+    game.aiGas = 3;
     game.aiGasTimer = 0;
     game.aiDecisionTimer = 1.2;
     game.aiPlaneTimer = cfg.aiPlaneInterval;
@@ -902,18 +1429,28 @@ function startLevel(levelNum) {
 
     mainMenuEl.classList.remove('active');
     levelSelectEl.classList.remove('active');
+    unitSelectEl.classList.remove('active');
     document.getElementById('win-panel').classList.remove('active');
     document.getElementById('lose-panel').classList.remove('active');
     document.getElementById('pause-btn').textContent = '⏸';
 
-    currentLevelLabelEl.textContent = `LV.${cfg.level}`;
+    currentLevelLabelEl.textContent = `MAP ${cfg.level}`;
 
+    buildStaticMapCanvas(cfg.level);
+    renderBattleDeckButtons();
+
+    // Tạo quân Đỏ ban đầu phù hợp địa hình Map
     for (let i = 0; i < cfg.initialRedUnits; i++) {
-        const unitType = (i === cfg.initialRedUnits - 1 && cfg.level >= 3) ? 2 : 1;
+        let unitId = 'infantry';
+        if (cfg.hasWater && i === 0 && cfg.level >= 4) {
+            unitId = 'gunboat';
+        } else if (i === cfg.initialRedUnits - 1 && cfg.level >= 3) {
+            unitId = 'tank';
+        }
         const gateSpread = 180;
         const rx = (LOGICAL_WIDTH / 2 - gateSpread / 2) + Math.random() * gateSpread;
-        const offsetY = 120 + i * 36;
-        spawnFreeUnit('red', unitType, rx, offsetY);
+        const offsetY = 120 + i * 34;
+        spawnUnitBySpec('red', UNIT_BY_ID[unitId], rx, offsetY);
     }
 
     sfx.play('spawn');
@@ -986,16 +1523,22 @@ function updateControllerUI() {
         }
     }
 
-    [1, 2, 3].forEach(type => {
-        const cost = UNIT_SPECS[type].cost;
-        if (game.gasCount >= cost && !game.gameOver) {
-            unitLockEls[type].classList.add('unlocked');
-            unitBtnEls[type].classList.add('ready');
+    // Cập nhật khóa/mở khóa cho 4 ô nhân vật đã chọn
+    for (let i = 0; i < 4; i++) {
+        const unitId = selectedDeckIds[i];
+        const btnEl = document.getElementById(`btnSlot${i}`);
+        const lockEl = document.getElementById(`blockSlot${i}`);
+        if (!unitId || !btnEl || !lockEl) continue;
+
+        const spec = UNIT_BY_ID[unitId];
+        if (game.gasCount >= spec.cost && !game.gameOver) {
+            lockEl.classList.add('unlocked');
+            btnEl.classList.add('ready');
         } else {
-            unitLockEls[type].classList.remove('unlocked');
-            unitBtnEls[type].classList.remove('ready');
+            lockEl.classList.remove('unlocked');
+            btnEl.classList.remove('ready');
         }
-    });
+    }
 }
 
 document.getElementById('gas-generator-btn').addEventListener('click', () => {
@@ -1009,41 +1552,45 @@ document.getElementById('gas-generator-btn').addEventListener('click', () => {
     updateControllerUI();
 });
 
-window.buyUnit1 = function() {
-    if (game.inMenu || game.gameOver || game.paused || game.gasCount < 3) return;
-    game.gasCount -= 3;
+window.buyUnitFromSlot = function(slotIndex) {
+    if (game.inMenu || game.gameOver || game.paused) return;
+    const unitId = selectedDeckIds[slotIndex];
+    if (!unitId || !UNIT_BY_ID[unitId]) return;
+
+    const spec = UNIT_BY_ID[unitId];
+    if (game.gasCount < spec.cost) return;
+
+    game.gasCount -= spec.cost;
     game.stats.spawned++;
 
-    spawnFreeUnit('blue', 1);
-    sfx.play('spawn');
+    if (spec.isAirstrike) {
+        attackPlane('blue', spec);
+    } else {
+        spawnUnitBySpec('blue', spec);
+        sfx.play('spawn');
+    }
     updateControllerUI();
 };
 
-window.buyUnit2 = function() {
-    if (game.inMenu || game.gameOver || game.paused || game.gasCount < 5) return;
-    game.gasCount -= 5;
-    game.stats.spawned++;
-
-    spawnFreeUnit('blue', 2);
-    sfx.play('spawn');
-    updateControllerUI();
-};
-
-window.buyUnit3 = function() {
-    if (game.inMenu || game.gameOver || game.paused || game.gasCount < 8) return;
-    game.gasCount -= 8;
-    game.stats.spawned++;
-    attackPlane('blue');
-    updateControllerUI();
-};
-
-function spawnFreeUnit(team, unitType, customX = null, customY = null) {
-    const spec = UNIT_SPECS[unitType];
+function spawnUnitBySpec(team, spec, customX = null, customY = null) {
+    if (!spec) return;
     const isBlue = team === 'blue';
     const base = isBlue ? game.blueBase : game.redBase;
+    const cfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
 
     let spawnX = customX;
-    if (spawnX === null) {
+    let spawnY = customY !== null ? customY : (isBlue ? base.y - 38 : base.y + 38);
+
+    // Nếu là Thuyền (isNaval) trên Map có nước, ưu tiên đặt vào làn nước của Map
+    if (spec.isNaval && cfg.hasWater && cfg.waterZones.length > 0) {
+        const wz = cfg.waterZones[Math.floor(Math.random() * cfg.waterZones.length)];
+        spawnX = wz.x + 24 + Math.random() * Math.max(10, wz.w - 48);
+        if (customY === null) {
+            spawnY = isBlue
+                ? Math.min(base.y - 40, wz.y + wz.h - 18)
+                : Math.max(base.y + 40, wz.y + 18);
+        }
+    } else if (spawnX === null) {
         if (isBlue && game.rallyX !== null) {
             spawnX = game.rallyX + (Math.random() * 32 - 16);
         } else {
@@ -1053,22 +1600,14 @@ function spawnFreeUnit(team, unitType, customX = null, customY = null) {
     }
     spawnX = Math.max(38, Math.min(LOGICAL_WIDTH - 38, spawnX));
 
-    const spawnY = customY !== null ? customY : (isBlue ? base.y - 38 : base.y + 38);
-
     const spriteRow = isBlue ? 7 : 8;
-    let spriteCol = 16;
-    if (unitType === 1) {
-        spriteCol = Math.random() < 0.35 ? 17 : 16;
-    } else {
-        spriteCol = 8;
-    }
 
     game.units.push({
         id: Math.random().toString(36).slice(2),
+        unitId: spec.id,
+        name: spec.name,
         team: team,
-        tag: isBlue ? 'BlueUnit' : 'RedUnit',
-        type: unitType,
-        spriteCol: spriteCol,
+        spriteCol: spec.spriteCol,
         spriteRow: spriteRow,
         flipX: !isBlue,
         x: spawnX,
@@ -1076,14 +1615,19 @@ function spawnFreeUnit(team, unitType, customX = null, customY = null) {
         vx: 0,
         hp: spec.hp,
         maxHp: spec.hp,
-        moveSpeed: spec.speed + (Math.random() * 6 - 3),
+        moveSpeed: spec.speed + (Math.random() * 4 - 2),
         damage: spec.damage,
-        targetTime: unitType === 2 ? 1.1 : 0.8,
+        targetTime: 0.6,
         fireRate: spec.fireRate,
         beamActiveTimer: 0,
         shoot: false,
         range: spec.range,
         radius: spec.radius,
+        attackType: spec.attackType,
+        projSpeed: spec.projSpeed || 250,
+        projRadius: spec.projRadius || 6,
+        isNaval: !!spec.isNaval,
+        isAir: !!spec.isAir,
         walkCycle: Math.random() * Math.PI * 2,
         recoil: 0
     });
@@ -1091,24 +1635,25 @@ function spawnFreeUnit(team, unitType, customX = null, customY = null) {
     spawnExplosion(spawnX, spawnY, isBlue ? '#60a5fa' : '#f87171', 7, 16);
 }
 
-function attackPlane(team) {
+function attackPlane(team, spec = UNIT_BY_ID['airstrike']) {
     const isBlue = team === 'blue';
     sfx.play('airstrike');
 
     game.planes.push({
         team: team,
-        tag: isBlue ? 'goodU3Weapon' : 'enemyU3Weapon',
         spriteRow: isBlue ? 7 : 8,
         x: LOGICAL_WIDTH / 2,
         y: isBlue ? PLAYFIELD_HEIGHT + 55 : -55,
         vy: isBlue ? -350 : 350,
+        unitDamage: spec.damage || 14,
+        baseDamage: spec.baseDamage || 20,
         hitEntities: new Set()
     });
 
     addFloatingText(
         LOGICAL_WIDTH / 2,
         isBlue ? PLAYFIELD_HEIGHT - 120 : 120,
-        isBlue ? '✈️ PHI ĐỘI XANH OANH TẠC!' : '⚠️ PHI ĐỘI ĐỎ OANH TẠC!',
+        isBlue ? `✈️ KHÔNG KÍCH XANH (-${spec.damage} DMG)!` : '⚠️ PHI ĐỘI ĐỎ OANH TẠC!',
         isBlue ? '#38bdf8' : '#f87171',
         15
     );
@@ -1120,27 +1665,33 @@ function updateEnemyAI(dt) {
     game.aiGasTimer += dt;
     if (game.aiGasTimer >= cfg.aiGasInterval) {
         game.aiGasTimer -= cfg.aiGasInterval;
-        game.aiGas = Math.min(25, game.aiGas + 1);
+        game.aiGas = Math.min(30, game.aiGas + 1);
     }
 
     game.aiPlaneTimer -= dt;
     if (game.aiPlaneTimer <= 0) {
         game.aiPlaneTimer = cfg.aiPlaneInterval;
-        if (game.currentLevel >= 2) {
-            attackPlane('red');
+        if (game.currentLevel >= 3) {
+            attackPlane('red', UNIT_BY_ID['airstrike']);
         }
     }
 
     game.aiDecisionTimer -= dt;
     if (game.aiDecisionTimer <= 0) {
-        game.aiDecisionTimer = 0.85 + Math.random() * 0.7;
+        game.aiDecisionTimer = 0.9 + Math.random() * 0.7;
 
-        if (Math.random() < cfg.aiTankChance && game.aiGas >= 5) {
-            game.aiGas -= 5;
-            spawnFreeUnit('red', 2);
-        } else if (game.aiGas >= 3) {
-            game.aiGas -= 3;
-            spawnFreeUnit('red', 1);
+        const candidates = UNIT_CATALOG.filter(u => {
+            if (u.isAirstrike) return false;
+            if (u.isNaval && !cfg.hasWater) return false;
+            if (u.cost > 6 && game.currentLevel < 4) return false;
+            if (u.cost > 8 && game.currentLevel < 8) return false;
+            return u.cost <= game.aiGas;
+        });
+
+        if (candidates.length > 0) {
+            const pick = candidates[Math.floor(Math.random() * candidates.length)];
+            game.aiGas -= pick.cost;
+            spawnUnitBySpec('red', pick);
         }
     }
 }
@@ -1152,13 +1703,14 @@ function findTargetForUnit(unit) {
 
     let nearestTarget = null;
     let minDistance = Infinity;
+    const lateralSight = unit.isNaval ? 140 : Math.max(48, unit.range * 0.55);
 
     for (const other of game.units) {
         if (other.team !== enemyTeam || other.hp <= 0) continue;
         const dy = (other.y - unit.y) * dir;
         const dx = Math.abs(other.x - unit.x);
 
-        if (dy >= -10 && dy <= unit.range + other.radius && dx <= 40) {
+        if (dy >= -15 && dy <= unit.range + other.radius && dx <= lateralSight) {
             const dist = Math.hypot(dx, dy);
             if (dist < minDistance) {
                 minDistance = dist;
@@ -1175,21 +1727,21 @@ function findTargetForUnit(unit) {
     const distToBase = (baseEdgeY - unit.y) * dir;
     const dxBase = Math.abs(unit.x - enemyBase.x);
 
-    if (distToBase >= -10 && distToBase <= unit.range && dxBase <= enemyBase.width / 2 + 12) {
+    if (distToBase >= -15 && distToBase <= unit.range && dxBase <= enemyBase.width / 2 + 25) {
         return { isBase: true, entity: enemyBase, hitY: baseEdgeY };
     }
 
     return null;
 }
 
-function applyDamageToTarget(targetObj, damage, weaponTag) {
+function applyDamageToTarget(targetObj, damage, isBlue) {
     if (!targetObj || !targetObj.entity) return;
     targetObj.entity.hp = Math.max(0, targetObj.entity.hp - damage);
 
     const tx = targetObj.isBase ? targetObj.entity.x + (Math.random() * 60 - 30) : targetObj.entity.x;
     const ty = targetObj.isBase ? targetObj.entity.y : targetObj.entity.y - 12;
 
-    addFloatingText(tx, ty, `-${damage}`, weaponTag.startsWith('good') ? '#38bdf8' : '#fb7185', 13);
+    addFloatingText(tx, ty, `-${damage}`, isBlue ? '#38bdf8' : '#fb7185', 13);
     spawnExplosion(tx, ty, '#fde047', 5, 12);
 
     if (targetObj.isBase) {
@@ -1198,10 +1750,13 @@ function applyDamageToTarget(targetObj, damage, weaponTag) {
 }
 
 function updateUnits(dt) {
+    const cfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
+
     for (let i = 0; i < game.units.length; i++) {
         const u1 = game.units[i];
         for (let j = i + 1; j < game.units.length; j++) {
             const u2 = game.units[j];
+            if (u1.isAir !== u2.isAir) continue;
             const dx = u2.x - u1.x;
             const dy = u2.y - u1.y;
             const dist = Math.hypot(dx, dy);
@@ -1211,12 +1766,10 @@ function updateUnits(dt) {
                 const overlap = (minDist - dist) * 0.5;
                 const nx = dx / dist;
                 const ny = dy / dist;
-
-                const xPushMultiplier = (u1.team === u2.team) ? 1.8 : 1.0;
+                const xPushMultiplier = (u1.team === u2.team) ? 1.7 : 1.0;
 
                 u1.x -= nx * overlap * xPushMultiplier;
                 u2.x += nx * overlap * xPushMultiplier;
-
                 u1.y -= ny * overlap * 0.4;
                 u2.y += ny * overlap * 0.4;
             }
@@ -1227,14 +1780,14 @@ function updateUnits(dt) {
         const u = game.units[i];
         if (u.hp <= 0) {
             const color = u.team === 'blue' ? '#3b82f6' : '#ef4444';
-            spawnExplosion(u.x, u.y, color, u.type === 2 ? 20 : 12, u.type === 2 ? 30 : 18);
-            sfx.play(u.type === 2 ? 'boom' : 'cannon');
+            spawnExplosion(u.x, u.y, color, u.radius > 16 ? 20 : 12, u.radius > 16 ? 30 : 18);
+            sfx.play(u.radius > 16 ? 'boom' : 'cannon');
             if (u.team === 'red') game.stats.kills++;
             game.units.splice(i, 1);
             continue;
         }
 
-        u.x = Math.max(34, Math.min(LOGICAL_WIDTH - 34, u.x));
+        u.x = Math.max(30, Math.min(LOGICAL_WIDTH - 30, u.x));
 
         if (u.recoil > 0) u.recoil = Math.max(0, u.recoil - dt * 15);
         if (u.beamActiveTimer > 0) u.beamActiveTimer = Math.max(0, u.beamActiveTimer - dt);
@@ -1244,31 +1797,57 @@ function updateUnits(dt) {
 
         if (target) {
             u.shoot = true;
-            if (u.type === 1) {
+            if (u.attackType === 'beam') {
                 if (u.targetTime <= 0) {
                     u.targetTime = u.fireRate;
-                    u.beamActiveTimer = UNIT_SPECS[1].beamDuration;
+                    u.beamActiveTimer = 0.18;
                     u.recoil = 3.5;
                     sfx.play('beam');
-                    const weaponTag = u.team === 'blue' ? 'goodU1Weapon' : 'enemyU1Weapon';
-                    applyDamageToTarget(target, u.damage, weaponTag);
+                    applyDamageToTarget(target, u.damage, u.team === 'blue');
                 }
-            } else if (u.type === 2) {
+            } else {
                 if (u.targetTime <= 0) {
-                    u.targetTime = 1.25;
+                    u.targetTime = u.fireRate;
                     u.recoil = 4.5;
-                    spawnTankBullet(u);
+                    spawnUnitProjectile(u, target);
                 }
             }
         } else {
             u.shoot = false;
             const dir = u.team === 'blue' ? -1 : 1;
-
             let avoidForceX = 0;
             let forwardBlocked = false;
 
+            // Nếu là đơn vị bộ/xe gặp nước ở Map có cầu, tự động hướng về phía cầu gần nhất
+            if (!u.isNaval && !u.isAir && cfg.hasWater) {
+                const nextY = u.y + dir * 24;
+                if (isPointInWater(u.x, nextY, cfg.level) && cfg.bridgeLanes && cfg.bridgeLanes.length > 0) {
+                    let nearestBridgeX = cfg.bridgeLanes[0];
+                    let bestDist = Math.abs(u.x - nearestBridgeX);
+                    for (const bx of cfg.bridgeLanes) {
+                        if (Math.abs(u.x - bx) < bestDist) {
+                            bestDist = Math.abs(u.x - bx);
+                            nearestBridgeX = bx;
+                        }
+                    }
+                    if (bestDist > 22) {
+                        avoidForceX += Math.sign(nearestBridgeX - u.x) * 55;
+                    }
+                }
+            }
+
+            // Nếu là Thuyền (isNaval), giữ thuyền di chuyển trong vùng nước để pháo kích
+            if (u.isNaval && cfg.hasWater && cfg.waterZones.length > 0) {
+                const nextY = u.y + dir * 20;
+                if (!isPointInWater(u.x, nextY, cfg.level)) {
+                    const wz = cfg.waterZones[0];
+                    const centerWaterX = wz.x + wz.w / 2;
+                    avoidForceX += Math.sign(centerWaterX - u.x) * 35;
+                }
+            }
+
             for (const ally of game.units) {
-                if (ally === u || ally.team !== u.team) continue;
+                if (ally === u || ally.team !== u.team || ally.isAir !== u.isAir) continue;
                 const dy = (ally.y - u.y) * dir;
                 const dx = ally.x - u.x;
 
@@ -1297,29 +1876,41 @@ function updateUnits(dt) {
     }
 }
 
-function spawnTankBullet(tank) {
-    const isBlue = tank.team === 'blue';
+function spawnUnitProjectile(unit, target) {
+    const isBlue = unit.team === 'blue';
     const dir = isBlue ? -1 : 1;
-    const bx = tank.x;
-    const by = tank.y + dir * (tank.radius + 8);
+    const bx = unit.x;
+    const by = unit.y + dir * (unit.radius + 6);
+
+    let vx = 0;
+    let vy = dir * unit.projSpeed;
+
+    if (target && target.entity) {
+        const tx = target.entity.x;
+        const ty = target.isBase ? (target.hitY || target.entity.y) : target.entity.y;
+        const angle = Math.atan2(ty - by, tx - bx);
+        vx = Math.cos(angle) * unit.projSpeed;
+        vy = Math.sin(angle) * unit.projSpeed;
+    }
 
     sfx.play('cannon');
     spawnExplosion(bx, by, '#fde047', 5, 10);
 
     game.bullets.push({
-        team: tank.team,
-        tag: isBlue ? 'goodU2Weapon' : 'enemyU2Weapon',
+        team: unit.team,
         x: bx,
         y: by,
-        vy: dir * UNIT_SPECS[2].projSpeed,
-        damage: tank.damage,
-        radius: UNIT_SPECS[2].projRadius
+        vx: vx,
+        vy: vy,
+        damage: unit.damage,
+        radius: unit.projRadius
     });
 }
 
 function updateBullets(dt) {
     for (let i = game.bullets.length - 1; i >= 0; i--) {
         const b = game.bullets[i];
+        b.x += (b.vx || 0) * dt;
         b.y += b.vy * dt;
 
         const enemyTeam = b.team === 'blue' ? 'red' : 'blue';
@@ -1349,7 +1940,7 @@ function updateBullets(dt) {
             }
         }
 
-        if (hitSomething || b.y < -20 || b.y > PLAYFIELD_HEIGHT + 20) {
+        if (hitSomething || b.y < -20 || b.y > PLAYFIELD_HEIGHT + 20 || b.x < -20 || b.x > LOGICAL_WIDTH + 20) {
             game.bullets.splice(i, 1);
         }
     }
@@ -1367,9 +1958,9 @@ function updatePlanes(dt) {
             if (u.team !== enemyTeam || u.hp <= 0) continue;
             if (!plane.hitEntities.has(u.id) && Math.abs(u.y - plane.y) <= 32) {
                 plane.hitEntities.add(u.id);
-                u.hp -= UNIT_SPECS[3].unitDamage;
+                u.hp -= plane.unitDamage;
                 spawnExplosion(u.x, u.y, '#f97316', 18, 36);
-                addFloatingText(u.x, u.y - 14, `-${UNIT_SPECS[3].unitDamage} ✈️`, '#fb923c', 15);
+                addFloatingText(u.x, u.y - 14, `-${plane.unitDamage} ✈️`, '#fb923c', 15);
                 sfx.play('boom');
                 triggerShake(0.18, 5);
             }
@@ -1377,9 +1968,9 @@ function updatePlanes(dt) {
 
         if (!plane.hitEntities.has('base') && Math.abs(enemyBase.y - plane.y) <= 34) {
             plane.hitEntities.add('base');
-            enemyBase.hp = Math.max(0, enemyBase.hp - UNIT_SPECS[3].baseDamage);
+            enemyBase.hp = Math.max(0, enemyBase.hp - plane.baseDamage);
             spawnExplosion(enemyBase.x, enemyBase.y, '#ef4444', 28, 52);
-            addFloatingText(enemyBase.x, enemyBase.y, `-${UNIT_SPECS[3].baseDamage} 💥`, '#ef4444', 17);
+            addFloatingText(enemyBase.x, enemyBase.y, `-${plane.baseDamage} 💥`, '#ef4444', 17);
             sfx.play('boom');
             triggerShake(0.25, 7);
             checkGameOver();
@@ -1464,7 +2055,8 @@ function checkGameOver() {
         spawnExplosion(game.redBase.x, game.redBase.y, '#ef4444', 45, 70);
         sfx.play('boom');
 
-        document.getElementById('win-subtitle').textContent = `Hoàn thành Cấp độ ${game.currentLevel}! Căn cứ Đỏ đã bị phá hủy!`;
+        const cfg = LEVELS[game.currentLevel - 1];
+        document.getElementById('win-subtitle').textContent = `Chinh phục Map ${game.currentLevel}: ${cfg ? cfg.name : ''}!`;
         document.getElementById('win-time').textContent = formatTime(game.elapsedTime);
         document.getElementById('win-hp').textContent = `${Math.ceil(game.blueBase.hp)} / ${game.blueBase.maxHp}`;
         document.getElementById('win-spawned').textContent = game.stats.spawned;
@@ -1492,7 +2084,7 @@ window.restartGame = function() {
 
 window.nextOrRestartLevel = function() {
     const nextLv = game.currentLevel < LEVELS.length ? game.currentLevel + 1 : 1;
-    startLevel(nextLv);
+    openUnitSelectForLevel(nextLv);
 };
 
 function drawMapBackground() {
@@ -1537,7 +2129,7 @@ function drawBase(base) {
     ctx.save();
     ctx.imageSmoothingEnabled = false;
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
     ctx.strokeStyle = isBlue ? '#38bdf8' : '#f87171';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -1569,10 +2161,6 @@ function drawBase(base) {
         const flagY = isBlue ? y - 6 : y + base.height + 4;
         atlas.draw(ctx, 16, bRow, x + 14, flagY, 26, 26, { rotation: wave });
         atlas.draw(ctx, 17, bRow, x + base.width - 14, flagY, 26, 26, { rotation: -wave });
-
-        const uRow = isBlue ? 7 : 8;
-        atlas.draw(ctx, 5, uRow, x - 18, base.y, 30, 30);
-        atlas.draw(ctx, 6, uRow, x + base.width + 18, base.y, 30, 30, { flipX: true });
     }
 
     const barW = 210;
@@ -1615,14 +2203,14 @@ function drawUnits() {
         const isBlue = u.team === 'blue';
         const dir = isBlue ? -1 : 1;
         const recoilOffset = -dir * u.recoil;
-        const bob = u.shoot ? 0 : Math.sin(u.walkCycle) * (u.type === 1 ? 2.2 : 1.0);
-        const tilt = u.shoot ? 0 : Math.cos(u.walkCycle) * (u.type === 1 ? 0.08 : 0.025);
+        const bob = u.shoot ? 0 : Math.sin(u.walkCycle) * (u.isAir ? 3.0 : 1.6);
+        const tilt = u.shoot ? 0 : Math.cos(u.walkCycle) * 0.05;
 
         ctx.save();
         ctx.imageSmoothingEnabled = false;
         ctx.translate(u.x, u.y + recoilOffset + bob);
 
-        if (u.type === 1 && u.beamActiveTimer > 0) {
+        if (u.attackType === 'beam' && u.beamActiveTimer > 0) {
             ctx.fillStyle = isBlue ? 'rgba(56, 189, 248, 0.9)' : 'rgba(251, 113, 133, 0.9)';
             const beamH = 26;
             const beamY = isBlue ? -u.radius - beamH : u.radius;
@@ -1635,12 +2223,21 @@ function drawUnits() {
             }
         }
 
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
-        ctx.beginPath();
-        ctx.ellipse(0, u.radius - 2, u.type === 2 ? 17 : 11, u.type === 2 ? 7 : 5, 0, 0, Math.PI * 2);
-        ctx.fill();
+        // Vòng sóng nước nếu là Thuyền
+        if (u.isNaval) {
+            ctx.strokeStyle = 'rgba(186, 230, 253, 0.75)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(0, u.radius - 3, u.radius + 3, 7, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
+            ctx.beginPath();
+            ctx.ellipse(0, u.isAir ? u.radius + 8 : u.radius - 2, u.radius * 0.85, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
-        const drawSize = u.type === 2 ? 40 : 32;
+        const drawSize = u.radius * 2 + 4;
         const drewSprite = atlas.draw(ctx, u.spriteCol, u.spriteRow, 0, 0, drawSize, drawSize, {
             flipX: u.flipX,
             rotation: tilt
@@ -1654,7 +2251,7 @@ function drawUnits() {
         }
 
         if (u.hp < u.maxHp) {
-            const bw = u.type === 2 ? 34 : 24;
+            const bw = Math.max(24, u.radius * 1.7);
             const bh = 4.5;
             const by = -u.radius - 11;
             ctx.fillStyle = 'rgba(0,0,0,0.8)';
@@ -1675,10 +2272,10 @@ function drawBullets() {
 
         ctx.fillStyle = isBlue ? 'rgba(56, 189, 248, 0.45)' : 'rgba(248, 113, 113, 0.45)';
         ctx.beginPath();
-        ctx.arc(b.x, b.y - Math.sign(b.vy) * 7, b.radius, 0, Math.PI * 2);
+        ctx.arc(b.x, b.y - Math.sign(b.vy) * 6, b.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        const rot = b.vy < 0 ? -Math.PI / 2 : Math.PI / 2;
+        const rot = Math.atan2(b.vy, b.vx || 0);
         if (!atlas.draw(ctx, 11, 10, b.x, b.y, 16, 16, { rotation: rot })) {
             ctx.fillStyle = isBlue ? '#38bdf8' : '#f87171';
             ctx.beginPath();
@@ -1823,10 +2420,11 @@ canvas.addEventListener('pointerdown', (e) => {
 
 window.addEventListener('keydown', (e) => {
     if (game.inMenu) return;
-    if (e.key === '1') buyUnit1();
-    if (e.key === '2') buyUnit2();
-    if (e.key === '3') buyUnit3();
-    if (e.key.toLowerCase() === 'u' || e.key === '4') upgradeGasRate();
+    if (e.key === '1') buyUnitFromSlot(0);
+    if (e.key === '2') buyUnitFromSlot(1);
+    if (e.key === '3') buyUnitFromSlot(2);
+    if (e.key === '4') buyUnitFromSlot(3);
+    if (e.key.toLowerCase() === 'u') upgradeGasRate();
     if (e.code === 'Space') {
         e.preventDefault();
         document.getElementById('gas-generator-btn').click();
@@ -1846,6 +2444,7 @@ document.getElementById('pause-btn').addEventListener('click', (e) => {
 
 window.onload = function() {
     renderLevelGrid();
+    renderBattleDeckButtons();
     updateControllerUI();
     requestAnimationFrame(gameLoop);
 };

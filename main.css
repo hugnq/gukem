@@ -66,15 +66,15 @@ canvas {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 24px;
-    background: linear-gradient(180deg, rgba(10, 13, 21, 0.94) 0%, rgba(15, 23, 42, 0.98) 100%);
+    padding: 14px;
+    background: linear-gradient(180deg, rgba(10, 13, 21, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
     backdrop-filter: blur(8px);
     text-align: center;
 }
 
 .menu-screen.active {
     display: flex;
-    animation: popIn 0.25s ease-out;
+    animation: popIn 0.22s ease-out;
 }
 
 .menu-hero-art {
@@ -140,10 +140,10 @@ canvas {
 .play-main-btn {
     background: linear-gradient(180deg, #facc15 0%, #eab308 100%);
     color: #0a0d15;
-    font-size: 26px;
+    font-size: 24px;
     font-weight: 800;
-    letter-spacing: 3px;
-    padding: 14px 56px;
+    letter-spacing: 2px;
+    padding: 14px 48px;
     border-radius: 16px;
     border: 3px solid #fef08a;
     cursor: pointer;
@@ -161,17 +161,19 @@ canvas {
     box-shadow: 0 2px 0 #a16207;
 }
 
+/* BẢNG CHỌN 15 MAP (3 CỘT x 5 HÀNG) */
 .level-rect-board {
     width: 100%;
-    max-width: 340px;
+    max-width: 375px;
+    max-height: 94dvh;
     background: #0F172A;
     border: 3px solid #38bdf8;
-    border-radius: 14px;
-    padding: 16px;
+    border-radius: 16px;
+    padding: 12px;
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8), inset 0 0 18px rgba(56, 189, 248, 0.12);
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
 }
 
 .level-board-header {
@@ -179,26 +181,27 @@ canvas {
     align-items: center;
     justify-content: space-between;
     border-bottom: 2px solid #1e293b;
-    padding-bottom: 10px;
+    padding-bottom: 8px;
 }
 
 .level-board-title {
     color: #f8fafc;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 800;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     margin: 0;
 }
 
 .back-menu-btn {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 8px;
     background: #1e293b;
     border: 1px solid #475569;
     color: #cbd5e1;
     font-weight: 700;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .back-menu-btn:hover {
@@ -209,28 +212,28 @@ canvas {
 
 .level-grid-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
     width: 100%;
-    direction: ltr;
+    overflow-y: auto;
+    padding-right: 2px;
 }
 
 .level-cell {
-    aspect-ratio: 1 / 1;
-    background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
+    background: linear-gradient(180deg, #1e3a8a 0%, #0f172a 100%);
     border: 2px solid #60a5fa;
     border-radius: 10px;
     color: #ffffff;
-    font-size: 22px;
-    font-weight: 800;
+    padding: 5px 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     cursor: pointer;
     position: relative;
-    box-shadow: 0 4px 0 #0a0d15;
+    box-shadow: 0 3px 0 #0a0d15;
     transition: transform 0.1s ease, border-color 0.15s ease;
+    min-height: 76px;
 }
 
 .level-cell:hover {
@@ -244,22 +247,216 @@ canvas {
 }
 
 .level-cell.completed {
-    background: linear-gradient(180deg, #059669 0%, #065f46 100%);
+    background: linear-gradient(180deg, #065f46 0%, #022c22 100%);
     border-color: #34d399;
 }
 
+.level-water-tag {
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    font-size: 10px;
+    line-height: 1;
+}
+
+.level-num-badge {
+    font-size: 16px;
+    font-weight: 800;
+    color: #fde047;
+    line-height: 1.1;
+}
+
+.level-map-name {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #e2e8f0;
+    line-height: 1.15;
+    text-align: center;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
 .level-stars {
-    font-size: 9px;
-    margin-top: 2px;
+    font-size: 8.5px;
     color: #fde047;
     line-height: 1;
 }
 
+/* UI CHỌN NHÂN VẬT ĐẦU TRẬN (LOADOUT BOARD) */
+.loadout-board {
+    width: 100%;
+    max-width: 390px;
+    max-height: 95dvh;
+    background: #0F172A;
+    border: 3px solid #38bdf8;
+    border-radius: 16px;
+    padding: 10px 12px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.map-preview-banner {
+    display: flex;
+    align-items: center;
+    background: #1e293b;
+    border: 1.5px solid #334155;
+    border-radius: 10px;
+    padding: 6px;
+}
+
+.map-thumb-canvas {
+    width: 54px;
+    height: 74px;
+    border-radius: 6px;
+    border: 2px solid #60a5fa;
+    background: #166534;
+    flex-shrink: 0;
+}
+
+.water-status-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+}
+
+.water-status-badge.has-water {
+    background: rgba(14, 165, 233, 0.2);
+    border: 1px solid #38bdf8;
+    color: #7dd3fc;
+}
+
+.water-status-badge.no-water {
+    background: rgba(244, 63, 94, 0.2);
+    border: 1px solid #fb7185;
+    color: #fda4af;
+}
+
+.selected-deck-box {
+    background: rgba(2, 6, 23, 0.7);
+    border: 1.5px solid #475569;
+    border-radius: 10px;
+    padding: 6px 8px;
+}
+
+.selected-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+}
+
+.deck-slot-card {
+    height: 68px;
+    background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
+    border: 2px solid #60a5fa;
+    border-radius: 8px;
+    padding: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    position: relative;
+}
+
+.deck-slot-card.empty {
+    background: rgba(30, 41, 59, 0.45);
+    border: 1.5px dashed #475569;
+    justify-content: center;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: default;
+}
+
+.deck-slot-remove {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 15px;
+    height: 15px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.roster-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.unit-roster-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    max-height: 255px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.roster-card {
+    position: relative;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    border: 2px solid #334155;
+    border-radius: 10px;
+    padding: 5px 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.1s, border-color 0.15s;
+}
+
+.roster-card:hover {
+    border-color: #60a5fa;
+}
+
+.roster-card.selected {
+    background: linear-gradient(180deg, #1e3a8a 0%, #0f172a 100%);
+    border-color: #facc15;
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.35);
+}
+
+.roster-card.disabled-water {
+    opacity: 0.52;
+    filter: grayscale(80%);
+    cursor: not-allowed;
+    border-color: #475569;
+}
+
+.water-ban-badge {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.78);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fda4af;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+/* HUD & BOTTOM DECK TRONG TRẬN */
 .hud-top {
     position: absolute;
     top: 8px;
-    left: 10px;
-    right: 10px;
+    left: 8px;
+    right: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -277,21 +474,28 @@ canvas {
     left: 0;
     right: 0;
     height: 126px;
-    background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, #0A0D15 100%);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, #0A0D15 100%);
     border-top: 3px solid #475569;
-    padding: 8px 8px 10px 8px;
+    padding: 7px 6px 9px 6px;
     display: grid;
-    grid-template-columns: 1.15fr 0.95fr 0.95fr 0.95fr 0.95fr;
-    gap: 6px;
+    grid-template-columns: 1.05fr 0.88fr 3.7fr;
+    gap: 5px;
     z-index: 25;
     box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.battle-deck-slots {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    height: 100%;
 }
 
 .gas-card {
     background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     border: 2px solid #38bdf8;
-    border-radius: 12px;
-    padding: 5px 4px;
+    border-radius: 11px;
+    padding: 4px 4px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -311,7 +515,7 @@ canvas {
     grid-template-columns: repeat(5, 1fr);
     gap: 2px;
     width: 100%;
-    height: 11px;
+    height: 10px;
     background: #020617;
     padding: 2px;
     border-radius: 5px;
@@ -333,8 +537,8 @@ canvas {
     position: relative;
     background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
     border: 2px solid #60a5fa;
-    border-radius: 12px;
-    padding: 5px 3px;
+    border-radius: 11px;
+    padding: 4px 2px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -345,9 +549,21 @@ canvas {
     box-shadow: 0 4px 0 #0f172a, inset 0 1px 2px rgba(255, 255, 255, 0.25);
 }
 
+.unit-btn.naval-btn {
+    background: linear-gradient(180deg, #0369a1 0%, #082f49 100%);
+    border-color: #38bdf8;
+}
+
 .unit-btn.upgrade-btn {
     background: linear-gradient(180deg, #065f46 0%, #022c22 100%);
     border-color: #34d399;
+}
+
+.unit-btn.empty-slot-btn {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1.5px dashed #334155;
+    cursor: default;
+    box-shadow: none;
 }
 
 .unit-btn.ready:hover {
@@ -383,19 +599,26 @@ canvas {
     background: #0f172a;
     border: 1px solid #f59e0b;
     color: #fbbf24;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    padding: 1px 6px;
+    padding: 1px 5px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 2.5px;
     line-height: 1.1;
 }
 
 .cost-badge-upg {
     border-color: #34d399;
     color: #a7f3d0;
+}
+
+.dmg-mini-tag {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #fca5a5;
+    line-height: 1;
 }
 
 .result-modal {
