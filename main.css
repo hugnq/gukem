@@ -66,7 +66,7 @@ canvas {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 14px;
+    padding: 10px;
     background: linear-gradient(180deg, rgba(10, 13, 21, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
     backdrop-filter: blur(8px);
     text-align: center;
@@ -161,19 +161,19 @@ canvas {
     box-shadow: 0 2px 0 #a16207;
 }
 
-/* BẢNG CHỌN 15 MAP (3 CỘT x 5 HÀNG) */
+/* BẢNG CHỌN 15 MAP (LƯỚI 3 CỘT x 5 HÀNG) */
 .level-rect-board {
     width: 100%;
-    max-width: 375px;
-    max-height: 94dvh;
+    max-width: 390px;
+    max-height: 95dvh;
     background: #0F172A;
     border: 3px solid #38bdf8;
     border-radius: 16px;
-    padding: 12px;
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8), inset 0 0 18px rgba(56, 189, 248, 0.12);
+    padding: 10px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85), inset 0 0 18px rgba(56, 189, 248, 0.12);
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .level-board-header {
@@ -181,14 +181,14 @@ canvas {
     align-items: center;
     justify-content: space-between;
     border-bottom: 2px solid #1e293b;
-    padding-bottom: 8px;
+    padding-bottom: 6px;
 }
 
 .level-board-title {
     color: #f8fafc;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 800;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.6px;
     margin: 0;
 }
 
@@ -213,27 +213,26 @@ canvas {
 .level-grid-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     overflow-y: auto;
     padding-right: 2px;
 }
 
 .level-cell {
-    background: linear-gradient(180deg, #1e3a8a 0%, #0f172a 100%);
-    border: 2px solid #60a5fa;
-    border-radius: 10px;
+    background: #090d16;
+    border: 2px solid #475569;
+    border-radius: 8px;
     color: #ffffff;
-    padding: 5px 4px;
+    padding: 0;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
+    overflow: hidden;
     cursor: pointer;
     position: relative;
-    box-shadow: 0 3px 0 #0a0d15;
+    box-shadow: 0 3px 0 #020617;
     transition: transform 0.1s ease, border-color 0.15s ease;
-    min-height: 76px;
+    aspect-ratio: 3 / 3.9;
 }
 
 .level-cell:hover {
@@ -242,61 +241,76 @@ canvas {
 }
 
 .level-cell:active {
-    transform: translateY(2px);
-    box-shadow: 0 1px 0 #0a0d15;
+    transform: translateY(1px);
 }
 
 .level-cell.completed {
-    background: linear-gradient(180deg, #065f46 0%, #022c22 100%);
     border-color: #34d399;
+}
+
+.level-cell-canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .level-water-tag {
     position: absolute;
     top: 3px;
-    right: 4px;
-    font-size: 10px;
+    left: 3px;
+    background: rgba(2, 6, 23, 0.82);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 9px;
     line-height: 1;
 }
 
-.level-num-badge {
-    font-size: 16px;
+.level-num-corner {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    background: rgba(10, 13, 21, 0.92);
+    border: 1px solid #475569;
+    color: #ffffff;
+    font-size: 11px;
     font-weight: 800;
-    color: #fde047;
-    line-height: 1.1;
+    padding: 0px 5px;
+    border-radius: 3px;
+    line-height: 1.25;
 }
 
-.level-map-name {
-    font-size: 9.5px;
-    font-weight: 700;
+.level-name-bar {
+    position: absolute;
+    bottom: 2px;
+    left: 3px;
+    right: 28px;
+    background: rgba(2, 6, 23, 0.82);
     color: #e2e8f0;
-    line-height: 1.15;
-    text-align: center;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.level-stars {
     font-size: 8.5px;
-    color: #fde047;
-    line-height: 1;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* UI CHỌN NHÂN VẬT ĐẦU TRẬN (LOADOUT BOARD) */
 .loadout-board {
     width: 100%;
-    max-width: 390px;
+    max-width: 394px;
     max-height: 95dvh;
     background: #0F172A;
     border: 3px solid #38bdf8;
     border-radius: 16px;
-    padding: 10px 12px;
+    padding: 10px 11px;
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.85);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
 }
 
 .map-preview-banner {
@@ -309,8 +323,8 @@ canvas {
 }
 
 .map-thumb-canvas {
-    width: 54px;
-    height: 74px;
+    width: 60px;
+    height: 84px;
     border-radius: 6px;
     border: 2px solid #60a5fa;
     background: #166534;
@@ -319,7 +333,7 @@ canvas {
 
 .water-status-badge {
     display: inline-block;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
     padding: 2px 7px;
     border-radius: 999px;
@@ -351,7 +365,7 @@ canvas {
 }
 
 .deck-slot-card {
-    height: 68px;
+    height: 76px;
     background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
     border: 2px solid #60a5fa;
     border-radius: 8px;
@@ -400,7 +414,7 @@ canvas {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 6px;
-    max-height: 255px;
+    max-height: 245px;
     overflow-y: auto;
     padding-right: 2px;
 }
@@ -410,7 +424,7 @@ canvas {
     background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     border: 2px solid #334155;
     border-radius: 10px;
-    padding: 5px 7px;
+    padding: 5px 6px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -431,7 +445,7 @@ canvas {
 
 .roster-card.disabled-water {
     opacity: 0.52;
-    filter: grayscale(80%);
+    filter: grayscale(85%);
     cursor: not-allowed;
     border-color: #475569;
 }
@@ -439,24 +453,35 @@ canvas {
 .water-ban-badge {
     position: absolute;
     inset: 0;
-    background: rgba(2, 6, 23, 0.78);
+    background: rgba(2, 6, 23, 0.82);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fda4af;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 800;
     letter-spacing: 0.4px;
     text-transform: uppercase;
+}
+
+.range-opt-btn {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.range-opt-btn:active {
+    transform: scale(0.95);
 }
 
 /* HUD & BOTTOM DECK TRONG TRẬN */
 .hud-top {
     position: absolute;
     top: 8px;
-    left: 8px;
-    right: 8px;
+    left: 6px;
+    right: 6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -538,7 +563,7 @@ canvas {
     background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
     border: 2px solid #60a5fa;
     border-radius: 11px;
-    padding: 4px 2px;
+    padding: 3px 2px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -599,13 +624,13 @@ canvas {
     background: #0f172a;
     border: 1px solid #f59e0b;
     color: #fbbf24;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
-    padding: 1px 5px;
+    padding: 0.5px 5px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
-    gap: 2.5px;
+    gap: 2px;
     line-height: 1.1;
 }
 
@@ -615,9 +640,16 @@ canvas {
 }
 
 .dmg-mini-tag {
-    font-size: 8.5px;
+    font-size: 8px;
     font-weight: 700;
     color: #fca5a5;
+    line-height: 1.05;
+}
+
+.rng-mini-tag {
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #93c5fd;
     line-height: 1;
 }
 

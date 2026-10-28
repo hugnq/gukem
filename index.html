@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Battle </title>
+    <title>Tiny Battle - 15 Maps & Smart Pathfinding</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="main.css">
@@ -19,7 +19,7 @@
             </div>
             <div class="menu-badge">KENNEY PIXEL ASSAULT - 15 MAPS</div>
             <h1 class="menu-title">TINY BATTLE</h1>
-            <p class="menu-subtitle">Chọn 4 Nhân vật & Chinh Phục 15 Bản Đồ Chiến Thuật</p>
+            <p class="menu-subtitle">Tìm Đường Vượt Địa Hình • 15 Bản Đồ Chiến Thuật</p>
             <button id="btn-open-levels" class="play-main-btn">CHƠI NGAY</button>
         </div>
 
@@ -27,9 +27,9 @@
         <div id="level-select-screen" class="menu-screen">
             <div class="level-rect-board">
                 <div class="level-board-header">
-                    <div>
-                        <h2 class="level-board-title">CHỌN BẢN ĐỒ (15 MAP)</h2>
-                        <p class="text-[11px] text-slate-400 text-left">🌊 = Bản đồ có nước (Dùng được Thuyền)</p>
+                    <div class="text-left">
+                        <h2 class="level-board-title">CHỌN BẢN ĐỒ (1 - 15)</h2>
+                        <p class="text-[10.5px] text-sky-300 font-semibold">🌊 = Có nước (Chọn được Thuyền) | ⛰️ = Khóa Thuyền</p>
                     </div>
                     <button id="btn-back-menu" class="back-menu-btn">✕</button>
                 </div>
@@ -43,14 +43,14 @@
                 <div class="level-board-header">
                     <div class="text-left">
                         <h2 class="level-board-title text-base">CHỌN ĐỘI HÌNH RA TRẬN</h2>
-                        <p class="text-[11px] text-sky-300 font-semibold">Chọn tối đa 4 nhân vật (Giá xăng theo Sát thương)</p>
+                        <p class="text-[10px] text-sky-300 font-semibold">Tối đa 4 quân • Giá xăng ⛽ theo Sát thương ⚔️ • Tầm bắn 🎯 tùy chọn</p>
                     </div>
                     <button id="btn-back-levels" class="back-menu-btn" title="Quay lại chọn Map">✕</button>
                 </div>
 
-                <!-- Thông tin Map đã chọn -->
+                <!-- Thông tin & Hình thu nhỏ của Map vừa ấn -->
                 <div class="map-preview-banner">
-                    <canvas id="selected-map-preview" width="68" height="96" class="map-thumb-canvas pixel-art"></canvas>
+                    <canvas id="selected-map-preview" width="84" height="120" class="map-thumb-canvas pixel-art"></canvas>
                     <div class="flex-1 text-left pl-2.5">
                         <div class="flex items-center gap-1.5">
                             <span id="select-map-num" class="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.5 rounded">MAP 1</span>
@@ -59,8 +59,11 @@
                         <div id="select-map-water-badge" class="water-status-badge has-water mt-1">
                             🌊 CÓ NƯỚC: Có thể chọn Thuyền
                         </div>
-                        <div id="select-map-desc" class="text-[10.5px] text-slate-300 mt-1 leading-tight">
-                            HP Căn cứ Đỏ: 120 | Độ khó: ★☆☆☆☆
+                        <div id="select-map-desc" class="text-[10px] text-slate-300 mt-1 leading-tight">
+                            Quân bộ phải đi qua cầu, Thuyền di chuyển dưới sông.
+                        </div>
+                        <div id="select-map-stats" class="text-[10px] text-amber-300 font-bold mt-1">
+                            HP Pháo đài Đỏ: 125
                         </div>
                     </div>
                 </div>
@@ -68,7 +71,7 @@
                 <!-- 4 Ô Đội Hình Đã Chọn -->
                 <div class="selected-deck-box">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="text-[11px] font-bold text-amber-300 uppercase tracking-wider">Đội hình đã chọn (Chạm để bỏ)</span>
+                        <span class="text-[10px] font-bold text-amber-300 uppercase tracking-wider">Đội hình ra trận (Chạm vào ô để gỡ)</span>
                         <span id="deck-count-badge" class="text-[11px] font-extrabold text-emerald-400">4 / 4</span>
                     </div>
                     <div id="selected-deck-slots" class="selected-slots-grid"></div>
@@ -76,7 +79,7 @@
 
                 <!-- Danh sách tất cả nhân vật -->
                 <div class="roster-header">
-                    <span class="text-[11px] font-bold text-slate-300 uppercase">Kho Binh Chủng (Giá xăng ⛽ = Sát thương ⚔️)</span>
+                    <span class="text-[10px] font-bold text-slate-300 uppercase">Kho Binh Chủng (Chạm 🎯 để chỉnh tầm bắn Gần/Chuẩn/Xa)</span>
                 </div>
                 <div id="unit-roster-grid" class="unit-roster-grid"></div>
 
@@ -86,7 +89,7 @@
                         ⚡ ĐỀ XUẤT
                     </button>
                     <button id="btn-start-battle" class="flex-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-sm py-2.5 rounded-xl shadow-lg border-2 border-amber-200 transition">
-                        ⚔️ VÀO TRẬN CHIẾN!
+                        ⚔️ BẮT ĐẦU TRẬN ĐẤU!
                     </button>
                 </div>
             </div>
@@ -94,24 +97,27 @@
 
         <!-- THANH HUD TRÊN CÙNG -->
         <div class="hud-top">
-            <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-600 px-2.5 py-1 rounded-full text-xs text-white shadow">
+            <div class="flex items-center gap-1 bg-slate-900/90 border border-slate-600 px-2 py-1 rounded-full text-xs text-white shadow">
                 <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span id="current-level-label" class="font-bold tracking-wider text-amber-300">MAP 1</span>
-                <img class="gas-inline-sprite w-3.5 h-3.5 pixel-art ml-1" alt="Gas" />
-                <span id="speed-indicator" class="text-[11px] text-sky-300 font-semibold">3.0s/bình</span>
+                <img class="gas-inline-sprite w-3.5 h-3.5 pixel-art ml-0.5" alt="Gas" />
+                <span id="speed-indicator" class="text-[10.5px] text-sky-300 font-semibold">3.0s</span>
             </div>
 
             <div class="flex items-center gap-1">
-                <button id="deck-reselect-btn" title="Đổi đội hình" class="bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-slate-600 rounded-lg px-2 py-1 text-[11px] font-bold transition">
-                    🎖️ ĐỘI HÌNH
+                <button id="range-toggle-btn" title="Hiện/Ẩn vòng tầm bắn" class="bg-emerald-900/90 hover:bg-emerald-800 text-emerald-200 border border-emerald-400 rounded-lg px-1.5 py-1 text-[10.5px] font-bold transition">
+                    🎯 TẦM
                 </button>
-                <button id="menu-return-btn" title="Chọn màn" class="bg-slate-900/90 hover:bg-slate-800 text-sky-300 border border-slate-600 rounded-lg px-2 py-1 text-[11px] font-bold transition">
+                <button id="deck-reselect-btn" title="Đổi đội hình" class="bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-slate-600 rounded-lg px-1.5 py-1 text-[10.5px] font-bold transition">
+                    🎖️ QUÂN
+                </button>
+                <button id="menu-return-btn" title="Chọn màn" class="bg-slate-900/90 hover:bg-slate-800 text-sky-300 border border-slate-600 rounded-lg px-1.5 py-1 text-[10.5px] font-bold transition">
                     ☰ MAP
                 </button>
-                <button id="sound-btn" title="Bật/Tắt Âm Thanh" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-600 rounded-lg px-2 py-1 text-xs font-bold transition">
+                <button id="sound-btn" title="Bật/Tắt Âm Thanh" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-600 rounded-lg px-1.5 py-1 text-xs font-bold transition">
                     🔊
                 </button>
-                <button id="pause-btn" title="Tạm dừng" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-600 rounded-lg px-2 py-1 text-xs font-bold transition">
+                <button id="pause-btn" title="Tạm dừng" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-600 rounded-lg px-1.5 py-1 text-xs font-bold transition">
                     ⏸
                 </button>
             </div>
