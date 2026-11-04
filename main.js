@@ -114,6 +114,175 @@ const LOGICAL_WIDTH = 420;
 const LOGICAL_HEIGHT = 840;
 const BOTTOM_UI_HEIGHT = 126;
 const PLAYFIELD_HEIGHT = LOGICAL_HEIGHT - BOTTOM_UI_HEIGHT;
+const MAX_DECK_SLOTS = 5;
+const MAX_WAVES = 10;
+const STORAGE_KEY = 'tiny_battle_meta_save_v2';
+
+// ============================================================================
+// HỆ THỐNG ĐỘ HIẾM (RARITY SYSTEM) & HỆ SỐ SỨC MẠNH
+// ============================================================================
+const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'epic1', 'epic2', 'legendary'];
+
+const RARITY_CONFIG = {
+    common: {
+        id: 'common',
+        rank: 0,
+        name: 'Common',
+        plusLabel: '',
+        color: '#94a3b8',
+        cssClass: 'rarity-common',
+        mult: 1.0,
+        next: 'uncommon'
+    },
+    uncommon: {
+        id: 'uncommon',
+        rank: 1,
+        name: 'Uncommon',
+        plusLabel: '',
+        color: '#22c55e',
+        cssClass: 'rarity-uncommon',
+        mult: 1.25,
+        next: 'rare'
+    },
+    rare: {
+        id: 'rare',
+        rank: 2,
+        name: 'Rare',
+        plusLabel: '',
+        color: '#3b82f6',
+        cssClass: 'rarity-rare',
+        mult: 1.55,
+        next: 'epic'
+    },
+    epic: {
+        id: 'epic',
+        rank: 3,
+        name: 'Epic',
+        plusLabel: '',
+        color: '#a855f7',
+        cssClass: 'rarity-epic',
+        mult: 1.9,
+        next: 'epic1'
+    },
+    epic1: {
+        id: 'epic1',
+        rank: 4,
+        name: 'Epic +1',
+        plusLabel: '+1',
+        color: '#c084fc',
+        cssClass: 'rarity-epic1',
+        mult: 2.3,
+        next: 'epic2'
+    },
+    epic2: {
+        id: 'epic2',
+        rank: 5,
+        name: 'Epic +2',
+        plusLabel: '+2',
+        color: '#e879f9',
+        cssClass: 'rarity-epic2',
+        mult: 2.75,
+        next: 'legendary'
+    },
+    legendary: {
+        id: 'legendary',
+        rank: 6,
+        name: 'Legendary',
+        plusLabel: '★',
+        color: '#f59e0b',
+        cssClass: 'rarity-legendary',
+        mult: 3.4,
+        next: null
+    }
+};
+
+// ============================================================================
+// HỆ THỐNG ĐỘ KHÓ MÀN CHƠI (DIFFICULTY CONFIG)
+// ============================================================================
+const DIFFICULTY_ORDER = ['easy', 'normal', 'difficult'];
+
+const DIFFICULTY_CONFIG = {
+    easy: {
+        id: 'easy',
+        label: 'EASY',
+        statMult: 1.0,
+        calcReward: (mapLv) => 150 + mapLv * 50
+    },
+    normal: {
+        id: 'normal',
+        label: 'NORMAL',
+        statMult: 1.35,
+        calcReward: (mapLv) => 300 + mapLv * 80
+    },
+    difficult: {
+        id: 'difficult',
+        label: 'DIFFICULT',
+        statMult: 1.75,
+        calcReward: (mapLv) => 500 + mapLv * 120
+    }
+};
+
+// ============================================================================
+// DANH SÁCH NHIỆM VỤ KIẾM GEMS (MISSIONS CATALOG)
+// ============================================================================
+const MISSIONS_CATALOG = [
+    {
+        id: 'm_kills_500',
+        title: 'Tiêu diệt 500 quân địch',
+        statKey: 'kills',
+        target: 500,
+        rewardGems: 20
+    },
+    {
+        id: 'm_diff_3',
+        title: 'Hoàn thành 3 màn cấp Difficult',
+        statKey: 'diffWins',
+        target: 3,
+        rewardGems: 40
+    },
+    {
+        id: 'm_spawn_200',
+        title: 'Gọi 200 đơn vị quân trong trận',
+        statKey: 'spawns',
+        target: 200,
+        rewardGems: 15
+    },
+    {
+        id: 'm_crates_10',
+        title: 'Mở 10 rương Gacha bất kỳ',
+        statKey: 'cratesOpened',
+        target: 10,
+        rewardGems: 25
+    },
+    {
+        id: 'm_merge_5',
+        title: 'Ghép (Merge) tướng thành công 5 lần',
+        statKey: 'merges',
+        target: 5,
+        rewardGems: 30
+    },
+    {
+        id: 'm_wins_10',
+        title: 'Chiến thắng 10 trận đấu bất kỳ',
+        statKey: 'wins',
+        target: 10,
+        rewardGems: 30
+    },
+    {
+        id: 'm_upg_15',
+        title: 'Nâng cấp Level quân đội 15 lần',
+        statKey: 'upgrades',
+        target: 15,
+        rewardGems: 25
+    },
+    {
+        id: 'm_kills_2000',
+        title: 'Tiêu diệt 2000 quân địch',
+        statKey: 'kills',
+        target: 2000,
+        rewardGems: 60
+    }
+];
 
 // ============================================================================
 // HỆ THỐNG LƯỚI ĐỊA HÌNH & TÌM ĐƯỜNG VƯỢT VẬT CẢN / QUA CẦU
@@ -266,49 +435,13 @@ const LEVELS = MAPS_DATA.map((m, idx) => {
     const lv = idx + 1;
     return {
         ...m,
-        enemyBaseHp: 95 + lv * 30,
-        playerBaseHp: 100 + Math.floor(lv / 3) * 10,
-        aiGasInterval: Math.max(0.85, 2.75 - lv * 0.11),
-        aiPlaneInterval: Math.max(14, 32 - lv * 1.1),
-        initialRedUnits: Math.min(5, Math.floor((lv + 1) / 2)),
-        startingGas: lv <= 2 ? 5 : 4
+        playerBaseHp: 100 + Math.floor((lv - 1) / 2) * 15,
+        startingGas: lv <= 3 ? 5 : 4
     };
 });
 
 // ============================================================================
-// CÁC CHẾ ĐỘ TÙY CHỌN TẦM BẮN CHO NHÂN VẬT
-// ============================================================================
-const RANGE_MODES = [
-    {
-        id: 'short',
-        label: 'Cơ Động (Gần)',
-        shortTag: 'Gần',
-        rangeMult: 0.84,
-        fireRateMult: 0.85,
-        speedMult: 1.12
-    },
-    {
-        id: 'standard',
-        label: 'Chuẩn',
-        shortTag: 'Chuẩn',
-        rangeMult: 1.0,
-        fireRateMult: 1.0,
-        speedMult: 1.0
-    },
-    {
-        id: 'long',
-        label: 'Yểm Trợ (Xa)',
-        shortTag: 'Xa',
-        rangeMult: 1.20,
-        fireRateMult: 1.15,
-        speedMult: 0.92
-    }
-];
-
-const unitRangeSelection = {};
-
-// ============================================================================
-// DANH SÁCH BINH CHỦNG (PHÂN HÓA RÕ TẦM BẮN & ANIMATION)
+// DANH SÁCH 11 BINH CHỦNG (UNIT_CATALOG)
 // ============================================================================
 const UNIT_CATALOG = [
     {
@@ -321,7 +454,7 @@ const UNIT_CATALOG = [
         hp: 9,
         speed: 54,
         fireRate: 0.85,
-        range: 48, // Đi bộ súng trường: tầm bắn rất gần, phải áp sát
+        range: 48,
         radius: 12,
         attackType: 'beam',
         animStyle: 'walker_rifle',
@@ -340,7 +473,7 @@ const UNIT_CATALOG = [
         hp: 11,
         speed: 46,
         fireRate: 1.15,
-        range: 84, // Đi bộ vác B41: tầm ngắn-trung
+        range: 84,
         radius: 13,
         attackType: 'bullet',
         projType: 'rocket_short',
@@ -362,7 +495,7 @@ const UNIT_CATALOG = [
         hp: 16,
         speed: 62,
         fireRate: 0.92,
-        range: 115, // Cơ giới bắn đại liên tầm trung
+        range: 115,
         radius: 15,
         attackType: 'bullet',
         projType: 'tracer',
@@ -495,7 +628,7 @@ const UNIT_CATALOG = [
         hp: 22,
         speed: 32,
         fireRate: 1.5,
-        range: 215, // Pháo binh bắn cầu vồng tầm cực xa
+        range: 215,
         radius: 17,
         attackType: 'bullet',
         projType: 'arc_missile',
@@ -518,7 +651,7 @@ const UNIT_CATALOG = [
         hp: 42,
         speed: 30,
         fireRate: 1.38,
-        range: 230, // Đại pháo hạm đội tầm xa nhất
+        range: 230,
         radius: 20,
         attackType: 'bullet',
         projType: 'arc_shell',
@@ -536,9 +669,9 @@ const UNIT_CATALOG = [
         name: 'Không Kích',
         role: 'Oanh tạc ✈️ • Toàn bản đồ',
         spriteCol: 10,
-        damage: 14,
+        damage: 15,
         baseDamage: 20,
-        cost: 12,
+        cost: 10,
         hp: 1,
         speed: 350,
         fireRate: 1,
@@ -556,29 +689,276 @@ const UNIT_CATALOG = [
 const UNIT_BY_ID = {};
 UNIT_CATALOG.forEach(u => {
     UNIT_BY_ID[u.id] = u;
-    unitRangeSelection[u.id] = 1; // Mặc định chế độ 'Chuẩn'
 });
 
-function getEffectiveUnitStats(spec, isPlayer = true) {
-    if (!spec || spec.isAirstrike) return { range: 999, fireRate: 1, speed: 350, mode: RANGE_MODES[1] };
-    const modeIdx = isPlayer ? (unitRangeSelection[spec.id] ?? 1) : 1;
-    const mode = RANGE_MODES[modeIdx] || RANGE_MODES[1];
-    return {
-        range: Math.round(spec.range * mode.rangeMult),
-        fireRate: +(spec.fireRate * mode.fireRateMult).toFixed(2),
-        speed: Math.round(spec.speed * mode.speedMult),
-        mode
-    };
+// ============================================================================
+// DANH SÁCH THẺ BUFF KHI LÊN CẤP TRONG TRẬN
+// ============================================================================
+const BUFF_CATALOG = [
+    {
+        id: 'buff_dmg',
+        name: 'Đạn Xuyên Giáp',
+        tag: 'NÂNG CẤP HỎA LỰC',
+        desc: '+25% Sát thương cho toàn bộ quân đội Xanh',
+        iconCol: 11,
+        iconRow: 10,
+        apply: () => {
+            game.buffs.dmgMult += 0.25;
+            game.units.forEach(u => {
+                if (u.team === 'blue') {
+                    const spec = UNIT_BY_ID[u.unitId];
+                    if (spec) {
+                        u.damage = getEffectiveUnitStats(spec, true).damage;
+                    }
+                }
+            });
+            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '⚔️ +25% SÁT THƯƠNG TOÀN QUÂN!', '#fde047', 15);
+        }
+    },
+    {
+        id: 'buff_hp',
+        name: 'Giáp Hợp Kim',
+        tag: 'NÂNG CẤP PHÒNG THỦ',
+        desc: '+25% Máu tối đa cho quân Xanh & Hồi 100% máu quân trên sân',
+        iconCol: 15,
+        iconRow: 10,
+        apply: () => {
+            game.buffs.hpMult += 0.25;
+            game.units.forEach(u => {
+                if (u.team === 'blue') {
+                    const spec = UNIT_BY_ID[u.unitId];
+                    if (spec) {
+                        u.maxHp = getEffectiveUnitStats(spec, true).hp;
+                        u.hp = u.maxHp;
+                    }
+                }
+            });
+            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '🛡️ +25% MÁU & HỒI PHỤC TOÀN QUÂN!', '#34d399', 15);
+        }
+    },
+    {
+        id: 'buff_haste',
+        name: 'Nòng Pháo Siêu Tốc',
+        tag: 'NÂNG CẤP TỐC BẮN',
+        desc: '+20% Tốc độ bắn & +12% Tầm bắn cho toàn bộ quân Xanh',
+        iconCol: 7,
+        iconRow: 3,
+        apply: () => {
+            game.buffs.fireRateMult *= 0.82;
+            game.buffs.rangeMult += 0.12;
+            game.units.forEach(u => {
+                if (u.team === 'blue') {
+                    u.fireRate = Math.max(0.25, +(u.baseFireRate * game.buffs.fireRateMult).toFixed(2));
+                    u.range = Math.round(u.baseRange * game.buffs.rangeMult);
+                }
+            });
+            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '🎯 +20% TỐC BẮN & +12% TẦM BẮN!', '#38bdf8', 15);
+        }
+    },
+    {
+        id: 'buff_supply',
+        name: 'Tiếp Viện Khẩn Cấp',
+        tag: 'HẬU CẦN CHIẾN TRƯỜNG',
+        desc: 'Nhận ngay +7 Bình Xăng & Sửa chữa +35 HP Căn cứ Xanh',
+        iconCol: 12,
+        iconRow: 10,
+        apply: () => {
+            game.gasCount = Math.min(game.maxGas, game.gasCount + 7);
+            game.blueBase.hp = Math.min(game.blueBase.maxHp, game.blueBase.hp + 35);
+            addFloatingText(LOGICAL_WIDTH / 2, game.blueBase.y - 40, '⛽ +7 XĂNG & +35 HP CĂN CỨ!', '#4ade80', 15);
+        }
+    }
+];
+
+// ============================================================================
+// TRẠNG THÁI META-GAME & LƯU TRỮ LOCALSTORAGE
+// ============================================================================
+let metaState = {
+    playerName: '',
+    coins: 250,
+    gems: 300,
+    usedCodes: [],
+    mapDifficultyProgress: {
+        1: { easy: false, normal: false, difficult: false }
+    },
+    inventory: [],
+    armyPermanentLevels: {},
+    missionsProgress: {
+        kills: 0,
+        diffWins: 0,
+        spawns: 0,
+        cratesOpened: 0,
+        merges: 0,
+        wins: 0,
+        upgrades: 0,
+        claimed: {}
+    }
+};
+
+let currentLobbyTab = 'battle';
+let currentStageViewLevel = 1;
+let currentSelectedDifficulty = 'easy';
+let currentArmyMode = 'army'; // 'army' | 'merge'
+let showcaseUnitId = 'infantry';
+let inspectingUnitId = 'infantry';
+let mergeSelectedCardUids = [];
+
+function createDefaultInventory() {
+    const starterUnits = ['infantry', 'bazooka', 'humvee', 'apc'];
+    return starterUnits.map((unitId, idx) => ({
+        uid: 'init_card_' + idx + '_' + Date.now(),
+        unitId,
+        rarity: 'common'
+    }));
 }
 
-function getRangeCategoryLabel(range) {
-    if (range >= 900) return 'Toàn Map';
-    if (range <= 60) return `Rất gần (${range})`;
-    if (range <= 98) return `Ngắn (${range})`;
-    if (range <= 145) return `Trung (${range})`;
-    if (range <= 185) return `Xa (${range})`;
-    return `Siêu xa (${range})`;
+function createDefaultArmyLevels() {
+    const lvMap = {};
+    UNIT_CATALOG.forEach(u => {
+        lvMap[u.id] = 1;
+    });
+    return lvMap;
 }
+
+function createDefaultMapDifficultyProgress() {
+    const prog = {};
+    for (let i = 1; i <= LEVELS.length; i++) {
+        prog[i] = { easy: false, normal: false, difficult: false };
+    }
+    return prog;
+}
+
+function loadProgress() {
+    const defaultLevels = createDefaultArmyLevels();
+    const defaultMapProg = createDefaultMapDifficultyProgress();
+
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            metaState.playerName = typeof parsed.playerName === 'string' ? parsed.playerName : '';
+            metaState.coins = typeof parsed.coins === 'number' ? parsed.coins : 250;
+            metaState.gems = typeof parsed.gems === 'number' ? parsed.gems : 300;
+            metaState.usedCodes = Array.isArray(parsed.usedCodes) ? parsed.usedCodes : [];
+
+            metaState.mapDifficultyProgress = defaultMapProg;
+            if (parsed.mapDifficultyProgress && typeof parsed.mapDifficultyProgress === 'object') {
+                for (let i = 1; i <= LEVELS.length; i++) {
+                    if (parsed.mapDifficultyProgress[i]) {
+                        metaState.mapDifficultyProgress[i] = {
+                            easy: !!parsed.mapDifficultyProgress[i].easy,
+                            normal: !!parsed.mapDifficultyProgress[i].normal,
+                            difficult: !!parsed.mapDifficultyProgress[i].difficult
+                        };
+                    }
+                }
+            }
+
+            if (Array.isArray(parsed.inventory) && parsed.inventory.length > 0) {
+                metaState.inventory = parsed.inventory.filter(
+                    item => item && UNIT_BY_ID[item.unitId] && RARITY_CONFIG[item.rarity]
+                );
+            } else {
+                metaState.inventory = createDefaultInventory();
+            }
+
+            metaState.armyPermanentLevels = { ...defaultLevels, ...(parsed.armyPermanentLevels || {}) };
+
+            const mp = parsed.missionsProgress || {};
+            metaState.missionsProgress = {
+                kills: Number(mp.kills) || 0,
+                diffWins: Number(mp.diffWins) || 0,
+                spawns: Number(mp.spawns) || 0,
+                cratesOpened: Number(mp.cratesOpened) || 0,
+                merges: Number(mp.merges) || 0,
+                wins: Number(mp.wins) || 0,
+                upgrades: Number(mp.upgrades) || 0,
+                claimed: mp.claimed && typeof mp.claimed === 'object' ? mp.claimed : {}
+            };
+        } else {
+            metaState.playerName = '';
+            metaState.coins = 250;
+            metaState.gems = 300;
+            metaState.usedCodes = [];
+            metaState.mapDifficultyProgress = defaultMapProg;
+            metaState.inventory = createDefaultInventory();
+            metaState.armyPermanentLevels = defaultLevels;
+        }
+    } catch (e) {
+        metaState.mapDifficultyProgress = defaultMapProg;
+        metaState.inventory = createDefaultInventory();
+        metaState.armyPermanentLevels = defaultLevels;
+    }
+
+    currentStageViewLevel = getMaxUnlockedMapLevel();
+    currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
+}
+
+function saveProgress() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(metaState));
+    } catch (e) {}
+}
+
+function getMaxUnlockedMapLevel() {
+    let maxLv = 1;
+    for (let i = 1; i < LEVELS.length; i++) {
+        const prog = metaState.mapDifficultyProgress[i];
+        if (prog && prog.difficult) {
+            maxLv = i + 1;
+        } else {
+            break;
+        }
+    }
+    return maxLv;
+}
+
+function isDifficultyUnlocked(mapLv, diffId) {
+    if (mapLv > getMaxUnlockedMapLevel()) return false;
+    const prog = metaState.mapDifficultyProgress[mapLv] || { easy: false, normal: false, difficult: false };
+    if (diffId === 'easy') return true;
+    if (diffId === 'normal') return !!prog.easy;
+    if (diffId === 'difficult') return !!prog.normal;
+    return false;
+}
+
+function getDefaultDifficultyForMap(mapLv) {
+    const prog = metaState.mapDifficultyProgress[mapLv] || { easy: false, normal: false, difficult: false };
+    if (!prog.easy) return 'easy';
+    if (!prog.normal) return 'normal';
+    return 'difficult';
+}
+
+function getHighestRarityForUnit(unitId) {
+    let bestRarity = 'common';
+    let bestRank = -1;
+
+    for (const card of metaState.inventory) {
+        if (card.unitId === unitId && RARITY_CONFIG[card.rarity]) {
+            const rRank = RARITY_CONFIG[card.rarity].rank;
+            if (rRank > bestRank) {
+                bestRank = rRank;
+                bestRarity = card.rarity;
+            }
+        }
+    }
+    return bestRarity;
+}
+
+function hasUnitInInventory(unitId) {
+    return metaState.inventory.some(c => c.unitId === unitId);
+}
+
+function getUnitUpgradeCost(currentLv) {
+    return Math.round(100 * Math.pow(1.35, currentLv - 1));
+}
+
+function formatCurrency(val) {
+    const n = Math.floor(Number(val) || 0);
+    return n.toLocaleString('en-US');
+}
+
+loadProgress();
 
 // ============================================================================
 // QUẢN LÝ SPRITE ATLAS ("Preview.png")
@@ -961,13 +1341,11 @@ class SpriteAtlas {
 
         this.ready = true;
         this.populateUIDeckIcons();
-        this.renderMenuHeroArt();
+        this.renderTopAvatarArt();
         buildStaticMapCanvas(game.currentLevel);
-        renderLevelGrid();
+        renderStageScreenUI();
+        renderArmyTabUI();
         renderBattleDeckButtons();
-        if (unitSelectEl.classList.contains('active')) {
-            renderUnitSelectionUI();
-        }
     }
 
     get(col, row) {
@@ -1015,24 +1393,13 @@ class SpriteAtlas {
         });
     }
 
-    renderMenuHeroArt() {
-        const heroCanvas = document.getElementById('menuHeroCanvas');
-        if (!heroCanvas) return;
-        const hCtx = heroCanvas.getContext('2d');
-        hCtx.imageSmoothingEnabled = false;
-        hCtx.clearRect(0, 0, 120, 120);
-
-        for (let r = 1; r <= 2; r++) {
-            for (let c = 1; c <= 2; c++) {
-                const grass = this.get((r + c) % 3, 0);
-                if (grass) hCtx.drawImage(grass, c * 36 - 14, r * 36 - 10, 36, 36);
-            }
-        }
-        this.draw(hCtx, 9, 2, 60, 34, 38, 38);
-        this.draw(hCtx, 16, 2, 28, 34, 28, 28);
-        this.draw(hCtx, 8, 7, 46, 76, 44, 44);
-        this.draw(hCtx, 14, 7, 82, 78, 38, 38);
-        this.draw(hCtx, 10, 7, 62, 24, 34, 34, { rotation: -Math.PI / 4 });
+    renderTopAvatarArt() {
+        const avatarCanvas = document.getElementById('topAvatarCanvas');
+        if (!avatarCanvas) return;
+        const aCtx = avatarCanvas.getContext('2d');
+        aCtx.imageSmoothingEnabled = false;
+        aCtx.clearRect(0, 0, 32, 32);
+        this.draw(aCtx, 16, 7, 16, 17, 26, 26);
     }
 }
 
@@ -2409,8 +2776,8 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
                 targetCtx.fillRect(bx - 13, cy - 13, 26, 14);
             });
         };
-        drawThreeMiniBases(42, true);
-        drawThreeMiniBases(H - 42, false);
+        drawThreeMiniBases(42, false);
+        drawThreeMiniBases(H - 42, true);
     }
 
     targetCtx.restore();
@@ -2428,23 +2795,51 @@ const GAS_UPGRADE_LEVELS = [
     { level: 6, interval: 0.55, cost: 0, label: 'MAX' }
 ];
 
-let completedLevels = new Set();
-let pendingSelectLevel = 1;
-let selectedDeckIds = ['infantry', 'bazooka', 'tank', 'airstrike'];
-
+// ============================================================================
+// TRẠNG THÁI GAME TRONG TRẬN (WAVE SURVIVAL + EXP + ROGUELIKE DECK 5 Ô)
+// ============================================================================
 let game = {
     inMenu: true,
     paused: false,
+    draftActive: false,
     gameOver: false,
     currentLevel: 1,
+    currentDifficulty: 'easy',
     elapsedTime: 0,
     showRangeCircles: true,
 
+    // Thanh xăng
     gasUpgradeIndex: 0,
     gasInterval: 3.0,
     gasTimer: 3.0,
     gasCount: 0,
     maxGas: 99,
+
+    // Deck 5 ô quân trong trận & cấp độ nâng cấp từng quân
+    battleDeck: [],
+    unitLevels: {},
+    buffs: {
+        dmgMult: 1.0,
+        hpMult: 1.0,
+        fireRateMult: 1.0,
+        rangeMult: 1.0
+    },
+
+    // Hệ thống EXP & Level trong trận
+    currentLevelInBattle: 1,
+    playerExp: 0,
+    expToNextLevel: 8,
+    pendingDraftCount: 0,
+
+    // Hệ thống 10 Wave Sinh tồn
+    currentWave: 1,
+    maxWaves: MAX_WAVES,
+    waveState: 'spawning', // 'spawning' | 'fighting' | 'intermission'
+    waveTotalEnemies: 0,
+    waveSpawnQueue: [],
+    waveSpawnTimer: 0,
+    waveIntermissionTimer: 0,
+    waveIntermissionMax: 3.5,
 
     rallyX: null,
 
@@ -2457,20 +2852,13 @@ let game = {
         hp: 100,
         maxHp: 100
     },
-    redBase: {
+    redOutpost: {
         team: 'red',
         x: LOGICAL_WIDTH / 2,
         y: 64,
         width: 268,
-        height: 64,
-        hp: 100,
-        maxHp: 100
+        height: 64
     },
-
-    aiGas: 2,
-    aiGasTimer: 0,
-    aiDecisionTimer: 1.5,
-    aiPlaneTimer: 0,
 
     units: [],
     bullets: [],
@@ -2486,6 +2874,10 @@ let game = {
         kills: 0
     }
 };
+
+function calcExpRequired(lv) {
+    return 8 + (lv - 1) * 6;
+}
 
 function buildStaticMapCanvas(levelNum = game.currentLevel) {
     const off = document.createElement('canvas');
@@ -2517,14 +2909,24 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-const mainMenuEl = document.getElementById('main-menu');
-const levelSelectEl = document.getElementById('level-select-screen');
-const unitSelectEl = document.getElementById('unit-select-screen');
-const levelGridEl = document.getElementById('level-grid');
+// ============================================================================
+// DOM ELEMENTS CHÍNH
+// ============================================================================
+const lobbyWrapperEl = document.getElementById('lobby-wrapper');
+const draftModalEl = document.getElementById('draft-modal');
+const draftCardsContainerEl = document.getElementById('draft-cards-container');
+const draftBadgeTextEl = document.getElementById('draft-badge-text');
+const draftTitleEl = document.getElementById('draft-title');
+const draftSubtitleEl = document.getElementById('draft-subtitle');
+
 const gasCountTextEl = document.getElementById('gas-count-text');
 const speedIndicatorEl = document.getElementById('speed-indicator');
 const currentLevelLabelEl = document.getElementById('current-level-label');
 const gasRateLabelEl = document.getElementById('gas-rate-label');
+
+const battleLvLabelEl = document.getElementById('battle-lv-label');
+const battleExpLabelEl = document.getElementById('battle-exp-label');
+const battleExpFillEl = document.getElementById('battle-exp-fill');
 
 const btnUpgradeGasEl = document.getElementById('btnUpgradeGas');
 const upgradeCostTextEl = document.getElementById('upgrade-cost-text');
@@ -2541,248 +2943,1426 @@ const gasLoadEls = [
 ];
 
 // ============================================================================
-// HIỂN THỊ BẢNG CHỌN 15 MAP
+// HỆ THỐNG GIAO DIỆN LOBBY, TOP BAR, 3 TABS & MODALS META-GAME
 // ============================================================================
-function renderLevelGrid() {
-    levelGridEl.innerHTML = '';
-    LEVELS.forEach(cfg => {
-        const cell = document.createElement('button');
-        cell.className = 'level-cell' + (completedLevels.has(cfg.level) ? ' completed' : '');
-
-        const miniCanvas = document.createElement('canvas');
-        miniCanvas.width = 96;
-        miniCanvas.height = 128;
-        miniCanvas.className = 'level-cell-canvas pixel-art';
-        const mCtx = miniCanvas.getContext('2d');
-        renderMap1To15(mCtx, miniCanvas.width, miniCanvas.height, cfg.level, true);
-
-        const waterTag = document.createElement('span');
-        waterTag.className = 'level-water-tag';
-        waterTag.textContent = cfg.hasWater ? '🌊' : '⛰️';
-
-        const nameBar = document.createElement('span');
-        nameBar.className = 'level-name-bar';
-        nameBar.textContent = cfg.name;
-
-        const numBadge = document.createElement('span');
-        numBadge.className = 'level-num-corner';
-        numBadge.textContent = cfg.level;
-
-        cell.appendChild(miniCanvas);
-        cell.appendChild(waterTag);
-        cell.appendChild(nameBar);
-        cell.appendChild(numBadge);
-
-        cell.addEventListener('click', () => {
-            sfx.play('spawn');
-            openUnitSelectForLevel(cfg.level);
-        });
-        levelGridEl.appendChild(cell);
-    });
+function updateTopBarUI() {
+    const nameEl = document.getElementById('player-name-display');
+    if (nameEl) {
+        nameEl.textContent = metaState.playerName || 'COMMANDER';
+    }
+    const gemsEl = document.getElementById('gems-count-display');
+    if (gemsEl) {
+        gemsEl.textContent = formatCurrency(metaState.gems);
+    }
+    const coinsEl = document.getElementById('coins-count-display');
+    if (coinsEl) {
+        coinsEl.textContent = formatCurrency(metaState.coins);
+    }
+    updateMissionNotificationDot();
 }
 
-window.openLevelSelect = function() {
+function switchLobbyTab(tabName) {
+    currentLobbyTab = tabName;
+    sfx.play('gas');
+
+    document.querySelectorAll('.lobby-tab-pane').forEach(pane => {
+        pane.classList.remove('active');
+    });
+    const targetPane = document.getElementById(`tab-${tabName}`);
+    if (targetPane) targetPane.classList.add('active');
+
+    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        if (btn.getAttribute('data-tab') === tabName) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    if (tabName === 'battle') {
+        renderStageScreenUI();
+    } else if (tabName === 'army') {
+        renderArmyTabUI();
+    }
+    updateTopBarUI();
+}
+
+window.openLobbyScreen = function(tabName = 'battle') {
     game.inMenu = true;
+    game.draftActive = false;
+    game.paused = false;
+    draftModalEl.classList.remove('active');
     document.getElementById('win-panel').classList.remove('active');
     document.getElementById('lose-panel').classList.remove('active');
-    mainMenuEl.classList.remove('active');
-    unitSelectEl.classList.remove('active');
-    renderLevelGrid();
-    levelSelectEl.classList.add('active');
+
+    if (lobbyWrapperEl) {
+        lobbyWrapperEl.classList.add('active');
+    }
+    switchLobbyTab(tabName);
 };
 
-window.openUnitSelectForLevel = function(levelNum) {
-    pendingSelectLevel = levelNum;
-    const cfg = LEVELS[levelNum - 1] || LEVELS[0];
+window.openStageScreen = function(levelNum = getMaxUnlockedMapLevel()) {
+    currentStageViewLevel = Math.max(1, Math.min(getMaxUnlockedMapLevel(), levelNum));
+    currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
+    window.openLobbyScreen('battle');
+};
 
-    if (!cfg.hasWater) {
-        selectedDeckIds = selectedDeckIds.filter(id => {
-            const u = UNIT_BY_ID[id];
-            return u && !u.isNaval;
-        });
-        if (selectedDeckIds.length === 0) {
-            selectedDeckIds = ['infantry', 'bazooka', 'tank', 'airstrike'];
+// Gắn sự kiện Bottom Navigation Bar (3 Tabs: SHOP - BATTLE - ARMY)
+document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab');
+        if (tab) switchLobbyTab(tab);
+    });
+});
+
+// ============================================================================
+// 1. POPUP ĐẶT TÊN NHÂN VẬT LẦN ĐẦU VÀO GAME
+// ============================================================================
+function checkAndPromptPlayerName(forceOpen = false) {
+    const modal = document.getElementById('name-modal');
+    const input = document.getElementById('player-name-input');
+    const errEl = document.getElementById('name-error-msg');
+    if (!modal || !input) return;
+
+    if (forceOpen || !metaState.playerName || metaState.playerName.trim() === '') {
+        input.value = metaState.playerName || '';
+        if (errEl) errEl.classList.add('hidden');
+        modal.classList.add('active');
+        setTimeout(() => input.focus(), 80);
+    }
+}
+
+document.getElementById('btn-edit-name')?.addEventListener('click', () => {
+    sfx.play('gas');
+    checkAndPromptPlayerName(true);
+});
+
+document.getElementById('btn-confirm-name')?.addEventListener('click', () => {
+    const input = document.getElementById('player-name-input');
+    const errEl = document.getElementById('name-error-msg');
+    if (!input) return;
+
+    const val = input.value.trim();
+    if (val.length < 1 || val.length > 14) {
+        if (errEl) errEl.classList.remove('hidden');
+        sfx.play('cannon');
+        return;
+    }
+
+    metaState.playerName = val;
+    saveProgress();
+    updateTopBarUI();
+    sfx.play('upgrade');
+    document.getElementById('name-modal')?.classList.remove('active');
+});
+
+document.getElementById('player-name-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('btn-confirm-name')?.click();
+    }
+});
+
+// ============================================================================
+// 2. TAB "BATTLE": CHỌN MAP, ĐỘ KHÓ (EASY - NORMAL - DIFFICULT), DEMO MAP
+// ============================================================================
+function renderStageScreenUI() {
+    const maxUnlocked = getMaxUnlockedMapLevel();
+    currentStageViewLevel = Math.max(1, Math.min(maxUnlocked, currentStageViewLevel));
+    const cfg = LEVELS[currentStageViewLevel - 1] || LEVELS[0];
+    const mapProg = metaState.mapDifficultyProgress[cfg.level] || { easy: false, normal: false, difficult: false };
+
+    if (!isDifficultyUnlocked(cfg.level, currentSelectedDifficulty)) {
+        currentSelectedDifficulty = getDefaultDifficultyForMap(cfg.level);
+    }
+
+    const titleEl = document.getElementById('stage-map-title');
+    if (titleEl) titleEl.textContent = `${cfg.level}. ${cfg.name.toUpperCase()}`;
+
+    const progressTextEl = document.getElementById('stage-progress-text');
+    if (progressTextEl) {
+        progressTextEl.textContent = `ĐÃ MỞ KHÓA: MAP ${maxUnlocked} / ${LEVELS.length}`;
+    }
+
+    const prevBtn = document.getElementById('btn-prev-stage');
+    if (prevBtn) prevBtn.disabled = currentStageViewLevel <= 1;
+
+    const nextBtn = document.getElementById('btn-next-stage');
+    if (nextBtn) nextBtn.disabled = currentStageViewLevel >= maxUnlocked;
+
+    // Cập nhật 3 nút độ khó Easy - Normal - Difficult
+    DIFFICULTY_ORDER.forEach(diffKey => {
+        const btn = document.getElementById(`diff-btn-${diffKey}`);
+        const statusEl = document.getElementById(`diff-status-${diffKey}`);
+        const unlocked = isDifficultyUnlocked(cfg.level, diffKey);
+        const cleared = !!mapProg[diffKey];
+
+        if (btn) {
+            btn.classList.toggle('active', currentSelectedDifficulty === diffKey);
+            btn.classList.toggle('locked', !unlocked);
+        }
+        if (statusEl) {
+            if (!unlocked) statusEl.textContent = '🔒';
+            else if (cleared) statusEl.textContent = '✓';
+            else statusEl.textContent = '★';
+        }
+    });
+
+    // Banner thông tin hệ số quái & phần thưởng Vàng
+    const diffCfg = DIFFICULTY_CONFIG[currentSelectedDifficulty] || DIFFICULTY_CONFIG.easy;
+    const rewardCoins = diffCfg.calcReward(cfg.level);
+    const diffBannerEl = document.getElementById('diff-info-banner');
+    if (diffBannerEl) {
+        diffBannerEl.innerHTML = `Quái: <b>${diffCfg.statMult}x HP & DMG</b> • Thưởng thắng: <b class="text-amber-300">🪙 ${formatCurrency(rewardCoins)} Coins</b>`;
+    }
+
+    const waterBadge = document.getElementById('select-map-water-badge');
+    if (waterBadge) {
+        if (cfg.hasWater) {
+            waterBadge.className = 'map-water-pill has-water';
+            waterBadge.textContent = '🌊 CÓ NƯỚC: CÓ THỦY QUÂN';
+        } else {
+            waterBadge.className = 'map-water-pill no-water';
+            waterBadge.textContent = '⛰️ KHÔNG NƯỚC: LỤC & KHÔNG QUÂN';
         }
     }
 
-    game.inMenu = true;
-    document.getElementById('win-panel').classList.remove('active');
-    document.getElementById('lose-panel').classList.remove('active');
-    mainMenuEl.classList.remove('active');
-    levelSelectEl.classList.remove('active');
-
-    renderUnitSelectionUI();
-    unitSelectEl.classList.add('active');
-};
-
-function renderUnitSelectionUI() {
-    const cfg = LEVELS[pendingSelectLevel - 1] || LEVELS[0];
-    document.getElementById('select-map-num').textContent = `MAP ${cfg.level}`;
-    document.getElementById('select-map-title').textContent = cfg.name;
-
-    const waterBadge = document.getElementById('select-map-water-badge');
-    if (cfg.hasWater) {
-        waterBadge.className = 'water-status-badge has-water mt-1';
-        waterBadge.textContent = '🌊 CÓ NƯỚC: Thuyền đi dưới nước, Bộ binh phải qua cầu';
-    } else {
-        waterBadge.className = 'water-status-badge no-water mt-1';
-        waterBadge.textContent = '🚫 KHÔNG CÓ NƯỚC: Thuyền bị khóa, Bộ binh lách vật cản';
+    const clearedStampEl = document.getElementById('stage-cleared-stamp');
+    if (clearedStampEl) {
+        if (mapProg[currentSelectedDifficulty]) {
+            clearedStampEl.classList.remove('hidden');
+            clearedStampEl.textContent = `✓ ĐÃ THẮNG (${diffCfg.label})`;
+        } else {
+            clearedStampEl.classList.add('hidden');
+        }
     }
 
-    document.getElementById('select-map-desc').textContent = cfg.desc;
-    const stars = '★'.repeat(Math.min(5, Math.ceil(cfg.level / 3))) + '☆'.repeat(5 - Math.min(5, Math.ceil(cfg.level / 3)));
-    document.getElementById('select-map-stats').textContent = `HP Pháo đài Đỏ: ${cfg.enemyBaseHp} | Độ khó: ${stars}`;
+    const descEl = document.getElementById('select-map-desc');
+    if (descEl) descEl.textContent = cfg.desc;
 
     renderMapPreviewThumb(cfg.level);
+    updateTopBarUI();
+}
 
-    const slotsContainer = document.getElementById('selected-deck-slots');
-    slotsContainer.innerHTML = '';
-    document.getElementById('deck-count-badge').textContent = `${selectedDeckIds.length} / 4`;
+document.getElementById('btn-prev-stage')?.addEventListener('click', () => {
+    if (currentStageViewLevel > 1) {
+        currentStageViewLevel--;
+        currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
+        sfx.play('gas');
+        renderStageScreenUI();
+    }
+});
 
-    for (let i = 0; i < 4; i++) {
-        const unitId = selectedDeckIds[i];
+document.getElementById('btn-next-stage')?.addEventListener('click', () => {
+    if (currentStageViewLevel < getMaxUnlockedMapLevel()) {
+        currentStageViewLevel++;
+        currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
+        sfx.play('gas');
+        renderStageScreenUI();
+    }
+});
+
+DIFFICULTY_ORDER.forEach(diffKey => {
+    const btn = document.getElementById(`diff-btn-${diffKey}`);
+    if (btn) {
+        btn.addEventListener('click', () => {
+            if (!isDifficultyUnlocked(currentStageViewLevel, diffKey)) {
+                sfx.play('cannon');
+                return;
+            }
+            currentSelectedDifficulty = diffKey;
+            sfx.play('gas');
+            renderStageScreenUI();
+        });
+    }
+});
+
+document.getElementById('btn-start-battle')?.addEventListener('click', () => {
+    sfx.play('spawn');
+    startLevel(currentStageViewLevel, currentSelectedDifficulty);
+});
+
+// ============================================================================
+// 3. HỆ THỐNG NHIỆM VỤ (MISSIONS MODAL) & GIFTCODE (HUNGDEPTRAI)
+// ============================================================================
+function updateMissionNotificationDot() {
+    const dotEl = document.getElementById('mission-notif-dot');
+    if (!dotEl) return;
+    const mp = metaState.missionsProgress;
+    const hasClaimable = MISSIONS_CATALOG.some(m => {
+        const cur = Number(mp[m.statKey]) || 0;
+        return cur >= m.target && !mp.claimed[m.id];
+    });
+    dotEl.classList.toggle('hidden', !hasClaimable);
+}
+
+function renderMissionsList() {
+    const container = document.getElementById('mission-list-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const mp = metaState.missionsProgress;
+
+    MISSIONS_CATALOG.forEach(m => {
+        const cur = Math.min(m.target, Number(mp[m.statKey]) || 0);
+        const pct = Math.max(0, Math.min(100, Math.round((cur / m.target) * 100)));
+        const isClaimed = !!mp.claimed[m.id];
+        const canClaim = cur >= m.target && !isClaimed;
+
+        const item = document.createElement('div');
+        item.className = 'mission-item-card';
+        item.innerHTML = `
+            <div class="flex-1 text-left">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold text-slate-900">${m.title}</span>
+                    <span class="text-[11px] font-black text-emerald-600">💎 +${m.rewardGems}</span>
+                </div>
+                <div class="mission-progress-track">
+                    <div class="mission-progress-fill" style="width: ${pct}%"></div>
+                </div>
+                <div class="text-[10px] font-bold text-slate-500 mt-0.5">
+                    Tiến độ: ${cur} / ${m.target}
+                </div>
+            </div>
+            <div>
+                <button class="btn-3d ${canClaim ? 'btn-3d-green' : 'btn-3d-yellow'} px-3 py-1.5 text-[11px]" ${canClaim ? '' : 'disabled'}>
+                    ${isClaimed ? 'ĐÃ NHẬN' : (canClaim ? 'NHẬN' : 'CHƯA ĐẠT')}
+                </button>
+            </div>
+        `;
+
+        const btn = item.querySelector('button');
+        if (btn && canClaim) {
+            btn.addEventListener('click', () => {
+                metaState.missionsProgress.claimed[m.id] = true;
+                metaState.gems += m.rewardGems;
+                saveProgress();
+                sfx.play('upgrade');
+                renderMissionsList();
+                updateTopBarUI();
+            });
+        }
+
+        container.appendChild(item);
+    });
+}
+
+document.getElementById('btn-open-missions')?.addEventListener('click', () => {
+    sfx.play('gas');
+    renderMissionsList();
+    document.getElementById('mission-modal')?.classList.add('active');
+});
+
+document.getElementById('btn-close-missions')?.addEventListener('click', () => {
+    document.getElementById('mission-modal')?.classList.remove('active');
+});
+
+// Giftcode Modal
+document.getElementById('btn-open-code')?.addEventListener('click', () => {
+    sfx.play('gas');
+    const input = document.getElementById('giftcode-input');
+    const fb = document.getElementById('giftcode-feedback');
+    if (input) input.value = '';
+    if (fb) fb.classList.add('hidden');
+    document.getElementById('code-modal')?.classList.add('active');
+});
+
+document.getElementById('btn-close-code')?.addEventListener('click', () => {
+    document.getElementById('code-modal')?.classList.remove('active');
+});
+
+document.getElementById('btn-submit-code')?.addEventListener('click', () => {
+    const input = document.getElementById('giftcode-input');
+    const fb = document.getElementById('giftcode-feedback');
+    if (!input || !fb) return;
+
+    const rawCode = input.value.trim().toUpperCase();
+    fb.classList.remove('hidden');
+
+    if (!rawCode) {
+        fb.className = 'text-xs font-extrabold mt-2 text-rose-600';
+        fb.textContent = '⚠️ Vui lòng nhập mã Giftcode!';
+        sfx.play('cannon');
+        return;
+    }
+
+    if (rawCode === 'HUNGDEPTRAI') {
+        metaState.gems += 999999;
+        metaState.coins += 999999999;
+        if (!metaState.usedCodes.includes(rawCode)) {
+            metaState.usedCodes.push(rawCode);
+        }
+        saveProgress();
+        updateTopBarUI();
+        sfx.play('upgrade');
+
+        fb.className = 'text-xs font-extrabold mt-2 text-emerald-600';
+        fb.innerHTML = '🎉 CHÚC MỪNG! Đã cộng <b>+999,999 Gems</b> & <b>+999,999,999 Coins</b>!';
+        input.value = '';
+    } else {
+        fb.className = 'text-xs font-extrabold mt-2 text-rose-600';
+        fb.textContent = '❌ Mã Giftcode không hợp lệ hoặc đã hết hạn!';
+        sfx.play('cannon');
+    }
+});
+
+// ============================================================================
+// 4. TAB "SHOP": MỞ RƯƠNG GACHA TƯỚNG (LEGENDARY CRATE & EPIC CRATE)
+// ============================================================================
+function rollRarityFromTable(oddsTable) {
+    const rand = Math.random() * 100;
+    let acc = 0;
+    for (const item of oddsTable) {
+        acc += item.weight;
+        if (rand <= acc) return item.rarity;
+    }
+    return oddsTable[0].rarity;
+}
+
+function openGachaCrate(crateType, count) {
+    const isLegendary = crateType === 'legendary';
+    const cost = isLegendary
+        ? (count === 10 ? 2700 : 300)
+        : (count === 10 ? 1350 : 150);
+
+    if (metaState.gems < cost) {
+        alert(`Bạn không đủ Gems! Cần ${formatCurrency(cost)} 💎 Gems (Hiện có: ${formatCurrency(metaState.gems)} 💎).`);
+        sfx.play('cannon');
+        return;
+    }
+
+    metaState.gems -= cost;
+    metaState.missionsProgress.cratesOpened = (metaState.missionsProgress.cratesOpened || 0) + count;
+
+    const oddsTable = isLegendary
+        ? [
+            { rarity: 'uncommon', weight: 50 },
+            { rarity: 'rare', weight: 35 },
+            { rarity: 'epic', weight: 12 },
+            { rarity: 'legendary', weight: 3 }
+        ]
+        : [
+            { rarity: 'common', weight: 55 },
+            { rarity: 'uncommon', weight: 30 },
+            { rarity: 'rare', weight: 12 },
+            { rarity: 'epic', weight: 3 }
+        ];
+
+    const pulledCards = [];
+    for (let i = 0; i < count; i++) {
+        const rarity = rollRarityFromTable(oddsTable);
+        const randomUnit = UNIT_CATALOG[Math.floor(Math.random() * UNIT_CATALOG.length)];
+        const newCard = {
+            uid: 'card_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '_' + i,
+            unitId: randomUnit.id,
+            rarity
+        };
+        metaState.inventory.push(newCard);
+        pulledCards.push(newCard);
+    }
+
+    saveProgress();
+    updateTopBarUI();
+    sfx.play('upgrade');
+
+    // Hiển thị Popup Kết quả mở rương
+    const modal = document.getElementById('gacha-result-modal');
+    const titleEl = document.getElementById('gacha-modal-title');
+    const gridEl = document.getElementById('gacha-cards-grid');
+
+    if (titleEl) {
+        titleEl.textContent = isLegendary
+            ? `👑 MỞ LEGENDARY CRATE X${count}`
+            : `🧰 MỞ EPIC CRATE X${count}`;
+    }
+
+    if (gridEl) {
+        gridEl.innerHTML = '';
+        pulledCards.forEach(c => {
+            const u = UNIT_BY_ID[c.unitId];
+            const rCfg = RARITY_CONFIG[c.rarity] || RARITY_CONFIG.common;
+            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
+            const cardEl = document.createElement('div');
+            cardEl.className = `army-unit-card ${rCfg.cssClass}`;
+            cardEl.innerHTML = `
+                <div class="card-top-lv">
+                    <span>${rCfg.name.toUpperCase()}</span>
+                    ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
+                </div>
+                <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+                <div class="card-unit-title">${u.name}</div>
+            `;
+            gridEl.appendChild(cardEl);
+        });
+    }
+
+    if (modal) modal.classList.add('active');
+}
+
+document.getElementById('btn-open-leg-1')?.addEventListener('click', () => openGachaCrate('legendary', 1));
+document.getElementById('btn-open-leg-10')?.addEventListener('click', () => openGachaCrate('legendary', 10));
+document.getElementById('btn-open-epic-1')?.addEventListener('click', () => openGachaCrate('epic', 1));
+document.getElementById('btn-open-epic-10')?.addEventListener('click', () => openGachaCrate('epic', 10));
+
+document.getElementById('btn-close-gacha')?.addEventListener('click', () => {
+    document.getElementById('gacha-result-modal')?.classList.remove('active');
+    if (currentLobbyTab === 'army') renderArmyTabUI();
+});
+
+// ============================================================================
+// 5. TAB "ARMY": QUẢN LÝ QUÂN ĐỘI, NÂNG CẤP LEVEL BẰNG COINS & MERGE GHÉP TƯỚNG
+// ============================================================================
+function renderArmyShowcaseCanvas() {
+    const sCanvas = document.getElementById('army-hero-showcase');
+    if (!sCanvas) return;
+    const sCtx = sCanvas.getContext('2d');
+    sCtx.imageSmoothingEnabled = false;
+    sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+
+    const u = UNIT_BY_ID[showcaseUnitId] || UNIT_CATALOG[0];
+    const highestRarity = getHighestRarityForUnit(u.id);
+    const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
+
+    if (atlas.ready) {
+        const bob = Math.sin(performance.now() * 0.005) * 3;
+        atlas.draw(sCtx, u.spriteCol, 7, 64, 62 + bob, 78, 78);
+    }
+
+    const nameEl = document.getElementById('army-showcase-name');
+    if (nameEl) nameEl.textContent = `${u.name.toUpperCase()} (LV.${metaState.armyPermanentLevels[u.id] || 1})`;
+
+    const rarityEl = document.getElementById('army-showcase-rarity');
+    if (rarityEl) {
+        rarityEl.className = `rarity-badge ${rCfg.cssClass}`;
+        rarityEl.textContent = rCfg.name.toUpperCase();
+    }
+}
+
+function renderArmyTabUI() {
+    renderArmyShowcaseCanvas();
+
+    const btnArmy = document.getElementById('btn-mode-army');
+    const btnMerge = document.getElementById('btn-mode-merge');
+    const listView = document.getElementById('army-list-view');
+    const mergeView = document.getElementById('army-merge-view');
+    const headingEl = document.getElementById('army-panel-title');
+
+    if (currentArmyMode === 'army') {
+        btnArmy?.classList.add('active');
+        btnMerge?.classList.remove('active');
+        listView?.classList.add('active');
+        mergeView?.classList.remove('active');
+        if (headingEl) headingEl.textContent = 'QUÂN ĐỘI (11 BINH CHỦNG)';
+        renderArmyUnitsGrid();
+    } else {
+        btnArmy?.classList.remove('active');
+        btnMerge?.classList.add('active');
+        listView?.classList.remove('active');
+        mergeView?.classList.add('active');
+        if (headingEl) headingEl.textContent = `GHÉP TƯỚNG (${metaState.inventory.length} THẺ)`;
+        renderMergeWorkbenchAndInventory();
+    }
+}
+
+function renderArmyUnitsGrid() {
+    const grid = document.getElementById('army-units-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    UNIT_CATALOG.forEach(u => {
+        const permLv = metaState.armyPermanentLevels[u.id] || 1;
+        const highestRarity = getHighestRarityForUnit(u.id);
+        const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
+        const owned = hasUnitInInventory(u.id);
+        const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
         const card = document.createElement('div');
+        card.className = `army-unit-card ${rCfg.cssClass}`;
+        card.innerHTML = `
+            <div class="card-top-lv">
+                <span>LV.${permLv}</span>
+                ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : `<span class="text-[8px] opacity-90">${owned ? rCfg.name : 'Cơ bản'}</span>`}
+            </div>
+            <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+            <div class="card-unit-title">${u.name}</div>
+        `;
+
+        card.addEventListener('click', () => {
+            showcaseUnitId = u.id;
+            renderArmyShowcaseCanvas();
+            openUnitUpgradeModal(u.id);
+        });
+
+        grid.appendChild(card);
+    });
+}
+
+function calcUnitPermanentStats(spec, rarityId, permLv) {
+    const rCfg = RARITY_CONFIG[rarityId] || RARITY_CONFIG.common;
+    const lvMult = 1 + (permLv - 1) * 0.12;
+    const totalMult = rCfg.mult * lvMult;
+    return {
+        damage: Math.max(1, Math.round(spec.damage * totalMult)),
+        hp: Math.max(1, Math.round(spec.hp * totalMult)),
+        rawDmg: +(spec.damage * totalMult).toFixed(1),
+        rawHp: +(spec.hp * totalMult).toFixed(1)
+    };
+}
+
+function openUnitUpgradeModal(unitId) {
+    inspectingUnitId = unitId;
+    const u = UNIT_BY_ID[unitId];
+    if (!u) return;
+
+    sfx.play('gas');
+    const permLv = metaState.armyPermanentLevels[u.id] || 1;
+    const highestRarity = getHighestRarityForUnit(u.id);
+    const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
+    const costCoins = getUnitUpgradeCost(permLv);
+
+    const curStats = calcUnitPermanentStats(u, highestRarity, permLv);
+    const nextStats = calcUnitPermanentStats(u, highestRarity, permLv + 1);
+
+    const nameEl = document.getElementById('upg-modal-unit-name');
+    if (nameEl) nameEl.textContent = u.name.toUpperCase();
+
+    const frameEl = document.getElementById('upg-modal-card-frame');
+    if (frameEl) frameEl.className = `upg-unit-avatar-box ${rCfg.cssClass}`;
+
+    const spriteEl = document.getElementById('upg-modal-sprite');
+    if (spriteEl && atlas.ready) spriteEl.src = atlas.toDataURL(u.spriteCol, 7);
+
+    const rarityBadge = document.getElementById('upg-modal-rarity-badge');
+    if (rarityBadge) {
+        rarityBadge.className = `rarity-badge ${rCfg.cssClass}`;
+        rarityBadge.textContent = rCfg.name.toUpperCase();
+    }
+
+    const lvBadge = document.getElementById('upg-modal-level-badge');
+    if (lvBadge) lvBadge.textContent = `LV.${permLv}`;
+
+    const roleEl = document.getElementById('upg-modal-role');
+    if (roleEl) roleEl.textContent = u.role;
+
+    const multInfoEl = document.getElementById('upg-modal-mult-info');
+    if (multInfoEl) {
+        multInfoEl.textContent = `Độ hiếm ${rCfg.name}: ${rCfg.mult}x HP & DMG • Cấp ${permLv}: +${(permLv - 1) * 12}%`;
+    }
+
+    const curDmgEl = document.getElementById('upg-cur-dmg');
+    if (curDmgEl) curDmgEl.textContent = `${curStats.damage} (${curStats.rawDmg})`;
+
+    const nextDmgEl = document.getElementById('upg-next-dmg');
+    if (nextDmgEl) nextDmgEl.textContent = `${nextStats.damage} (${nextStats.rawDmg})`;
+
+    const curHpEl = document.getElementById('upg-cur-hp');
+    if (curHpEl) curHpEl.textContent = u.isAirstrike ? `Phá nhà ${u.baseDamage}` : `${curStats.hp} (${curStats.rawHp})`;
+
+    const nextHpEl = document.getElementById('upg-next-hp');
+    if (nextHpEl) nextHpEl.textContent = u.isAirstrike ? `Phá nhà ${Math.round(u.baseDamage * (1 + permLv * 0.12))}` : `${nextStats.hp} (${nextStats.rawHp})`;
+
+    const gasEl = document.getElementById('upg-unit-gas');
+    if (gasEl) gasEl.textContent = `${u.cost} Xăng`;
+
+    const costEl = document.getElementById('upg-cost-coins');
+    if (costEl) costEl.textContent = `🪙 ${formatCurrency(costCoins)}`;
+
+    const btnUpg = document.getElementById('btn-confirm-unit-upgrade');
+    if (btnUpg) {
+        btnUpg.disabled = metaState.coins < costCoins;
+    }
+
+    document.getElementById('unit-upgrade-modal')?.classList.add('active');
+}
+
+document.getElementById('btn-close-upg-modal')?.addEventListener('click', () => {
+    document.getElementById('unit-upgrade-modal')?.classList.remove('active');
+});
+
+document.getElementById('btn-confirm-unit-upgrade')?.addEventListener('click', () => {
+    const u = UNIT_BY_ID[inspectingUnitId];
+    if (!u) return;
+
+    const permLv = metaState.armyPermanentLevels[u.id] || 1;
+    const costCoins = getUnitUpgradeCost(permLv);
+
+    if (metaState.coins < costCoins) {
+        sfx.play('cannon');
+        return;
+    }
+
+    metaState.coins -= costCoins;
+    metaState.armyPermanentLevels[u.id] = permLv + 1;
+    metaState.missionsProgress.upgrades = (metaState.missionsProgress.upgrades || 0) + 1;
+
+    saveProgress();
+    sfx.play('upgrade');
+    updateTopBarUI();
+    renderArmyTabUI();
+    openUnitUpgradeModal(u.id);
+});
+
+// Chuyển đổi chế độ ARMY <-> MERGE
+document.getElementById('btn-mode-army')?.addEventListener('click', () => {
+    currentArmyMode = 'army';
+    sfx.play('gas');
+    renderArmyTabUI();
+});
+
+document.getElementById('btn-mode-merge')?.addEventListener('click', () => {
+    currentArmyMode = 'merge';
+    mergeSelectedCardUids = [];
+    sfx.play('gas');
+    renderArmyTabUI();
+});
+
+// Logic Ghép Tướng (MERGE)
+function renderMergeWorkbenchAndInventory() {
+    const slot1El = document.getElementById('merge-slot-1');
+    const slot2El = document.getElementById('merge-slot-2');
+    const slotResEl = document.getElementById('merge-slot-result');
+    const btnMergeExec = document.getElementById('btn-execute-merge');
+    const hintEl = document.getElementById('merge-hint-text');
+    const invGrid = document.getElementById('merge-inventory-grid');
+
+    const card1 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]) || null;
+    const card2 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[1]) || null;
+
+    const renderMiniSlotCard = (slotEl, cardObj, placeholderText) => {
+        if (!slotEl) return;
+        if (!cardObj) {
+            slotEl.className = 'merge-slot';
+            slotEl.innerHTML = `<span class="merge-slot-placeholder">${placeholderText}</span>`;
+            return;
+        }
+        const u = UNIT_BY_ID[cardObj.unitId];
+        const rCfg = RARITY_CONFIG[cardObj.rarity] || RARITY_CONFIG.common;
+        const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+        slotEl.className = `merge-slot ${rCfg.cssClass}`;
+        slotEl.innerHTML = `
+            <img src="${spriteUrl}" class="w-8 h-8 pixel-art" alt="${u.name}" />
+            <span class="text-[8px] font-black text-white leading-none mt-0.5">${rCfg.name}</span>
+        `;
+    };
+
+    renderMiniSlotCard(slot1El, card1, '+ THẺ 1');
+    renderMiniSlotCard(slot2El, card2, '+ THẺ 2');
+
+    if (card1 && card2 && card1.unitId === card2.unitId && card1.rarity === card2.rarity) {
+        const nextRarityId = RARITY_CONFIG[card1.rarity]?.next;
+        if (nextRarityId && RARITY_CONFIG[nextRarityId]) {
+            const u = UNIT_BY_ID[card1.unitId];
+            const nextRCfg = RARITY_CONFIG[nextRarityId];
+            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+            if (slotResEl) {
+                slotResEl.className = `merge-slot result-slot ${nextRCfg.cssClass}`;
+                slotResEl.innerHTML = `
+                    <img src="${spriteUrl}" class="w-9 h-9 pixel-art" alt="${u.name}" />
+                    <span class="text-[8px] font-black text-white leading-none mt-0.5">${nextRCfg.name}</span>
+                `;
+            }
+            if (btnMergeExec) btnMergeExec.disabled = false;
+            if (hintEl) {
+                hintEl.innerHTML = `Sẵn sàng ghép 2 <b>${u.name} (${RARITY_CONFIG[card1.rarity].name})</b> ➔ <b class="text-amber-300">${nextRCfg.name}</b> & <b>+1 Level vĩnh viễn</b>!`;
+            }
+        }
+    } else {
+        if (slotResEl) {
+            slotResEl.className = 'merge-slot result-slot';
+            slotResEl.innerHTML = `<span class="merge-slot-placeholder">KẾT QUẢ</span>`;
+        }
+        if (btnMergeExec) btnMergeExec.disabled = true;
+        if (card1) {
+            const u = UNIT_BY_ID[card1.unitId];
+            const rCfg = RARITY_CONFIG[card1.rarity];
+            if (hintEl) {
+                hintEl.innerHTML = `Hãy chọn thêm 1 thẻ <b>${u.name} (${rCfg.name})</b> giống hệt để ghép!`;
+            }
+        } else if (hintEl) {
+            hintEl.innerHTML = `Chọn 2 thẻ tướng <b>cùng tên & cùng độ hiếm</b> để tiến hóa bậc cao hơn (+1 Level vĩnh viễn)!`;
+        }
+    }
+
+    if (!invGrid) return;
+    invGrid.innerHTML = '';
+
+    // Sắp xếp kho theo độ hiếm giảm dần, sau đó theo tên tướng
+    const sortedInv = [...metaState.inventory].sort((a, b) => {
+        const rA = RARITY_CONFIG[a.rarity]?.rank ?? 0;
+        const rB = RARITY_CONFIG[b.rarity]?.rank ?? 0;
+        if (rB !== rA) return rB - rA;
+        return a.unitId.localeCompare(b.unitId);
+    });
+
+    sortedInv.forEach(cardObj => {
+        const u = UNIT_BY_ID[cardObj.unitId];
+        const rCfg = RARITY_CONFIG[cardObj.rarity] || RARITY_CONFIG.common;
+        if (!u) return;
+
+        const isSelected = mergeSelectedCardUids.includes(cardObj.uid);
+        const isMaxLegendary = !rCfg.next;
+        const permLv = metaState.armyPermanentLevels[u.id] || 1;
+        const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
+        let isDimmed = false;
+        if (isMaxLegendary) {
+            isDimmed = true;
+        } else if (card1 && !isSelected) {
+            if (cardObj.unitId !== card1.unitId || cardObj.rarity !== card1.rarity) {
+                isDimmed = true;
+            }
+        }
+
+        const cardEl = document.createElement('div');
+        cardEl.className = `army-unit-card ${rCfg.cssClass}` +
+            (isSelected ? ' selected-for-merge' : '') +
+            (isDimmed ? ' dimmed-unmatch' : '');
+
+        cardEl.innerHTML = `
+            <div class="card-top-lv">
+                <span>LV.${permLv}</span>
+                ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : `<span class="text-[8px]">${rCfg.name}</span>`}
+            </div>
+            <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+            <div class="card-unit-title">${u.name}</div>
+        `;
+
+        cardEl.addEventListener('click', () => {
+            showcaseUnitId = u.id;
+            renderArmyShowcaseCanvas();
+
+            if (isSelected) {
+                mergeSelectedCardUids = mergeSelectedCardUids.filter(id => id !== cardObj.uid);
+                sfx.play('gas');
+                renderMergeWorkbenchAndInventory();
+                return;
+            }
+
+            if (isMaxLegendary) {
+                sfx.play('cannon');
+                return;
+            }
+
+            if (mergeSelectedCardUids.length === 0) {
+                mergeSelectedCardUids.push(cardObj.uid);
+                sfx.play('gas');
+            } else if (mergeSelectedCardUids.length === 1) {
+                const firstCard = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]);
+                if (firstCard && firstCard.unitId === cardObj.unitId && firstCard.rarity === cardObj.rarity) {
+                    mergeSelectedCardUids.push(cardObj.uid);
+                    sfx.play('spawn');
+                } else {
+                    // Đổi sang chọn thẻ mới làm thẻ #1
+                    mergeSelectedCardUids = [cardObj.uid];
+                    sfx.play('gas');
+                }
+            } else {
+                mergeSelectedCardUids = [cardObj.uid];
+                sfx.play('gas');
+            }
+
+            renderMergeWorkbenchAndInventory();
+        });
+
+        invGrid.appendChild(cardEl);
+    });
+}
+
+document.getElementById('merge-slot-1')?.addEventListener('click', () => {
+    if (mergeSelectedCardUids.length > 0) {
+        mergeSelectedCardUids.shift();
+        sfx.play('gas');
+        renderMergeWorkbenchAndInventory();
+    }
+});
+
+document.getElementById('merge-slot-2')?.addEventListener('click', () => {
+    if (mergeSelectedCardUids.length > 1) {
+        mergeSelectedCardUids.pop();
+        sfx.play('gas');
+        renderMergeWorkbenchAndInventory();
+    }
+});
+
+document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
+    if (mergeSelectedCardUids.length < 2) return;
+    const card1 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]);
+    const card2 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[1]);
+
+    if (!card1 || !card2 || card1.unitId !== card2.unitId || card1.rarity !== card2.rarity) return;
+    const nextRarity = RARITY_CONFIG[card1.rarity]?.next;
+    if (!nextRarity) return;
+
+    // Tiêu hao 2 thẻ nguyên liệu
+    const removeSet = new Set([card1.uid, card2.uid]);
+    metaState.inventory = metaState.inventory.filter(c => !removeSet.has(c.uid));
+
+    // Tạo 1 thẻ bậc độ hiếm mới cao hơn
+    const newCard = {
+        uid: 'merged_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        unitId: card1.unitId,
+        rarity: nextRarity
+    };
+    metaState.inventory.push(newCard);
+
+    // Tự động cộng +1 Level vĩnh viễn cho binh chủng đó
+    metaState.armyPermanentLevels[card1.unitId] = (metaState.armyPermanentLevels[card1.unitId] || 1) + 1;
+    metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + 1;
+
+    mergeSelectedCardUids = [];
+    showcaseUnitId = card1.unitId;
+
+    saveProgress();
+    sfx.play('upgrade');
+    updateTopBarUI();
+    renderArmyTabUI();
+
+    const u = UNIT_BY_ID[card1.unitId];
+    const nextRCfg = RARITY_CONFIG[nextRarity];
+    const hintEl = document.getElementById('merge-hint-text');
+    if (hintEl && u && nextRCfg) {
+        hintEl.innerHTML = `🎉 GHÉP THÀNH CÔNG: <b>${u.name}</b> tiến hóa lên <b class="text-amber-300">${nextRCfg.name}</b> & tăng lên <b>LV.${metaState.armyPermanentLevels[u.id]}</b>!`;
+    }
+});
+
+// ============================================================================
+// 7. ĐỒNG BỘ CHỈ SỐ VÀO TRẬN ĐẤU (IN-GAME INTEGRATION) & ROGUELIKE DRAFTING
+// ============================================================================
+function getEffectiveUnitStats(spec, isPlayer = true) {
+    if (!spec) return { damage: 1, hp: 10, range: 100, fireRate: 1, speed: 40, lv: 1, rarity: 'common' };
+    if (!isPlayer) {
+        return {
+            damage: spec.damage,
+            hp: spec.hp,
+            range: spec.range,
+            fireRate: spec.fireRate,
+            speed: spec.speed,
+            lv: 1,
+            rarity: 'common'
+        };
+    }
+
+    // 1. Hệ số Độ hiếm cao nhất đang sở hữu của binh chủng đó
+    const highestRarity = getHighestRarityForUnit(spec.id);
+    const rarityMult = (RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common).mult;
+
+    // 2. Hệ số Level nâng cấp vĩnh viễn bằng Vàng ngoài Army (+12% mỗi cấp)
+    const permLv = metaState.armyPermanentLevels[spec.id] || 1;
+    const permLvMult = 1 + (permLv - 1) * 0.12;
+
+    // 3. Hệ số Level/Buff Roguelike trong trận (+22% mỗi cấp trong trận)
+    const inGameLv = game.unitLevels[spec.id] || 1;
+    const inGameLvMult = 1 + (inGameLv - 1) * 0.22;
+
+    const totalDmg = spec.damage * rarityMult * permLvMult * inGameLvMult * game.buffs.dmgMult;
+    const totalHp = spec.hp * rarityMult * permLvMult * inGameLvMult * game.buffs.hpMult;
+
+    return {
+        damage: Math.max(1, Math.round(totalDmg)),
+        hp: Math.max(1, Math.round(totalHp)),
+        range: spec.isAirstrike ? 999 : Math.round(spec.range * game.buffs.rangeMult),
+        fireRate: spec.isAirstrike ? 1 : Math.max(0.25, +(spec.fireRate * game.buffs.fireRateMult).toFixed(2)),
+        speed: spec.speed,
+        lv: inGameLv,
+        permLv,
+        rarity: highestRarity
+    };
+}
+
+function shuffleArray(arr) {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+function generateDraftChoices(isInitialPick = false) {
+    const cfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
+
+    const allowedUnits = UNIT_CATALOG.filter(u => {
+        if (u.isNaval && !cfg.hasWater) return false;
+        if (isInitialPick && (u.isAirstrike || u.cost > 7)) return false;
+        return true;
+    });
+
+    const unownedUnits = allowedUnits.filter(u => !game.battleDeck.includes(u.id));
+    const choices = [];
+
+    if (game.battleDeck.length < MAX_DECK_SLOTS && unownedUnits.length > 0) {
+        const pickedUnits = shuffleArray(unownedUnits).slice(0, 3);
+        pickedUnits.forEach(u => {
+            choices.push({
+                type: 'new_unit',
+                unit: u
+            });
+        });
+    }
+
+    if (choices.length < 3) {
+        const upgradePool = [];
+
+        game.battleDeck.forEach(unitId => {
+            const u = UNIT_BY_ID[unitId];
+            if (u) {
+                const nextLv = (game.unitLevels[unitId] || 1) + 1;
+                upgradePool.push({
+                    type: 'upgrade_unit',
+                    unit: u,
+                    nextLv
+                });
+            }
+        });
+
+        BUFF_CATALOG.forEach(b => {
+            upgradePool.push({
+                type: 'buff',
+                buff: b
+            });
+        });
+
+        if (game.battleDeck.length >= MAX_DECK_SLOTS && unownedUnits.length > 0) {
+            const replaceCandidate = unownedUnits[Math.floor(Math.random() * unownedUnits.length)];
+            upgradePool.push({
+                type: 'replace_unit',
+                unit: replaceCandidate,
+                slotIndex: MAX_DECK_SLOTS - 1
+            });
+        }
+
+        const shuffledUpgrades = shuffleArray(upgradePool);
+        for (const item of shuffledUpgrades) {
+            if (choices.length >= 3) break;
+            choices.push(item);
+        }
+    }
+
+    return choices.slice(0, 3);
+}
+
+function openDraftModal(isInitialPick = false) {
+    game.draftActive = true;
+    const choices = generateDraftChoices(isInitialPick);
+
+    if (isInitialPick) {
+        draftBadgeTextEl.textContent = `MAP ${game.currentLevel} (${DIFFICULTY_CONFIG[game.currentDifficulty].label}) • KHỞI ĐẦU`;
+        draftTitleEl.textContent = 'CHỌN QUÂN TIÊN PHONG';
+        draftSubtitleEl.textContent = 'Chọn 1 trong 3 đơn vị dưới đây để mở khóa ô chiến đấu đầu tiên';
+    } else {
+        draftBadgeTextEl.textContent = `🎉 LEVEL UP! ĐẠT CẤP ĐỘ ${game.currentLevelInBattle}`;
+        if (game.battleDeck.length < MAX_DECK_SLOTS) {
+            draftTitleEl.textContent = 'CHIÊU MỘ CHIẾN BINH MỚI';
+            draftSubtitleEl.textContent = `Chọn 1 quân để thêm vào thanh điều khiển (${game.battleDeck.length}/${MAX_DECK_SLOTS} ô)`;
+        } else {
+            draftTitleEl.textContent = 'CƯỜNG HÓA QUÂN ĐỘI';
+            draftSubtitleEl.textContent = 'Đã tối đa 5 ô quân! Chọn 1 nâng cấp sức mạnh hoặc thay thế quân';
+        }
+    }
+
+    draftCardsContainerEl.innerHTML = '';
+
+    choices.forEach(choice => {
+        const card = document.createElement('div');
+
+        if (choice.type === 'new_unit' || choice.type === 'replace_unit') {
+            const u = choice.unit;
+            const eff = getEffectiveUnitStats(u, true);
+            const rCfg = RARITY_CONFIG[eff.rarity] || RARITY_CONFIG.common;
+            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+            const isReplace = choice.type === 'replace_unit';
+            const oldUnit = isReplace ? UNIT_BY_ID[game.battleDeck[choice.slotIndex]] : null;
+
+            card.className = 'draft-card';
+            card.innerHTML = `
+                <span class="draft-card-tag">${isReplace ? '🔄 THAY Ô #5' : `${rCfg.name.toUpperCase()} • LV.${eff.permLv}`}</span>
+                <div class="my-1 flex flex-col items-center">
+                    <img src="${spriteUrl}" class="w-11 h-11 pixel-art drop-shadow" alt="${u.name}" />
+                    <div class="text-xs font-extrabold text-white mt-1 leading-tight">${u.name}</div>
+                    <div class="text-[9px] text-sky-300 font-semibold">${u.role}</div>
+                </div>
+                <div class="w-full bg-slate-950/80 border border-slate-700 rounded-lg p-1.5 text-[9.5px] font-bold space-y-0.5">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Chi phí:</span>
+                        <span class="text-amber-300">⛽ ${u.cost} Xăng</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Sát thương:</span>
+                        <span class="text-rose-400">⚔️ ${eff.damage}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">${u.isAirstrike ? 'Phá căn cứ:' : 'Máu (HP):'}</span>
+                        <span class="text-emerald-400">${u.isAirstrike ? '💥 ' + u.baseDamage : '❤️ ' + eff.hp}</span>
+                    </div>
+                </div>
+                <div class="w-full mt-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-[10px] py-1 rounded-md shadow">
+                    ${isReplace ? `THAY ${oldUnit ? oldUnit.name : 'Ô 5'}` : 'CHỌN QUÂN NÀY'}
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                if (isReplace) {
+                    game.battleDeck[choice.slotIndex] = u.id;
+                    game.unitLevels[u.id] = Math.max(1, game.unitLevels[u.id] || 1);
+                    addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT - 80, `🔄 ĐÃ ĐỔI SANG ${u.name.toUpperCase()}!`, '#38bdf8', 14);
+                } else {
+                    game.battleDeck.push(u.id);
+                    game.unitLevels[u.id] = 1;
+                    addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT - 80, `✨ ĐÃ THU NẠP: ${u.name.toUpperCase()}!`, '#4ade80', 14);
+                }
+                finishDraftSelection();
+            });
+        } else if (choice.type === 'upgrade_unit') {
+            const u = choice.unit;
+            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
+            card.className = 'draft-card buff-card';
+            card.innerHTML = `
+                <span class="draft-card-tag">⬆️ THĂNG CẤP LV.${choice.nextLv}</span>
+                <div class="my-1 flex flex-col items-center">
+                    <img src="${spriteUrl}" class="w-11 h-11 pixel-art drop-shadow" alt="${u.name}" />
+                    <div class="text-xs font-extrabold text-amber-300 mt-1 leading-tight">${u.name}</div>
+                    <div class="text-[9px] text-purple-200 font-semibold">Cấp ${choice.nextLv - 1} ➔ Cấp ${choice.nextLv}</div>
+                </div>
+                <div class="w-full bg-slate-950/80 border border-purple-500/40 rounded-lg p-1.5 text-[9.5px] text-slate-200 leading-snug">
+                    Tăng <b class="text-rose-300">+22% Sát thương</b> & <b class="text-emerald-300">+22% Máu</b> cho mọi đơn vị <b>${u.name}</b>!
+                </div>
+                <div class="w-full mt-1.5 bg-purple-400 hover:bg-purple-300 text-slate-950 font-extrabold text-[10px] py-1 rounded-md shadow">
+                    NÂNG CẤP NGAY
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                game.unitLevels[u.id] = choice.nextLv;
+                const eff = getEffectiveUnitStats(u, true);
+                game.units.forEach(unit => {
+                    if (unit.team === 'blue' && unit.unitId === u.id) {
+                        unit.damage = eff.damage;
+                        unit.maxHp = eff.hp;
+                        unit.hp = Math.min(unit.maxHp, unit.hp + Math.round(eff.hp * 0.3));
+                    }
+                });
+                addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, `⬆️ ${u.name.toUpperCase()} ĐẠT LV.${choice.nextLv}!`, '#fde047', 15);
+                finishDraftSelection();
+            });
+        } else if (choice.type === 'buff') {
+            const b = choice.buff;
+            const iconUrl = atlas.ready ? atlas.toDataURL(b.iconCol, b.iconRow) : '';
+
+            card.className = 'draft-card buff-card';
+            card.innerHTML = `
+                <span class="draft-card-tag">⚡ ${b.tag}</span>
+                <div class="my-1 flex flex-col items-center">
+                    <img src="${iconUrl}" class="w-10 h-10 pixel-art drop-shadow my-0.5" alt="${b.name}" />
+                    <div class="text-xs font-extrabold text-amber-300 mt-1 leading-tight">${b.name}</div>
+                </div>
+                <div class="w-full bg-slate-950/80 border border-purple-500/40 rounded-lg p-1.5 text-[9.5px] text-slate-200 leading-snug">
+                    ${b.desc}
+                </div>
+                <div class="w-full mt-1.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-[10px] py-1 rounded-md shadow">
+                    KÍCH HOẠT BUFF
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                b.apply();
+                finishDraftSelection();
+            });
+        }
+
+        draftCardsContainerEl.appendChild(card);
+    });
+
+    draftModalEl.classList.add('active');
+}
+
+function finishDraftSelection() {
+    sfx.play('upgrade');
+    draftModalEl.classList.remove('active');
+    game.draftActive = false;
+
+    renderBattleDeckButtons();
+    updateControllerUI();
+
+    if (game.pendingDraftCount > 0 && !game.gameOver) {
+        game.pendingDraftCount--;
+        setTimeout(() => {
+            if (!game.gameOver && !game.inMenu) {
+                openDraftModal(false);
+            }
+        }, 120);
+    }
+}
+
+function gainExp(amount) {
+    if (game.gameOver || game.inMenu) return;
+    game.playerExp += amount;
+
+    while (game.playerExp >= game.expToNextLevel) {
+        game.playerExp -= game.expToNextLevel;
+        game.currentLevelInBattle++;
+        game.expToNextLevel = calcExpRequired(game.currentLevelInBattle);
+        game.pendingDraftCount++;
+        sfx.play('upgrade');
+    }
+
+    updateExpUI();
+
+    if (game.pendingDraftCount > 0 && !game.draftActive) {
+        game.pendingDraftCount--;
+        openDraftModal(false);
+    }
+}
+
+function updateExpUI() {
+    if (battleLvLabelEl) battleLvLabelEl.textContent = `LV.${game.currentLevelInBattle}`;
+    if (battleExpLabelEl) battleExpLabelEl.textContent = `EXP ${game.playerExp} / ${game.expToNextLevel}`;
+    if (battleExpFillEl) {
+        const pct = Math.max(0, Math.min(100, (game.playerExp / game.expToNextLevel) * 100));
+        battleExpFillEl.style.width = `${pct}%`;
+    }
+}
+
+// ============================================================================
+// HỆ THỐNG 10 WAVE SINH TỒN (WAVE SURVIVAL MANAGER + DIFFICULTY MULTIPLIER)
+// ============================================================================
+function buildWaveEnemyPool(levelNum, waveNum) {
+    const cfg = LEVELS[levelNum - 1] || LEVELS[0];
+    return UNIT_CATALOG.filter(u => {
+        if (u.isAirstrike) return false;
+        if (u.isNaval && !cfg.hasWater) return false;
+        if (waveNum === 1 && u.cost > 3) return false;
+        if (waveNum === 2 && u.cost > 4) return false;
+        if (waveNum <= 4 && u.cost > 6) return false;
+        if (waveNum <= 6 && u.cost > 8) return false;
+        return true;
+    });
+}
+
+function spawnWave(waveNum) {
+    game.currentWave = waveNum;
+    game.waveState = 'spawning';
+
+    const cfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
+    const pool = buildWaveEnemyPool(cfg.level, waveNum);
+    const diffCfg = DIFFICULTY_CONFIG[game.currentDifficulty] || DIFFICULTY_CONFIG.easy;
+
+    const totalCount = 4 + Math.floor(waveNum * 1.7) + Math.floor((cfg.level - 1) * 0.45);
+    const baseWaveHpMult = 1 + (waveNum - 1) * 0.25 + (cfg.level - 1) * 0.06;
+    const baseWaveDmgMult = 1 + (waveNum - 1) * 0.15 + (cfg.level - 1) * 0.04;
+
+    // Nhân thêm Hệ số Độ khó (Easy: 1.0x | Normal: 1.35x | Difficult: 1.75x)
+    const hpMult = +(baseWaveHpMult * diffCfg.statMult).toFixed(2);
+    const dmgMult = +(baseWaveDmgMult * diffCfg.statMult).toFixed(2);
+
+    game.waveSpawnQueue = [];
+    for (let i = 0; i < totalCount; i++) {
+        let pick = pool[Math.floor(Math.random() * pool.length)] || UNIT_BY_ID['infantry'];
+        if (i === totalCount - 1 && waveNum >= 4) {
+            const heavyPool = pool.filter(u => u.cost >= 6);
+            if (heavyPool.length > 0) {
+                pick = heavyPool[Math.floor(Math.random() * heavyPool.length)];
+            }
+        }
+        game.waveSpawnQueue.push({
+            spec: pick,
+            hpMult,
+            dmgMult
+        });
+    }
+
+    game.waveTotalEnemies = totalCount;
+    game.waveSpawnTimer = 0.4;
+
+    sfx.play('spawn');
+    addFloatingText(
+        LOGICAL_WIDTH / 2,
+        145,
+        `⚠️ WAVE ${waveNum} / ${game.maxWaves} (${totalCount} ĐỊCH)!`,
+        waveNum === game.maxWaves ? '#fde047' : '#fb7185',
+        16
+    );
+
+    if ((waveNum === 6 || waveNum === 10) && cfg.level >= 3) {
+        setTimeout(() => {
+            if (!game.inMenu && !game.gameOver) {
+                attackPlane('red', UNIT_BY_ID['airstrike']);
+            }
+        }, 1200);
+    }
+}
+
+function getAliveRedUnitsCount() {
+    let count = 0;
+    for (const u of game.units) {
+        if (u.team === 'red' && u.hp > 0) count++;
+    }
+    return count;
+}
+
+function updateWaveSystem(dt) {
+    if (game.waveState === 'spawning') {
+        game.waveSpawnTimer -= dt;
+        if (game.waveSpawnTimer <= 0 && game.waveSpawnQueue.length > 0) {
+            const nextEnemy = game.waveSpawnQueue.shift();
+            const gateSpread = 180;
+            const rx = (LOGICAL_WIDTH / 2 - gateSpread / 2) + Math.random() * gateSpread;
+            spawnUnitBySpec('red', nextEnemy.spec, rx, 108, nextEnemy.hpMult, nextEnemy.dmgMult);
+
+            game.waveSpawnTimer = Math.max(0.55, 1.55 - game.currentWave * 0.08);
+        }
+
+        if (game.waveSpawnQueue.length === 0) {
+            game.waveState = 'fighting';
+        }
+    } else if (game.waveState === 'fighting') {
+        const aliveRed = getAliveRedUnitsCount();
+        if (aliveRed === 0) {
+            if (game.currentWave >= game.maxWaves) {
+                triggerWinGame();
+            } else {
+                game.waveState = 'intermission';
+                game.waveIntermissionTimer = game.waveIntermissionMax;
+                game.gasCount = Math.min(game.maxGas, game.gasCount + 2);
+                sfx.play('gas');
+                addFloatingText(LOGICAL_WIDTH / 2, 165, `✓ DỌN SẠCH WAVE ${game.currentWave}! (+2 ⛽)`, '#34d399', 15);
+                updateControllerUI();
+            }
+        }
+    } else if (game.waveState === 'intermission') {
+        game.waveIntermissionTimer -= dt;
+        if (game.waveIntermissionTimer <= 0) {
+            spawnWave(game.currentWave + 1);
+        }
+    }
+}
+
+// ============================================================================
+// RENDER 5 Ô QUÂN DƯỚI THANH ĐIỀU KHIỂN (BOTTOM DECK 5 SLOTS)
+// ============================================================================
+function renderBattleDeckButtons() {
+    const container = document.getElementById('battle-deck-slots');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const gasUrl = atlas.ready ? atlas.toDataURL(12, 10) : '';
+    const lockUrl = atlas.ready ? atlas.toDataURL(13, 10) : '';
+
+    for (let i = 0; i < MAX_DECK_SLOTS; i++) {
+        const unitId = game.battleDeck[i];
+        const btn = document.createElement('div');
 
         if (unitId && UNIT_BY_ID[unitId]) {
             const u = UNIT_BY_ID[unitId];
             const eff = getEffectiveUnitStats(u, true);
+            const rCfg = RARITY_CONFIG[eff.rarity] || RARITY_CONFIG.common;
             const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
-            card.className = 'deck-slot-card';
-            card.innerHTML = `
-                <div class="deck-slot-remove">✕</div>
-                <div class="text-[8.5px] font-bold text-sky-200 truncate w-full text-center">${u.name}</div>
-                <img src="${spriteUrl}" class="w-6 h-6 pixel-art" alt="${u.name}" />
-                <div class="rng-mini-tag">🎯${u.isAirstrike ? 'Map' : eff.range + ' (' + eff.mode.shortTag + ')'}</div>
-                <div class="flex items-center justify-between w-full px-1 text-[8px] font-extrabold">
-                    <span class="text-rose-300">⚔️${u.damage}</span>
-                    <span class="text-amber-300">⛽${u.cost}</span>
+
+            btn.id = `btnSlot${i}`;
+            btn.className = 'unit-btn' + (u.isNaval ? ' naval-btn' : '');
+            btn.style.borderColor = rCfg.color;
+            btn.innerHTML = `
+                <span class="hotkey-badge">${i + 1}</span>
+                <span class="unit-lv-badge">L${eff.lv}</span>
+                <div class="text-[8px] font-bold text-sky-200 uppercase tracking-tight truncate w-full text-center px-0.5 mt-1">${u.name}</div>
+                <div class="flex flex-col items-center justify-center">
+                    <img src="${spriteUrl}" class="w-6 h-6 pixel-art" alt="${u.name}" />
+                    <span class="dmg-mini-tag">⚔️${eff.damage}</span>
+                    <span class="rng-mini-tag">🎯${u.isAirstrike ? 'Map' : eff.range}</span>
+                </div>
+                <div class="cost-badge">
+                    <img src="${gasUrl}" class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
+                    <span>${u.cost}</span>
+                </div>
+                <div id="blockSlot${i}" class="lock-overlay">
+                    <img src="${lockUrl}" class="lock-sprite w-3.5 h-3.5 pixel-art mb-0.5" alt="Lock" />
+                    <div class="flex items-center gap-0.5">
+                        <span class="text-[8.5px] font-bold text-amber-400">${u.cost}</span>
+                        <img src="${gasUrl}" class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
+                    </div>
                 </div>
             `;
-            card.addEventListener('click', () => {
-                selectedDeckIds.splice(i, 1);
-                sfx.play('gas');
-                renderUnitSelectionUI();
-            });
+            btn.addEventListener('click', () => buyUnitFromSlot(i));
         } else {
-            card.className = 'deck-slot-card empty';
-            card.innerHTML = `<span>+ Ô trống ${i + 1}</span>`;
+            btn.className = 'unit-btn empty-slot-btn';
+            btn.innerHTML = `
+                <span class="hotkey-badge">${i + 1}</span>
+                <div class="flex flex-col items-center justify-center text-slate-500">
+                    <span class="text-xs font-extrabold">🔒</span>
+                    <span class="text-[7.5px] font-bold uppercase mt-0.5">Lên Cấp</span>
+                </div>
+            `;
         }
-        slotsContainer.appendChild(card);
+
+        container.appendChild(btn);
     }
-
-    const rosterGrid = document.getElementById('unit-roster-grid');
-    rosterGrid.innerHTML = '';
-
-    UNIT_CATALOG.forEach(u => {
-        const isSelected = selectedDeckIds.includes(u.id);
-        const isLockedByWater = u.isNaval && !cfg.hasWater;
-        const eff = getEffectiveUnitStats(u, true);
-        const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
-
-        const item = document.createElement('div');
-        item.className = 'roster-card' +
-            (isSelected ? ' selected' : '') +
-            (isLockedByWater ? ' disabled-water' : '');
-
-        const rangeBtnHtml = u.isAirstrike
-            ? `<span class="text-[8.5px] text-sky-300 font-bold">🎯 Toàn bản đồ</span>`
-            : `<button type="button" class="range-opt-btn bg-slate-800 hover:bg-sky-900 border border-sky-400/60 text-sky-200 text-[8.5px] font-extrabold px-1.5 py-0.5 rounded transition" title="Chạm để đổi tùy chọn tầm bắn">
-                   🎯 ${getRangeCategoryLabel(eff.range)} • ${eff.mode.shortTag} ⟳
-               </button>`;
-
-        item.innerHTML = `
-            <img src="${spriteUrl}" class="w-9 h-9 pixel-art flex-shrink-0" alt="${u.name}" />
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between">
-                    <span class="text-[11px] font-extrabold text-white truncate">${u.name}</span>
-                    <span class="bg-amber-400/20 border border-amber-400 text-amber-300 text-[9.5px] font-extrabold px-1.5 rounded-full flex items-center gap-0.5">
-                        ⛽ ${u.cost}
-                    </span>
-                </div>
-                <div class="text-[8.5px] text-sky-300 font-semibold truncate">${u.role}</div>
-                <div class="flex items-center gap-2 mt-0.5 text-[9px] font-bold">
-                    <span class="text-rose-400">⚔️ ${u.damage}</span>
-                    <span class="text-emerald-400">${u.isAirstrike ? '💥 Nhà: ' + u.baseDamage : '❤️ ' + u.hp}</span>
-                </div>
-                <div class="mt-0.5">${rangeBtnHtml}</div>
-            </div>
-            ${isLockedByWater ? '<div class="water-ban-badge">🚫 MAP KHÔNG CÓ NƯỚC</div>' : ''}
-        `;
-
-        const rangeBtn = item.querySelector('.range-opt-btn');
-        if (rangeBtn) {
-            rangeBtn.addEventListener('click', (ev) => {
-                ev.stopPropagation();
-                unitRangeSelection[u.id] = ((unitRangeSelection[u.id] ?? 1) + 1) % RANGE_MODES.length;
-                sfx.play('upgrade');
-                renderUnitSelectionUI();
-                renderBattleDeckButtons();
-            });
-        }
-
-        item.addEventListener('click', () => {
-            if (isLockedByWater) {
-                sfx.play('cannon');
-                return;
-            }
-            const existingIdx = selectedDeckIds.indexOf(u.id);
-            if (existingIdx !== -1) {
-                selectedDeckIds.splice(existingIdx, 1);
-                sfx.play('gas');
-            } else {
-                if (selectedDeckIds.length >= 4) {
-                    selectedDeckIds.shift();
-                }
-                selectedDeckIds.push(u.id);
-                sfx.play('spawn');
-            }
-            renderUnitSelectionUI();
-        });
-
-        rosterGrid.appendChild(item);
-    });
 }
 
-document.getElementById('btn-auto-deck').addEventListener('click', () => {
-    const cfg = LEVELS[pendingSelectLevel - 1] || LEVELS[0];
-    if (cfg.hasWater) {
-        selectedDeckIds = ['infantry', 'gunboat', 'destroyer', 'airstrike'];
-    } else {
-        selectedDeckIds = ['infantry', 'humvee', 'tank', 'rocket'];
+// ============================================================================
+// KHỞI TẠO TRẬN ĐẤU MỚI
+// ============================================================================
+function startLevel(levelNum, difficultyId = currentSelectedDifficulty) {
+    const cfg = LEVELS[levelNum - 1] || LEVELS[0];
+    game.currentLevel = cfg.level;
+    game.currentDifficulty = DIFFICULTY_CONFIG[difficultyId] ? difficultyId : 'easy';
+    game.inMenu = false;
+    game.paused = false;
+    game.draftActive = false;
+    game.gameOver = false;
+    game.elapsedTime = 0;
+
+    game.gasUpgradeIndex = 0;
+    game.gasInterval = GAS_UPGRADE_LEVELS[0].interval;
+    game.gasTimer = game.gasInterval;
+    game.gasCount = cfg.startingGas;
+    game.rallyX = null;
+
+    game.battleDeck = [];
+    game.unitLevels = {};
+    game.buffs = {
+        dmgMult: 1.0,
+        hpMult: 1.0,
+        fireRateMult: 1.0,
+        rangeMult: 1.0
+    };
+    game.currentLevelInBattle = 1;
+    game.playerExp = 0;
+    game.expToNextLevel = calcExpRequired(1);
+    game.pendingDraftCount = 0;
+
+    game.blueBase.maxHp = cfg.playerBaseHp;
+    game.blueBase.hp = cfg.playerBaseHp;
+
+    game.units = [];
+    game.bullets = [];
+    game.planes = [];
+    game.particles = [];
+    game.floatingTexts = [];
+    game.stats.spawned = 0;
+    game.stats.kills = 0;
+
+    if (lobbyWrapperEl) {
+        lobbyWrapperEl.classList.remove('active');
     }
-    sfx.play('upgrade');
-    renderUnitSelectionUI();
-});
+    draftModalEl.classList.remove('active');
+    document.getElementById('win-panel').classList.remove('active');
+    document.getElementById('lose-panel').classList.remove('active');
+    document.getElementById('pause-btn').textContent = '⏸';
 
-document.getElementById('btn-start-battle').addEventListener('click', () => {
-    if (selectedDeckIds.length === 0) {
-        alert('Vui lòng chọn ít nhất 1 nhân vật để ra trận!');
-        return;
-    }
-    startLevel(pendingSelectLevel);
-});
+    const diffLabel = DIFFICULTY_CONFIG[game.currentDifficulty].label;
+    currentLevelLabelEl.textContent = `MAP ${cfg.level} • ${diffLabel}`;
 
-document.getElementById('btn-open-levels').addEventListener('click', () => {
-    sfx.play('spawn');
-    openLevelSelect();
-});
+    buildStaticMapCanvas(cfg.level);
+    renderBattleDeckButtons();
+    updateExpUI();
+    updateControllerUI();
 
-document.getElementById('btn-back-menu').addEventListener('click', () => {
-    levelSelectEl.classList.remove('active');
-    mainMenuEl.classList.add('active');
-});
+    spawnWave(1);
+    openDraftModal(true);
+}
 
-document.getElementById('btn-back-levels').addEventListener('click', () => {
-    unitSelectEl.classList.remove('active');
-    openLevelSelect();
-});
-
-document.getElementById('menu-return-btn').addEventListener('click', () => {
-    openLevelSelect();
-});
-
-document.getElementById('deck-reselect-btn').addEventListener('click', () => {
-    openUnitSelectForLevel(game.currentLevel);
+document.getElementById('menu-return-btn')?.addEventListener('click', () => {
+    window.openLobbyScreen('battle');
 });
 
 const rangeToggleBtn = document.getElementById('range-toggle-btn');
@@ -2795,117 +4375,6 @@ if (rangeToggleBtn) {
     });
 }
 
-// ============================================================================
-// KHỞI TẠO TRẬN ĐẤU VÀ 4 NÚT GỌI QUÂN TRONG TRẬN
-// ============================================================================
-function renderBattleDeckButtons() {
-    const container = document.getElementById('battle-deck-slots');
-    if (!container) return;
-    container.innerHTML = '';
-
-    const gasUrl = atlas.ready ? atlas.toDataURL(12, 10) : '';
-    const lockUrl = atlas.ready ? atlas.toDataURL(13, 10) : '';
-
-    for (let i = 0; i < 4; i++) {
-        const unitId = selectedDeckIds[i];
-        const btn = document.createElement('div');
-
-        if (unitId && UNIT_BY_ID[unitId]) {
-            const u = UNIT_BY_ID[unitId];
-            const eff = getEffectiveUnitStats(u, true);
-            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
-            btn.id = `btnSlot${i}`;
-            btn.className = 'unit-btn' + (u.isNaval ? ' naval-btn' : '');
-            btn.innerHTML = `
-                <div class="text-[8.5px] font-bold text-sky-200 uppercase tracking-tight truncate w-full text-center px-0.5">${u.name}</div>
-                <div class="flex flex-col items-center justify-center">
-                    <img src="${spriteUrl}" class="w-6 h-6 pixel-art" alt="${u.name}" />
-                    <span class="dmg-mini-tag">⚔️DMG ${u.damage}</span>
-                    <span class="rng-mini-tag">🎯${u.isAirstrike ? 'Map' : eff.range}</span>
-                </div>
-                <div class="cost-badge">
-                    <img src="${gasUrl}" class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
-                    <span>${u.cost}</span>
-                </div>
-                <div id="blockSlot${i}" class="lock-overlay">
-                    <img src="${lockUrl}" class="lock-sprite w-4 h-4 pixel-art mb-0.5" alt="Lock" />
-                    <div class="flex items-center gap-0.5">
-                        <span class="text-[9px] font-bold text-amber-400">${u.cost}</span>
-                        <img src="${gasUrl}" class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
-                    </div>
-                </div>
-            `;
-            btn.addEventListener('click', () => buyUnitFromSlot(i));
-        } else {
-            btn.className = 'unit-btn empty-slot-btn';
-            btn.innerHTML = `<span class="text-[9px] text-slate-500 font-bold m-auto">TRỐNG</span>`;
-        }
-
-        container.appendChild(btn);
-    }
-}
-
-function startLevel(levelNum) {
-    const cfg = LEVELS[levelNum - 1] || LEVELS[0];
-    game.currentLevel = cfg.level;
-    game.inMenu = false;
-    game.paused = false;
-    game.gameOver = false;
-    game.elapsedTime = 0;
-
-    game.gasUpgradeIndex = 0;
-    game.gasInterval = GAS_UPGRADE_LEVELS[0].interval;
-    game.gasTimer = game.gasInterval;
-    game.gasCount = cfg.startingGas;
-    game.rallyX = null;
-
-    game.blueBase.maxHp = cfg.playerBaseHp;
-    game.blueBase.hp = cfg.playerBaseHp;
-    game.redBase.maxHp = cfg.enemyBaseHp;
-    game.redBase.hp = cfg.enemyBaseHp;
-
-    game.aiGas = 3;
-    game.aiGasTimer = 0;
-    game.aiDecisionTimer = 1.2;
-    game.aiPlaneTimer = cfg.aiPlaneInterval;
-
-    game.units = [];
-    game.bullets = [];
-    game.planes = [];
-    game.particles = [];
-    game.floatingTexts = [];
-    game.stats.spawned = 0;
-    game.stats.kills = 0;
-
-    mainMenuEl.classList.remove('active');
-    levelSelectEl.classList.remove('active');
-    unitSelectEl.classList.remove('active');
-    document.getElementById('win-panel').classList.remove('active');
-    document.getElementById('lose-panel').classList.remove('active');
-    document.getElementById('pause-btn').textContent = '⏸';
-
-    currentLevelLabelEl.textContent = `MAP ${cfg.level}`;
-
-    buildStaticMapCanvas(cfg.level);
-    renderBattleDeckButtons();
-
-    for (let i = 0; i < cfg.initialRedUnits; i++) {
-        let unitId = 'infantry';
-        if (cfg.hasWater && i === 0 && cfg.level >= 4) {
-            unitId = 'gunboat';
-        } else if (i === cfg.initialRedUnits - 1 && cfg.level >= 3) {
-            unitId = 'tank';
-        }
-        const gateSpread = 160;
-        const rx = (LOGICAL_WIDTH / 2 - gateSpread / 2) + Math.random() * gateSpread;
-        const offsetY = 110 + i * 22;
-        spawnUnitBySpec('red', UNIT_BY_ID[unitId], rx, offsetY);
-    }
-
-    sfx.play('spawn');
-    updateControllerUI();
-}
-
 function timerEnded() {
     if (game.gasCount < game.maxGas) {
         game.gasCount++;
@@ -2916,7 +4385,7 @@ function timerEnded() {
 }
 
 window.upgradeGasRate = function() {
-    if (game.inMenu || game.gameOver || game.paused) return;
+    if (game.inMenu || game.gameOver || game.paused || game.draftActive) return;
     const currentTier = GAS_UPGRADE_LEVELS[game.gasUpgradeIndex];
     if (!currentTier || currentTier.cost === 0) return;
 
@@ -2939,7 +4408,7 @@ window.upgradeGasRate = function() {
 
 function updateControllerUI() {
     gasCountTextEl.textContent = game.gasCount.toString();
-    speedIndicatorEl.textContent = `${game.gasInterval}s/bình`;
+    speedIndicatorEl.textContent = `${game.gasInterval}s`;
     gasRateLabelEl.textContent = `+1/${game.gasInterval}s`;
 
     const progress = Math.max(0, Math.min(1, 1 - (game.gasTimer / game.gasInterval)));
@@ -2972,8 +4441,8 @@ function updateControllerUI() {
         }
     }
 
-    for (let i = 0; i < 4; i++) {
-        const unitId = selectedDeckIds[i];
+    for (let i = 0; i < MAX_DECK_SLOTS; i++) {
+        const unitId = game.battleDeck[i];
         const btnEl = document.getElementById(`btnSlot${i}`);
         const lockEl = document.getElementById(`blockSlot${i}`);
         if (!unitId || !btnEl || !lockEl) continue;
@@ -2990,7 +4459,7 @@ function updateControllerUI() {
 }
 
 document.getElementById('gas-generator-btn').addEventListener('click', () => {
-    if (game.inMenu || game.gameOver || game.paused) return;
+    if (game.inMenu || game.gameOver || game.paused || game.draftActive) return;
     game.gasTimer -= 0.35;
     sfx.play('gas');
     addFloatingText(80, PLAYFIELD_HEIGHT - 18, '+NẠP ⚡', '#4ade80', 12);
@@ -3001,8 +4470,8 @@ document.getElementById('gas-generator-btn').addEventListener('click', () => {
 });
 
 window.buyUnitFromSlot = function(slotIndex) {
-    if (game.inMenu || game.gameOver || game.paused) return;
-    const unitId = selectedDeckIds[slotIndex];
+    if (game.inMenu || game.gameOver || game.paused || game.draftActive) return;
+    const unitId = game.battleDeck[slotIndex];
     if (!unitId || !UNIT_BY_ID[unitId]) return;
 
     const spec = UNIT_BY_ID[unitId];
@@ -3010,6 +4479,8 @@ window.buyUnitFromSlot = function(slotIndex) {
 
     game.gasCount -= spec.cost;
     game.stats.spawned++;
+    metaState.missionsProgress.spawns = (metaState.missionsProgress.spawns || 0) + 1;
+    saveProgress();
 
     if (spec.isAirstrike) {
         attackPlane('blue', spec);
@@ -3020,11 +4491,14 @@ window.buyUnitFromSlot = function(slotIndex) {
     updateControllerUI();
 };
 
-function spawnUnitBySpec(team, spec, customX = null, customY = null) {
+function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult = 1, enemyDmgMult = 1) {
     if (!spec) return;
     const isBlue = team === 'blue';
-    const base = isBlue ? game.blueBase : game.redBase;
+    const base = isBlue ? game.blueBase : game.redOutpost;
     const eff = getEffectiveUnitStats(spec, isBlue);
+
+    const finalHp = isBlue ? eff.hp : Math.max(1, Math.round(spec.hp * enemyHpMult));
+    const finalDmg = isBlue ? eff.damage : Math.max(1, Math.round(spec.damage * enemyDmgMult));
 
     let prefX = customX;
     let prefY = customY !== null ? customY : (isBlue ? base.y - 42 : base.y + 42);
@@ -3059,19 +4533,23 @@ function spawnUnitBySpec(team, spec, customX = null, customY = null) {
         vy: isBlue ? -1 : 1,
         moveAngle: isBlue ? -Math.PI / 2 : Math.PI / 2,
         aimAngle: isBlue ? -Math.PI / 2 : Math.PI / 2,
-        hp: spec.hp,
-        maxHp: spec.hp,
+        baseHp: spec.hp,
+        hp: finalHp,
+        maxHp: finalHp,
         moveSpeed: eff.speed + (Math.random() * 3 - 1.5),
-        damage: spec.damage,
+        baseDamage: spec.damage,
+        damage: finalDmg,
+        expReward: spec.cost || 2,
         targetTime: 0.35,
+        baseFireRate: spec.fireRate,
         fireRate: eff.fireRate,
         beamActiveTimer: 0,
         muzzleFlashTimer: 0,
         shoot: false,
         lastTargetX: null,
         lastTargetY: null,
+        baseRange: spec.range,
         range: eff.range,
-        rangeModeTag: eff.mode.shortTag,
         radius: spec.radius,
         attackType: spec.attackType,
         projType: spec.projType || 'shell',
@@ -3097,6 +4575,8 @@ function spawnUnitBySpec(team, spec, customX = null, customY = null) {
 
 function attackPlane(team, spec = UNIT_BY_ID['airstrike']) {
     const isBlue = team === 'blue';
+    const eff = getEffectiveUnitStats(spec, isBlue);
+    const diffMult = isBlue ? 1 : (DIFFICULTY_CONFIG[game.currentDifficulty]?.statMult || 1);
     sfx.play('airstrike');
 
     game.planes.push({
@@ -3105,63 +4585,25 @@ function attackPlane(team, spec = UNIT_BY_ID['airstrike']) {
         x: LOGICAL_WIDTH / 2,
         y: isBlue ? PLAYFIELD_HEIGHT + 55 : -55,
         vy: isBlue ? -350 : 350,
-        unitDamage: spec.damage || 14,
-        baseDamage: spec.baseDamage || 20,
+        unitDamage: isBlue ? eff.damage : Math.round((spec.damage || 14) * diffMult),
+        baseDamage: Math.round((spec.baseDamage || 18) * diffMult),
         hitEntities: new Set()
     });
 
     addFloatingText(
         LOGICAL_WIDTH / 2,
-        isBlue ? PLAYFIELD_HEIGHT - 120 : 120,
-        isBlue ? `✈️ KHÔNG KÍCH XANH (-${spec.damage} DMG)!` : '⚠️ PHI ĐỘI ĐỎ OANH TẠC!',
+        isBlue ? PLAYFIELD_HEIGHT - 120 : 140,
+        isBlue ? `✈️ KHÔNG KÍCH XANH (-${eff.damage} DMG)!` : '⚠️ PHI ĐỘI ĐỎ OANH TẠC!',
         isBlue ? '#38bdf8' : '#f87171',
         15
     );
 }
 
-function updateEnemyAI(dt) {
-    const cfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
-
-    game.aiGasTimer += dt;
-    if (game.aiGasTimer >= cfg.aiGasInterval) {
-        game.aiGasTimer -= cfg.aiGasInterval;
-        game.aiGas = Math.min(30, game.aiGas + 1);
-    }
-
-    game.aiPlaneTimer -= dt;
-    if (game.aiPlaneTimer <= 0) {
-        game.aiPlaneTimer = cfg.aiPlaneInterval;
-        if (game.currentLevel >= 3) {
-            attackPlane('red', UNIT_BY_ID['airstrike']);
-        }
-    }
-
-    game.aiDecisionTimer -= dt;
-    if (game.aiDecisionTimer <= 0) {
-        game.aiDecisionTimer = 0.9 + Math.random() * 0.7;
-
-        const candidates = UNIT_CATALOG.filter(u => {
-            if (u.isAirstrike) return false;
-            if (u.isNaval && !cfg.hasWater) return false;
-            if (u.cost > 6 && game.currentLevel < 4) return false;
-            if (u.cost > 8 && game.currentLevel < 8) return false;
-            return u.cost <= game.aiGas;
-        });
-
-        if (candidates.length > 0) {
-            const pick = candidates[Math.floor(Math.random() * candidates.length)];
-            game.aiGas -= pick.cost;
-            spawnUnitBySpec('red', pick);
-        }
-    }
-}
-
 // ============================================================================
-// TÌM MỤC TIÊU THEO ĐÚNG BÁN KÍNH TẦM BẮN THỰC TẾ (TRÒN 360 ĐỘ)
+// TÌM MỤC TIÊU & CHIẾN ĐẤU TRONG TRẬN
 // ============================================================================
 function findTargetForUnit(unit) {
     const enemyTeam = unit.team === 'blue' ? 'red' : 'blue';
-    const enemyBase = unit.team === 'blue' ? game.redBase : game.blueBase;
 
     let nearestTarget = null;
     let minDistance = Infinity;
@@ -3182,14 +4624,17 @@ function findTargetForUnit(unit) {
 
     if (nearestTarget) return nearestTarget;
 
-    const halfW = enemyBase.width * 0.5;
-    const halfH = enemyBase.height * 0.5;
-    const clampedX = Math.max(enemyBase.x - halfW, Math.min(unit.x, enemyBase.x + halfW));
-    const clampedY = Math.max(enemyBase.y - halfH, Math.min(unit.y, enemyBase.y + halfH));
-    const distToBase = Math.hypot(unit.x - clampedX, unit.y - clampedY);
+    if (unit.team === 'red') {
+        const enemyBase = game.blueBase;
+        const halfW = enemyBase.width * 0.5;
+        const halfH = enemyBase.height * 0.5;
+        const clampedX = Math.max(enemyBase.x - halfW, Math.min(unit.x, enemyBase.x + halfW));
+        const clampedY = Math.max(enemyBase.y - halfH, Math.min(unit.y, enemyBase.y + halfH));
+        const distToBase = Math.hypot(unit.x - clampedX, unit.y - clampedY);
 
-    if (distToBase <= unit.range) {
-        return { isBase: true, entity: enemyBase, hitX: clampedX, hitY: clampedY };
+        if (distToBase <= unit.range) {
+            return { isBase: true, entity: enemyBase, hitX: clampedX, hitY: clampedY };
+        }
     }
 
     return null;
@@ -3211,7 +4656,7 @@ function applyDamageToTarget(targetObj, damage, isBlue) {
 }
 
 // ============================================================================
-// CẬP NHẬT DI CHUYỂN TRÁNH VẬT CẢN, ĐI QUA CẦU & ANIMATION CHIẾN ĐẤU
+// CẬP NHẬT DI CHUYỂN & CHIẾN ĐẤU CỦA CÁC ĐƠN VỊ (NỐI TIẾP TỪ DÒNG BỊ NGẮT)
 // ============================================================================
 function updateUnits(dt) {
     for (let i = 0; i < game.units.length; i++) {
@@ -3243,7 +4688,15 @@ function updateUnits(dt) {
             const color = u.team === 'blue' ? '#3b82f6' : '#ef4444';
             spawnExplosion(u.x, u.y, color, u.radius > 16 ? 20 : 12, u.radius > 16 ? 30 : 18);
             sfx.play(u.radius > 16 ? 'boom' : 'cannon');
-            if (u.team === 'red') game.stats.kills++;
+
+            if (u.team === 'red') {
+                game.stats.kills++;
+                metaState.missionsProgress.kills = (metaState.missionsProgress.kills || 0) + 1;
+                const expGain = u.expReward || 2;
+                addFloatingText(u.x, u.y - 18, `+${expGain} EXP`, '#fde047', 12);
+                gainExp(expGain);
+            }
+
             game.units.splice(i, 1);
             continue;
         }
@@ -3284,13 +4737,22 @@ function updateUnits(dt) {
             }
         } else {
             u.shoot = false;
+
+            if (u.team === 'blue' && u.y <= 118) {
+                u.vx = 0;
+                u.vy = 0;
+                u.aimAngle = -Math.PI / 2;
+                nav.resolveHardCollisions(u);
+                continue;
+            }
+
             const dir = u.team === 'blue' ? -1 : 1;
             let moveDirX = 0;
             let moveDirY = dir;
 
             if (u.isAir) {
                 const goalX = LOGICAL_WIDTH / 2;
-                const goalY = u.team === 'blue' ? game.redBase.y : game.blueBase.y;
+                const goalY = u.team === 'blue' ? 115 : game.blueBase.y;
                 const ang = Math.atan2(goalY - u.y, goalX - u.x);
                 moveDirX = Math.cos(ang) * 0.25;
                 moveDirY = Math.sin(ang);
@@ -3438,7 +4900,6 @@ function updateBullets(dt) {
         }
 
         const enemyTeam = b.team === 'blue' ? 'red' : 'blue';
-        const enemyBase = b.team === 'blue' ? game.redBase : game.blueBase;
         let hitSomething = false;
 
         const isHighInAir = b.arcHeight > 0 && (b.traveled / b.totalDist) > 0.18 && (b.traveled / b.totalDist) < 0.82;
@@ -3455,7 +4916,8 @@ function updateBullets(dt) {
                 }
             }
 
-            if (!hitSomething) {
+            if (!hitSomething && b.team === 'red') {
+                const enemyBase = game.blueBase;
                 const inBaseX = Math.abs(b.x - enemyBase.x) <= enemyBase.width / 2;
                 const inBaseY = Math.abs(b.y - enemyBase.y) <= enemyBase.height / 2;
                 if (inBaseX && inBaseY) {
@@ -3493,7 +4955,6 @@ function updatePlanes(dt) {
         plane.y += plane.vy * dt;
 
         const enemyTeam = plane.team === 'blue' ? 'red' : 'blue';
-        const enemyBase = plane.team === 'blue' ? game.redBase : game.blueBase;
 
         for (const u of game.units) {
             if (u.team !== enemyTeam || u.hp <= 0) continue;
@@ -3507,11 +4968,11 @@ function updatePlanes(dt) {
             }
         }
 
-        if (!plane.hitEntities.has('base') && Math.abs(enemyBase.y - plane.y) <= 34) {
+        if (plane.team === 'red' && !plane.hitEntities.has('base') && Math.abs(game.blueBase.y - plane.y) <= 34) {
             plane.hitEntities.add('base');
-            enemyBase.hp = Math.max(0, enemyBase.hp - plane.baseDamage);
-            spawnExplosion(enemyBase.x, enemyBase.y, '#ef4444', 28, 52);
-            addFloatingText(enemyBase.x, enemyBase.y, `-${plane.baseDamage} 💥`, '#ef4444', 17);
+            game.blueBase.hp = Math.max(0, game.blueBase.hp - plane.baseDamage);
+            spawnExplosion(game.blueBase.x, game.blueBase.y, '#ef4444', 28, 52);
+            addFloatingText(game.blueBase.x, game.blueBase.y, `-${plane.baseDamage} 💥`, '#ef4444', 17);
             sfx.play('boom');
             triggerShake(0.25, 7);
             checkGameOver();
@@ -3586,32 +5047,73 @@ function formatTime(sec) {
     return `${m}:${s}`;
 }
 
+// ============================================================================
+// XỬ LÝ KẾT THÚC TRẬN ĐẤU (THẮNG / THUA) & CỘNG THƯỞNG META-GAME
+// ============================================================================
+function triggerWinGame() {
+    if (game.gameOver) return;
+    game.gameOver = true;
+    game.draftActive = false;
+    draftModalEl.classList.remove('active');
+
+    const mapLv = game.currentLevel;
+    const diffId = game.currentDifficulty || 'easy';
+    const diffCfg = DIFFICULTY_CONFIG[diffId] || DIFFICULTY_CONFIG.easy;
+
+    if (!metaState.mapDifficultyProgress[mapLv]) {
+        metaState.mapDifficultyProgress[mapLv] = { easy: false, normal: false, difficult: false };
+    }
+    metaState.mapDifficultyProgress[mapLv][diffId] = true;
+
+    const rewardCoins = diffCfg.calcReward(mapLv);
+    metaState.coins += rewardCoins;
+    metaState.missionsProgress.wins = (metaState.missionsProgress.wins || 0) + 1;
+    if (diffId === 'difficult') {
+        metaState.missionsProgress.diffWins = (metaState.missionsProgress.diffWins || 0) + 1;
+    }
+
+    saveProgress();
+    updateTopBarUI();
+
+    spawnExplosion(game.redOutpost.x, game.redOutpost.y, '#38bdf8', 45, 70);
+    sfx.play('boom');
+
+    const cfg = LEVELS[mapLv - 1];
+    const subEl = document.getElementById('win-subtitle');
+    if (subEl) {
+        subEl.textContent = `Đã phá đảo Map ${mapLv} (${diffCfg.label}): ${cfg ? cfg.name : ''}!`;
+    }
+    const rewardEl = document.getElementById('win-coins-reward');
+    if (rewardEl) {
+        rewardEl.textContent = `+${formatCurrency(rewardCoins)} 🪙`;
+    }
+
+    document.getElementById('win-time').textContent = formatTime(game.elapsedTime);
+    document.getElementById('win-hp').textContent = `${Math.ceil(game.blueBase.hp)} / ${game.blueBase.maxHp}`;
+    document.getElementById('win-spawned').textContent = `LV.${game.currentLevelInBattle}`;
+    document.getElementById('win-kills').textContent = game.stats.kills;
+    document.getElementById('win-panel').classList.add('active');
+    updateControllerUI();
+}
+
 function checkGameOver() {
     if (game.gameOver) return;
 
-    if (game.redBase.hp <= 0) {
-        game.redBase.hp = 0;
-        game.gameOver = true;
-        completedLevels.add(game.currentLevel);
-        spawnExplosion(game.redBase.x, game.redBase.y, '#ef4444', 45, 70);
-        sfx.play('boom');
-
-        const cfg = LEVELS[game.currentLevel - 1];
-        document.getElementById('win-subtitle').textContent = `Chinh phục Map ${game.currentLevel}: ${cfg ? cfg.name : ''}!`;
-        document.getElementById('win-time').textContent = formatTime(game.elapsedTime);
-        document.getElementById('win-hp').textContent = `${Math.ceil(game.blueBase.hp)} / ${game.blueBase.maxHp}`;
-        document.getElementById('win-spawned').textContent = game.stats.spawned;
-        document.getElementById('win-kills').textContent = game.stats.kills;
-        document.getElementById('win-panel').classList.add('active');
-        updateControllerUI();
-    } else if (game.blueBase.hp <= 0) {
+    if (game.blueBase.hp <= 0) {
         game.blueBase.hp = 0;
         game.gameOver = true;
+        game.draftActive = false;
+        draftModalEl.classList.remove('active');
+
+        saveProgress();
+        updateTopBarUI();
+
         spawnExplosion(game.blueBase.x, game.blueBase.y, '#3b82f6', 45, 70);
         sfx.play('boom');
 
         document.getElementById('lose-time').textContent = formatTime(game.elapsedTime);
-        document.getElementById('lose-hp').textContent = `${Math.ceil(game.redBase.hp)} / ${game.redBase.maxHp}`;
+        const loseWaveEl = document.getElementById('lose-wave');
+        if (loseWaveEl) loseWaveEl.textContent = `Wave ${game.currentWave} / ${game.maxWaves}`;
         document.getElementById('lose-spawned').textContent = game.stats.spawned;
         document.getElementById('lose-kills').textContent = game.stats.kills;
         document.getElementById('lose-panel').classList.add('active');
@@ -3620,14 +5122,29 @@ function checkGameOver() {
 }
 
 window.restartGame = function() {
-    startLevel(game.currentLevel);
+    startLevel(game.currentLevel, game.currentDifficulty);
 };
 
 window.nextOrRestartLevel = function() {
-    const nextLv = game.currentLevel < LEVELS.length ? game.currentLevel + 1 : 1;
-    openUnitSelectForLevel(nextLv);
+    if (game.currentDifficulty === 'easy') {
+        currentStageViewLevel = game.currentLevel;
+        currentSelectedDifficulty = 'normal';
+        startLevel(currentStageViewLevel, currentSelectedDifficulty);
+    } else if (game.currentDifficulty === 'normal') {
+        currentStageViewLevel = game.currentLevel;
+        currentSelectedDifficulty = 'difficult';
+        startLevel(currentStageViewLevel, currentSelectedDifficulty);
+    } else {
+        const nextLv = game.currentLevel < LEVELS.length ? game.currentLevel + 1 : 1;
+        currentStageViewLevel = nextLv;
+        currentSelectedDifficulty = 'easy';
+        startLevel(currentStageViewLevel, currentSelectedDifficulty);
+    }
 };
 
+// ============================================================================
+// VẼ NỀN BẢN ĐỒ, CĂN CỨ XANH & THANH WAVE TRÊN ĐỈNH MÀN HÌNH
+// ============================================================================
 function drawMapBackground() {
     if (atlas.bakedMapCanvas) {
         ctx.drawImage(atlas.bakedMapCanvas, 0, 0);
@@ -3661,9 +5178,90 @@ function drawMapBackground() {
     }
 }
 
-function drawBase(base) {
-    const isBlue = base.team === 'blue';
-    const bRow = isBlue ? 2 : (game.currentLevel === 10 ? 4 : 3);
+function drawTopWaveOutpostAndHUD() {
+    const outpost = game.redOutpost;
+    const bRow = game.currentLevel === 10 ? 4 : 3;
+    const x = outpost.x - outpost.width / 2;
+    const y = outpost.y - outpost.height / 2;
+
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+
+    const buildingCols = [10, 9, 13];
+    const offsetsX = [-72, 0, 72];
+
+    offsetsX.forEach((dx, idx) => {
+        const bx = outpost.x + dx;
+        const by = outpost.y;
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(bx - 26, by - 24, 52, 48, 8);
+        ctx.fill();
+
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        if (atlas.ready) {
+            atlas.draw(ctx, buildingCols[idx], bRow, bx, by, 44, 44);
+        }
+    });
+
+    if (atlas.ready) {
+        const wave = Math.sin(performance.now() * 0.006) * 0.08;
+        const flagY = y + outpost.height + 4;
+        atlas.draw(ctx, 16, bRow, x + 16, flagY, 24, 24, { rotation: wave });
+        atlas.draw(ctx, 17, bRow, x + outpost.width - 16, flagY, 24, 24, { rotation: -wave });
+    }
+
+    const barW = 236;
+    const barH = 22;
+    const barX = outpost.x - barW / 2;
+    const barY = y + outpost.height - 2;
+
+    const aliveRed = getAliveRedUnitsCount();
+    const remainingInWave = aliveRed + game.waveSpawnQueue.length;
+    const totalInWave = Math.max(1, game.waveTotalEnemies);
+
+    let fillRatio = 1;
+    let fillColor = '#f43f5e';
+    let statusText = `WAVE ${game.currentWave}/${game.maxWaves} • Còn: ${remainingInWave} địch`;
+
+    if (game.waveState === 'intermission') {
+        fillRatio = Math.max(0, Math.min(1, 1 - (game.waveIntermissionTimer / game.waveIntermissionMax)));
+        fillColor = '#eab308';
+        statusText = `WAVE ${game.currentWave + 1}/${game.maxWaves} sau ${game.waveIntermissionTimer.toFixed(1)}s`;
+    } else {
+        fillRatio = Math.max(0, Math.min(1, remainingInWave / totalInWave));
+    }
+
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.94)';
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barW, barH, 6);
+    ctx.fill();
+
+    ctx.strokeStyle = game.waveState === 'intermission' ? '#facc15' : '#fb7185';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    if (fillRatio > 0) {
+        ctx.fillStyle = fillColor;
+        ctx.beginPath();
+        ctx.roundRect(barX + 2, barY + 2, (barW - 4) * fillRatio, barH - 4, 4);
+        ctx.fill();
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 11px Chakra Petch';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(statusText, outpost.x, barY + barH / 2 + 0.5);
+
+    ctx.restore();
+}
+
+function drawPlayerBase(base) {
+    const bRow = 2;
     const x = base.x - base.width / 2;
     const y = base.y - base.height / 2;
 
@@ -3681,7 +5279,7 @@ function drawBase(base) {
         ctx.roundRect(bx - 26, by - 24, 52, 48, 8);
         ctx.fill();
 
-        ctx.strokeStyle = isBlue ? '#38bdf8' : '#f87171';
+        ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -3692,15 +5290,15 @@ function drawBase(base) {
 
     if (atlas.ready) {
         const wave = Math.sin(performance.now() * 0.006) * 0.08;
-        const flagY = isBlue ? y - 4 : y + base.height + 4;
+        const flagY = y - 4;
         atlas.draw(ctx, 16, bRow, x + 16, flagY, 24, 24, { rotation: wave });
         atlas.draw(ctx, 17, bRow, x + base.width - 16, flagY, 24, 24, { rotation: -wave });
     }
 
-    const barW = 210;
+    const barW = 216;
     const barH = 18;
     const barX = base.x - barW / 2;
-    const barY = isBlue ? y - 16 : y + base.height - 2;
+    const barY = y - 16;
     const hpRatio = Math.max(0, base.hp / base.maxHp);
 
     ctx.fillStyle = 'rgba(2, 6, 23, 0.92)';
@@ -3708,7 +5306,7 @@ function drawBase(base) {
     ctx.roundRect(barX, barY, barW, barH, 6);
     ctx.fill();
 
-    ctx.fillStyle = isBlue ? '#38bdf8' : '#f43f5e';
+    ctx.fillStyle = '#38bdf8';
     if (hpRatio > 0) {
         ctx.beginPath();
         ctx.roundRect(barX + 2, barY + 2, (barW - 4) * hpRatio, barH - 4, 4);
@@ -3724,7 +5322,7 @@ function drawBase(base) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(
-        `${isBlue ? 'CĂN CỨ XANH' : 'PHÁO ĐÀI ĐỎ'}: ${Math.ceil(base.hp)} / ${base.maxHp}`,
+        `CĂN CỨ XANH: ${Math.ceil(base.hp)} / ${base.maxHp}`,
         base.x + 6,
         barY + barH / 2 + 0.5
     );
@@ -3732,9 +5330,6 @@ function drawBase(base) {
     ctx.restore();
 }
 
-// ============================================================================
-// VẼ NHÂN VẬT VỚI ANIMATION RIÊNG BIỆT & VÒNG TẦM BẮN TÙY CHỌN
-// ============================================================================
 function drawUnits() {
     if (game.showRangeCircles) {
         for (const u of game.units) {
@@ -4000,13 +5595,20 @@ function drawEffects() {
     }
 }
 
+// ============================================================================
+// VÒNG LẶP GAME CHÍNH (MAIN GAME LOOP) & SỰ KIỆN ĐIỀU KHIỂN
+// ============================================================================
 let lastFrameTime = performance.now();
 
 function gameLoop(now) {
     const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
     lastFrameTime = now;
 
-    if (!game.inMenu && !game.paused && !game.gameOver) {
+    if (game.inMenu && currentLobbyTab === 'army') {
+        renderArmyShowcaseCanvas();
+    }
+
+    if (!game.inMenu && !game.paused && !game.draftActive && !game.gameOver) {
         game.elapsedTime += dt;
 
         game.gasTimer -= dt;
@@ -4015,7 +5617,7 @@ function gameLoop(now) {
         }
         updateControllerUI();
 
-        updateEnemyAI(dt);
+        updateWaveSystem(dt);
         updateUnits(dt);
         updateBullets(dt);
         updatePlanes(dt);
@@ -4034,14 +5636,14 @@ function gameLoop(now) {
     }
 
     drawMapBackground();
-    drawBase(game.redBase);
-    drawBase(game.blueBase);
+    drawTopWaveOutpostAndHUD();
+    drawPlayerBase(game.blueBase);
     drawUnits();
     drawBullets();
     drawPlanes();
     drawEffects();
 
-    if (game.paused && !game.gameOver && !game.inMenu) {
+    if (game.paused && !game.draftActive && !game.gameOver && !game.inMenu) {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
         ctx.fillRect(0, 0, LOGICAL_WIDTH, PLAYFIELD_HEIGHT);
         ctx.fillStyle = '#ffffff';
@@ -4055,7 +5657,7 @@ function gameLoop(now) {
 }
 
 canvas.addEventListener('pointerdown', (e) => {
-    if (game.inMenu || game.gameOver || game.paused) return;
+    if (game.inMenu || game.gameOver || game.paused || game.draftActive) return;
     const rect = canvas.getBoundingClientRect();
     const clickX = ((e.clientX - rect.left) / rect.width) * LOGICAL_WIDTH;
     const clickY = ((e.clientY - rect.top) / rect.height) * LOGICAL_HEIGHT;
@@ -4071,34 +5673,41 @@ canvas.addEventListener('pointerdown', (e) => {
     }
 });
 
+// Phím tắt bàn phím 1, 2, 3, 4, 5 gọi 5 ô quân + Space nạp xăng + U nâng tốc xăng
 window.addEventListener('keydown', (e) => {
-    if (game.inMenu) return;
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    if (game.inMenu || game.draftActive) return;
     if (e.key === '1') buyUnitFromSlot(0);
     if (e.key === '2') buyUnitFromSlot(1);
     if (e.key === '3') buyUnitFromSlot(2);
     if (e.key === '4') buyUnitFromSlot(3);
+    if (e.key === '5') buyUnitFromSlot(4);
     if (e.key.toLowerCase() === 'u') upgradeGasRate();
     if (e.code === 'Space') {
         e.preventDefault();
-        document.getElementById('gas-generator-btn').click();
+        document.getElementById('gas-generator-btn')?.click();
     }
 });
 
-document.getElementById('sound-btn').addEventListener('click', (e) => {
+document.getElementById('sound-btn')?.addEventListener('click', (e) => {
     sfx.enabled = !sfx.enabled;
     e.currentTarget.textContent = sfx.enabled ? '🔊' : '🔇';
 });
 
-document.getElementById('pause-btn').addEventListener('click', (e) => {
-    if (game.inMenu || game.gameOver) return;
+document.getElementById('pause-btn')?.addEventListener('click', (e) => {
+    if (game.inMenu || game.gameOver || game.draftActive) return;
     game.paused = !game.paused;
     e.currentTarget.textContent = game.paused ? '▶' : '⏸';
 });
 
 window.onload = function() {
-    buildStaticMapCanvas(1);
-    renderLevelGrid();
+    updateTopBarUI();
+    buildStaticMapCanvas(currentStageViewLevel);
+    renderStageScreenUI();
+    renderArmyTabUI();
     renderBattleDeckButtons();
+    updateExpUI();
     updateControllerUI();
+    checkAndPromptPlayerName(false);
     requestAnimationFrame(gameLoop);
 };

@@ -3,116 +3,470 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Battle - 15 Maps & Smart Pathfinding</title>
+    <title>Tiny Battle - Mobile Meta-Game & 10-Wave Roguelike</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=VT323&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;0,800;1,700&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="main.css">
 </head>
 <body>
 
     <div id="game-wrapper">
-        <!-- MÀN HÌNH CHÍNH -->
-        <div id="main-menu" class="menu-screen active">
-            <div class="menu-hero-art">
-                <div class="radar-circle"></div>
-                <canvas id="menuHeroCanvas" width="120" height="120" class="hero-tank-svg"></canvas>
+
+        <!-- ============================================================== -->
+        <!-- SẢNH CHÍNH META-GAME (LOBBY WRAPPER - BRIGHT MOBILE UI)        -->
+        <!-- ============================================================== -->
+        <div id="lobby-wrapper" class="lobby-wrapper active">
+
+            <!-- 1. TOP BAR: AVATAR + TÊN (TRÁI) | GEMS + COINS (PHẢI) -->
+            <div class="lobby-top-bar">
+                <div id="btn-edit-name" class="player-profile-pill" title="Đổi tên nhân vật">
+                    <div class="avatar-box">
+                        <canvas id="topAvatarCanvas" width="32" height="32" class="pixel-art w-7 h-7"></canvas>
+                    </div>
+                    <span id="player-name-display" class="player-name-text">COMMANDER</span>
+                </div>
+
+                <div class="currency-group">
+                    <!-- Gems (Kim cương xanh lá) -->
+                    <div class="currency-pill">
+                        <span class="currency-icon gem-icon">💎</span>
+                        <span id="gems-count-display" class="currency-val">0</span>
+                    </div>
+                    <!-- Coins (Vàng) -->
+                    <div class="currency-pill">
+                        <span class="currency-icon coin-icon">🪙</span>
+                        <span id="coins-count-display" class="currency-val">0</span>
+                    </div>
+                </div>
             </div>
-            <div class="menu-badge">KENNEY PIXEL ASSAULT - 15 MAPS</div>
-            <h1 class="menu-title">TINY BATTLE</h1>
-            <p class="menu-subtitle">Tìm Đường Vượt Địa Hình • 15 Bản Đồ Chiến Thuật</p>
-            <button id="btn-open-levels" class="play-main-btn">CHƠI NGAY</button>
+
+            <!-- 2. MAIN CONTENT VIEW (CHỨA 3 TAB: SHOP - BATTLE - ARMY) -->
+            <div class="lobby-main-content">
+
+                <!-- ==================== TAB 1: SHOP (GACHA CRATES) ==================== -->
+                <div id="tab-shop" class="lobby-tab-pane">
+                    <div class="shop-scroll-area">
+                        <div class="shop-banner-ribbon">
+                            <span>GACHA TƯỚNG & TIẾP TẾ QUÂN ĐỘI</span>
+                        </div>
+
+                        <!-- RƯƠNG 1: LEGENDARY CRATE -->
+                        <div class="crate-card crate-legendary">
+                            <div class="crate-card-header">
+                                <span class="crate-title">LEGENDARY CRATE</span>
+                            </div>
+                            <div class="crate-card-body">
+                                <div class="crate-visual-box">
+                                    <div class="crate-glow-ring"></div>
+                                    <div class="crate-art-icon">👑</div>
+                                    <span class="crate-rate-tag">Uncommon ➔ Legendary</span>
+                                </div>
+                                <div class="crate-info-box">
+                                    <p class="crate-desc-main">
+                                        Chỉ mở ra tướng bậc <b class="text-emerald-300">Uncommon</b>, <b class="text-sky-300">Rare</b>, <b class="text-purple-300">Epic</b> và <b class="text-amber-300">Legendary</b>!
+                                    </p>
+                                    <div class="crate-odds-list">
+                                        <span>Uncommon: 50%</span>
+                                        <span>Rare: 35%</span>
+                                        <span>Epic: 12%</span>
+                                        <span class="text-amber-300 font-extrabold">Legendary: 3%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="crate-card-footer">
+                                <button id="btn-open-leg-1" class="btn-3d btn-3d-yellow crate-buy-btn">
+                                    <span class="buy-label">OPEN X1</span>
+                                    <span class="buy-price">💎 300</span>
+                                </button>
+                                <button id="btn-open-leg-10" class="btn-3d btn-3d-amber crate-buy-btn">
+                                    <span class="discount-pill">-10%</span>
+                                    <span class="buy-label">OPEN X10</span>
+                                    <span class="buy-price">💎 2700</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- RƯƠNG 2: EPIC CRATE -->
+                        <div class="crate-card crate-epic">
+                            <div class="crate-card-header">
+                                <span class="crate-title">EPIC CRATE</span>
+                            </div>
+                            <div class="crate-card-body">
+                                <div class="crate-visual-box">
+                                    <div class="crate-glow-ring purple-glow"></div>
+                                    <div class="crate-art-icon">🧰</div>
+                                    <span class="crate-rate-tag">Common ➔ Epic</span>
+                                </div>
+                                <div class="crate-info-box">
+                                    <p class="crate-desc-main">
+                                        Mở ra tướng bậc <b class="text-slate-200">Common</b>, <b class="text-emerald-300">Uncommon</b>, <b class="text-sky-300">Rare</b> và <b class="text-purple-300">Epic</b>!
+                                    </p>
+                                    <div class="crate-odds-list">
+                                        <span>Common: 55%</span>
+                                        <span>Uncommon: 30%</span>
+                                        <span>Rare: 12%</span>
+                                        <span class="text-purple-300 font-extrabold">Epic: 3%</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="crate-card-footer">
+                                <button id="btn-open-epic-1" class="btn-3d btn-3d-yellow crate-buy-btn">
+                                    <span class="buy-label">OPEN X1</span>
+                                    <span class="buy-price">💎 150</span>
+                                </button>
+                                <button id="btn-open-epic-10" class="btn-3d btn-3d-amber crate-buy-btn">
+                                    <span class="discount-pill">-10%</span>
+                                    <span class="buy-label">OPEN X10</span>
+                                    <span class="buy-price">💎 1350</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 2: BATTLE (MÀN HÌNH CHÍNH GIỮA) ==================== -->
+                <div id="tab-battle" class="lobby-tab-pane active">
+                    <div class="battle-tab-layout">
+
+                        <!-- Tiêu đề Map & Điều hướng ◀ ▶ -->
+                        <div class="battle-header-zone">
+                            <div class="map-selector-row">
+                                <button id="btn-prev-stage" class="btn-3d btn-nav-arrow" title="Map trước">◀</button>
+                                <div class="map-title-block">
+                                    <h2 id="stage-map-title" class="map-big-title">1. CẦU QUA SÔNG</h2>
+                                    <p id="stage-progress-text" class="map-sub-progress">MỞ KHÓA: MAP 1 / 15</p>
+                                </div>
+                                <button id="btn-next-stage" class="btn-3d btn-nav-arrow" title="Map tiếp theo">▶</button>
+                            </div>
+
+                            <!-- Cụm chọn 3 Độ khó: Easy - Normal - Difficult -->
+                            <div class="difficulty-selector-bar">
+                                <button id="diff-btn-easy" data-diff="easy" class="diff-pill-btn active">
+                                    <span class="diff-name">EASY</span>
+                                    <span id="diff-status-easy" class="diff-status">★</span>
+                                </button>
+                                <button id="diff-btn-normal" data-diff="normal" class="diff-pill-btn">
+                                    <span class="diff-name">NORMAL</span>
+                                    <span id="diff-status-normal" class="diff-status">🔒</span>
+                                </button>
+                                <button id="diff-btn-difficult" data-diff="difficult" class="diff-pill-btn">
+                                    <span class="diff-name">DIFFICULT</span>
+                                    <span id="diff-status-difficult" class="diff-status">🔒</span>
+                                </button>
+                            </div>
+
+                            <div id="diff-info-banner" class="diff-info-strip">
+                                Quái: <b>1.0x HP & DMG</b> • Thưởng thắng: <b class="text-amber-300">🪙 200 Coins</b>
+                            </div>
+                        </div>
+
+                        <!-- Khu vực Trung tâm: 2 Sidebar Trái/Phải + Khung Demo Map ở giữa -->
+                        <div class="battle-center-stage">
+                            <!-- Left Sidebar: Nút MISSION -->
+                            <div class="battle-side-column">
+                                <button id="btn-open-missions" class="side-feature-btn" title="Nhiệm vụ kiếm Gems">
+                                    <span id="mission-notif-dot" class="notif-badge hidden">!</span>
+                                    <span class="side-btn-icon">📜</span>
+                                    <span class="side-btn-text">MISSION</span>
+                                </button>
+                            </div>
+
+                            <!-- Khung Demo Map ở chính giữa -->
+                            <div class="map-demo-card">
+                                <div class="map-canvas-frame">
+                                    <canvas id="selected-map-preview" width="168" height="224" class="map-preview-canvas pixel-art"></canvas>
+                                    <div id="select-map-water-badge" class="map-water-pill has-water">🌊 CÓ THỦY QUÂN</div>
+                                    <div id="stage-cleared-stamp" class="map-cleared-ribbon hidden">✓ ĐÃ HOÀN THÀNH</div>
+                                </div>
+                                <p id="select-map-desc" class="map-demo-desc">
+                                    Sông lớn cắt ngang chiến trường. Quân bộ phải lên cầu đá ở giữa để qua sông.
+                                </p>
+                            </div>
+
+                            <!-- Right Sidebar: Nút CODE -->
+                            <div class="battle-side-column">
+                                <button id="btn-open-code" class="side-feature-btn" title="Nhập Giftcode">
+                                    <span class="side-btn-icon">🎁</span>
+                                    <span class="side-btn-text">CODE</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Nút START lớn ở dưới -->
+                        <div class="battle-footer-zone">
+                            <button id="btn-start-battle" class="btn-3d btn-start-huge">
+                                START
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 3: ARMY (QUÂN ĐỘI & MERGE) ==================== -->
+                <div id="tab-army" class="lobby-tab-pane">
+                    <div class="army-tab-layout">
+
+                        <!-- Nửa trên: Nhân vật đại diện ở chính giữa trên nền sáng (Không có 6 ô đồ, không có thanh chỉ số tổng) -->
+                        <div class="army-Hero-stage">
+                            <div class="army-pedestal-circle"></div>
+                            <canvas id="army-hero-showcase" width="128" height="128" class="army-showcase-canvas pixel-art"></canvas>
+                            <div class="army-showcase-caption">
+                                <span id="army-showcase-name" class="showcase-unit-name">BỘ BINH</span>
+                                <span id="army-showcase-rarity" class="rarity-badge rarity-common">COMMON</span>
+                            </div>
+                        </div>
+
+                        <!-- Nửa dưới: Quản lý danh sách quân (ARMY) & Ghép tướng (MERGE) -->
+                        <div class="army-bottom-panel">
+                            <div class="army-mode-header">
+                                <button id="btn-mode-army" class="btn-3d army-mode-btn active">
+                                    ⚔️ ARMY
+                                </button>
+                                <span id="army-panel-title" class="army-panel-heading">QUÂN ĐỘI (11 BINH CHỦNG)</span>
+                                <button id="btn-mode-merge" class="btn-3d army-mode-btn">
+                                    ✨ MERGE
+                                </button>
+                            </div>
+
+                            <!-- Chế độ 1: ARMY (Danh sách 11 binh chủng & Nâng cấp bằng Coins) -->
+                            <div id="army-list-view" class="army-subview active">
+                                <div id="army-units-grid" class="army-cards-grid"></div>
+                            </div>
+
+                            <!-- Chế độ 2: MERGE (Ghép 2 thẻ cùng loại & cùng độ hiếm) -->
+                            <div id="army-merge-view" class="army-subview">
+                                <!-- Bàn ghép tướng -->
+                                <div class="merge-workbench">
+                                    <div id="merge-slot-1" class="merge-slot" title="Bấm để bỏ chọn">
+                                        <span class="merge-slot-placeholder">+ THẺ 1</span>
+                                    </div>
+                                    <div class="merge-plus-symbol">+</div>
+                                    <div id="merge-slot-2" class="merge-slot" title="Bấm để bỏ chọn">
+                                        <span class="merge-slot-placeholder">+ THẺ 2</span>
+                                    </div>
+                                    <div class="merge-plus-symbol">➔</div>
+                                    <div id="merge-slot-result" class="merge-slot result-slot">
+                                        <span class="merge-slot-placeholder">KẾT QUẢ</span>
+                                    </div>
+                                    <button id="btn-execute-merge" class="btn-3d btn-3d-amber merge-action-btn" disabled>
+                                        MERGE
+                                    </button>
+                                </div>
+                                <div id="merge-hint-text" class="merge-hint-bar">
+                                    Chọn 2 thẻ tướng <b>cùng tên & cùng độ hiếm</b> để tiến hóa bậc cao hơn (+1 Level vĩnh viễn)!
+                                </div>
+                                <!-- Kho thẻ đang sở hữu -->
+                                <div id="merge-inventory-grid" class="army-cards-grid merge-inv-scroll"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 3. BOTTOM NAVIGATION BAR: 3 TAB (SHOP - BATTLE - ARMY) -->
+            <div class="lobby-bottom-nav">
+                <button class="nav-tab-btn" data-tab="shop">
+                    <span class="nav-tab-icon">🏪</span>
+                    <span class="nav-tab-label">SHOP</span>
+                </button>
+                <button class="nav-tab-btn active" data-tab="battle">
+                    <span class="nav-tab-icon">⭐</span>
+                    <span class="nav-tab-label">BATTLE</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="army">
+                    <span class="nav-tab-icon">⚒️</span>
+                    <span class="nav-tab-label">ARMY</span>
+                </button>
+            </div>
+
         </div>
 
-        <!-- MÀN HÌNH CHỌN 15 MAP -->
-        <div id="level-select-screen" class="menu-screen">
-            <div class="level-rect-board">
-                <div class="level-board-header">
-                    <div class="text-left">
-                        <h2 class="level-board-title">CHỌN BẢN ĐỒ (1 - 15)</h2>
-                        <p class="text-[10.5px] text-sky-300 font-semibold">🌊 = Có nước (Chọn được Thuyền) | ⛰️ = Khóa Thuyền</p>
-                    </div>
-                    <button id="btn-back-menu" class="back-menu-btn">✕</button>
-                </div>
-                <div id="level-grid" class="level-grid-container"></div>
-            </div>
-        </div>
+        <!-- ============================================================== -->
+        <!-- CÁC POPUP / MODAL CỦA HỆ THỐNG META-GAME                       -->
+        <!-- ============================================================== -->
 
-        <!-- MÀN HÌNH CHỌN NHÂN VẬT ĐẦU TRẬN (TỐI ĐA 4 NHÂN VẬT) -->
-        <div id="unit-select-screen" class="menu-screen">
-            <div class="loadout-board">
-                <div class="level-board-header">
-                    <div class="text-left">
-                        <h2 class="level-board-title text-base">CHỌN ĐỘI HÌNH RA TRẬN</h2>
-                        <p class="text-[10px] text-sky-300 font-semibold">Tối đa 4 quân • Giá xăng ⛽ theo Sát thương ⚔️ • Tầm bắn 🎯 tùy chọn</p>
-                    </div>
-                    <button id="btn-back-levels" class="back-menu-btn" title="Quay lại chọn Map">✕</button>
+        <!-- 1. POPUP ĐẶT TÊN NHÂN VẬT LẦN ĐẦU VÀO GAME -->
+        <div id="name-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box">
+                <div class="bright-modal-header">
+                    <h3 class="bright-modal-title">HỒ SƠ CHỈ HUY</h3>
                 </div>
-
-                <!-- Thông tin & Hình thu nhỏ của Map vừa ấn -->
-                <div class="map-preview-banner">
-                    <canvas id="selected-map-preview" width="84" height="120" class="map-thumb-canvas pixel-art"></canvas>
-                    <div class="flex-1 text-left pl-2.5">
-                        <div class="flex items-center gap-1.5">
-                            <span id="select-map-num" class="bg-amber-400 text-slate-950 text-[10px] font-extrabold px-1.5 py-0.5 rounded">MAP 1</span>
-                            <span id="select-map-title" class="text-sm font-extrabold text-white truncate">Cầu Qua Sông</span>
-                        </div>
-                        <div id="select-map-water-badge" class="water-status-badge has-water mt-1">
-                            🌊 CÓ NƯỚC: Có thể chọn Thuyền
-                        </div>
-                        <div id="select-map-desc" class="text-[10px] text-slate-300 mt-1 leading-tight">
-                            Quân bộ phải đi qua cầu, Thuyền di chuyển dưới sông.
-                        </div>
-                        <div id="select-map-stats" class="text-[10px] text-amber-300 font-bold mt-1">
-                            HP Pháo đài Đỏ: 125
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 4 Ô Đội Hình Đã Chọn -->
-                <div class="selected-deck-box">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="text-[10px] font-bold text-amber-300 uppercase tracking-wider">Đội hình ra trận (Chạm vào ô để gỡ)</span>
-                        <span id="deck-count-badge" class="text-[11px] font-extrabold text-emerald-400">4 / 4</span>
-                    </div>
-                    <div id="selected-deck-slots" class="selected-slots-grid"></div>
-                </div>
-
-                <!-- Danh sách tất cả nhân vật -->
-                <div class="roster-header">
-                    <span class="text-[10px] font-bold text-slate-300 uppercase">Kho Binh Chủng (Chạm 🎯 để chỉnh tầm bắn Gần/Chuẩn/Xa)</span>
-                </div>
-                <div id="unit-roster-grid" class="unit-roster-grid"></div>
-
-                <!-- Nút hành động -->
-                <div class="flex gap-2 mt-1">
-                    <button id="btn-auto-deck" class="bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold text-xs px-3 py-2.5 rounded-xl border border-slate-600 transition">
-                        ⚡ ĐỀ XUẤT
+                <div class="bright-modal-body text-center">
+                    <p class="text-xs font-bold text-slate-700 mb-3">
+                        Chào mừng đến với <b>TINY BATTLE</b>! Hãy nhập tên Chỉ Huy của bạn (tối đa 14 ký tự):
+                    </p>
+                    <input
+                        id="player-name-input"
+                        type="text"
+                        maxlength="14"
+                        placeholder="Nhập tên nhân vật..."
+                        class="bright-input-field"
+                    />
+                    <p id="name-error-msg" class="text-[11px] font-extrabold text-rose-600 mt-1.5 hidden">
+                        ⚠️ Vui lòng nhập tên hợp lệ (1 - 14 ký tự)!
+                    </p>
+                    <button id="btn-confirm-name" class="btn-3d btn-3d-amber w-full py-2.5 mt-4 text-sm">
+                        XÁC NHẬN TÊN
                     </button>
-                    <button id="btn-start-battle" class="flex-1 bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-sm py-2.5 rounded-xl shadow-lg border-2 border-amber-200 transition">
-                        ⚔️ BẮT ĐẦU TRẬN ĐẤU!
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. POPUP NHIỆM VỤ (MISSIONS) -->
+        <div id="mission-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box modal-wide">
+                <div class="bright-modal-header">
+                    <h3 class="bright-modal-title">📜 NHIỆM VỤ CHIẾN DỊCH</h3>
+                    <button id="btn-close-missions" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body">
+                    <p class="text-[11px] font-bold text-slate-600 mb-2 text-center">
+                        Hoàn thành các thử thách độ khó cao để nhận <b>💎 Gems</b> mở rương tướng!
+                    </p>
+                    <div id="mission-list-container" class="mission-scroll-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. POPUP NHẬP GIFTCODE -->
+        <div id="code-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box">
+                <div class="bright-modal-header">
+                    <h3 class="bright-modal-title">🎁 NHẬP GIFTCODE</h3>
+                    <button id="btn-close-code" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body text-center">
+                    <p class="text-xs font-bold text-slate-700 mb-3">
+                        Nhập mã quà tặng từ nhà phát triển để nhận tài nguyên đặc biệt:
+                    </p>
+                    <input
+                        id="giftcode-input"
+                        type="text"
+                        placeholder="Nhập mã code tại đây..."
+                        class="bright-input-field uppercase"
+                    />
+                    <p id="giftcode-feedback" class="text-xs font-extrabold mt-2 hidden"></p>
+                    <button id="btn-submit-code" class="btn-3d btn-3d-green w-full py-2.5 mt-4 text-sm">
+                        NHẬN QUÀ NGAY
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- THANH HUD TRÊN CÙNG -->
+        <!-- 4. POPUP KẾT QUẢ MỞ RƯƠNG GACHA -->
+        <div id="gacha-result-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box modal-wide">
+                <div class="bright-modal-header">
+                    <h3 id="gacha-modal-title" class="bright-modal-title">🎉 KẾT QUẢ MỞ RƯƠNG</h3>
+                </div>
+                <div class="bright-modal-body text-center">
+                    <div id="gacha-cards-grid" class="gacha-results-grid"></div>
+                    <button id="btn-close-gacha" class="btn-3d btn-3d-amber w-full py-2.5 mt-4 text-sm">
+                        THU NHẬN VÀO KHO
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. POPUP CHI TIẾT & NÂNG CẤP TƯỚNG BẰNG VÀNG (ARMY UPGRADE MODAL) -->
+        <div id="unit-upgrade-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box">
+                <div class="bright-modal-header">
+                    <h3 id="upg-modal-unit-name" class="bright-modal-title">BỘ BINH</h3>
+                    <button id="btn-close-upg-modal" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body">
+                    <div class="upg-unit-preview-row">
+                        <div id="upg-modal-card-frame" class="upg-unit-avatar-box rarity-common">
+                            <img id="upg-modal-sprite" class="w-14 h-14 pixel-art" alt="Unit" />
+                        </div>
+                        <div class="flex-1 text-left pl-3">
+                            <div class="flex items-center gap-1.5">
+                                <span id="upg-modal-rarity-badge" class="rarity-badge rarity-common">COMMON</span>
+                                <span id="upg-modal-level-badge" class="upg-lv-pill">LV.1</span>
+                            </div>
+                            <p id="upg-modal-role" class="text-[11px] font-bold text-slate-600 mt-1">Đi bộ • Tầm gần</p>
+                            <p id="upg-modal-mult-info" class="text-[10px] font-extrabold text-sky-700 mt-0.5">
+                                Hệ số Độ hiếm: 1.0x HP & DMG
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="upg-stats-compare-box">
+                        <div class="upg-stat-row">
+                            <span class="upg-stat-label">⚔️ Sát thương:</span>
+                            <div class="upg-stat-values">
+                                <span id="upg-cur-dmg" class="font-bold text-slate-800">2</span>
+                                <span class="text-emerald-600 font-black mx-1">➔</span>
+                                <span id="upg-next-dmg" class="font-extrabold text-emerald-600">3 (+12%)</span>
+                            </div>
+                        </div>
+                        <div class="upg-stat-row">
+                            <span class="upg-stat-label">❤️ Máu (HP):</span>
+                            <div class="upg-stat-values">
+                                <span id="upg-cur-hp" class="font-bold text-slate-800">9</span>
+                                <span class="text-emerald-600 font-black mx-1">➔</span>
+                                <span id="upg-next-hp" class="font-extrabold text-emerald-600">10 (+12%)</span>
+                            </div>
+                        </div>
+                        <div class="upg-stat-row">
+                            <span class="upg-stat-label">⛽ Giá gọi trong trận:</span>
+                            <span id="upg-unit-gas" class="font-extrabold text-amber-600">2 Xăng</span>
+                        </div>
+                    </div>
+
+                    <button id="btn-confirm-unit-upgrade" class="btn-3d btn-3d-green w-full py-2.5 mt-3 flex items-center justify-center gap-2 text-sm">
+                        <span>NÂNG CẤP LEVEL</span>
+                        <span id="upg-cost-coins" class="bg-slate-900/25 px-2 py-0.5 rounded-full text-amber-200">🪙 100</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- GIAO DIỆN CHIẾN ĐẤU TRONG TRẬN (IN-GAME BATTLE UI - GIỮ NGUYÊN) -->
+        <!-- ============================================================== -->
+
+        <!-- POPUP ROGUELIKE CHỌN 1 TRONG 3 THẺ BÀI TRONG TRẬN (DRAFTING MODAL) -->
+        <div id="draft-modal" class="draft-overlay">
+            <div class="draft-board">
+                <div class="draft-badge" id="draft-badge-text">KHỞI ĐẦU TRẬN ĐẤU</div>
+                <h2 id="draft-title" class="draft-header-title">CHỌN QUÂN TIÊN PHONG</h2>
+                <p id="draft-subtitle" class="draft-header-sub">Chọn 1 trong 3 đơn vị dưới đây để đưa vào thanh điều khiển chiến đấu</p>
+
+                <div id="draft-cards-container" class="draft-cards-grid"></div>
+            </div>
+        </div>
+
+        <!-- THANH HUD TRÊN CÙNG KHI ĐÁNH TRẬN -->
         <div class="hud-top">
-            <div class="flex items-center gap-1 bg-slate-900/90 border border-slate-600 px-2 py-1 rounded-full text-xs text-white shadow">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span id="current-level-label" class="font-bold tracking-wider text-amber-300">MAP 1</span>
-                <img class="gas-inline-sprite w-3.5 h-3.5 pixel-art ml-0.5" alt="Gas" />
-                <span id="speed-indicator" class="text-[10.5px] text-sky-300 font-semibold">3.0s</span>
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-1 bg-slate-900/90 border border-slate-600 px-2 py-0.5 rounded-full text-xs text-white shadow">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="current-level-label" class="font-bold tracking-wider text-amber-300">MAP 1</span>
+                    <img class="gas-inline-sprite w-3.5 h-3.5 pixel-art ml-0.5" alt="Gas" />
+                    <span id="speed-indicator" class="text-[10.5px] text-sky-300 font-semibold">3.0s</span>
+                </div>
+                <!-- Thanh Kinh Nghiệm & Level trong trận -->
+                <div class="exp-bar-wrapper">
+                    <div class="flex justify-between items-center text-[9.5px] font-extrabold px-1">
+                        <span id="battle-lv-label" class="text-amber-300">LV.1</span>
+                        <span id="battle-exp-label" class="text-sky-200">EXP 0 / 8</span>
+                    </div>
+                    <div class="exp-bar-track">
+                        <div id="battle-exp-fill" class="exp-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex items-center gap-1">
                 <button id="range-toggle-btn" title="Hiện/Ẩn vòng tầm bắn" class="bg-emerald-900/90 hover:bg-emerald-800 text-emerald-200 border border-emerald-400 rounded-lg px-1.5 py-1 text-[10.5px] font-bold transition">
                     🎯 TẦM
                 </button>
-                <button id="deck-reselect-btn" title="Đổi đội hình" class="bg-slate-900/90 hover:bg-slate-800 text-amber-300 border border-slate-600 rounded-lg px-1.5 py-1 text-[10.5px] font-bold transition">
-                    🎖️ QUÂN
-                </button>
-                <button id="menu-return-btn" title="Chọn màn" class="bg-slate-900/90 hover:bg-slate-800 text-sky-300 border border-slate-600 rounded-lg px-1.5 py-1 text-[10.5px] font-bold transition">
-                    ☰ MAP
+                <button id="menu-return-btn" title="Quay về sảnh chính" class="bg-slate-900/90 hover:bg-slate-800 text-sky-300 border border-slate-600 rounded-lg px-1.5 py-1 text-[10.5px] font-bold transition">
+                    🏠 SẢNH
                 </button>
                 <button id="sound-btn" title="Bật/Tắt Âm Thanh" class="bg-slate-900/90 hover:bg-slate-800 text-white border border-slate-600 rounded-lg px-1.5 py-1 text-xs font-bold transition">
                     🔊
@@ -123,20 +477,19 @@
             </div>
         </div>
 
-        <!-- CANVAS CHIẾN TRƯỜNG -->
         <canvas id="battleCanvas"></canvas>
 
-        <!-- THANH ĐIỀU KHIỂN DƯỚI CÙNG (KHO XĂNG + NÂNG XĂNG + 4 Ô NHÂN VẬT) -->
+        <!-- THANH ĐIỀU KHIỂN DƯỚI ĐÁY TRONG TRẬN -->
         <div class="bottom-deck">
-            <div id="gas-generator-btn" class="gas-card" title="Chạm để nạp nhanh một lượng nhỏ">
+            <div id="gas-generator-btn" class="gas-card" title="Chạm hoặc bấm Space để nạp nhanh">
                 <div class="flex items-center justify-between w-full px-0.5">
-                    <span class="text-[8.5px] font-bold uppercase tracking-wider text-sky-300">XĂNG</span>
-                    <span id="gas-rate-label" class="text-[8.5px] text-emerald-400 font-bold">+1/3.0s</span>
+                    <span class="text-[8px] font-bold uppercase tracking-wider text-sky-300">XĂNG</span>
+                    <span id="gas-rate-label" class="text-[8px] text-emerald-400 font-bold">+1/3.0s</span>
                 </div>
 
-                <div class="flex items-center gap-1 my-0.5">
-                    <img id="icon-gas-can" class="w-6 h-6 pixel-art drop-shadow" alt="Gas" />
-                    <span id="gas-count-text" class="text-xl font-extrabold text-amber-300 leading-none tracking-tight">0</span>
+                <div class="flex items-center gap-0.5 my-0.5">
+                    <img id="icon-gas-can" class="w-5 h-5 pixel-art drop-shadow" alt="Gas" />
+                    <span id="gas-count-text" class="text-lg font-extrabold text-amber-300 leading-none tracking-tight">0</span>
                 </div>
 
                 <div class="gas-segments">
@@ -146,14 +499,14 @@
                     <div id="L4" class="gas-seg"></div>
                     <div id="L5" class="gas-seg"></div>
                 </div>
-                <div class="text-[8px] text-slate-400 leading-none mt-0.5">Chạm nạp</div>
+                <div class="text-[7.5px] text-slate-400 leading-none mt-0.5">Chạm nạp</div>
             </div>
 
             <div id="btnUpgradeGas" class="unit-btn upgrade-btn" onclick="upgradeGasRate()">
-                <div class="text-[8.5px] font-bold text-emerald-300 uppercase tracking-tight">Nâng Xăng</div>
+                <div class="text-[8px] font-bold text-emerald-300 uppercase tracking-tight">Nâng Xăng</div>
                 <div class="my-0.5 flex flex-col items-center justify-center">
-                    <img id="icon-upgrade-building" class="w-7 h-7 pixel-art" alt="Upgrade" />
-                    <span id="upgrade-next-speed" class="text-[8.5px] text-sky-200 font-bold leading-none mt-0.5">➔ 2.0s</span>
+                    <img id="icon-upgrade-building" class="w-6 h-6 pixel-art" alt="Upgrade" />
+                    <span id="upgrade-next-speed" class="text-[8px] text-sky-200 font-bold leading-none mt-0.5">➔ 2.0s</span>
                 </div>
                 <div id="upgrade-cost-badge" class="cost-badge cost-badge-upg">
                     <img class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
@@ -161,15 +514,15 @@
                 </div>
 
                 <div id="blockUpgrade" class="lock-overlay">
-                    <img class="lock-sprite w-4 h-4 pixel-art mb-0.5" alt="Lock" />
+                    <img class="lock-sprite w-3.5 h-3.5 pixel-art mb-0.5" alt="Lock" />
                     <div class="flex items-center gap-0.5">
-                        <span id="upgrade-lock-cost" class="text-[9px] font-bold text-amber-400">4</span>
+                        <span id="upgrade-lock-cost" class="text-[8.5px] font-bold text-amber-400">4</span>
                         <img class="gas-inline-sprite w-2.5 h-2.5 pixel-art" alt="Gas" />
                     </div>
                 </div>
             </div>
 
-            <!-- 4 Ô Nhân Vật Động theo lựa chọn của người chơi -->
+            <!-- 5 Ô Nhân Vật Động theo thẻ chọn trong trận (Phím 1 - 5) -->
             <div id="battle-deck-slots" class="battle-deck-slots"></div>
         </div>
 
@@ -179,7 +532,12 @@
                 <span class="text-4xl">🏆</span>
             </div>
             <h1 class="text-4xl font-extrabold text-white tracking-wider drop-shadow mb-1">CHIẾN THẮNG!</h1>
-            <p id="win-subtitle" class="text-sky-200 text-sm font-semibold mb-5">Pháo đài Đỏ đã hoàn toàn sụp đổ!</p>
+            <p id="win-subtitle" class="text-sky-200 text-sm font-semibold mb-2">Đã đẩy lùi toàn bộ 10 Đợt tiến công!</p>
+
+            <div class="bg-amber-400/20 border-2 border-amber-300 rounded-full px-4 py-1 mb-4 flex items-center gap-1.5 shadow">
+                <span class="text-xs font-bold text-amber-200">THƯỞNG CHIẾN THẮNG:</span>
+                <span id="win-coins-reward" class="text-base font-black text-amber-300">+200 🪙</span>
+            </div>
 
             <div class="bg-slate-900/80 border border-sky-400/40 rounded-xl p-4 w-full max-w-xs mb-6 grid grid-cols-2 gap-3 text-left">
                 <div>
@@ -191,8 +549,8 @@
                     <div id="win-hp" class="text-lg font-bold text-emerald-400">100 / 100</div>
                 </div>
                 <div>
-                    <div class="text-[11px] text-slate-400">Quân đã gọi</div>
-                    <div id="win-spawned" class="text-lg font-bold text-sky-300">0</div>
+                    <div class="text-[11px] text-slate-400">Cấp độ đạt được</div>
+                    <div id="win-spawned" class="text-lg font-bold text-sky-300">LV.1</div>
                 </div>
                 <div>
                     <div class="text-[11px] text-slate-400">Địch tiêu diệt</div>
@@ -201,14 +559,14 @@
             </div>
 
             <div class="flex gap-2.5">
-                <button onclick="openLevelSelect()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
-                    15 MAP
+                <button onclick="openLobbyScreen('battle')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
+                    🏠 VỀ SẢNH
                 </button>
-                <button onclick="openUnitSelectForLevel(game.currentLevel)" class="bg-sky-700 hover:bg-sky-600 text-white font-bold text-xs px-4 py-3 rounded-xl border border-sky-400 transition">
-                    ĐỔI QUÂN
+                <button onclick="restartGame()" class="bg-sky-700 hover:bg-sky-600 text-white font-bold text-xs px-4 py-3 rounded-xl border border-sky-400 transition">
+                    CHƠI LẠI
                 </button>
                 <button onclick="nextOrRestartLevel()" class="bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-xl shadow-lg border-2 border-amber-200 transition">
-                    MAP TIẾP ➔
+                    TIẾP TỤC ➔
                 </button>
             </div>
         </div>
@@ -219,7 +577,7 @@
                 <span class="text-4xl">💥</span>
             </div>
             <h1 class="text-4xl font-extrabold text-white tracking-wider drop-shadow mb-1">THẤT THỦ!</h1>
-            <p class="text-rose-200 text-sm font-semibold mb-5">Căn cứ Xanh đã bị quân địch phá hủy!</p>
+            <p class="text-rose-200 text-sm font-semibold mb-5">Căn cứ Xanh đã bị quân địch tràn ngập!</p>
 
             <div class="bg-slate-900/80 border border-rose-400/40 rounded-xl p-4 w-full max-w-xs mb-6 grid grid-cols-2 gap-3 text-left">
                 <div>
@@ -227,8 +585,8 @@
                     <div id="lose-time" class="text-lg font-bold text-white">00:00</div>
                 </div>
                 <div>
-                    <div class="text-[11px] text-slate-400">HP Căn cứ Đỏ còn</div>
-                    <div id="lose-hp" class="text-lg font-bold text-rose-400">50 / 100</div>
+                    <div class="text-[11px] text-slate-400">Đợt (Wave) dừng lại</div>
+                    <div id="lose-wave" class="text-lg font-bold text-rose-400">Wave 1 / 10</div>
                 </div>
                 <div>
                     <div class="text-[11px] text-slate-400">Quân đã gọi</div>
@@ -241,17 +599,15 @@
             </div>
 
             <div class="flex gap-2.5">
-                <button onclick="openLevelSelect()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
-                    15 MAP
+                <button onclick="openLobbyScreen('battle')" class="bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
+                    🏠 VỀ SẢNH
                 </button>
-                <button onclick="openUnitSelectForLevel(game.currentLevel)" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs px-4 py-3 rounded-xl border border-amber-200 transition">
-                    CHỌN LẠI QUÂN
-                </button>
-                <button onclick="restartGame()" class="bg-gradient-to-b from-white to-slate-200 hover:from-slate-100 hover:to-slate-300 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-xl shadow-lg border-2 border-white transition">
-                    CHƠI LẠI
+                <button onclick="restartGame()" class="bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs px-6 py-3 rounded-xl shadow-lg border-2 border-amber-200 transition">
+                    ⚔️ THỬ LẠI NGAY
                 </button>
             </div>
         </div>
+
     </div>
 
     <script src="main.js"></script>
