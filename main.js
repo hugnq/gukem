@@ -116,10 +116,10 @@ const BOTTOM_UI_HEIGHT = 126;
 const PLAYFIELD_HEIGHT = LOGICAL_HEIGHT - BOTTOM_UI_HEIGHT;
 const MAX_DECK_SLOTS = 5;
 const MAX_WAVES = 10;
-const STORAGE_KEY = 'tiny_battle_meta_save_v2';
+const STORAGE_KEY = 'tiny_battle_meta_save_v3';
 
 // ============================================================================
-// HỆ THỐNG ĐỘ HIẾM (RARITY SYSTEM) & HỆ SỐ SỨC MẠNH
+// HỆ THỐNG ĐỘ HIẾM (RARITY SYSTEM) & 7 BẬC ĐỘ HIẾM
 // ============================================================================
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'epic1', 'epic2', 'legendary'];
 
@@ -197,91 +197,49 @@ const RARITY_CONFIG = {
 };
 
 // ============================================================================
-// HỆ THỐNG ĐỘ KHÓ MÀN CHƠI (DIFFICULTY CONFIG)
+// HỆ THỐNG 2 ĐỘ KHÓ MÀN CHƠI (EASY & DIFFICULT)
 // ============================================================================
-const DIFFICULTY_ORDER = ['easy', 'normal', 'difficult'];
+const DIFFICULTY_ORDER = ['easy', 'difficult'];
 
 const DIFFICULTY_CONFIG = {
     easy: {
         id: 'easy',
-        label: 'EASY',
+        label: 'DỄ (CÔNG PHÁ CĂN CỨ)',
         statMult: 1.0,
-        calcReward: (mapLv) => 150 + mapLv * 50
-    },
-    normal: {
-        id: 'normal',
-        label: 'NORMAL',
-        statMult: 1.35,
-        calcReward: (mapLv) => 300 + mapLv * 80
+        isSurvival: false,
+        calcReward: (mapLv) => 180 + mapLv * 60
     },
     difficult: {
         id: 'difficult',
-        label: 'DIFFICULT',
-        statMult: 1.75,
-        calcReward: (mapLv) => 500 + mapLv * 120
+        label: 'KHÓ (10 WAVE SINH TỒN + BOSS)',
+        statMult: 1.85,
+        isSurvival: true,
+        calcReward: (mapLv) => 600 + mapLv * 180
     }
 };
+
+// ============================================================================
+// HỆ THỐNG 10 GIFTCODE CHÍNH THỨC (DÙNG 1 LẦN) + 1,500 GEMS & 15,000 COINS
+// ============================================================================
+const OFFICIAL_GIFTCODES = [
+    'HUNGDZ01', 'HUNGDZ02', 'HUNGDZ03', 'HUNGDZ04', 'HUNGDZ05',
+    'HUNGDZ06', 'HUNGDZ07', 'HUNGDZ08', 'HUNGDZ09', 'HUNGDZ10'
+];
+const GIFTCODE_REWARD_GEMS = 1500;
+const GIFTCODE_REWARD_COINS = 15000;
 
 // ============================================================================
 // DANH SÁCH NHIỆM VỤ KIẾM GEMS (MISSIONS CATALOG)
 // ============================================================================
 const MISSIONS_CATALOG = [
-    {
-        id: 'm_kills_500',
-        title: 'Tiêu diệt 500 quân địch',
-        statKey: 'kills',
-        target: 500,
-        rewardGems: 20
-    },
-    {
-        id: 'm_diff_3',
-        title: 'Hoàn thành 3 màn cấp Difficult',
-        statKey: 'diffWins',
-        target: 3,
-        rewardGems: 40
-    },
-    {
-        id: 'm_spawn_200',
-        title: 'Gọi 200 đơn vị quân trong trận',
-        statKey: 'spawns',
-        target: 200,
-        rewardGems: 15
-    },
-    {
-        id: 'm_crates_10',
-        title: 'Mở 10 rương Gacha bất kỳ',
-        statKey: 'cratesOpened',
-        target: 10,
-        rewardGems: 25
-    },
-    {
-        id: 'm_merge_5',
-        title: 'Ghép (Merge) tướng thành công 5 lần',
-        statKey: 'merges',
-        target: 5,
-        rewardGems: 30
-    },
-    {
-        id: 'm_wins_10',
-        title: 'Chiến thắng 10 trận đấu bất kỳ',
-        statKey: 'wins',
-        target: 10,
-        rewardGems: 30
-    },
-    {
-        id: 'm_upg_15',
-        title: 'Nâng cấp Level quân đội 15 lần',
-        statKey: 'upgrades',
-        target: 15,
-        rewardGems: 25
-    },
-    {
-        id: 'm_kills_2000',
-        title: 'Tiêu diệt 2000 quân địch',
-        statKey: 'kills',
-        target: 2000,
-        rewardGems: 60
-    }
+    { id: 'm_kills_500', title: 'Tiêu diệt 500 quân địch', statKey: 'kills', target: 500, rewardGems: 20 },
+    { id: 'm_diff_3', title: 'Hoàn thành 3 màn chế độ Khó (Difficult)', statKey: 'diffWins', target: 3, rewardGems: 40 },
+    { id: 'm_spawn_200', title: 'Gọi 200 đơn vị quân trong trận', statKey: 'spawns', target: 200, rewardGems: 15 },
+    { id: 'm_crates_10', title: 'Mở 10 rương Gacha bất kỳ', statKey: 'cratesOpened', target: 10, rewardGems: 25 },
+    { id: 'm_merge_5', title: 'Hợp nhất (Merge) tướng thành công 5 lần', statKey: 'merges', target: 5, rewardGems: 30 },
+    { id: 'm_wins_10', title: 'Chiến thắng 10 trận đấu bất kỳ', statKey: 'wins', target: 10, rewardGems: 30 },
+    { id: 'm_upg_15', title: 'Nâng cấp Level quân đội 15 lần', statKey: 'upgrades', target: 15, rewardGems: 25 },
+    { id: 'm_kills_2000', title: 'Tiêu diệt 2000 quân địch', statKey: 'kills', target: 2000, rewardGems: 60 }
 ];
 
 // ============================================================================
@@ -291,151 +249,39 @@ const NAV_CELL = 10;
 const GRID_W = Math.ceil(LOGICAL_WIDTH / NAV_CELL);
 const GRID_H = Math.ceil(PLAYFIELD_HEIGHT / NAV_CELL);
 
-const T_OPEN = 0;      // Đất trống / Cỏ / Cát (Quân bộ đi được)
-const T_ROAD = 1;      // Đường nhựa / Đường đất (Ưu tiên đi nhanh, thông thoáng)
-const T_WATER = 2;     // Vùng nước (Chỉ Thuyền đi được, Quân bộ CẤM bước xuống)
-const T_BRIDGE = 3;    // Cầu bắc qua nước (Quân bộ đi lên trên cầu để qua nước)
-const T_OBSTACLE = 4;  // Cây cối, núi đá, cột trụ, tường thành, nhà cửa (CẤM đi xuyên qua)
+const T_OPEN = 0;
+const T_ROAD = 1;
+const T_WATER = 2;
+const T_BRIDGE = 3;
+const T_OBSTACLE = 4;
 
 // ============================================================================
 // DỮ LIỆU 15 MAP CHIẾN THUẬT
 // ============================================================================
 const MAPS_DATA = [
-    {
-        level: 1,
-        name: 'Cầu Qua Sông',
-        hasWater: true,
-        waterZones: [{ x: 0, y: 290, w: 420, h: 130 }],
-        bridgeLanes: [210],
-        desc: 'Sông lớn cắt ngang chiến trường. Quân bộ phải lên cầu đá ở giữa để qua sông.'
-    },
-    {
-        level: 2,
-        name: 'Đường Đèo Chữ S',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [210],
-        desc: 'Đường nhựa uốn lượn chữ S xuyên qua rừng thông và núi đá chắn hai bên.'
-    },
-    {
-        level: 3,
-        name: 'Đại Lộ Đô Thị',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [95, 210, 325],
-        desc: 'Đường phố đô thị chia ô vuông. Các đơn vị phải đi theo đại lộ vòng qua tòa nhà.'
-    },
-    {
-        level: 4,
-        name: 'Pháo Đài Hồ Nước',
-        hasWater: true,
-        waterZones: [
-            { x: 25, y: 145, w: 120, h: 420 },
-            { x: 275, y: 145, w: 120, h: 420 },
-            { x: 25, y: 155, w: 370, h: 120 },
-            { x: 25, y: 435, w: 370, h: 120 }
-        ],
-        bridgeLanes: [210],
-        desc: 'Hồ nước bao quanh đảo pháo đài giữa. Quân bộ qua 2 cầu gỗ và vòng quanh pháo đài.'
-    },
-    {
-        level: 5,
-        name: 'Mê Cung Rừng Rậm',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [120, 210, 300],
-        desc: 'Mạng lưới đường xám nhiều ngã rẽ chằng chịt xuyên rừng thông dày đặc.'
-    },
-    {
-        level: 6,
-        name: 'Khu Công Nghiệp',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [100, 210, 320],
-        desc: 'Khu nhà máy công nghiệp nặng. Các đơn vị phải vòng qua các xưởng máy.'
-    },
-    {
-        level: 7,
-        name: 'Hồ Đôi Vách Đá',
-        hasWater: true,
-        waterZones: [
-            { x: 72, y: 165, w: 210, h: 145 },
-            { x: 130, y: 415, w: 210, h: 145 }
-        ],
-        bridgeLanes: [210],
-        desc: 'Đường đèo uốn chéo lách qua khe đất giữa 2 hồ nước sâu và vách núi đá.'
-    },
-    {
-        level: 8,
-        name: 'Hẻm Núi Đá Hiểm Trở',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [210],
-        desc: 'Hai dãy núi đá khổng lồ ép lại thành khe độc đạo có trụ chắn ở giữa.'
-    },
-    {
-        level: 9,
-        name: 'Vòng Xoay Thị Trấn',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [95, 210, 325],
-        desc: 'Hai vòng xoay nối liền khung đường bao quanh khu nhà thị trấn và rừng cây.'
-    },
-    {
-        level: 10,
-        name: 'Bờ Biển Cát Vàng',
-        hasWater: true,
-        waterZones: [{ x: 0, y: 105, w: 118, h: 505 }],
-        bridgeLanes: [220, 295],
-        desc: 'Biển xanh bên trái cho tàu chiến, bãi cát vàng và đường mòn bên phải cho bộ binh.'
-    },
-    {
-        level: 11,
-        name: 'Căn Cứ Tên Lửa',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [100, 210, 320],
-        desc: 'Đường chữ thập trung tâm bao quanh bởi 4 tổ hợp phóng tên lửa và doanh trại.'
-    },
-    {
-        level: 12,
-        name: 'Thành Cổ Kiên Cố',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [105, 210, 315],
-        desc: 'Tường thành đá kiên cố vòng ngoài, đường nhựa vuông vòng quanh pháo đài tâm.'
-    },
-    {
-        level: 13,
-        name: 'Quần Đảo Cầu Gỗ',
-        hasWater: true,
-        waterZones: [{ x: 0, y: 135, w: 420, h: 445 }],
-        bridgeLanes: [88, 210, 332],
-        desc: 'Quần đảo giữa sông nước nối liền bằng mạng lưới cầu gỗ bắc qua từng đảo.'
-    },
-    {
-        level: 14,
-        name: 'Vòng Xoay Hồ Trung Tâm',
-        hasWater: true,
-        waterZones: [{ x: 158, y: 310, w: 104, h: 96 }],
-        bridgeLanes: [90, 210, 330],
-        desc: 'Đại lộ hình tròn lớn ôm trọn vành đai rừng thông và hồ nước giữa tâm.'
-    },
-    {
-        level: 15,
-        name: 'Chiến Tuyến Phòng Thủ',
-        hasWater: false,
-        waterZones: [],
-        bridgeLanes: [100, 320],
-        desc: 'Hai bức tường thành đá chắn ngang chiến trường, buộc quân đi qua 2 cổng biên.'
-    }
+    { level: 1, name: 'Cầu Qua Sông', hasWater: true, waterZones: [{ x: 0, y: 290, w: 420, h: 130 }], bridgeLanes: [210], desc: 'Sông lớn cắt ngang. Quân bộ phải qua cầu đá ở giữa.' },
+    { level: 2, name: 'Đường Đèo Chữ S', hasWater: false, waterZones: [], bridgeLanes: [210], desc: 'Đường nhựa uốn lượn chữ S xuyên qua rừng thông và núi đá.' },
+    { level: 3, name: 'Đại Lộ Đô Thị', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Đường phố đô thị chia ô vuông bao quanh các khu nhà.' },
+    { level: 4, name: 'Pháo Đài Hồ Nước', hasWater: true, waterZones: [{ x: 25, y: 145, w: 120, h: 420 }, { x: 275, y: 145, w: 120, h: 420 }], bridgeLanes: [210], desc: 'Hồ nước bao quanh đảo pháo đài giữa chiến trường.' },
+    { level: 5, name: 'Mê Cung Rừng Rậm', hasWater: false, waterZones: [], bridgeLanes: [120, 210, 300], desc: 'Mạng lưới đường xám nhiều ngã rẽ xuyên rừng thông.' },
+    { level: 6, name: 'Khu Công Nghiệp', hasWater: false, waterZones: [], bridgeLanes: [100, 210, 320], desc: 'Khu nhà máy công nghiệp nặng và xưởng cơ khí.' },
+    { level: 7, name: 'Hồ Đôi Vách Đá', hasWater: true, waterZones: [{ x: 72, y: 165, w: 210, h: 145 }], bridgeLanes: [210], desc: 'Đường đèo lách qua khe đất giữa 2 hồ nước sâu.' },
+    { level: 8, name: 'Hẻm Núi Đá Hiểm Trở', hasWater: false, waterZones: [], bridgeLanes: [210], desc: 'Hai dãy núi đá khổng lồ ép thành khe độc đạo.' },
+    { level: 9, name: 'Vòng Xoay Thị Trấn', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Vòng xoay lớn nối liền khu dân cư thị trấn.' },
+    { level: 10, name: 'Bờ Biển Cát Vàng', hasWater: true, waterZones: [{ x: 0, y: 105, w: 118, h: 505 }], bridgeLanes: [220, 295], desc: 'Biển trái cho tàu chiến, bãi cát phải cho bộ binh.' },
+    { level: 11, name: 'Căn Cứ Tên Lửa', hasWater: false, waterZones: [], bridgeLanes: [100, 210, 320], desc: 'Đường chữ thập trung tâm bao quanh 4 tổ hợp phóng.' },
+    { level: 12, name: 'Thành Cổ Kiên Cố', hasWater: false, waterZones: [], bridgeLanes: [105, 210, 315], desc: 'Tường thành đá kiên cố vòng ngoài, pháo đài tâm.' },
+    { level: 13, name: 'Quần Đảo Cầu Gỗ', hasWater: true, waterZones: [{ x: 0, y: 135, w: 420, h: 445 }], bridgeLanes: [88, 210, 332], desc: 'Quần đảo giữa sông nước nối bằng cầu gỗ.' },
+    { level: 14, name: 'Vòng Xoay Hồ Trung Tâm', hasWater: true, waterZones: [{ x: 158, y: 310, w: 104, h: 96 }], bridgeLanes: [90, 210, 330], desc: 'Đại lộ hình tròn lớn ôm trọn hồ nước giữa tâm.' },
+    { level: 15, name: 'Chiến Tuyến Phòng Thủ', hasWater: false, waterZones: [], bridgeLanes: [100, 320], desc: 'Hai bức tường thành chắn ngang, buộc đi qua cổng biên.' }
 ];
 
 const LEVELS = MAPS_DATA.map((m, idx) => {
     const lv = idx + 1;
     return {
         ...m,
-        playerBaseHp: 100 + Math.floor((lv - 1) / 2) * 15,
+        playerBaseHp: 120 + Math.floor((lv - 1) / 2) * 20,
+        enemyBaseHp: 150 + (lv - 1) * 35,
         startingGas: lv <= 3 ? 5 : 4
     };
 });
@@ -444,284 +290,41 @@ const LEVELS = MAPS_DATA.map((m, idx) => {
 // DANH SÁCH 11 BINH CHỦNG (UNIT_CATALOG)
 // ============================================================================
 const UNIT_CATALOG = [
-    {
-        id: 'infantry',
-        name: 'Bộ Binh',
-        role: 'Đi bộ • Tầm gần',
-        spriteCol: 16,
-        damage: 2,
-        cost: 2,
-        hp: 9,
-        speed: 54,
-        fireRate: 0.85,
-        range: 48,
-        radius: 12,
-        attackType: 'beam',
-        animStyle: 'walker_rifle',
-        isWalker: true,
-        isNaval: false,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'bazooka',
-        name: 'Lính Tên Lửa',
-        role: 'Đi bộ • Tầm ngắn',
-        spriteCol: 17,
-        damage: 3,
-        cost: 3,
-        hp: 11,
-        speed: 46,
-        fireRate: 1.15,
-        range: 84,
-        radius: 13,
-        attackType: 'bullet',
-        projType: 'rocket_short',
-        projSpeed: 235,
-        projRadius: 5,
-        animStyle: 'walker_bazooka',
-        isWalker: true,
-        isNaval: false,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'humvee',
-        name: 'Xe Thiết Giáp',
-        role: 'Cơ giới • Tầm trung',
-        spriteCol: 5,
-        damage: 4,
-        cost: 4,
-        hp: 16,
-        speed: 62,
-        fireRate: 0.92,
-        range: 115,
-        radius: 15,
-        attackType: 'bullet',
-        projType: 'tracer',
-        projSpeed: 290,
-        projRadius: 4.5,
-        animStyle: 'vehicle_mg',
-        isWalker: false,
-        isNaval: false,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'apc',
-        name: 'Pháo Tự Hành',
-        role: 'Thiết giáp • Tầm khá',
-        spriteCol: 7,
-        damage: 5,
-        cost: 5,
-        hp: 20,
-        speed: 40,
-        fireRate: 1.2,
-        range: 148,
-        radius: 16,
-        attackType: 'bullet',
-        projType: 'shell',
-        projSpeed: 255,
-        projRadius: 6,
-        animStyle: 'vehicle_cannon',
-        isWalker: false,
-        isNaval: false,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'gunboat',
-        name: 'Thuyền Tuần Tra',
-        role: 'Thủy quân 🌊 • Tầm xa',
-        spriteCol: 15,
-        damage: 5,
-        cost: 5,
-        hp: 21,
-        speed: 50,
-        fireRate: 1.0,
-        range: 162,
-        radius: 16,
-        attackType: 'bullet',
-        projType: 'shell',
-        projSpeed: 275,
-        projRadius: 5.5,
-        animStyle: 'naval_light',
-        isWalker: false,
-        isNaval: true,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'tank',
-        name: 'Xe Tăng Nặng',
-        role: 'Chủ lực • Tầm xa',
-        spriteCol: 8,
-        damage: 6,
-        cost: 6,
-        hp: 28,
-        speed: 35,
-        fireRate: 1.25,
-        range: 168,
-        radius: 18,
-        attackType: 'bullet',
-        projType: 'heavy_shell',
-        projSpeed: 265,
-        projRadius: 6.5,
-        animStyle: 'vehicle_heavy',
-        isWalker: false,
-        isNaval: false,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'heli',
-        name: 'Trực Thăng',
-        role: 'Không quân • Cơ động',
-        spriteCol: 11,
-        damage: 7,
-        cost: 7,
-        hp: 20,
-        speed: 58,
-        fireRate: 1.08,
-        range: 138,
-        radius: 16,
-        attackType: 'bullet',
-        projType: 'air_missile',
-        projSpeed: 285,
-        projRadius: 6,
-        animStyle: 'heli_rotor',
-        isWalker: false,
-        isNaval: false,
-        isAir: true,
-        isAirstrike: false
-    },
-    {
-        id: 'destroyer',
-        name: 'Tàu Khu Trục',
-        role: 'Thủy quân 🌊 • Rất xa',
-        spriteCol: 13,
-        damage: 8,
-        cost: 8,
-        hp: 32,
-        speed: 38,
-        fireRate: 1.22,
-        range: 195,
-        radius: 18,
-        attackType: 'bullet',
-        projType: 'arc_shell',
-        arcHeight: 28,
-        projSpeed: 260,
-        projRadius: 7,
-        animStyle: 'naval_heavy',
-        isWalker: false,
-        isNaval: true,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'rocket',
-        name: 'Pháo Phản Lực',
-        role: 'Pháo binh • Siêu xa',
-        spriteCol: 9,
-        damage: 9,
-        cost: 9,
-        hp: 22,
-        speed: 32,
-        fireRate: 1.5,
-        range: 215,
-        radius: 17,
-        attackType: 'bullet',
-        projType: 'arc_missile',
-        arcHeight: 46,
-        projSpeed: 240,
-        projRadius: 7.5,
-        animStyle: 'artillery_salvo',
-        isWalker: false,
-        isNaval: false,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'battleship',
-        name: 'Chiến Hạm Lớn',
-        role: 'Thủy quân 🌊 • Siêu xa',
-        spriteCol: 14,
-        damage: 11,
-        cost: 11,
-        hp: 42,
-        speed: 30,
-        fireRate: 1.38,
-        range: 230,
-        radius: 20,
-        attackType: 'bullet',
-        projType: 'arc_shell',
-        arcHeight: 40,
-        projSpeed: 255,
-        projRadius: 8,
-        animStyle: 'naval_battleship',
-        isWalker: false,
-        isNaval: true,
-        isAir: false,
-        isAirstrike: false
-    },
-    {
-        id: 'airstrike',
-        name: 'Không Kích',
-        role: 'Oanh tạc ✈️ • Toàn bản đồ',
-        spriteCol: 10,
-        damage: 15,
-        baseDamage: 20,
-        cost: 10,
-        hp: 1,
-        speed: 350,
-        fireRate: 1,
-        range: 999,
-        radius: 20,
-        attackType: 'airstrike',
-        animStyle: 'airstrike',
-        isWalker: false,
-        isNaval: false,
-        isAir: true,
-        isAirstrike: true
-    }
+    { id: 'infantry', name: 'Bộ Binh', role: 'Đi bộ • Tầm gần', spriteCol: 16, damage: 2, cost: 2, hp: 9, speed: 54, fireRate: 0.85, range: 48, radius: 12, attackType: 'beam', animStyle: 'walker_rifle', isWalker: true, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'bazooka', name: 'Lính Tên Lửa', role: 'Đi bộ • Tầm ngắn', spriteCol: 17, damage: 3, cost: 3, hp: 11, speed: 46, fireRate: 1.15, range: 84, radius: 13, attackType: 'bullet', projType: 'rocket_short', projSpeed: 235, projRadius: 5, animStyle: 'walker_bazooka', isWalker: true, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'humvee', name: 'Xe Thiết Giáp', role: 'Cơ giới • Tầm trung', spriteCol: 5, damage: 4, cost: 4, hp: 16, speed: 62, fireRate: 0.92, range: 115, radius: 15, attackType: 'bullet', projType: 'tracer', projSpeed: 290, projRadius: 4.5, animStyle: 'vehicle_mg', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'apc', name: 'Pháo Tự Hành', role: 'Thiết giáp • Tầm khá', spriteCol: 7, damage: 5, cost: 5, hp: 20, speed: 40, fireRate: 1.2, range: 148, radius: 16, attackType: 'bullet', projType: 'shell', projSpeed: 255, projRadius: 6, animStyle: 'vehicle_cannon', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'gunboat', name: 'Thuyền Tuần Tra', role: 'Thủy quân 🌊 • Tầm xa', spriteCol: 15, damage: 5, cost: 5, hp: 21, speed: 50, fireRate: 1.0, range: 162, radius: 16, attackType: 'bullet', projType: 'shell', projSpeed: 275, projRadius: 5.5, animStyle: 'naval_light', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
+    { id: 'tank', name: 'Xe Tăng Nặng', role: 'Chủ lực • Tầm xa', spriteCol: 8, damage: 6, cost: 6, hp: 28, speed: 35, fireRate: 1.25, range: 168, radius: 18, attackType: 'bullet', projType: 'heavy_shell', projSpeed: 265, projRadius: 6.5, animStyle: 'vehicle_heavy', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'heli', name: 'Trực Thăng', role: 'Không quân • Cơ động', spriteCol: 11, damage: 7, cost: 7, hp: 20, speed: 58, fireRate: 1.08, range: 138, radius: 16, attackType: 'bullet', projType: 'air_missile', projSpeed: 285, projRadius: 6, animStyle: 'heli_rotor', isWalker: false, isNaval: false, isAir: true, isAirstrike: false },
+    { id: 'destroyer', name: 'Tàu Khu Trục', role: 'Thủy quân 🌊 • Rất xa', spriteCol: 13, damage: 8, cost: 8, hp: 32, speed: 38, fireRate: 1.22, range: 195, radius: 18, attackType: 'bullet', projType: 'arc_shell', arcHeight: 28, projSpeed: 260, projRadius: 7, animStyle: 'naval_heavy', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
+    { id: 'rocket', name: 'Pháo Phản Lực', role: 'Pháo binh • Siêu xa', spriteCol: 9, damage: 9, cost: 9, hp: 22, speed: 32, fireRate: 1.5, range: 215, radius: 17, attackType: 'bullet', projType: 'arc_missile', arcHeight: 46, projSpeed: 240, projRadius: 7.5, animStyle: 'artillery_salvo', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'battleship', name: 'Chiến Hạm Lớn', role: 'Thủy quân 🌊 • Siêu xa', spriteCol: 14, damage: 11, cost: 11, hp: 42, speed: 30, fireRate: 1.38, range: 230, radius: 20, attackType: 'bullet', projType: 'arc_shell', arcHeight: 40, projSpeed: 255, projRadius: 8, animStyle: 'naval_battleship', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
+    { id: 'airstrike', name: 'Không Kích', role: 'Oanh tạc ✈️ • Toàn bản đồ', spriteCol: 10, damage: 15, baseDamage: 20, cost: 10, hp: 1, speed: 350, fireRate: 1, range: 999, radius: 20, attackType: 'airstrike', animStyle: 'airstrike', isWalker: false, isNaval: false, isAir: true, isAirstrike: true }
 ];
 
 const UNIT_BY_ID = {};
-UNIT_CATALOG.forEach(u => {
-    UNIT_BY_ID[u.id] = u;
-});
+UNIT_CATALOG.forEach(u => { UNIT_BY_ID[u.id] = u; });
 
 // ============================================================================
 // DANH SÁCH THẺ BUFF KHI LÊN CẤP TRONG TRẬN
 // ============================================================================
 const BUFF_CATALOG = [
     {
-        id: 'buff_dmg',
-        name: 'Đạn Xuyên Giáp',
-        tag: 'NÂNG CẤP HỎA LỰC',
-        desc: '+25% Sát thương cho toàn bộ quân đội Xanh',
-        iconCol: 11,
-        iconRow: 10,
+        id: 'buff_dmg', name: 'Đạn Xuyên Giáp', tag: 'NÂNG CẤP HỎA LỰC', desc: '+25% Sát thương cho toàn bộ quân đội Xanh', iconCol: 11, iconRow: 10,
         apply: () => {
             game.buffs.dmgMult += 0.25;
             game.units.forEach(u => {
                 if (u.team === 'blue') {
                     const spec = UNIT_BY_ID[u.unitId];
-                    if (spec) {
-                        u.damage = getEffectiveUnitStats(spec, true).damage;
-                    }
+                    if (spec) u.damage = getEffectiveUnitStats(spec, true).damage;
                 }
             });
             addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '⚔️ +25% SÁT THƯƠNG TOÀN QUÂN!', '#fde047', 15);
         }
     },
     {
-        id: 'buff_hp',
-        name: 'Giáp Hợp Kim',
-        tag: 'NÂNG CẤP PHÒNG THỦ',
-        desc: '+25% Máu tối đa cho quân Xanh & Hồi 100% máu quân trên sân',
-        iconCol: 15,
-        iconRow: 10,
+        id: 'buff_hp', name: 'Giáp Hợp Kim', tag: 'NÂNG CẤP PHÒNG THỦ', desc: '+25% Máu tối đa cho quân Xanh & Hồi 100% máu quân trên sân', iconCol: 15, iconRow: 10,
         apply: () => {
             game.buffs.hpMult += 0.25;
             game.units.forEach(u => {
@@ -737,12 +340,7 @@ const BUFF_CATALOG = [
         }
     },
     {
-        id: 'buff_haste',
-        name: 'Nòng Pháo Siêu Tốc',
-        tag: 'NÂNG CẤP TỐC BẮN',
-        desc: '+20% Tốc độ bắn & +12% Tầm bắn cho toàn bộ quân Xanh',
-        iconCol: 7,
-        iconRow: 3,
+        id: 'buff_haste', name: 'Nòng Pháo Siêu Tốc', tag: 'NÂNG CẤP TỐC BẮN', desc: '+20% Tốc độ bắn & +12% Tầm bắn cho toàn bộ quân Xanh', iconCol: 7, iconRow: 3,
         apply: () => {
             game.buffs.fireRateMult *= 0.82;
             game.buffs.rangeMult += 0.12;
@@ -756,12 +354,7 @@ const BUFF_CATALOG = [
         }
     },
     {
-        id: 'buff_supply',
-        name: 'Tiếp Viện Khẩn Cấp',
-        tag: 'HẬU CẦN CHIẾN TRƯỜNG',
-        desc: 'Nhận ngay +7 Bình Xăng & Sửa chữa +35 HP Căn cứ Xanh',
-        iconCol: 12,
-        iconRow: 10,
+        id: 'buff_supply', name: 'Tiếp Viện Khẩn Cấp', tag: 'HẬU CẦN CHIẾN TRƯỜNG', desc: 'Nhận ngay +7 Bình Xăng & Sửa chữa +35 HP Căn cứ Xanh', iconCol: 12, iconRow: 10,
         apply: () => {
             game.gasCount = Math.min(game.maxGas, game.gasCount + 7);
             game.blueBase.hp = Math.min(game.blueBase.maxHp, game.blueBase.hp + 35);
@@ -775,29 +368,23 @@ const BUFF_CATALOG = [
 // ============================================================================
 let metaState = {
     playerName: '',
-    coins: 250,
-    gems: 300,
+    coins: 350,
+    gems: 400,
+    isAdminMode: false,
     usedCodes: [],
     mapDifficultyProgress: {
-        1: { easy: false, normal: false, difficult: false }
+        1: { easy: false, difficult: false }
     },
     inventory: [],
     armyPermanentLevels: {},
     missionsProgress: {
-        kills: 0,
-        diffWins: 0,
-        spawns: 0,
-        cratesOpened: 0,
-        merges: 0,
-        wins: 0,
-        upgrades: 0,
-        claimed: {}
+        kills: 0, diffWins: 0, spawns: 0, cratesOpened: 0, merges: 0, wins: 0, upgrades: 0, claimed: {}
     }
 };
 
 let currentLobbyTab = 'battle';
 let currentStageViewLevel = 1;
-let currentSelectedDifficulty = 'easy';
+let currentSelectedDifficulty = 'easy'; // 'easy' | 'difficult'
 let currentArmyMode = 'army'; // 'army' | 'merge'
 let showcaseUnitId = 'infantry';
 let inspectingUnitId = 'infantry';
@@ -814,16 +401,14 @@ function createDefaultInventory() {
 
 function createDefaultArmyLevels() {
     const lvMap = {};
-    UNIT_CATALOG.forEach(u => {
-        lvMap[u.id] = 1;
-    });
+    UNIT_CATALOG.forEach(u => { lvMap[u.id] = 1; });
     return lvMap;
 }
 
 function createDefaultMapDifficultyProgress() {
     const prog = {};
     for (let i = 1; i <= LEVELS.length; i++) {
-        prog[i] = { easy: false, normal: false, difficult: false };
+        prog[i] = { easy: false, difficult: false };
     }
     return prog;
 }
@@ -837,8 +422,9 @@ function loadProgress() {
         if (raw) {
             const parsed = JSON.parse(raw);
             metaState.playerName = typeof parsed.playerName === 'string' ? parsed.playerName : '';
-            metaState.coins = typeof parsed.coins === 'number' ? parsed.coins : 250;
-            metaState.gems = typeof parsed.gems === 'number' ? parsed.gems : 300;
+            metaState.coins = typeof parsed.coins === 'number' ? parsed.coins : 350;
+            metaState.gems = typeof parsed.gems === 'number' ? parsed.gems : 400;
+            metaState.isAdminMode = !!parsed.isAdminMode;
             metaState.usedCodes = Array.isArray(parsed.usedCodes) ? parsed.usedCodes : [];
 
             metaState.mapDifficultyProgress = defaultMapProg;
@@ -847,7 +433,6 @@ function loadProgress() {
                     if (parsed.mapDifficultyProgress[i]) {
                         metaState.mapDifficultyProgress[i] = {
                             easy: !!parsed.mapDifficultyProgress[i].easy,
-                            normal: !!parsed.mapDifficultyProgress[i].normal,
                             difficult: !!parsed.mapDifficultyProgress[i].difficult
                         };
                     }
@@ -877,8 +462,9 @@ function loadProgress() {
             };
         } else {
             metaState.playerName = '';
-            metaState.coins = 250;
-            metaState.gems = 300;
+            metaState.coins = 350;
+            metaState.gems = 400;
+            metaState.isAdminMode = false;
             metaState.usedCodes = [];
             metaState.mapDifficultyProgress = defaultMapProg;
             metaState.inventory = createDefaultInventory();
@@ -901,10 +487,11 @@ function saveProgress() {
 }
 
 function getMaxUnlockedMapLevel() {
+    if (metaState.isAdminMode) return LEVELS.length;
     let maxLv = 1;
     for (let i = 1; i < LEVELS.length; i++) {
         const prog = metaState.mapDifficultyProgress[i];
-        if (prog && prog.difficult) {
+        if (prog && prog.easy) {
             maxLv = i + 1;
         } else {
             break;
@@ -914,18 +501,17 @@ function getMaxUnlockedMapLevel() {
 }
 
 function isDifficultyUnlocked(mapLv, diffId) {
+    if (metaState.isAdminMode) return true;
     if (mapLv > getMaxUnlockedMapLevel()) return false;
-    const prog = metaState.mapDifficultyProgress[mapLv] || { easy: false, normal: false, difficult: false };
+    const prog = metaState.mapDifficultyProgress[mapLv] || { easy: false, difficult: false };
     if (diffId === 'easy') return true;
-    if (diffId === 'normal') return !!prog.easy;
-    if (diffId === 'difficult') return !!prog.normal;
+    if (diffId === 'difficult') return !!prog.easy; // Phải hoàn thành chế độ Dễ mới mở khóa Khó
     return false;
 }
 
 function getDefaultDifficultyForMap(mapLv) {
-    const prog = metaState.mapDifficultyProgress[mapLv] || { easy: false, normal: false, difficult: false };
+    const prog = metaState.mapDifficultyProgress[mapLv] || { easy: false, difficult: false };
     if (!prog.easy) return 'easy';
-    if (!prog.normal) return 'normal';
     return 'difficult';
 }
 
@@ -949,11 +535,24 @@ function hasUnitInInventory(unitId) {
     return metaState.inventory.some(c => c.unitId === unitId);
 }
 
+// ============================================================================
+// HỆ THỐNG CÂN BẰNG GIÁ NÂNG CẤP THEO CỤM 5 LEVEL CỐ ĐỊNH
+// ============================================================================
 function getUnitUpgradeCost(currentLv) {
-    return Math.round(100 * Math.pow(1.35, currentLv - 1));
+    const tierBlock = Math.floor((currentLv - 1) / 5);
+    const basePrices = [100, 280, 750, 1800, 4200, 9500, 20000];
+    return basePrices[Math.min(tierBlock, basePrices.length - 1)];
+}
+
+function getUpgradeTierBracketText(currentLv) {
+    const block = Math.floor((currentLv - 1) / 5);
+    const startLv = block * 5 + 1;
+    const endLv = startLv + 4;
+    return `Khung giá cố định: Cấp ${startLv} - ${endLv}`;
 }
 
 function formatCurrency(val) {
+    if (metaState.isAdminMode) return '∞';
     const n = Math.floor(Number(val) || 0);
     return n.toLocaleString('en-US');
 }
@@ -1911,7 +1510,7 @@ class NavSystem {
 const nav = new NavSystem();
 
 // ============================================================================
-// BỘ VẼ CHI TIẾT TỪNG BẢN ĐỒ (MAP 1 -> MAP 15) KÈM ĐĂNG KÝ VẬT CẢN & CẦU ĐƯỜNG
+// BỘ VẼ 15 MAP CHIẾN THUẬT (MAP 1 -> MAP 15)
 // ============================================================================
 function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases = false) {
     const W = LOGICAL_WIDTH;
@@ -1977,9 +1576,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
     };
 
     const drawDirtPolyline = (pts, width = 34) => {
-        if (registerNav) {
-            nav.markPolyline(pts, width + 4, T_ROAD);
-        }
+        if (registerNav) nav.markPolyline(pts, width + 4, T_ROAD);
         targetCtx.save();
         targetCtx.lineCap = 'round';
         targetCtx.lineJoin = 'round';
@@ -1999,9 +1596,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
     };
 
     const drawAsphaltPolyline = (pts, width = 44, dashed = true) => {
-        if (registerNav) {
-            nav.markPolyline(pts, width + 4, T_ROAD);
-        }
+        if (registerNav) nav.markPolyline(pts, width + 4, T_ROAD);
         targetCtx.save();
         targetCtx.lineCap = 'round';
         targetCtx.lineJoin = 'round';
@@ -2037,9 +1632,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
     };
 
     const drawAsphaltCircle = (cx, cy, r, width = 44) => {
-        if (registerNav) {
-            nav.markRing(cx, cy, r, width + 4, T_ROAD);
-        }
+        if (registerNav) nav.markRing(cx, cy, r, width + 4, T_ROAD);
         targetCtx.save();
         targetCtx.beginPath();
         targetCtx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -2064,12 +1657,8 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
     };
 
     const drawPine = (cx, cy, scale = 1) => {
-        if (registerNav && nav.isRoadOrBridgeOrSpawn(cx, cy, 18)) {
-            return;
-        }
-        if (registerNav) {
-            nav.addCircleObstacle(cx, cy, 9.5 * scale, 'tree');
-        }
+        if (registerNav && nav.isRoadOrBridgeOrSpawn(cx, cy, 18)) return;
+        if (registerNav) nav.addCircleObstacle(cx, cy, 9.5 * scale, 'tree');
         const s = 30 * scale;
         if (atlas.ready && atlas.draw(targetCtx, 4, 6, cx, cy, s, s)) return;
         targetCtx.save();
@@ -2101,12 +1690,8 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
     };
 
     const drawRockMountain = (cx, cy, r = 28) => {
-        if (registerNav && nav.isRoadOrBridgeOrSpawn(cx, cy, r * 0.65)) {
-            return;
-        }
-        if (registerNav) {
-            nav.addCircleObstacle(cx, cy, r * 0.68, 'rock');
-        }
+        if (registerNav && nav.isRoadOrBridgeOrSpawn(cx, cy, r * 0.65)) return;
+        if (registerNav) nav.addCircleObstacle(cx, cy, r * 0.68, 'rock');
         targetCtx.save();
         targetCtx.translate(cx, cy);
         targetCtx.fillStyle = '#334155';
@@ -2136,17 +1721,11 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.lineTo(0, r * 0.55);
         targetCtx.closePath();
         targetCtx.fill();
-
-        targetCtx.strokeStyle = '#1e293b';
-        targetCtx.lineWidth = 2;
-        targetCtx.strokeRect(-r * 0.1, -r * 0.1, 1, 1);
         targetCtx.restore();
     };
 
     const drawWoodBridge = (cx, cy, w, h, isVertical = true) => {
-        if (registerNav) {
-            nav.addBridge(cx, cy, w, h, isVertical);
-        }
+        if (registerNav) nav.addBridge(cx, cy, w, h, isVertical);
         targetCtx.save();
         targetCtx.translate(cx, cy);
         if (!isVertical) targetCtx.rotate(Math.PI / 2);
@@ -2161,64 +1740,41 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         for (let py = -h / 2 + 4; py < h / 2 - 2; py += 8) {
             targetCtx.fillRect(-w / 2 + 2, py, w - 4, 5);
         }
-
-        targetCtx.fillStyle = '#92400e';
-        targetCtx.fillRect(-w / 2 - 4, -h / 2, 5, h);
-        targetCtx.fillRect(w / 2 - 1, -h / 2, 5, h);
         targetCtx.restore();
     };
 
     const drawStoneBridge = (cx, cy, w, h) => {
-        if (registerNav) {
-            nav.addBridge(cx, cy, w, h, true);
-        }
+        if (registerNav) nav.addBridge(cx, cy, w, h, true);
         targetCtx.save();
         targetCtx.fillStyle = '#334155';
         targetCtx.fillRect(cx - w / 2 - 6, cy - h / 2, w + 12, h);
         targetCtx.fillStyle = '#94a3b8';
         targetCtx.fillRect(cx - w / 2, cy - h / 2, w, h);
-        for (let y = cy - h / 2; y < cy + h / 2; y += 18) {
-            targetCtx.fillStyle = '#cbd5e1';
-            targetCtx.fillRect(cx - w / 2 - 5, y + 2, 6, 12);
-            targetCtx.fillRect(cx + w / 2 - 1, y + 2, 6, 12);
-        }
         targetCtx.restore();
     };
 
     const drawStoneWallSegment = (x, y, w, h) => {
-        if (registerNav) {
-            nav.addBoxObstacle(x, y, w, h, 'wall');
-        }
+        if (registerNav) nav.addBoxObstacle(x, y, w, h, 'wall');
         targetCtx.save();
         targetCtx.fillStyle = '#1e293b';
         targetCtx.fillRect(x - 2, y - 2, w + 4, h + 4);
         targetCtx.fillStyle = '#64748b';
         targetCtx.fillRect(x, y, w, h);
-        targetCtx.fillStyle = '#94a3b8';
-        for (let bx = x + 4; bx < x + w - 6; bx += 14) {
-            targetCtx.fillRect(bx, y + 2, 10, Math.min(8, h - 4));
-        }
         targetCtx.restore();
     };
 
     const drawStoneTower = (cx, cy, size = 28) => {
-        if (registerNav) {
-            nav.addBoxObstacle(cx - size / 2, cy - size / 2, size, size, 'pillar');
-        }
+        if (registerNav) nav.addBoxObstacle(cx - size / 2, cy - size / 2, size, size, 'pillar');
         targetCtx.save();
         targetCtx.fillStyle = '#1e293b';
         targetCtx.fillRect(cx - size / 2 - 2, cy - size / 2 - 2, size + 4, size + 4);
         targetCtx.fillStyle = '#94a3b8';
         targetCtx.fillRect(cx - size / 2, cy - size / 2, size, size);
-        targetCtx.fillStyle = '#475569';
-        targetCtx.fillRect(cx - size / 4, cy - size / 4, size / 2, size / 2);
         targetCtx.restore();
     };
 
     const drawBuildingBlock = (x, y, w, h, mainColor, roofColor) => {
-        if (registerNav) {
-            nav.addBoxObstacle(x, y, w, h, 'building');
-        }
+        if (registerNav) nav.addBoxObstacle(x, y, w, h, 'building');
         targetCtx.save();
         targetCtx.fillStyle = '#0f172a';
         targetCtx.fillRect(x - 2, y - 2, w + 4, h + 4);
@@ -2226,19 +1782,11 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.fillRect(x, y, w, h);
         targetCtx.fillStyle = roofColor;
         targetCtx.fillRect(x + 3, y + 3, w - 6, h * 0.42);
-        targetCtx.fillStyle = '#fef08a';
-        for (let wy = y + Math.floor(h * 0.52); wy < y + h - 6; wy += 9) {
-            for (let wx = x + 5; wx < x + w - 6; wx += 9) {
-                targetCtx.fillRect(wx, wy, 5, 5);
-            }
-        }
         targetCtx.restore();
     };
 
     const drawHazardStripes = (x, y, w, h, isPillar = false) => {
-        if (registerNav && isPillar) {
-            nav.addBoxObstacle(x, y, w, h, 'pillar');
-        }
+        if (registerNav && isPillar) nav.addBoxObstacle(x, y, w, h, 'pillar');
         targetCtx.save();
         targetCtx.beginPath();
         targetCtx.rect(x, y, w, h);
@@ -2257,523 +1805,195 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
     };
 
     switch (levelNum) {
-        case 1: {
+        case 1:
             fillGrassBg();
             drawDirtPolyline([[115, 70], [115, 165], [305, 165], [305, 70]], 26);
             drawDirtPolyline([[115, 645], [115, 550], [305, 550], [305, 645]], 26);
             drawDirtPolyline([[210, 165], [210, 550]], 30);
-
             drawWaterBox(-10, 290, W + 20, 130, 0);
             drawStoneBridge(210, 355, 54, 146);
-
             [45, 95, 145, 275, 325, 375].forEach(tx => {
                 drawPine(tx, 250, 1.0);
                 drawPine(tx, 460, 1.0);
             });
-            drawRockMountain(35, 55, 28);
-            drawRockMountain(65, 115, 24);
-            drawRockMountain(385, 55, 28);
-            drawRockMountain(365, 130, 30);
-            drawRockMountain(35, 640, 28);
-            drawRockMountain(385, 630, 30);
-            drawRockMountain(365, 560, 25);
             break;
-        }
-
-        case 2: {
+        case 2:
             fillGrassBg();
-            drawAsphaltPolyline([
-                [265, 60],
-                [265, 165],
-                [125, 165],
-                [125, 350],
-                [295, 350],
-                [295, 535],
-                [135, 535],
-                [135, 655]
-            ], 44, true);
-
+            drawAsphaltPolyline([[265, 60], [265, 165], [125, 165], [125, 350], [295, 350], [295, 535], [135, 535], [135, 655]], 44, true);
             drawTreeCluster(15, 120, 82, 620, 30);
             drawTreeCluster(340, 90, 405, 610, 30);
-            drawTreeCluster(175, 225, 330, 292, 28);
-            drawTreeCluster(95, 412, 240, 478, 28);
-
-            drawRockMountain(35, 45, 28);
-            drawRockMountain(80, 65, 26);
-            drawRockMountain(45, 110, 26);
-            drawRockMountain(380, 380, 28);
-            drawRockMountain(385, 560, 28);
-            drawRockMountain(345, 625, 28);
-            drawRockMountain(385, 650, 28);
             break;
-        }
-
-        case 3: {
+        case 3:
             targetCtx.fillStyle = '#64748b';
             targetCtx.fillRect(0, 0, W, H);
-
             [95, 210, 325].forEach(lx => drawAsphaltPolyline([[lx, 0], [lx, H]], 36, true));
             [155, 355, 555].forEach(ly => drawAsphaltPolyline([[0, ly], [W, ly]], 36, true));
-
             drawBuildingBlock(12, 20, 56, 105, '#64748b', '#94a3b8');
             drawBuildingBlock(352, 20, 56, 105, '#64748b', '#94a3b8');
             drawBuildingBlock(124, 185, 58, 65, '#22c55e', '#86efac');
-            drawBuildingBlock(124, 260, 58, 65, '#ef4444', '#fca5a5');
             drawBuildingBlock(238, 185, 58, 140, '#3b82f6', '#93c5fd');
-            drawBuildingBlock(12, 195, 56, 120, '#475569', '#94a3b8');
-            drawBuildingBlock(352, 195, 56, 120, '#3b82f6', '#93c5fd');
-            drawBuildingBlock(124, 385, 58, 135, '#0ea5e9', '#7dd3fc');
-            drawBuildingBlock(238, 385, 58, 135, '#f97316', '#fdba74');
-            drawBuildingBlock(12, 400, 56, 115, '#ef4444', '#fca5a5');
-            drawBuildingBlock(352, 400, 56, 115, '#eab308', '#fde047');
-            drawBuildingBlock(12, 585, 56, 105, '#0284c7', '#7dd3fc');
-            drawBuildingBlock(124, 585, 58, 42, '#64748b', '#cbd5e1');
-            drawBuildingBlock(238, 585, 58, 42, '#ef4444', '#fca5a5');
-            drawBuildingBlock(352, 585, 56, 105, '#475569', '#94a3b8');
             break;
-        }
-
-        case 4: {
+        case 4:
             fillGrassBg();
-
             drawWaterBox(28, 140, 125, 435, 22);
             drawWaterBox(267, 140, 125, 435, 22);
-            drawWaterBox(28, 160, 364, 115, 18);
-            drawWaterBox(28, 438, 364, 115, 18);
-
-            if (registerNav) {
-                nav.markRect(126, 272, 168, 170, T_OPEN, true);
-            }
-            targetCtx.fillStyle = '#d9e37c';
-            targetCtx.beginPath();
-            targetCtx.roundRect(124, 270, 172, 174, 20);
-            targetCtx.fill();
-            targetCtx.fillStyle = '#7bc64d';
-            targetCtx.beginPath();
-            targetCtx.roundRect(130, 276, 160, 162, 16);
-            targetCtx.fill();
-
-            drawDirtPolyline([[210, 278], [152, 305], [152, 410], [210, 436]], 20);
-            drawDirtPolyline([[210, 278], [268, 305], [268, 410], [210, 436]], 20);
-
             drawWoodBridge(210, 206, 44, 148, true);
             drawWoodBridge(210, 506, 44, 148, true);
-
-            drawStoneWallSegment(180, 326, 60, 62);
-            drawStoneTower(180, 326, 18);
-            drawStoneTower(240, 326, 18);
-            drawStoneTower(180, 388, 18);
-            drawStoneTower(240, 388, 18);
-            if (atlas.ready) {
-                atlas.draw(targetCtx, 9, 3, 210, 357, 38, 38);
-            }
-
-            [210, 340, 460].forEach(ty => {
-                drawPine(14, ty, 0.95);
-                drawPine(406, ty, 0.95);
-            });
             break;
-        }
-
-        case 5: {
+        case 5: // Mê Cung Rừng Rậm: Đường xám ziczac xuyên rừng thông nối thông 2 căn cứ
             fillGrassBg();
-
-            const drawMazeRoad = (pts) => {
-                if (registerNav) {
-                    nav.markPolyline(pts, 34, T_ROAD);
-                }
-                targetCtx.save();
-                targetCtx.lineCap = 'round';
-                targetCtx.lineJoin = 'round';
-                targetCtx.strokeStyle = '#334155';
-                targetCtx.lineWidth = 34;
-                targetCtx.beginPath();
-                pts.forEach((p, i) => (i === 0 ? targetCtx.moveTo(p[0], p[1]) : targetCtx.lineTo(p[0], p[1])));
-                targetCtx.stroke();
-
-                targetCtx.strokeStyle = '#64748b';
-                targetCtx.lineWidth = 28;
-                targetCtx.beginPath();
-                pts.forEach((p, i) => (i === 0 ? targetCtx.moveTo(p[0], p[1]) : targetCtx.lineTo(p[0], p[1])));
-                targetCtx.stroke();
-                targetCtx.restore();
-            };
-
-            drawMazeRoad([[295, 80], [295, 165], [205, 165], [205, 280], [105, 280], [105, 155], [150, 155], [150, 220]]);
-            drawMazeRoad([[295, 165], [330, 165], [330, 275], [250, 275], [250, 370], [330, 370], [330, 465]]);
-            drawMazeRoad([[205, 280], [205, 385], [105, 385], [105, 520], [225, 520], [225, 625]]);
-            drawMazeRoad([[250, 370], [185, 445], [295, 445], [295, 585], [335, 585], [335, 510]]);
-
-            drawTreeCluster(12, 20, 72, 680, 28);
-            drawTreeCluster(355, 20, 408, 680, 28);
-            drawTreeCluster(85, 130, 345, 595, 28);
+            drawAsphaltPolyline([
+                [210, 45], [295, 45], [295, 145], [205, 145], 
+                [205, 260], [105, 260], [105, 420], [315, 420], 
+                [315, 540], [210, 540], [210, 665]
+            ], 34, true);
+            drawTreeCluster(15, 60, 80, 240, 28);
+            drawTreeCluster(325, 160, 400, 400, 28);
+            drawTreeCluster(15, 440, 85, 640, 28);
             break;
-        }
 
-        case 6: {
+        case 6: // Khu Công Nghiệp: Đại lộ công nghiệp và các nhà xưởng cơ khí
             targetCtx.fillStyle = '#94a3b8';
             targetCtx.fillRect(0, 0, W, H);
-
-            drawAsphaltPolyline([[0, 195], [320, 195], [320, 0]], 40, true);
-            drawAsphaltPolyline([[320, 195], [320, 525]], 40, true);
-            drawAsphaltPolyline([[0, 395], [W, 395]], 40, true);
-            drawAsphaltPolyline([[200, 195], [200, 525]], 36, true);
-            drawAsphaltPolyline([[95, 395], [95, H]], 40, true);
-            drawAsphaltPolyline([[95, 525], [W, 525]], 38, true);
-
-            drawHazardStripes(18, 230, 75, 125);
-            drawHazardStripes(120, 115, 55, 32);
-            drawHazardStripes(235, 115, 55, 32);
-            drawHazardStripes(352, 235, 55, 45);
-            drawHazardStripes(235, 330, 55, 35);
-            drawHazardStripes(130, 560, 55, 32);
-            drawHazardStripes(245, 560, 55, 32);
-
-            const drawFactory = (fx, fy) => {
-                drawBuildingBlock(fx - 26, fy - 20, 52, 42, '#475569', '#cbd5e1');
-                targetCtx.fillStyle = '#334155';
-                targetCtx.fillRect(fx + 10, fy - 38, 12, 22);
-                targetCtx.fillStyle = '#e2e8f0';
-                targetCtx.beginPath();
-                targetCtx.arc(fx + 18, fy - 44, 7, 0, Math.PI * 2);
-                targetCtx.fill();
-            };
-            drawFactory(145, 140);
-            drawFactory(260, 140);
-            drawFactory(145, 290);
-            drawFactory(375, 200);
-            drawFactory(50, 455);
-            drawFactory(150, 455);
-            drawFactory(265, 455);
-            drawFactory(155, 575);
-            drawFactory(270, 575);
+            drawAsphaltPolyline([[100, 0], [100, H]], 38, true);
+            drawAsphaltPolyline([[210, 0], [210, H]], 42, true);
+            drawAsphaltPolyline([[320, 0], [320, H]], 38, true);
+            drawAsphaltPolyline([[0, 220], [W, 220]], 36, true);
+            drawAsphaltPolyline([[0, 480], [W, 480]], 36, true);
+            drawHazardStripes(16, 80, 68, 110, true);
+            drawHazardStripes(336, 80, 68, 110, true);
+            drawBuildingBlock(126, 250, 64, 90, '#475569', '#334155');
+            drawBuildingBlock(230, 250, 64, 90, '#475569', '#334155');
             break;
-        }
 
-        case 7: {
+        case 7: // Hồ Đôi Vách Đá: Đường đèo lách qua khe giữa 2 hồ nước sâu
             fillGrassBg();
-
-            drawWaterBox(72, 165, 210, 145, 18);
-            drawWaterBox(130, 415, 210, 145, 18);
-
+            drawWaterBox(60, 140, 200, 130, 16);
+            drawWaterBox(60, 410, 200, 130, 16);
             drawAsphaltPolyline([
-                [325, 65],
-                [325, 285],
-                [285, 350],
-                [125, 375],
-                [72, 435],
-                [72, 650]
-            ], 42, true);
-
-            for (let y = 35; y <= 665; y += 46) {
-                if (y < 410) drawRockMountain(25, y, 28);
-                if (y > 260) drawRockMountain(392, y, 28);
-            }
-            drawRockMountain(375, 190, 26);
-            drawRockMountain(365, 240, 26);
-            break;
-        }
-
-        case 8: {
-            fillGrassBg();
-
-            drawAsphaltPolyline([
-                [295, 65],
-                [295, 135],
-                [210, 155],
-                [210, 560],
-                [145, 580],
-                [145, 655]
+                [210, 45], [325, 45], [325, 240], 
+                [180, 340], [325, 440], [325, 665], [210, 665]
             ], 40, true);
-
-            for (let y = 35; y <= 675; y += 48) {
-                for (let x = 25; x <= 145; x += 46) {
-                    if (y > 520 && x > 90) continue;
-                    drawRockMountain(x, y, 28);
-                }
-                for (let x = 275; x <= 395; x += 46) {
-                    if (y < 180 && x < 335) continue;
-                    drawRockMountain(x, y, 28);
-                }
-            }
-
-            drawHazardStripes(166, 335, 20, 12, true);
-            drawHazardStripes(234, 335, 20, 12, true);
-            drawHazardStripes(166, 375, 20, 12, true);
-            drawHazardStripes(234, 375, 20, 12, true);
+            drawTreeCluster(15, 150, 48, 530, 26);
+            drawTreeCluster(345, 250, 405, 430, 26);
             break;
-        }
 
-        case 9: {
+        case 8: // Hẻm Núi Đá Hiểm Trở: Khe núi hẹp độc đạo có cầu vách đá
             fillGrassBg();
-
-            drawAsphaltPolyline([[95, 210], [95, 505], [155, 505]], 38, true);
-            drawAsphaltPolyline([[325, 210], [325, 505], [265, 505]], 38, true);
-            drawAsphaltPolyline([[0, 155], [95, 155], [95, 210], [155, 210]], 38, true);
-            drawAsphaltPolyline([[W, 155], [325, 155], [325, 210], [265, 210]], 38, true);
-
-            drawAsphaltCircle(210, 210, 52, 36);
-            drawAsphaltCircle(210, 505, 52, 36);
-
-            drawBuildingBlock(130, 290, 32, 32, '#ef4444', '#fca5a5');
-            drawBuildingBlock(130, 340, 32, 32, '#3b82f6', '#93c5fd');
-            drawBuildingBlock(130, 390, 32, 32, '#eab308', '#fde047');
-            drawBuildingBlock(258, 290, 32, 32, '#22c55e', '#86efac');
-            drawBuildingBlock(258, 340, 32, 32, '#ef4444', '#fca5a5');
-            drawBuildingBlock(258, 390, 32, 32, '#3b82f6', '#93c5fd');
-
-            drawBuildingBlock(12, 260, 34, 38, '#eab308', '#fde047');
-            drawBuildingBlock(12, 320, 34, 38, '#22c55e', '#86efac');
-            drawBuildingBlock(12, 380, 34, 38, '#ef4444', '#fca5a5');
-            drawBuildingBlock(374, 260, 34, 38, '#22c55e', '#86efac');
-            drawBuildingBlock(374, 320, 34, 38, '#eab308', '#fde047');
-            drawBuildingBlock(374, 380, 34, 38, '#22c55e', '#86efac');
-
-            drawPine(195, 355, 1.0);
-            drawPine(228, 368, 1.0);
-            drawPine(55, 580, 1.05);
-            drawPine(355, 595, 1.05);
-            break;
-        }
-
-        case 10: {
-            fillGrassBg();
-
-            targetCtx.fillStyle = '#fde68a';
-            targetCtx.beginPath();
-            targetCtx.moveTo(0, 0);
-            targetCtx.lineTo(195, 0);
-            targetCtx.bezierCurveTo(175, 180, 265, 350, 215, 530);
-            targetCtx.lineTo(155, H);
-            targetCtx.lineTo(0, H);
-            targetCtx.closePath();
-            targetCtx.fill();
-
-            if (registerNav) {
-                nav.waterBoxes.push({ x: 0, y: 105, w: 115, h: 505 });
-                nav.markRect(0, 105, 115, 505, T_WATER, true);
+            drawAsphaltPolyline([[210, 45], [210, 665]], 42, true);
+            for (let y = 100; y <= 580; y += 46) {
+                drawRockMountain(50, y, 32);
+                drawRockMountain(105, y + 15, 28);
+                drawRockMountain(315, y + 15, 28);
+                drawRockMountain(370, y, 32);
             }
+            drawStoneWallSegment(140, 335, 40, 20);
+            drawStoneWallSegment(240, 335, 40, 20);
+            break;
 
+        case 9: // Vòng Xoay Thị Trấn: 2 bùng binh tròn nối liền các tuyến phố
+            fillGrassBg();
+            drawAsphaltPolyline([[210, 45], [210, 160]], 38, true);
+            drawAsphaltCircle(210, 210, 50, 36);
+            drawAsphaltPolyline([[210, 260], [210, 420]], 38, true);
+            drawAsphaltCircle(210, 470, 50, 36);
+            drawAsphaltPolyline([[210, 520], [210, 665]], 38, true);
+            drawAsphaltPolyline([[95, 120], [95, 560]], 34, true);
+            drawAsphaltPolyline([[325, 120], [325, 560]], 34, true);
+            drawBuildingBlock(25, 260, 55, 75, '#f97316', '#c2410c');
+            drawBuildingBlock(340, 260, 55, 75, '#3b82f6', '#1d4ed8');
+            break;
+
+        case 10: // Bờ Biển Cát Vàng: Biển sâu bên trái cho thủy quân, dải cát và cỏ bên phải
+            fillGrassBg();
             targetCtx.fillStyle = '#38bdf8';
-            targetCtx.beginPath();
-            targetCtx.moveTo(0, 0);
-            targetCtx.lineTo(115, 0);
-            targetCtx.bezierCurveTo(95, 180, 145, 350, 118, 530);
-            targetCtx.lineTo(65, H);
-            targetCtx.lineTo(0, H);
-            targetCtx.closePath();
-            targetCtx.fill();
-
-            targetCtx.strokeStyle = '#e0f2fe';
-            targetCtx.lineWidth = 6;
-            targetCtx.beginPath();
-            targetCtx.moveTo(115, 0);
-            targetCtx.bezierCurveTo(95, 180, 145, 350, 118, 530);
-            targetCtx.lineTo(65, H);
-            targetCtx.stroke();
-
-            drawDirtPolyline([
-                [305, 55],
-                [325, 150],
-                [275, 250],
-                [315, 360],
-                [275, 480],
-                [305, 590],
-                [295, 665]
-            ], 26);
-
-            for (let y = 45; y <= 650; y += 52) {
-                drawRockMountain(388, y, 26);
-                if (y % 104 === 45) drawRockMountain(356, y + 20, 22);
+            targetCtx.fillRect(0, 0, 120, H);
+            targetCtx.fillStyle = '#fde047';
+            targetCtx.fillRect(120, 0, 45, H);
+            if (registerNav) {
+                nav.waterBoxes.push({ x: 0, y: 0, w: 120, h: H });
+                nav.markRect(0, 0, 120, H, T_WATER, true);
             }
+            drawDirtPolyline([[260, 45], [260, 665]], 36);
+            drawDirtPolyline([[150, 200], [260, 340], [150, 480]], 30);
+            drawTreeCluster(330, 90, 405, 600, 32);
             break;
-        }
 
-        case 11: {
+        case 11: // Căn Cứ Tên Lửa: Đường chữ thập trung tâm nối liền 4 tổ hợp phóng
             fillGrassBg();
-
-            drawAsphaltPolyline([[210, 65], [210, 650]], 40, true);
-            drawAsphaltPolyline([[25, 235], [395, 235]], 36, true);
-            drawAsphaltPolyline([[25, 485], [395, 485]], 36, true);
-
-            const drawMissilePad = (px, py, isRed) => {
-                drawStoneWallSegment(px - 38, py - 38, 76, 76);
-                drawBuildingBlock(px - 28, py - 24, 56, 48, '#64748b', '#cbd5e1');
-                if (atlas.ready) {
-                    atlas.draw(targetCtx, 14, isRed ? 3 : 2, px, py - 6, 40, 40);
-                }
-            };
-            drawMissilePad(52, 150, false);
-            drawMissilePad(368, 150, false);
-            drawMissilePad(52, 565, true);
-            drawMissilePad(368, 565, true);
-
-            drawBuildingBlock(65, 285, 34, 34, '#f97316', '#fdba74');
-            drawBuildingBlock(120, 285, 34, 34, '#eab308', '#fde047');
-            drawBuildingBlock(120, 405, 34, 34, '#f97316', '#fdba74');
-            drawBuildingBlock(266, 285, 34, 34, '#3b82f6', '#93c5fd');
-            drawBuildingBlock(320, 285, 34, 34, '#22c55e', '#86efac');
-            drawBuildingBlock(266, 405, 34, 34, '#3b82f6', '#93c5fd');
+            drawAsphaltPolyline([[210, 45], [210, 665]], 44, true);
+            drawAsphaltPolyline([[35, 355], [385, 355]], 40, true);
+            drawBuildingBlock(45, 120, 72, 85, '#64748b', '#334155');
+            drawBuildingBlock(305, 120, 72, 85, '#64748b', '#334155');
+            drawBuildingBlock(45, 500, 72, 85, '#64748b', '#334155');
+            drawBuildingBlock(305, 500, 72, 85, '#64748b', '#334155');
             break;
-        }
 
-        case 12: {
+        case 12: // Thành Cổ Kiên Cố: Vòng thành đá bao quanh pháo đài trung tâm
             fillGrassBg();
-
             drawAsphaltPolyline([
-                [105, 195],
-                [315, 195],
-                [315, 520],
-                [105, 520],
-                [105, 195]
+                [210, 45], [210, 150], [95, 150], [95, 560], 
+                [210, 560], [210, 665]
             ], 38, true);
-            drawAsphaltPolyline([[210, 95], [210, 195]], 38, true);
-            drawAsphaltPolyline([[210, 520], [210, 620]], 38, true);
-            drawAsphaltPolyline([[0, 355], [105, 355]], 38, true);
-            drawAsphaltPolyline([[315, 355], [W, 355]], 38, true);
-
-            drawStoneWallSegment(42, 125, 85, 16);
-            drawStoneWallSegment(293, 125, 85, 16);
-            drawStoneWallSegment(42, 125, 16, 165);
-            drawStoneWallSegment(362, 125, 16, 165);
-
-            drawStoneWallSegment(42, 575, 85, 16);
-            drawStoneWallSegment(293, 575, 85, 16);
-            drawStoneWallSegment(42, 425, 16, 165);
-            drawStoneWallSegment(362, 425, 16, 165);
-
-            drawStoneWallSegment(154, 298, 112, 116);
-            targetCtx.fillStyle = '#94a3b8';
-            targetCtx.fillRect(166, 310, 88, 92);
-            drawStoneTower(154, 298, 22);
-            drawStoneTower(266, 298, 22);
-            drawStoneTower(154, 414, 22);
-            drawStoneTower(266, 414, 22);
-            drawStoneTower(210, 356, 32);
+            drawAsphaltPolyline([
+                [210, 150], [325, 150], [325, 560], [210, 560]
+            ], 38, true);
+            drawStoneWallSegment(145, 250, 130, 20);
+            drawStoneWallSegment(145, 450, 130, 20);
+            drawStoneWallSegment(145, 270, 20, 180);
+            drawStoneWallSegment(255, 270, 20, 180);
+            drawStoneTower(210, 355, 42);
             break;
-        }
 
-        case 13: {
+        case 13: // Quần Đảo Cầu Gỗ: Sông lớn cắt ngang, 3 cầu gỗ kéo dài vượt toàn bộ lòng sông
             fillGrassBg();
-
-            drawWaterBox(0, 135, W, 445, 0);
-
-            const islands = [
-                [40, 165, 95, 85], [162, 165, 96, 85], [285, 165, 95, 85],
-                [40, 295, 95, 115], [162, 295, 96, 115], [285, 295, 95, 115],
-                [40, 455, 95, 90], [162, 455, 96, 90], [285, 455, 95, 90]
-            ];
-            islands.forEach(([ix, iy, iw, ih]) => {
-                if (registerNav) {
-                    nav.markRect(ix, iy, iw, ih, T_OPEN, true);
-                }
-                targetCtx.fillStyle = '#d9e37c';
-                targetCtx.beginPath();
-                targetCtx.roundRect(ix - 4, iy - 4, iw + 8, ih + 8, 14);
-                targetCtx.fill();
-                targetCtx.fillStyle = '#7bc64d';
-                targetCtx.beginPath();
-                targetCtx.roundRect(ix, iy, iw, ih, 10);
-                targetCtx.fill();
-            });
-
-            drawAsphaltPolyline([[88, 120], [332, 120]], 24, false);
-            drawAsphaltPolyline([[88, 595], [332, 595]], 24, false);
-            drawAsphaltPolyline([[88, 165], [88, 545]], 24, false);
-            drawAsphaltPolyline([[210, 165], [210, 545]], 24, false);
-            drawAsphaltPolyline([[332, 165], [332, 545]], 24, false);
-            drawAsphaltPolyline([[88, 208], [332, 208]], 22, false);
-            drawAsphaltPolyline([[88, 352], [332, 352]], 24, false);
-            drawAsphaltPolyline([[88, 500], [332, 500]], 22, false);
-
-            drawWoodBridge(88, 148, 30, 42, true);
-            drawWoodBridge(210, 148, 30, 42, true);
-            drawWoodBridge(332, 148, 30, 42, true);
-
-            drawWoodBridge(88, 272, 30, 52, true);
-            drawWoodBridge(210, 272, 30, 52, true);
-            drawWoodBridge(332, 272, 30, 52, true);
-
-            drawWoodBridge(148, 352, 30, 42, false);
-            drawWoodBridge(272, 352, 30, 42, false);
-
-            drawWoodBridge(88, 432, 30, 52, true);
-            drawWoodBridge(210, 432, 30, 52, true);
-            drawWoodBridge(332, 432, 30, 52, true);
-
-            drawWoodBridge(88, 564, 30, 44, true);
-            drawWoodBridge(210, 564, 30, 44, true);
-            drawWoodBridge(332, 564, 30, 44, true);
+            drawWaterBox(0, 200, W, 280, 0);
+            drawDirtPolyline([[95, 45], [95, 665]], 32);
+            drawDirtPolyline([[210, 45], [210, 665]], 34);
+            drawDirtPolyline([[325, 45], [325, 665]], 32);
+            // 3 cầu gỗ dài 300px phủ kín từ bờ trên (y=190) sang bờ dưới (y=490)
+            drawWoodBridge(95, 340, 46, 300, true);
+            drawWoodBridge(210, 340, 52, 300, true);
+            drawWoodBridge(325, 340, 46, 300, true);
             break;
-        }
 
-        case 14: {
+        case 14: // Vòng Xoay Hồ Trung Tâm: Hồ nước tròn giữa đại lộ bao quanh
             fillGrassBg();
-
-            drawAsphaltPolyline([[210, 105], [210, 215]], 40, true);
-            drawAsphaltPolyline([[210, 500], [210, 610]], 40, true);
-            drawAsphaltCircle(210, 358, 142, 42);
-
-            drawWaterBox(158, 310, 104, 96, 16);
-
-            drawTreeCluster(12, 25, 95, 210, 28);
-            drawTreeCluster(325, 25, 408, 210, 28);
-            drawTreeCluster(12, 500, 95, 680, 28);
-            drawTreeCluster(325, 500, 408, 680, 28);
-
-            for (let a = 0; a < Math.PI * 2; a += Math.PI / 5) {
-                const tx = 210 + Math.cos(a) * 84;
-                const ty = 358 + Math.sin(a) * 78;
-                drawPine(tx, ty, 0.95);
-            }
+            drawAsphaltPolyline([[210, 45], [210, 180]], 42, true);
+            drawAsphaltCircle(210, 355, 140, 44);
+            drawAsphaltPolyline([[210, 530], [210, 665]], 42, true);
+            drawWaterBox(155, 305, 110, 100, 20);
+            drawTreeCluster(15, 100, 55, 610, 28);
+            drawTreeCluster(365, 100, 405, 610, 28);
             break;
-        }
 
-        case 15: {
+        case 15: // Chiến Tuyến Phòng Thủ: 2 hàng tường thành ngang có cổng mở thông suốt
             fillGrassBg();
-
-            drawAsphaltPolyline([[102, 0], [102, 215]], 38, true);
-            drawAsphaltPolyline([[318, 0], [318, 215]], 38, true);
-            drawAsphaltPolyline([[102, 500], [102, H]], 38, true);
-            drawAsphaltPolyline([[318, 500], [318, H]], 38, true);
-
-            drawDirtPolyline([[102, 215], [102, 500]], 26);
-            drawDirtPolyline([[318, 215], [318, 500]], 26);
-
-            drawStoneWallSegment(0, 205, 68, 26);
-            drawStoneWallSegment(136, 205, 148, 26);
-            drawStoneWallSegment(352, 205, 68, 26);
-            drawStoneTower(64, 218, 22);
-            drawStoneTower(140, 218, 22);
-            drawStoneTower(280, 218, 22);
-            drawStoneTower(356, 218, 22);
-
-            drawStoneWallSegment(0, 485, 68, 26);
-            drawStoneWallSegment(136, 485, 148, 26);
-            drawStoneWallSegment(352, 485, 68, 26);
-            drawStoneTower(64, 498, 22);
-            drawStoneTower(140, 498, 22);
-            drawStoneTower(280, 498, 22);
-            drawStoneTower(356, 498, 22);
+            drawAsphaltPolyline([[100, 45], [100, 665]], 40, true);
+            drawAsphaltPolyline([[320, 45], [320, 665]], 40, true);
+            drawDirtPolyline([[210, 45], [210, 665]], 32);
+            // Tường thành hàng 1 (y=250), để chừa cổng tại x=100 và x=320
+            drawStoneWallSegment(0, 240, 75, 26);
+            drawStoneWallSegment(125, 240, 170, 26);
+            drawStoneWallSegment(345, 240, 75, 26);
+            // Tường thành hàng 2 (y=460)
+            drawStoneWallSegment(0, 450, 75, 26);
+            drawStoneWallSegment(125, 450, 170, 26);
+            drawStoneWallSegment(345, 450, 75, 26);
             break;
-        }
     }
 
-    if (registerNav) {
-        nav.buildFlowFields();
-    }
+    if (registerNav) nav.buildFlowFields();
 
     if (includeMiniBases) {
         const drawThreeMiniBases = (cy, isBlue) => {
             const cols = [-58, 0, 58];
-            cols.forEach((dx) => {
+            cols.forEach(dx => {
                 const bx = W / 2 + dx;
                 targetCtx.fillStyle = '#0f172a';
                 targetCtx.fillRect(bx - 22, cy - 22, 44, 44);
-                targetCtx.fillStyle = isBlue ? '#0284c7' : (levelNum === 10 ? '#d97706' : '#dc2626');
+                targetCtx.fillStyle = isBlue ? '#0284c7' : '#dc2626';
                 targetCtx.fillRect(bx - 19, cy - 19, 38, 38);
-                targetCtx.fillStyle = isBlue ? '#7dd3fc' : (levelNum === 10 ? '#fde047' : '#fca5a5');
-                targetCtx.fillRect(bx - 13, cy - 13, 26, 14);
             });
         };
         drawThreeMiniBases(42, false);
@@ -2796,7 +2016,7 @@ const GAS_UPGRADE_LEVELS = [
 ];
 
 // ============================================================================
-// TRẠNG THÁI GAME TRONG TRẬN (WAVE SURVIVAL + EXP + ROGUELIKE DECK 5 Ô)
+// TRẠNG THÁI GAME TRONG TRẬN (WAVE SURVIVAL + EXP + DECK 5 Ô)
 // ============================================================================
 let game = {
     inMenu: true,
@@ -2804,61 +2024,38 @@ let game = {
     draftActive: false,
     gameOver: false,
     currentLevel: 1,
-    currentDifficulty: 'easy',
+    currentDifficulty: 'easy', // 'easy' | 'difficult'
     elapsedTime: 0,
     showRangeCircles: true,
 
-    // Thanh xăng
     gasUpgradeIndex: 0,
     gasInterval: 3.0,
     gasTimer: 3.0,
     gasCount: 0,
     maxGas: 99,
 
-    // Deck 5 ô quân trong trận & cấp độ nâng cấp từng quân
     battleDeck: [],
     unitLevels: {},
-    buffs: {
-        dmgMult: 1.0,
-        hpMult: 1.0,
-        fireRateMult: 1.0,
-        rangeMult: 1.0
-    },
+    buffs: { dmgMult: 1.0, hpMult: 1.0, fireRateMult: 1.0, rangeMult: 1.0 },
 
-    // Hệ thống EXP & Level trong trận
     currentLevelInBattle: 1,
     playerExp: 0,
     expToNextLevel: 8,
     pendingDraftCount: 0,
 
-    // Hệ thống 10 Wave Sinh tồn
     currentWave: 1,
     maxWaves: MAX_WAVES,
-    waveState: 'spawning', // 'spawning' | 'fighting' | 'intermission'
+    waveState: 'spawning',
     waveTotalEnemies: 0,
     waveSpawnQueue: [],
     waveSpawnTimer: 0,
     waveIntermissionTimer: 0,
-    waveIntermissionMax: 3.5,
+    waveIntermissionMax: 3.0,
 
     rallyX: null,
 
-    blueBase: {
-        team: 'blue',
-        x: LOGICAL_WIDTH / 2,
-        y: PLAYFIELD_HEIGHT - 56,
-        width: 268,
-        height: 64,
-        hp: 100,
-        maxHp: 100
-    },
-    redOutpost: {
-        team: 'red',
-        x: LOGICAL_WIDTH / 2,
-        y: 64,
-        width: 268,
-        height: 64
-    },
+    blueBase: { team: 'blue', x: LOGICAL_WIDTH / 2, y: PLAYFIELD_HEIGHT - 56, width: 268, height: 64, hp: 120, maxHp: 120 },
+    redOutpost: { team: 'red', x: LOGICAL_WIDTH / 2, y: 64, width: 268, height: 64, hp: 150, maxHp: 150 },
 
     units: [],
     bullets: [],
@@ -2869,10 +2066,7 @@ let game = {
     shakeTime: 0,
     shakeIntensity: 0,
 
-    stats: {
-        spawned: 0,
-        kills: 0
-    }
+    stats: { spawned: 0, kills: 0 }
 };
 
 function calcExpRequired(lv) {
@@ -2909,9 +2103,6 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// ============================================================================
-// DOM ELEMENTS CHÍNH
-// ============================================================================
 const lobbyWrapperEl = document.getElementById('lobby-wrapper');
 const draftModalEl = document.getElementById('draft-modal');
 const draftCardsContainerEl = document.getElementById('draft-cards-container');
@@ -2943,21 +2134,35 @@ const gasLoadEls = [
 ];
 
 // ============================================================================
-// HỆ THỐNG GIAO DIỆN LOBBY, TOP BAR, 3 TABS & MODALS META-GAME
+// HỆ THỐNG GIAO DIỆN LOBBY & CẬP NHẬT TOP BAR ADMIN MODE (⚙️)
 // ============================================================================
 function updateTopBarUI() {
     const nameEl = document.getElementById('player-name-display');
-    if (nameEl) {
-        nameEl.textContent = metaState.playerName || 'COMMANDER';
-    }
+    if (nameEl) nameEl.textContent = metaState.playerName || 'COMMANDER';
+
     const gemsEl = document.getElementById('gems-count-display');
-    if (gemsEl) {
-        gemsEl.textContent = formatCurrency(metaState.gems);
-    }
+    if (gemsEl) gemsEl.textContent = formatCurrency(metaState.gems);
+
     const coinsEl = document.getElementById('coins-count-display');
-    if (coinsEl) {
-        coinsEl.textContent = formatCurrency(metaState.coins);
+    if (coinsEl) coinsEl.textContent = formatCurrency(metaState.coins);
+
+    const gemsPill = document.getElementById('gems-pill-box');
+    const coinsPill = document.getElementById('coins-pill-box');
+    const gearBtn = document.getElementById('btn-open-settings');
+    const adminTag = document.getElementById('admin-active-tag');
+
+    if (metaState.isAdminMode) {
+        if (gemsPill) gemsPill.className = 'currency-pill admin-infinite-pill';
+        if (coinsPill) coinsPill.className = 'currency-pill admin-infinite-pill';
+        if (gearBtn) gearBtn.className = 'btn-settings-gear admin-active-gear';
+        if (adminTag) adminTag.classList.remove('hidden');
+    } else {
+        if (gemsPill) gemsPill.className = 'currency-pill';
+        if (coinsPill) coinsPill.className = 'currency-pill';
+        if (gearBtn) gearBtn.className = 'btn-settings-gear';
+        if (adminTag) adminTag.classList.add('hidden');
     }
+
     updateMissionNotificationDot();
 }
 
@@ -2979,11 +2184,8 @@ function switchLobbyTab(tabName) {
         }
     });
 
-    if (tabName === 'battle') {
-        renderStageScreenUI();
-    } else if (tabName === 'army') {
-        renderArmyTabUI();
-    }
+    if (tabName === 'battle') renderStageScreenUI();
+    else if (tabName === 'army') renderArmyTabUI();
     updateTopBarUI();
 }
 
@@ -2995,9 +2197,7 @@ window.openLobbyScreen = function(tabName = 'battle') {
     document.getElementById('win-panel').classList.remove('active');
     document.getElementById('lose-panel').classList.remove('active');
 
-    if (lobbyWrapperEl) {
-        lobbyWrapperEl.classList.add('active');
-    }
+    if (lobbyWrapperEl) lobbyWrapperEl.classList.add('active');
     switchLobbyTab(tabName);
 };
 
@@ -3007,7 +2207,6 @@ window.openStageScreen = function(levelNum = getMaxUnlockedMapLevel()) {
     window.openLobbyScreen('battle');
 };
 
-// Gắn sự kiện Bottom Navigation Bar (3 Tabs: SHOP - BATTLE - ARMY)
 document.querySelectorAll('.nav-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const tab = btn.getAttribute('data-tab');
@@ -3016,7 +2215,7 @@ document.querySelectorAll('.nav-tab-btn').forEach(btn => {
 });
 
 // ============================================================================
-// 1. POPUP ĐẶT TÊN NHÂN VẬT LẦN ĐẦU VÀO GAME
+// 1. POPUP ĐẶT TÊN & 2. POPUP CÀI ĐẶT + HỆ THỐNG QUYỀN ADMIN (⚙️ ADMIN MODE)
 // ============================================================================
 function checkAndPromptPlayerName(forceOpen = false) {
     const modal = document.getElementById('name-modal');
@@ -3056,20 +2255,108 @@ document.getElementById('btn-confirm-name')?.addEventListener('click', () => {
     document.getElementById('name-modal')?.classList.remove('active');
 });
 
-document.getElementById('player-name-input')?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-        document.getElementById('btn-confirm-name')?.click();
+// Modal Setting & Admin Mode
+function renderSettingsModalUI() {
+    const modeBadge = document.getElementById('settings-mode-badge');
+    const modeDesc = document.getElementById('settings-mode-desc');
+    const loginSection = document.getElementById('admin-login-section');
+    const activeSection = document.getElementById('admin-active-section');
+    const passInput = document.getElementById('admin-password-input');
+    const fb = document.getElementById('admin-auth-feedback');
+    const passForm = document.getElementById('admin-password-form');
+
+    if (passInput) passInput.value = '';
+    if (fb) fb.classList.add('hidden');
+    if (passForm) passForm.classList.add('hidden');
+
+    if (metaState.isAdminMode) {
+        if (modeBadge) {
+            modeBadge.className = 'mode-pill-admin';
+            modeBadge.textContent = '👑 CHẾ ĐỘ ADMIN ĐANG BẬT';
+        }
+        if (modeDesc) {
+            modeDesc.textContent = 'Bạn đang bật quyền Admin: Tài nguyên vô hạn, mở khóa toàn bộ 15 map chơi.';
+        }
+        if (loginSection) loginSection.classList.add('hidden');
+        if (activeSection) activeSection.classList.remove('hidden');
+    } else {
+        if (modeBadge) {
+            modeBadge.className = 'mode-pill-normal';
+            modeBadge.textContent = 'NGƯỜI CHƠI THƯỜNG';
+        }
+        if (modeDesc) {
+            modeDesc.textContent = 'Tài nguyên và tiến trình khóa map đang áp dụng theo dữ liệu lưu thực tế.';
+        }
+        if (loginSection) loginSection.classList.remove('hidden');
+        if (activeSection) activeSection.classList.add('hidden');
+    }
+}
+
+document.getElementById('btn-open-settings')?.addEventListener('click', () => {
+    sfx.play('gas');
+    renderSettingsModalUI();
+    document.getElementById('settings-modal')?.classList.add('active');
+});
+
+document.getElementById('btn-close-settings')?.addEventListener('click', () => {
+    document.getElementById('settings-modal')?.classList.remove('active');
+});
+
+document.getElementById('btn-toggle-admin-form')?.addEventListener('click', () => {
+    sfx.play('gas');
+    document.getElementById('admin-password-form')?.classList.toggle('hidden');
+});
+
+document.getElementById('btn-submit-admin-pass')?.addEventListener('click', () => {
+    const passInput = document.getElementById('admin-password-input');
+    const fb = document.getElementById('admin-auth-feedback');
+    if (!passInput || !fb) return;
+
+    const enteredPass = passInput.value.trim();
+    fb.classList.remove('hidden');
+
+    if (enteredPass === 'HUNGADMINDZ') {
+        metaState.isAdminMode = true;
+        saveProgress();
+        updateTopBarUI();
+        sfx.play('upgrade');
+        renderSettingsModalUI();
+        if (currentLobbyTab === 'battle') renderStageScreenUI();
+    } else {
+        fb.className = 'text-[11px] font-extrabold mt-1.5 text-center text-rose-600';
+        fb.textContent = '❌ Mật khẩu Admin không chính xác!';
+        sfx.play('cannon');
     }
 });
 
+document.getElementById('btn-Return-normal-mode')?.addEventListener('click', () => {
+    metaState.isAdminMode = false;
+    saveProgress();
+    updateTopBarUI();
+    sfx.play('gas');
+    renderSettingsModalUI();
+    if (currentLobbyTab === 'battle') renderStageScreenUI();
+});
+
+document.getElementById('btn-settings-rename')?.addEventListener('click', () => {
+    document.getElementById('settings-modal')?.classList.remove('active');
+    checkAndPromptPlayerName(true);
+});
+
+document.getElementById('btn-settings-sound')?.addEventListener('click', (e) => {
+    sfx.enabled = !sfx.enabled;
+    e.currentTarget.textContent = sfx.enabled ? '🔊 ÂM THANH: BẬT' : '🔇 ÂM THANH: TẮT';
+    sfx.play('gas');
+});
+
 // ============================================================================
-// 2. TAB "BATTLE": CHỌN MAP, ĐỘ KHÓ (EASY - NORMAL - DIFFICULT), DEMO MAP
+// 3. TAB "BATTLE": CHỌN MAP & 2 ĐỘ KHÓ (DỄ & KHÓ)
 // ============================================================================
 function renderStageScreenUI() {
     const maxUnlocked = getMaxUnlockedMapLevel();
     currentStageViewLevel = Math.max(1, Math.min(maxUnlocked, currentStageViewLevel));
     const cfg = LEVELS[currentStageViewLevel - 1] || LEVELS[0];
-    const mapProg = metaState.mapDifficultyProgress[cfg.level] || { easy: false, normal: false, difficult: false };
+    const mapProg = metaState.mapDifficultyProgress[cfg.level] || { easy: false, difficult: false };
 
     if (!isDifficultyUnlocked(cfg.level, currentSelectedDifficulty)) {
         currentSelectedDifficulty = getDefaultDifficultyForMap(cfg.level);
@@ -3080,7 +2367,9 @@ function renderStageScreenUI() {
 
     const progressTextEl = document.getElementById('stage-progress-text');
     if (progressTextEl) {
-        progressTextEl.textContent = `ĐÃ MỞ KHÓA: MAP ${maxUnlocked} / ${LEVELS.length}`;
+        progressTextEl.textContent = metaState.isAdminMode
+            ? `👑 ADMIN MODE: ĐÃ MỞ KHÓA TOÀN BỘ 15 MAP`
+            : `ĐÃ MỞ KHÓA: MAP ${maxUnlocked} / ${LEVELS.length}`;
     }
 
     const prevBtn = document.getElementById('btn-prev-stage');
@@ -3089,7 +2378,7 @@ function renderStageScreenUI() {
     const nextBtn = document.getElementById('btn-next-stage');
     if (nextBtn) nextBtn.disabled = currentStageViewLevel >= maxUnlocked;
 
-    // Cập nhật 3 nút độ khó Easy - Normal - Difficult
+    // Cập nhật 2 nút độ khó Dễ & Khó
     DIFFICULTY_ORDER.forEach(diffKey => {
         const btn = document.getElementById(`diff-btn-${diffKey}`);
         const statusEl = document.getElementById(`diff-status-${diffKey}`);
@@ -3107,12 +2396,15 @@ function renderStageScreenUI() {
         }
     });
 
-    // Banner thông tin hệ số quái & phần thưởng Vàng
     const diffCfg = DIFFICULTY_CONFIG[currentSelectedDifficulty] || DIFFICULTY_CONFIG.easy;
     const rewardCoins = diffCfg.calcReward(cfg.level);
     const diffBannerEl = document.getElementById('diff-info-banner');
     if (diffBannerEl) {
-        diffBannerEl.innerHTML = `Quái: <b>${diffCfg.statMult}x HP & DMG</b> • Thưởng thắng: <b class="text-amber-300">🪙 ${formatCurrency(rewardCoins)} Coins</b>`;
+        if (currentSelectedDifficulty === 'easy') {
+            diffBannerEl.innerHTML = `Mục tiêu: <b>Công phá nhà chính đỏ (HP: ${cfg.enemyBaseHp})</b> • Thưởng: <b class="text-amber-300">🪙 ${formatCurrency(rewardCoins)} Coins</b>`;
+        } else {
+            diffBannerEl.innerHTML = `Mục tiêu: <b>Sinh tồn 10 Wave (Có Boss Wave 5 & 10)</b> • Thưởng: <b class="text-amber-300">🪙 ${formatCurrency(rewardCoins)} Coins</b>`;
+        }
     }
 
     const waterBadge = document.getElementById('select-map-water-badge');
@@ -3130,7 +2422,7 @@ function renderStageScreenUI() {
     if (clearedStampEl) {
         if (mapProg[currentSelectedDifficulty]) {
             clearedStampEl.classList.remove('hidden');
-            clearedStampEl.textContent = `✓ ĐÃ THẮNG (${diffCfg.label})`;
+            clearedStampEl.textContent = `✓ ĐÃ HOÀN THÀNH (${diffCfg.label.split(' ')[0]})`;
         } else {
             clearedStampEl.classList.add('hidden');
         }
@@ -3182,7 +2474,7 @@ document.getElementById('btn-start-battle')?.addEventListener('click', () => {
 });
 
 // ============================================================================
-// 3. HỆ THỐNG NHIỆM VỤ (MISSIONS MODAL) & GIFTCODE (HUNGDEPTRAI)
+// 4. HỆ THỐNG NHIỆM VỤ & 5. GIFTCODE (10 MÃ DÙNG 1 LẦN)
 // ============================================================================
 function updateMissionNotificationDot() {
     const dotEl = document.getElementById('mission-notif-dot');
@@ -3199,7 +2491,6 @@ function renderMissionsList() {
     const container = document.getElementById('mission-list-container');
     if (!container) return;
     container.innerHTML = '';
-
     const mp = metaState.missionsProgress;
 
     MISSIONS_CATALOG.forEach(m => {
@@ -3219,9 +2510,7 @@ function renderMissionsList() {
                 <div class="mission-progress-track">
                     <div class="mission-progress-fill" style="width: ${pct}%"></div>
                 </div>
-                <div class="text-[10px] font-bold text-slate-500 mt-0.5">
-                    Tiến độ: ${cur} / ${m.target}
-                </div>
+                <div class="text-[10px] font-bold text-slate-500 mt-0.5">Tiến độ: ${cur} / ${m.target}</div>
             </div>
             <div>
                 <button class="btn-3d ${canClaim ? 'btn-3d-green' : 'btn-3d-yellow'} px-3 py-1.5 text-[11px]" ${canClaim ? '' : 'disabled'}>
@@ -3241,7 +2530,6 @@ function renderMissionsList() {
                 updateTopBarUI();
             });
         }
-
         container.appendChild(item);
     });
 }
@@ -3256,13 +2544,37 @@ document.getElementById('btn-close-missions')?.addEventListener('click', () => {
     document.getElementById('mission-modal')?.classList.remove('active');
 });
 
-// Giftcode Modal
-document.getElementById('btn-open-code')?.addEventListener('click', () => {
-    sfx.play('gas');
+// Giftcode Modal (10 mã code chính thức)
+function renderGiftcodeModalUI() {
     const input = document.getElementById('giftcode-input');
     const fb = document.getElementById('giftcode-feedback');
+    const usedCountEl = document.getElementById('giftcode-used-count');
+    const tagsWrap = document.getElementById('giftcode-used-tags');
+
     if (input) input.value = '';
     if (fb) fb.classList.add('hidden');
+
+    const usedList = Array.isArray(metaState.usedCodes) ? metaState.usedCodes : [];
+    if (usedCountEl) usedCountEl.textContent = `${usedList.length} / ${OFFICIAL_GIFTCODES.length} mã`;
+
+    if (tagsWrap) {
+        tagsWrap.innerHTML = '';
+        if (usedList.length === 0) {
+            tagsWrap.innerHTML = `<span class="text-[10px] text-slate-400 italic">Chưa có mã nào được nhập</span>`;
+        } else {
+            usedList.forEach(code => {
+                const pill = document.createElement('span');
+                pill.className = 'used-code-pill';
+                pill.textContent = `✓ ${code}`;
+                tagsWrap.appendChild(pill);
+            });
+        }
+    }
+}
+
+document.getElementById('btn-open-code')?.addEventListener('click', () => {
+    sfx.play('gas');
+    renderGiftcodeModalUI();
     document.getElementById('code-modal')?.classList.add('active');
 });
 
@@ -3285,29 +2597,42 @@ document.getElementById('btn-submit-code')?.addEventListener('click', () => {
         return;
     }
 
-    if (rawCode === 'HUNGDEPTRAI') {
-        metaState.gems += 999999;
-        metaState.coins += 999999999;
-        if (!metaState.usedCodes.includes(rawCode)) {
-            metaState.usedCodes.push(rawCode);
-        }
-        saveProgress();
-        updateTopBarUI();
-        sfx.play('upgrade');
-
-        fb.className = 'text-xs font-extrabold mt-2 text-emerald-600';
-        fb.innerHTML = '🎉 CHÚC MỪNG! Đã cộng <b>+999,999 Gems</b> & <b>+999,999,999 Coins</b>!';
-        input.value = '';
-    } else {
+    if (!OFFICIAL_GIFTCODES.includes(rawCode)) {
         fb.className = 'text-xs font-extrabold mt-2 text-rose-600';
-        fb.textContent = '❌ Mã Giftcode không hợp lệ hoặc đã hết hạn!';
+        fb.textContent = '❌ Mã Giftcode không hợp lệ hoặc không tồn tại!';
         sfx.play('cannon');
+        return;
     }
+
+    if (!Array.isArray(metaState.usedCodes)) metaState.usedCodes = [];
+
+    if (metaState.usedCodes.includes(rawCode)) {
+        fb.className = 'text-xs font-extrabold mt-2 text-amber-600';
+        fb.textContent = '⚠️ Mã Giftcode này đã được sử dụng trên tài khoản này rồi!';
+        sfx.play('cannon');
+        return;
+    }
+
+    // Cộng thưởng chính xác mỗi mã: 1,500 Gems & 15,000 Coins
+    metaState.usedCodes.push(rawCode);
+    metaState.gems += GIFTCODE_REWARD_GEMS;
+    metaState.coins += GIFTCODE_REWARD_COINS;
+
+    saveProgress();
+    updateTopBarUI();
+    sfx.play('upgrade');
+
+    fb.className = 'text-xs font-extrabold mt-2 text-emerald-600';
+    fb.innerHTML = `🎉 NHẬP QUÀ THÀNH CÔNG! (+${formatCurrency(GIFTCODE_REWARD_GEMS)} 💎 & +${formatCurrency(GIFTCODE_REWARD_COINS)} 🪙)`;
+    input.value = '';
+    renderGiftcodeModalUI();
 });
 
 // ============================================================================
-// 4. TAB "SHOP": MỞ RƯƠNG GACHA TƯỚNG (LEGENDARY CRATE & EPIC CRATE)
+// 6. TAB "SHOP": GACHA TƯỚNG TÙY CHỈNH SỐ LƯỢNG + CHIẾT KHẤU 10% MỖI CỤM 10 RƯƠNG
 // ============================================================================
+let pendingGachaData = null;
+
 function rollRarityFromTable(oddsTable) {
     const rand = Math.random() * 100;
     let acc = 0;
@@ -3318,20 +2643,74 @@ function rollRarityFromTable(oddsTable) {
     return oddsTable[0].rarity;
 }
 
-function openGachaCrate(crateType, count) {
+function requestOpenGachaCrate(crateType, count) {
+    const qty = Math.max(1, Math.min(999, Math.floor(Number(count) || 1)));
     const isLegendary = crateType === 'legendary';
-    const cost = isLegendary
-        ? (count === 10 ? 2700 : 300)
-        : (count === 10 ? 1350 : 150);
+    const unitPrice = isLegendary ? 300 : 150;
 
-    if (metaState.gems < cost) {
-        alert(`Bạn không đủ Gems! Cần ${formatCurrency(cost)} 💎 Gems (Hiện có: ${formatCurrency(metaState.gems)} 💎).`);
+    // Tính chính sách chiết khấu 10% cho mỗi cụm 10 rương
+    const blocksOf10 = Math.floor(qty / 10);
+    const rawCost = qty * unitPrice;
+    const discountAmount = Math.round(blocksOf10 * 10 * unitPrice * 0.1);
+    const finalCost = metaState.isAdminMode ? 0 : Math.max(0, rawCost - discountAmount);
+
+    pendingGachaData = {
+        crateType,
+        qty,
+        unitPrice,
+        rawCost,
+        blocksOf10,
+        discountAmount,
+        finalCost,
+        isLegendary
+    };
+
+    // Hiển thị Modal Xác nhận mở rương tùy chỉnh
+    const modal = document.getElementById('gacha-confirm-modal');
+    const titleEl = document.getElementById('gacha-conf-crate-title');
+    const qtyEl = document.getElementById('gacha-conf-qty');
+    const rawCostEl = document.getElementById('gacha-conf-raw-cost');
+    const discEl = document.getElementById('gacha-conf-discount-tag');
+    const savedEl = document.getElementById('gacha-conf-saved');
+    const finalCostEl = document.getElementById('gacha-conf-final-cost');
+    const errEl = document.getElementById('gacha-conf-error');
+    const confirmBtn = document.getElementById('btn-confirm-custom-gacha');
+
+    if (titleEl) titleEl.textContent = isLegendary ? '👑 LEGENDARY CRATE' : '🧰 EPIC CRATE';
+    if (qtyEl) qtyEl.textContent = `${qty} rương`;
+    if (rawCostEl) rawCostEl.textContent = `💎 ${formatCurrency(rawCost)}`;
+    if (discEl) discEl.textContent = blocksOf10 > 0 ? `-10% (${blocksOf10} cụm 10 rương)` : 'Không đủ 10 rương để giảm giá';
+    if (savedEl) savedEl.textContent = `💎 ${formatCurrency(discountAmount)}`;
+    if (finalCostEl) finalCostEl.textContent = metaState.isAdminMode ? '💎 0 (ADMIN ∞)' : `💎 ${formatCurrency(finalCost)}`;
+
+    const hasEnough = metaState.isAdminMode || metaState.gems >= finalCost;
+    if (errEl) errEl.classList.toggle('hidden', hasEnough);
+    if (confirmBtn) confirmBtn.disabled = !hasEnough;
+
+    if (modal) modal.classList.add('active');
+}
+
+document.getElementById('btn-close-gacha-confirm')?.addEventListener('click', () => {
+    document.getElementById('gacha-confirm-modal')?.classList.remove('active');
+});
+
+document.getElementById('btn-cancel-custom-gacha')?.addEventListener('click', () => {
+    document.getElementById('gacha-confirm-modal')?.classList.remove('active');
+});
+
+document.getElementById('btn-confirm-custom-gacha')?.addEventListener('click', () => {
+    if (!pendingGachaData) return;
+    const { crateType, qty, finalCost, isLegendary } = pendingGachaData;
+
+    if (!metaState.isAdminMode && metaState.gems < finalCost) {
         sfx.play('cannon');
         return;
     }
 
-    metaState.gems -= cost;
-    metaState.missionsProgress.cratesOpened = (metaState.missionsProgress.cratesOpened || 0) + count;
+    if (!metaState.isAdminMode) {
+        metaState.gems -= finalCost;
+    }
+    metaState.missionsProgress.cratesOpened = (metaState.missionsProgress.cratesOpened || 0) + qty;
 
     const oddsTable = isLegendary
         ? [
@@ -3348,7 +2727,7 @@ function openGachaCrate(crateType, count) {
         ];
 
     const pulledCards = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < qty; i++) {
         const rarity = rollRarityFromTable(oddsTable);
         const randomUnit = UNIT_CATALOG[Math.floor(Math.random() * UNIT_CATALOG.length)];
         const newCard = {
@@ -3363,17 +2742,18 @@ function openGachaCrate(crateType, count) {
     saveProgress();
     updateTopBarUI();
     sfx.play('upgrade');
+    document.getElementById('gacha-confirm-modal')?.classList.remove('active');
 
     // Hiển thị Popup Kết quả mở rương
-    const modal = document.getElementById('gacha-result-modal');
+    const resModal = document.getElementById('gacha-result-modal');
     const titleEl = document.getElementById('gacha-modal-title');
+    const sumBanner = document.getElementById('gacha-total-pulled');
     const gridEl = document.getElementById('gacha-cards-grid');
 
     if (titleEl) {
-        titleEl.textContent = isLegendary
-            ? `👑 MỞ LEGENDARY CRATE X${count}`
-            : `🧰 MỞ EPIC CRATE X${count}`;
+        titleEl.textContent = isLegendary ? `👑 KẾT QUẢ LEGENDARY CRATE X${qty}` : `🧰 KẾT QUẢ EPIC CRATE X${qty}`;
     }
+    if (sumBanner) sumBanner.textContent = `${qty} thẻ tướng`;
 
     if (gridEl) {
         gridEl.innerHTML = '';
@@ -3396,13 +2776,23 @@ function openGachaCrate(crateType, count) {
         });
     }
 
-    if (modal) modal.classList.add('active');
-}
+    if (resModal) resModal.classList.add('active');
+});
 
-document.getElementById('btn-open-leg-1')?.addEventListener('click', () => openGachaCrate('legendary', 1));
-document.getElementById('btn-open-leg-10')?.addEventListener('click', () => openGachaCrate('legendary', 10));
-document.getElementById('btn-open-epic-1')?.addEventListener('click', () => openGachaCrate('epic', 1));
-document.getElementById('btn-open-epic-10')?.addEventListener('click', () => openGachaCrate('epic', 10));
+// Sự kiện bấm nút mở rương nhanh & tùy chỉnh
+document.getElementById('btn-open-leg-1')?.addEventListener('click', () => requestOpenGachaCrate('legendary', 1));
+document.getElementById('btn-open-leg-10')?.addEventListener('click', () => requestOpenGachaCrate('legendary', 10));
+document.getElementById('btn-open-leg-custom')?.addEventListener('click', () => {
+    const val = document.getElementById('input-custom-leg-count')?.value || 20;
+    requestOpenGachaCrate('legendary', val);
+});
+
+document.getElementById('btn-open-epic-1')?.addEventListener('click', () => { requestOpenGachaCrate('epic', 1); });
+document.getElementById('btn-open-epic-10')?.addEventListener('click', () => requestOpenGachaCrate('epic', 10));
+document.getElementById('btn-open-epic-custom')?.addEventListener('click', () => {
+    const val = document.getElementById('input-custom-epic-count')?.value || 20;
+    requestOpenGachaCrate('epic', val);
+});
 
 document.getElementById('btn-close-gacha')?.addEventListener('click', () => {
     document.getElementById('gacha-result-modal')?.classList.remove('active');
@@ -3410,7 +2800,7 @@ document.getElementById('btn-close-gacha')?.addEventListener('click', () => {
 });
 
 // ============================================================================
-// 5. TAB "ARMY": QUẢN LÝ QUÂN ĐỘI, NÂNG CẤP LEVEL BẰNG COINS & MERGE GHÉP TƯỚNG
+// 7. TAB "ARMY": NÂNG CẤP VÀNG, GHẾP THỦ CÔNG & ⚡ AUTO MERGE (TỰ ĐỘNG GHÉP TẤT CẢ)
 // ============================================================================
 function renderArmyShowcaseCanvas() {
     const sCanvas = document.getElementById('army-hero-showcase');
@@ -3545,9 +2935,10 @@ function openUnitUpgradeModal(unitId) {
     if (roleEl) roleEl.textContent = u.role;
 
     const multInfoEl = document.getElementById('upg-modal-mult-info');
-    if (multInfoEl) {
-        multInfoEl.textContent = `Độ hiếm ${rCfg.name}: ${rCfg.mult}x HP & DMG • Cấp ${permLv}: +${(permLv - 1) * 12}%`;
-    }
+    if (multInfoEl) multInfoEl.textContent = `Độ hiếm ${rCfg.name}: ${rCfg.mult}x HP & DMG • Cấp ${permLv}: +${(permLv - 1) * 12}%`;
+
+    const bracketEl = document.getElementById('upg-modal-tier-bracket');
+    if (bracketEl) bracketEl.textContent = getUpgradeTierBracketText(permLv);
 
     const curDmgEl = document.getElementById('upg-cur-dmg');
     if (curDmgEl) curDmgEl.textContent = `${curStats.damage} (${curStats.rawDmg})`;
@@ -3565,11 +2956,11 @@ function openUnitUpgradeModal(unitId) {
     if (gasEl) gasEl.textContent = `${u.cost} Xăng`;
 
     const costEl = document.getElementById('upg-cost-coins');
-    if (costEl) costEl.textContent = `🪙 ${formatCurrency(costCoins)}`;
+    if (costEl) costEl.textContent = metaState.isAdminMode ? '🪙 0 (ADMIN ∞)' : `🪙 ${formatCurrency(costCoins)}`;
 
     const btnUpg = document.getElementById('btn-confirm-unit-upgrade');
     if (btnUpg) {
-        btnUpg.disabled = metaState.coins < costCoins;
+        btnUpg.disabled = !metaState.isAdminMode && metaState.coins < costCoins;
     }
 
     document.getElementById('unit-upgrade-modal')?.classList.add('active');
@@ -3586,12 +2977,14 @@ document.getElementById('btn-confirm-unit-upgrade')?.addEventListener('click', (
     const permLv = metaState.armyPermanentLevels[u.id] || 1;
     const costCoins = getUnitUpgradeCost(permLv);
 
-    if (metaState.coins < costCoins) {
+    if (!metaState.isAdminMode && metaState.coins < costCoins) {
         sfx.play('cannon');
         return;
     }
 
-    metaState.coins -= costCoins;
+    if (!metaState.isAdminMode) {
+        metaState.coins -= costCoins;
+    }
     metaState.armyPermanentLevels[u.id] = permLv + 1;
     metaState.missionsProgress.upgrades = (metaState.missionsProgress.upgrades || 0) + 1;
 
@@ -3602,7 +2995,7 @@ document.getElementById('btn-confirm-unit-upgrade')?.addEventListener('click', (
     openUnitUpgradeModal(u.id);
 });
 
-// Chuyển đổi chế độ ARMY <-> MERGE
+// Chuyển chế độ ARMY <-> MERGE
 document.getElementById('btn-mode-army')?.addEventListener('click', () => {
     currentArmyMode = 'army';
     sfx.play('gas');
@@ -3616,7 +3009,6 @@ document.getElementById('btn-mode-merge')?.addEventListener('click', () => {
     renderArmyTabUI();
 });
 
-// Logic Ghép Tướng (MERGE)
 function renderMergeWorkbenchAndInventory() {
     const slot1El = document.getElementById('merge-slot-1');
     const slot2El = document.getElementById('merge-slot-2');
@@ -3640,8 +3032,8 @@ function renderMergeWorkbenchAndInventory() {
         const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
         slotEl.className = `merge-slot ${rCfg.cssClass}`;
         slotEl.innerHTML = `
-            <img src="${spriteUrl}" class="w-8 h-8 pixel-art" alt="${u.name}" />
-            <span class="text-[8px] font-black text-white leading-none mt-0.5">${rCfg.name}</span>
+            <img src="${spriteUrl}" class="w-7 h-7 pixel-art" alt="${u.name}" />
+            <span class="text-[7.5px] font-black text-white leading-none mt-0.5">${rCfg.name}</span>
         `;
     };
 
@@ -3657,13 +3049,13 @@ function renderMergeWorkbenchAndInventory() {
             if (slotResEl) {
                 slotResEl.className = `merge-slot result-slot ${nextRCfg.cssClass}`;
                 slotResEl.innerHTML = `
-                    <img src="${spriteUrl}" class="w-9 h-9 pixel-art" alt="${u.name}" />
-                    <span class="text-[8px] font-black text-white leading-none mt-0.5">${nextRCfg.name}</span>
+                    <img src="${spriteUrl}" class="w-8 h-8 pixel-art" alt="${u.name}" />
+                    <span class="text-[7.5px] font-black text-white leading-none mt-0.5">${nextRCfg.name}</span>
                 `;
             }
             if (btnMergeExec) btnMergeExec.disabled = false;
             if (hintEl) {
-                hintEl.innerHTML = `Sẵn sàng ghép 2 <b>${u.name} (${RARITY_CONFIG[card1.rarity].name})</b> ➔ <b class="text-amber-300">${nextRCfg.name}</b> & <b>+1 Level vĩnh viễn</b>!`;
+                hintEl.innerHTML = `Sẵn sàng ghép 2 <b>${u.name} (${RARITY_CONFIG[card1.rarity].name})</b> ➔ <b class="text-amber-300">${nextRCfg.name}</b> & <b>+1 Level</b>!`;
             }
         }
     } else {
@@ -3679,14 +3071,13 @@ function renderMergeWorkbenchAndInventory() {
                 hintEl.innerHTML = `Hãy chọn thêm 1 thẻ <b>${u.name} (${rCfg.name})</b> giống hệt để ghép!`;
             }
         } else if (hintEl) {
-            hintEl.innerHTML = `Chọn 2 thẻ tướng <b>cùng tên & cùng độ hiếm</b> để tiến hóa bậc cao hơn (+1 Level vĩnh viễn)!`;
+            hintEl.innerHTML = `Chọn 2 thẻ <b>cùng tên & cùng độ hiếm</b> hoặc bấm <b>⚡ AUTO MERGE</b> để ghép tất cả (+1 Level/lần ghép)!`;
         }
     }
 
     if (!invGrid) return;
     invGrid.innerHTML = '';
 
-    // Sắp xếp kho theo độ hiếm giảm dần, sau đó theo tên tướng
     const sortedInv = [...metaState.inventory].sort((a, b) => {
         const rA = RARITY_CONFIG[a.rarity]?.rank ?? 0;
         const rB = RARITY_CONFIG[b.rarity]?.rank ?? 0;
@@ -3705,12 +3096,9 @@ function renderMergeWorkbenchAndInventory() {
         const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
 
         let isDimmed = false;
-        if (isMaxLegendary) {
-            isDimmed = true;
-        } else if (card1 && !isSelected) {
-            if (cardObj.unitId !== card1.unitId || cardObj.rarity !== card1.rarity) {
-                isDimmed = true;
-            }
+        if (isMaxLegendary) isDimmed = true;
+        else if (card1 && !isSelected) {
+            if (cardObj.unitId !== card1.unitId || cardObj.rarity !== card1.rarity) isDimmed = true;
         }
 
         const cardEl = document.createElement('div');
@@ -3752,7 +3140,6 @@ function renderMergeWorkbenchAndInventory() {
                     mergeSelectedCardUids.push(cardObj.uid);
                     sfx.play('spawn');
                 } else {
-                    // Đổi sang chọn thẻ mới làm thẻ #1
                     mergeSelectedCardUids = [cardObj.uid];
                     sfx.play('gas');
                 }
@@ -3760,7 +3147,6 @@ function renderMergeWorkbenchAndInventory() {
                 mergeSelectedCardUids = [cardObj.uid];
                 sfx.play('gas');
             }
-
             renderMergeWorkbenchAndInventory();
         });
 
@@ -3784,6 +3170,7 @@ document.getElementById('merge-slot-2')?.addEventListener('click', () => {
     }
 });
 
+// Ghép tướng thủ công (Manual Merge)
 document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
     if (mergeSelectedCardUids.length < 2) return;
     const card1 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]);
@@ -3793,11 +3180,9 @@ document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
     const nextRarity = RARITY_CONFIG[card1.rarity]?.next;
     if (!nextRarity) return;
 
-    // Tiêu hao 2 thẻ nguyên liệu
     const removeSet = new Set([card1.uid, card2.uid]);
     metaState.inventory = metaState.inventory.filter(c => !removeSet.has(c.uid));
 
-    // Tạo 1 thẻ bậc độ hiếm mới cao hơn
     const newCard = {
         uid: 'merged_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
         unitId: card1.unitId,
@@ -3805,7 +3190,6 @@ document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
     };
     metaState.inventory.push(newCard);
 
-    // Tự động cộng +1 Level vĩnh viễn cho binh chủng đó
     metaState.armyPermanentLevels[card1.unitId] = (metaState.armyPermanentLevels[card1.unitId] || 1) + 1;
     metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + 1;
 
@@ -3825,8 +3209,102 @@ document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
     }
 });
 
+// ⚡ TÍNH NĂNG TỰ ĐỘNG GHÉP QUÂN (AUTO MERGE)
+document.getElementById('btn-auto-merge')?.addEventListener('click', () => {
+    const groupMap = new Map();
+
+    metaState.inventory.forEach(card => {
+        const rCfg = RARITY_CONFIG[card.rarity];
+        if (!rCfg || !rCfg.next) return; // Bỏ qua thẻ Legendary tối đa
+        const key = `${card.unitId}_${card.rarity}`;
+        if (!groupMap.has(key)) groupMap.set(key, []);
+        groupMap.get(key).push(card);
+    });
+
+    let mergedCount = 0;
+    const successfullyUpgradedCards = [];
+
+    groupMap.forEach((cardsArr, key) => {
+        while (cardsArr.length >= 2) {
+            const c1 = cardsArr.shift();
+            const c2 = cardsArr.shift();
+
+            // Xóa 2 thẻ cũ khỏi inventory
+            const removeUids = new Set([c1.uid, c2.uid]);
+            metaState.inventory = metaState.inventory.filter(c => !removeUids.has(c.uid));
+
+            const nextRarity = RARITY_CONFIG[c1.rarity].next;
+            const newCard = {
+                uid: 'automerge_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '_' + mergedCount,
+                unitId: c1.unitId,
+                rarity: nextRarity
+            };
+            metaState.inventory.push(newCard);
+            successfullyUpgradedCards.push(newCard);
+
+            // Tự động cộng vĩnh viễn +1 Level binh chủng
+            metaState.armyPermanentLevels[c1.unitId] = (metaState.armyPermanentLevels[c1.unitId] || 1) + 1;
+            metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + 1;
+
+            mergedCount++;
+        }
+    });
+
+    if (mergedCount === 0) {
+        sfx.play('cannon');
+        alert('Không tìm thấy cặp thẻ nào cùng tên & cùng độ hiếm trong kho để tự động ghép!');
+        return;
+    }
+
+    saveProgress();
+    sfx.play('upgrade');
+    updateTopBarUI();
+    renderArmyTabUI();
+    mergeSelectedCardUids = [];
+
+    // Hiển thị Popup Tổng kết Auto Merge
+    const amModal = document.getElementById('auto-merge-modal');
+    const textEl = document.getElementById('auto-merge-summary-text');
+    const gridEl = document.getElementById('auto-merge-results-grid');
+
+    if (textEl) {
+        textEl.innerHTML = `⚡ Đã tự động hợp nhất thành công <b>${mergedCount} lần</b>! Các thẻ đã tiến hóa bậc cao hơn & tăng Level vĩnh viễn:`;
+    }
+
+    if (gridEl) {
+        gridEl.innerHTML = '';
+        successfullyUpgradedCards.forEach(c => {
+            const u = UNIT_BY_ID[c.unitId];
+            const rCfg = RARITY_CONFIG[c.rarity] || RARITY_CONFIG.common;
+            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
+            const cardEl = document.createElement('div');
+            cardEl.className = `army-unit-card ${rCfg.cssClass}`;
+            cardEl.innerHTML = `
+                <div class="card-top-lv">
+                    <span>${rCfg.name.toUpperCase()}</span>
+                    ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
+                </div>
+                <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+                <div class="card-unit-title">${u.name}</div>
+            `;
+            gridEl.appendChild(cardEl);
+        });
+    }
+
+    if (amModal) amModal.classList.add('active');
+});
+
+document.getElementById('btn-close-auto-merge')?.addEventListener('click', () => {
+    document.getElementById('auto-merge-modal')?.classList.remove('active');
+});
+
+document.getElementById('btn-close-auto-merge-x')?.addEventListener('click', () => {
+    document.getElementById('auto-merge-modal')?.classList.remove('active');
+});
+
 // ============================================================================
-// 7. ĐỒNG BỘ CHỈ SỐ VÀO TRẬN ĐẤU (IN-GAME INTEGRATION) & ROGUELIKE DRAFTING
+// 8. ĐỒNG BỘ CHỈ SỐ VÀO TRẬN ĐẤU & CƠ CHẾ 2 ĐỘ KHÓ (DỄ & KHÓ) + BOSS WAVE 5 & 10
 // ============================================================================
 function getEffectiveUnitStats(spec, isPlayer = true) {
     if (!spec) return { damage: 1, hp: 10, range: 100, fireRate: 1, speed: 40, lv: 1, rarity: 'common' };
@@ -3842,15 +3320,10 @@ function getEffectiveUnitStats(spec, isPlayer = true) {
         };
     }
 
-    // 1. Hệ số Độ hiếm cao nhất đang sở hữu của binh chủng đó
     const highestRarity = getHighestRarityForUnit(spec.id);
     const rarityMult = (RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common).mult;
-
-    // 2. Hệ số Level nâng cấp vĩnh viễn bằng Vàng ngoài Army (+12% mỗi cấp)
     const permLv = metaState.armyPermanentLevels[spec.id] || 1;
     const permLvMult = 1 + (permLv - 1) * 0.12;
-
-    // 3. Hệ số Level/Buff Roguelike trong trận (+22% mỗi cấp trong trận)
     const inGameLv = game.unitLevels[spec.id] || 1;
     const inGameLvMult = 1 + (inGameLv - 1) * 0.22;
 
@@ -3880,7 +3353,6 @@ function shuffleArray(arr) {
 
 function generateDraftChoices(isInitialPick = false) {
     const cfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
-
     const allowedUnits = UNIT_CATALOG.filter(u => {
         if (u.isNaval && !cfg.hasWater) return false;
         if (isInitialPick && (u.isAirstrike || u.cost > 7)) return false;
@@ -3893,42 +3365,27 @@ function generateDraftChoices(isInitialPick = false) {
     if (game.battleDeck.length < MAX_DECK_SLOTS && unownedUnits.length > 0) {
         const pickedUnits = shuffleArray(unownedUnits).slice(0, 3);
         pickedUnits.forEach(u => {
-            choices.push({
-                type: 'new_unit',
-                unit: u
-            });
+            choices.push({ type: 'new_unit', unit: u });
         });
     }
 
     if (choices.length < 3) {
         const upgradePool = [];
-
         game.battleDeck.forEach(unitId => {
             const u = UNIT_BY_ID[unitId];
             if (u) {
                 const nextLv = (game.unitLevels[unitId] || 1) + 1;
-                upgradePool.push({
-                    type: 'upgrade_unit',
-                    unit: u,
-                    nextLv
-                });
+                upgradePool.push({ type: 'upgrade_unit', unit: u, nextLv });
             }
         });
 
         BUFF_CATALOG.forEach(b => {
-            upgradePool.push({
-                type: 'buff',
-                buff: b
-            });
+            upgradePool.push({ type: 'buff', buff: b });
         });
 
         if (game.battleDeck.length >= MAX_DECK_SLOTS && unownedUnits.length > 0) {
             const replaceCandidate = unownedUnits[Math.floor(Math.random() * unownedUnits.length)];
-            upgradePool.push({
-                type: 'replace_unit',
-                unit: replaceCandidate,
-                slotIndex: MAX_DECK_SLOTS - 1
-            });
+            upgradePool.push({ type: 'replace_unit', unit: replaceCandidate, slotIndex: MAX_DECK_SLOTS - 1 });
         }
 
         const shuffledUpgrades = shuffleArray(upgradePool);
@@ -3991,7 +3448,7 @@ function openDraftModal(isInitialPick = false) {
                         <span class="text-rose-400">⚔️ ${eff.damage}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-slate-400">${u.isAirstrike ? 'Phá căn cứ:' : 'Máu (HP):'}</span>
+                        <span class="text-slate-400">${u.isAirstrike ? 'Phá nhà:' : 'Máu (HP):'}</span>
                         <span class="text-emerald-400">${u.isAirstrike ? '💥 ' + u.baseDamage : '❤️ ' + eff.hp}</span>
                     </div>
                 </div>
@@ -4025,7 +3482,7 @@ function openDraftModal(isInitialPick = false) {
                     <div class="text-[9px] text-purple-200 font-semibold">Cấp ${choice.nextLv - 1} ➔ Cấp ${choice.nextLv}</div>
                 </div>
                 <div class="w-full bg-slate-950/80 border border-purple-500/40 rounded-lg p-1.5 text-[9.5px] text-slate-200 leading-snug">
-                    Tăng <b class="text-rose-300">+22% Sát thương</b> & <b class="text-emerald-300">+22% Máu</b> cho mọi đơn vị <b>${u.name}</b>!
+                    Tăng <b class="text-rose-300">+22% Sát thương</b> & <b class="text-emerald-300">+22% Máu</b> cho đơn vị <b>${u.name}</b>!
                 </div>
                 <div class="w-full mt-1.5 bg-purple-400 hover:bg-purple-300 text-slate-950 font-extrabold text-[10px] py-1 rounded-md shadow">
                     NÂNG CẤP NGAY
@@ -4087,9 +3544,7 @@ function finishDraftSelection() {
     if (game.pendingDraftCount > 0 && !game.gameOver) {
         game.pendingDraftCount--;
         setTimeout(() => {
-            if (!game.gameOver && !game.inMenu) {
-                openDraftModal(false);
-            }
+            if (!game.gameOver && !game.inMenu) openDraftModal(false);
         }, 120);
     }
 }
@@ -4124,7 +3579,7 @@ function updateExpUI() {
 }
 
 // ============================================================================
-// HỆ THỐNG 10 WAVE SINH TỒN (WAVE SURVIVAL MANAGER + DIFFICULTY MULTIPLIER)
+// HỆ THỐNG GÂM TRẬN ĐẤU: CHẾ ĐỘ DỄ (CÔNG PHÁ CĂN CỨ ĐỎ) & KHÓ (10 WAVE + BOSS)
 // ============================================================================
 function buildWaveEnemyPool(levelNum, waveNum) {
     const cfg = LEVELS[levelNum - 1] || LEVELS[0];
@@ -4140,54 +3595,69 @@ function buildWaveEnemyPool(levelNum, waveNum) {
 }
 
 function spawnWave(waveNum) {
+    if (game.currentDifficulty === 'easy') return; // Chế độ dễ không dùng wave sinh tồn
+
     game.currentWave = waveNum;
     game.waveState = 'spawning';
 
     const cfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
     const pool = buildWaveEnemyPool(cfg.level, waveNum);
-    const diffCfg = DIFFICULTY_CONFIG[game.currentDifficulty] || DIFFICULTY_CONFIG.easy;
+    const diffCfg = DIFFICULTY_CONFIG[game.currentDifficulty] || DIFFICULTY_CONFIG.difficult;
 
-    const totalCount = 4 + Math.floor(waveNum * 1.7) + Math.floor((cfg.level - 1) * 0.45);
-    const baseWaveHpMult = 1 + (waveNum - 1) * 0.25 + (cfg.level - 1) * 0.06;
+    const isBossWave = (waveNum === 5 || waveNum === 10);
+    const totalCount = isBossWave ? (waveNum === 10 ? 3 : 2) : (4 + Math.floor(waveNum * 1.5));
+
+    const baseWaveHpMult = 1 + (waveNum - 1) * 0.25 + (cfg.level - 1) * 0.05;
     const baseWaveDmgMult = 1 + (waveNum - 1) * 0.15 + (cfg.level - 1) * 0.04;
 
-    // Nhân thêm Hệ số Độ khó (Easy: 1.0x | Normal: 1.35x | Difficult: 1.75x)
     const hpMult = +(baseWaveHpMult * diffCfg.statMult).toFixed(2);
     const dmgMult = +(baseWaveDmgMult * diffCfg.statMult).toFixed(2);
 
     game.waveSpawnQueue = [];
-    for (let i = 0; i < totalCount; i++) {
-        let pick = pool[Math.floor(Math.random() * pool.length)] || UNIT_BY_ID['infantry'];
-        if (i === totalCount - 1 && waveNum >= 4) {
-            const heavyPool = pool.filter(u => u.cost >= 6);
-            if (heavyPool.length > 0) {
-                pick = heavyPool[Math.floor(Math.random() * heavyPool.length)];
-            }
+
+    if (isBossWave) {
+        // Triệu hồi 1 hoặc 2 con Boss khổng lồ: HP x3.5, DMG x2.2, Tốc độ di chuyển & bắn giảm chậm
+        const bossSpec = UNIT_BY_ID['battleship'] && cfg.hasWater && waveNum === 10 ? UNIT_BY_ID['battleship'] : UNIT_BY_ID['tank'];
+        const bossItem = {
+            spec: bossSpec,
+            hpMult: hpMult * 3.6,
+            dmgMult: dmgMult * 2.2,
+            isBoss: true
+        };
+        game.waveSpawnQueue.push(bossItem);
+        if (waveNum === 10) {
+            game.waveSpawnQueue.push({ spec: UNIT_BY_ID['tank'], hpMult: hpMult * 3.0, dmgMult: dmgMult * 2.0, isBoss: true });
         }
-        game.waveSpawnQueue.push({
-            spec: pick,
-            hpMult,
-            dmgMult
-        });
+
+        // Hiển thị Banner Cảnh báo Boss khổng lồ xuất hiện
+        const bossAlert = document.getElementById('boss-warning-banner');
+        if (bossAlert) {
+            bossAlert.classList.remove('hidden');
+            setTimeout(() => bossAlert.classList.add('hidden'), 4500);
+        }
+        sfx.play('boom');
+    } else {
+        for (let i = 0; i < totalCount; i++) {
+            let pick = pool[Math.floor(Math.random() * pool.length)] || UNIT_BY_ID['infantry'];
+            game.waveSpawnQueue.push({ spec: pick, hpMult, dmgMult, isBoss: false });
+        }
     }
 
-    game.waveTotalEnemies = totalCount;
-    game.waveSpawnTimer = 0.4;
+    game.waveTotalEnemies = game.waveSpawnQueue.length;
+    game.waveSpawnTimer = 0.5;
 
     sfx.play('spawn');
     addFloatingText(
         LOGICAL_WIDTH / 2,
         145,
-        `⚠️ WAVE ${waveNum} / ${game.maxWaves} (${totalCount} ĐỊCH)!`,
-        waveNum === game.maxWaves ? '#fde047' : '#fb7185',
+        isBossWave ? `☠️ SIÊU BOSS WAVE ${waveNum} XUẤT HIỆN!` : `⚠️ WAVE ${waveNum} / ${game.maxWaves} (${totalCount} ĐỊCH)!`,
+        isBossWave ? '#fde047' : '#fb7185',
         16
     );
 
-    if ((waveNum === 6 || waveNum === 10) && cfg.level >= 3) {
+    if (waveNum === 8 && cfg.level >= 3) {
         setTimeout(() => {
-            if (!game.inMenu && !game.gameOver) {
-                attackPlane('red', UNIT_BY_ID['airstrike']);
-            }
+            if (!game.inMenu && !game.gameOver) attackPlane('red', UNIT_BY_ID['airstrike']);
         }, 1200);
     }
 }
@@ -4201,15 +3671,24 @@ function getAliveRedUnitsCount() {
 }
 
 function updateWaveSystem(dt) {
+    if (game.currentDifficulty === 'easy') {
+        // Chế độ dễ: Theo dõi HP của nhà chính địch (redOutpost)
+        if (game.redOutpost.hp <= 0) {
+            triggerWinGame();
+        }
+        return;
+    }
+
+    // Chế độ khó: 10 Wave sinh tồn
     if (game.waveState === 'spawning') {
         game.waveSpawnTimer -= dt;
         if (game.waveSpawnTimer <= 0 && game.waveSpawnQueue.length > 0) {
             const nextEnemy = game.waveSpawnQueue.shift();
             const gateSpread = 180;
             const rx = (LOGICAL_WIDTH / 2 - gateSpread / 2) + Math.random() * gateSpread;
-            spawnUnitBySpec('red', nextEnemy.spec, rx, 108, nextEnemy.hpMult, nextEnemy.dmgMult);
+            spawnUnitBySpec('red', nextEnemy.spec, rx, 108, nextEnemy.hpMult, nextEnemy.dmgMult, nextEnemy.isBoss);
 
-            game.waveSpawnTimer = Math.max(0.55, 1.55 - game.currentWave * 0.08);
+            game.waveSpawnTimer = nextEnemy.isBoss ? 1.5 : Math.max(0.5, 1.4 - game.currentWave * 0.08);
         }
 
         if (game.waveSpawnQueue.length === 0) {
@@ -4238,7 +3717,7 @@ function updateWaveSystem(dt) {
 }
 
 // ============================================================================
-// RENDER 5 Ô QUÂN DƯỚI THANH ĐIỀU KHIỂN (BOTTOM DECK 5 SLOTS)
+// THANH ĐIỀU KHIỂN & 5 Ô QUÂN TRONG TRẬN (BOTTOM DECK 5 SLOTS)
 // ============================================================================
 function renderBattleDeckButtons() {
     const container = document.getElementById('battle-deck-slots');
@@ -4289,17 +3768,16 @@ function renderBattleDeckButtons() {
                 <span class="hotkey-badge">${i + 1}</span>
                 <div class="flex flex-col items-center justify-center text-slate-500">
                     <span class="text-xs font-extrabold">🔒</span>
-                    <span class="text-[7.5px] font-bold uppercase mt-0.5">Lên Cấp</span>
+                    <span class="text-[7.5px] font-bold uppercase mt-0.5">Trống</span>
                 </div>
             `;
         }
-
         container.appendChild(btn);
     }
 }
 
 // ============================================================================
-// KHỞI TẠO TRẬN ĐẤU MỚI
+// KHỞI TẠO TRẬN ĐẤU
 // ============================================================================
 function startLevel(levelNum, difficultyId = currentSelectedDifficulty) {
     const cfg = LEVELS[levelNum - 1] || LEVELS[0];
@@ -4319,12 +3797,7 @@ function startLevel(levelNum, difficultyId = currentSelectedDifficulty) {
 
     game.battleDeck = [];
     game.unitLevels = {};
-    game.buffs = {
-        dmgMult: 1.0,
-        hpMult: 1.0,
-        fireRateMult: 1.0,
-        rangeMult: 1.0
-    };
+    game.buffs = { dmgMult: 1.0, hpMult: 1.0, fireRateMult: 1.0, rangeMult: 1.0 };
     game.currentLevelInBattle = 1;
     game.playerExp = 0;
     game.expToNextLevel = calcExpRequired(1);
@@ -4332,6 +3805,9 @@ function startLevel(levelNum, difficultyId = currentSelectedDifficulty) {
 
     game.blueBase.maxHp = cfg.playerBaseHp;
     game.blueBase.hp = cfg.playerBaseHp;
+
+    game.redOutpost.maxHp = cfg.enemyBaseHp;
+    game.redOutpost.hp = cfg.enemyBaseHp;
 
     game.units = [];
     game.bullets = [];
@@ -4341,15 +3817,13 @@ function startLevel(levelNum, difficultyId = currentSelectedDifficulty) {
     game.stats.spawned = 0;
     game.stats.kills = 0;
 
-    if (lobbyWrapperEl) {
-        lobbyWrapperEl.classList.remove('active');
-    }
+    if (lobbyWrapperEl) lobbyWrapperEl.classList.remove('active');
     draftModalEl.classList.remove('active');
     document.getElementById('win-panel').classList.remove('active');
     document.getElementById('lose-panel').classList.remove('active');
     document.getElementById('pause-btn').textContent = '⏸';
 
-    const diffLabel = DIFFICULTY_CONFIG[game.currentDifficulty].label;
+    const diffLabel = game.currentDifficulty === 'easy' ? 'DỄ' : 'KHÓ (10 WAVE)';
     currentLevelLabelEl.textContent = `MAP ${cfg.level} • ${diffLabel}`;
 
     buildStaticMapCanvas(cfg.level);
@@ -4357,7 +3831,9 @@ function startLevel(levelNum, difficultyId = currentSelectedDifficulty) {
     updateExpUI();
     updateControllerUI();
 
-    spawnWave(1);
+    if (game.currentDifficulty === 'difficult') {
+        spawnWave(1);
+    }
     openDraftModal(true);
 }
 
@@ -4389,12 +3865,14 @@ window.upgradeGasRate = function() {
     const currentTier = GAS_UPGRADE_LEVELS[game.gasUpgradeIndex];
     if (!currentTier || currentTier.cost === 0) return;
 
-    if (game.gasCount < currentTier.cost) {
+    if (!metaState.isAdminMode && game.gasCount < currentTier.cost) {
         addFloatingText(120, PLAYFIELD_HEIGHT - 20, 'THIẾU XĂNG!', '#f87171', 12);
         return;
     }
 
-    game.gasCount -= currentTier.cost;
+    if (!metaState.isAdminMode) {
+        game.gasCount -= currentTier.cost;
+    }
     game.gasUpgradeIndex++;
     const newTier = GAS_UPGRADE_LEVELS[game.gasUpgradeIndex];
     game.gasInterval = newTier.interval;
@@ -4413,11 +3891,8 @@ function updateControllerUI() {
 
     const progress = Math.max(0, Math.min(1, 1 - (game.gasTimer / game.gasInterval)));
     gasLoadEls.forEach((el, index) => {
-        if (progress >= (index + 1) * 0.2) {
-            el.classList.add('active');
-        } else {
-            el.classList.remove('active');
-        }
+        if (progress >= (index + 1) * 0.2) el.classList.add('active');
+        else el.classList.remove('active');
     });
 
     const currentTier = GAS_UPGRADE_LEVELS[game.gasUpgradeIndex];
@@ -4432,7 +3907,7 @@ function updateControllerUI() {
         upgradeCostTextEl.textContent = currentTier.cost.toString();
         upgradeLockCostEl.textContent = `${currentTier.cost}`;
 
-        if (game.gasCount >= currentTier.cost && !game.gameOver) {
+        if ((metaState.isAdminMode || game.gasCount >= currentTier.cost) && !game.gameOver) {
             blockUpgradeEl.classList.add('unlocked');
             btnUpgradeGasEl.classList.add('ready');
         } else {
@@ -4448,7 +3923,7 @@ function updateControllerUI() {
         if (!unitId || !btnEl || !lockEl) continue;
 
         const spec = UNIT_BY_ID[unitId];
-        if (game.gasCount >= spec.cost && !game.gameOver) {
+        if ((metaState.isAdminMode || game.gasCount >= spec.cost) && !game.gameOver) {
             lockEl.classList.add('unlocked');
             btnEl.classList.add('ready');
         } else {
@@ -4463,9 +3938,7 @@ document.getElementById('gas-generator-btn').addEventListener('click', () => {
     game.gasTimer -= 0.35;
     sfx.play('gas');
     addFloatingText(80, PLAYFIELD_HEIGHT - 18, '+NẠP ⚡', '#4ade80', 12);
-    if (game.gasTimer <= 0.0) {
-        timerEnded();
-    }
+    if (game.gasTimer <= 0.0) timerEnded();
     updateControllerUI();
 });
 
@@ -4475,9 +3948,11 @@ window.buyUnitFromSlot = function(slotIndex) {
     if (!unitId || !UNIT_BY_ID[unitId]) return;
 
     const spec = UNIT_BY_ID[unitId];
-    if (game.gasCount < spec.cost) return;
+    if (!metaState.isAdminMode && game.gasCount < spec.cost) return;
 
-    game.gasCount -= spec.cost;
+    if (!metaState.isAdminMode) {
+        game.gasCount -= spec.cost;
+    }
     game.stats.spawned++;
     metaState.missionsProgress.spawns = (metaState.missionsProgress.spawns || 0) + 1;
     saveProgress();
@@ -4491,7 +3966,7 @@ window.buyUnitFromSlot = function(slotIndex) {
     updateControllerUI();
 };
 
-function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult = 1, enemyDmgMult = 1) {
+function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult = 1, enemyDmgMult = 1, isBoss = false) {
     if (!spec) return;
     const isBlue = team === 'blue';
     const base = isBlue ? game.blueBase : game.redOutpost;
@@ -4514,21 +3989,18 @@ function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult
     prefX = Math.max(36, Math.min(LOGICAL_WIDTH - 36, prefX));
 
     const validPt = nav.findValidSpawnPoint(team, spec, prefX, prefY);
-    const spawnX = validPt.x;
-    const spawnY = validPt.y;
-
     const spriteRow = isBlue ? 7 : 8;
 
     const unitObj = {
         id: Math.random().toString(36).slice(2),
         unitId: spec.id,
-        name: spec.name,
+        name: isBoss ? `☠️ SIÊU BOSS ${spec.name}` : spec.name,
         team: team,
         spriteCol: spec.spriteCol,
         spriteRow: spriteRow,
         flipX: !isBlue,
-        x: spawnX,
-        y: spawnY,
+        x: validPt.x,
+        y: validPt.y,
         vx: 0,
         vy: isBlue ? -1 : 1,
         moveAngle: isBlue ? -Math.PI / 2 : Math.PI / 2,
@@ -4536,21 +4008,21 @@ function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult
         baseHp: spec.hp,
         hp: finalHp,
         maxHp: finalHp,
-        moveSpeed: eff.speed + (Math.random() * 3 - 1.5),
+        moveSpeed: (isBoss ? eff.speed * 0.65 : eff.speed) + (Math.random() * 3 - 1.5),
         baseDamage: spec.damage,
         damage: finalDmg,
-        expReward: spec.cost || 2,
+        expReward: isBoss ? 25 : (spec.cost || 2),
         targetTime: 0.35,
         baseFireRate: spec.fireRate,
-        fireRate: eff.fireRate,
+        fireRate: isBoss ? spec.fireRate * 1.5 : spec.fireRate,
         beamActiveTimer: 0,
         muzzleFlashTimer: 0,
         shoot: false,
         lastTargetX: null,
         lastTargetY: null,
         baseRange: spec.range,
-        range: eff.range,
-        radius: spec.radius,
+        range: spec.range,
+        radius: isBoss ? spec.radius * 1.4 : spec.radius,
         attackType: spec.attackType,
         projType: spec.projType || 'shell',
         arcHeight: spec.arcHeight || 0,
@@ -4560,6 +4032,7 @@ function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult
         isWalker: !!spec.isWalker,
         isNaval: !!spec.isNaval,
         isAir: !!spec.isAir,
+        isBoss: !!isBoss,
         walkCycle: Math.random() * Math.PI * 2,
         rotorAngle: Math.random() * Math.PI * 2,
         wakeTimer: 0,
@@ -4569,8 +4042,7 @@ function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult
 
     nav.resolveHardCollisions(unitObj);
     game.units.push(unitObj);
-
-    spawnExplosion(unitObj.x, unitObj.y, isBlue ? '#60a5fa' : '#f87171', 7, 16);
+    spawnExplosion(unitObj.x, unitObj.y, isBlue ? '#60a5fa' : '#f87171', isBoss ? 28 : 7, isBoss ? 35 : 16);
 }
 
 function attackPlane(team, spec = UNIT_BY_ID['airstrike']) {
@@ -4604,7 +4076,6 @@ function attackPlane(team, spec = UNIT_BY_ID['airstrike']) {
 // ============================================================================
 function findTargetForUnit(unit) {
     const enemyTeam = unit.team === 'blue' ? 'red' : 'blue';
-
     let nearestTarget = null;
     let minDistance = Infinity;
 
@@ -4624,6 +4095,21 @@ function findTargetForUnit(unit) {
 
     if (nearestTarget) return nearestTarget;
 
+    // Quân Xanh đánh Nhà Đỏ (redOutpost) ở Chế độ Dễ
+    if (unit.team === 'blue' && game.currentDifficulty === 'easy') {
+        const enemyBase = game.redOutpost;
+        const halfW = enemyBase.width * 0.5;
+        const halfH = enemyBase.height * 0.5;
+        const clampedX = Math.max(enemyBase.x - halfW, Math.min(unit.x, enemyBase.x + halfW));
+        const clampedY = Math.max(enemyBase.y - halfH, Math.min(unit.y, enemyBase.y + halfH));
+        const distToBase = Math.hypot(unit.x - clampedX, unit.y - clampedY);
+
+        if (distToBase <= unit.range) {
+            return { isBase: true, entity: enemyBase, hitX: clampedX, hitY: clampedY, isEnemyOutpost: true };
+        }
+    }
+
+    // Quân Đỏ đánh Nhà Xanh (blueBase)
     if (unit.team === 'red') {
         const enemyBase = game.blueBase;
         const halfW = enemyBase.width * 0.5;
@@ -4633,7 +4119,7 @@ function findTargetForUnit(unit) {
         const distToBase = Math.hypot(unit.x - clampedX, unit.y - clampedY);
 
         if (distToBase <= unit.range) {
-            return { isBase: true, entity: enemyBase, hitX: clampedX, hitY: clampedY };
+            return { isBase: true, entity: enemyBase, hitX: clampedX, hitY: clampedY, isEnemyOutpost: false };
         }
     }
 
@@ -4656,7 +4142,7 @@ function applyDamageToTarget(targetObj, damage, isBlue) {
 }
 
 // ============================================================================
-// CẬP NHẬT DI CHUYỂN & CHIẾN ĐẤU CỦA CÁC ĐƠN VỊ (NỐI TIẾP TỪ DÒNG BỊ NGẮT)
+// CẬP NHẬT DI CHUYỂN & CHIẾN ĐẤU (UPDATE LOOP)
 // ============================================================================
 function updateUnits(dt) {
     for (let i = 0; i < game.units.length; i++) {
@@ -4673,7 +4159,6 @@ function updateUnits(dt) {
                 const overlap = (minDist - dist) * 0.45;
                 const nx = dx / dist;
                 const ny = dy / dist;
-
                 u1.x -= nx * overlap;
                 u2.x += nx * overlap;
                 u1.y -= ny * overlap * 0.5;
@@ -4686,14 +4171,14 @@ function updateUnits(dt) {
         const u = game.units[i];
         if (u.hp <= 0) {
             const color = u.team === 'blue' ? '#3b82f6' : '#ef4444';
-            spawnExplosion(u.x, u.y, color, u.radius > 16 ? 20 : 12, u.radius > 16 ? 30 : 18);
-            sfx.play(u.radius > 16 ? 'boom' : 'cannon');
+            spawnExplosion(u.x, u.y, color, u.isBoss ? 35 : 16, u.isBoss ? 45 : 20);
+            sfx.play(u.isBoss ? 'boom' : 'cannon');
 
             if (u.team === 'red') {
                 game.stats.kills++;
                 metaState.missionsProgress.kills = (metaState.missionsProgress.kills || 0) + 1;
-                const expGain = u.expReward || 2;
-                addFloatingText(u.x, u.y - 18, `+${expGain} EXP`, '#fde047', 12);
+                const expGain = u.isBoss ? 25 : (u.expReward || 2);
+                addFloatingText(u.x, u.y - 18, `+${expGain} EXP`, '#fde047', 13);
                 gainExp(expGain);
             }
 
@@ -4738,7 +4223,7 @@ function updateUnits(dt) {
         } else {
             u.shoot = false;
 
-            if (u.team === 'blue' && u.y <= 118) {
+            if (u.team === 'blue' && u.y <= 118 && game.currentDifficulty === 'easy') {
                 u.vx = 0;
                 u.vy = 0;
                 u.aimAngle = -Math.PI / 2;
@@ -4762,17 +4247,6 @@ function updateUnits(dt) {
                 moveDirY = flow.dirY;
             }
 
-            for (const ally of game.units) {
-                if (ally === u || ally.team !== u.team || ally.isAir !== u.isAir || ally.isNaval !== u.isNaval) continue;
-                const dx = ally.x - u.x;
-                const dy = ally.y - u.y;
-                const dist = Math.hypot(dx, dy);
-                if (dist < u.radius + ally.radius + 10) {
-                    const pushSide = dx >= 0 ? -1 : 1;
-                    moveDirX += pushSide * 0.45;
-                }
-            }
-
             const norm = Math.hypot(moveDirX, moveDirY) || 1;
             moveDirX /= norm;
             moveDirY /= norm;
@@ -4784,45 +4258,10 @@ function updateUnits(dt) {
 
             u.moveAngle = Math.atan2(u.vy, u.vx);
             u.aimAngle = u.moveAngle;
-            if (Math.abs(moveDirX) > 0.22) {
-                u.flipX = moveDirX < 0;
-            } else {
-                u.flipX = u.team !== 'blue';
-            }
+            if (Math.abs(moveDirX) > 0.22) u.flipX = moveDirX < 0;
+            else u.flipX = u.team !== 'blue';
 
             u.walkCycle += dt * (u.isWalker ? 13 : 9);
-
-            if (u.isNaval) {
-                u.wakeTimer -= dt;
-                if (u.wakeTimer <= 0) {
-                    u.wakeTimer = 0.14;
-                    game.particles.push({
-                        x: u.x - moveDirX * (u.radius * 0.8),
-                        y: u.y - moveDirY * (u.radius * 0.8),
-                        vx: (Math.random() - 0.5) * 12,
-                        vy: (Math.random() - 0.5) * 12,
-                        size: 3.5,
-                        color: '#e0f2fe',
-                        alpha: 0.75,
-                        life: 0.28
-                    });
-                }
-            } else if (!u.isAir) {
-                u.dustTimer -= dt;
-                if (u.dustTimer <= 0) {
-                    u.dustTimer = u.isWalker ? 0.24 : 0.16;
-                    game.particles.push({
-                        x: u.x - moveDirX * (u.radius * 0.65),
-                        y: u.y + u.radius * 0.55,
-                        vx: (Math.random() - 0.5) * 10,
-                        vy: (Math.random() - 0.5) * 8,
-                        size: u.isWalker ? 2.2 : 3.2,
-                        color: '#d6d3d1',
-                        alpha: 0.6,
-                        life: 0.2
-                    });
-                }
-            }
         }
 
         nav.resolveHardCollisions(u);
@@ -4837,16 +4276,7 @@ function spawnUnitProjectile(unit, target) {
     const bx = unit.x + Math.cos(angle) * (unit.radius + 5);
     const by = unit.y + Math.sin(angle) * (unit.radius + 5);
 
-    if (unit.animStyle === 'walker_bazooka') {
-        const backX = unit.x - Math.cos(angle) * (unit.radius + 4);
-        const backY = unit.y - Math.sin(angle) * (unit.radius + 4);
-        spawnExplosion(backX, backY, '#e2e8f0', 6, 12);
-    } else {
-        spawnExplosion(bx, by, '#fde047', 5, 10);
-    }
-
     sfx.play('cannon');
-
     const totalDist = Math.max(10, Math.hypot(tx - bx, ty - by));
 
     game.bullets.push({
@@ -4879,24 +4309,20 @@ function updateBullets(dt) {
         b.y += stepY;
         b.traveled += Math.hypot(stepX, stepY);
 
-        if (b.projType === 'rocket_short' || b.projType === 'arc_missile' || b.projType === 'air_missile') {
-            b.trailTimer -= dt;
-            if (b.trailTimer <= 0) {
-                b.trailTimer = 0.03;
-                const currentLift = b.arcHeight
-                    ? Math.sin(Math.min(1, b.traveled / b.totalDist) * Math.PI) * b.arcHeight
-                    : 0;
-                game.particles.push({
-                    x: b.x,
-                    y: b.y - currentLift,
-                    vx: (Math.random() - 0.5) * 14,
-                    vy: (Math.random() - 0.5) * 14,
-                    size: 3.2,
-                    color: b.projType === 'arc_missile' ? '#fb923c' : '#cbd5e1',
-                    alpha: 0.8,
-                    life: 0.18
-                });
-            }
+        // Tạo hiệu ứng khói đuôi cho tên lửa / đạn pháo
+        b.trailTimer = (b.trailTimer || 0) - dt;
+        if (b.trailTimer <= 0 && (b.projType === 'rocket_short' || b.projType === 'air_missile' || b.projType === 'arc_missile')) {
+            b.trailTimer = 0.04;
+            game.particles.push({
+                x: b.x,
+                y: b.y,
+                vx: (Math.random() - 0.5) * 12,
+                vy: (Math.random() - 0.5) * 12,
+                radius: 3.5,
+                alpha: 0.75,
+                color: '#cbd5e1',
+                decay: 2.4
+            });
         }
 
         const enemyTeam = b.team === 'blue' ? 'red' : 'blue';
@@ -4904,168 +4330,275 @@ function updateBullets(dt) {
 
         const isHighInAir = b.arcHeight > 0 && (b.traveled / b.totalDist) > 0.18 && (b.traveled / b.totalDist) < 0.82;
 
+        // 1. Kiểm tra va chạm với đơn vị quân địch
         if (!isHighInAir) {
             for (const u of game.units) {
                 if (u.team !== enemyTeam || u.hp <= 0) continue;
-                if (Math.hypot(u.x - b.x, u.y - b.y) <= u.radius + b.radius + 4) {
-                    u.hp -= b.damage;
-                    spawnExplosion(b.x, b.y, '#fb923c', 10, 20);
-                    addFloatingText(u.x, u.y - 14, `-${b.damage}`, '#fde047', 13);
+                if (Math.hypot(u.x - b.x, u.y - b.y) <= u.radius + b.radius) {
+                    applyDamageToTarget({ isBase: false, entity: u, hitX: b.x, hitY: b.y }, b.damage, b.team === 'blue');
+                    if (b.arcHeight > 0) {
+                        // Đạn pháo cầu vồng gây sát thương lan nhẹ (AoE)
+                        for (const other of game.units) {
+                            if (other !== u && other.team === enemyTeam && other.hp > 0) {
+                                if (Math.hypot(other.x - b.x, other.y - b.y) <= 28) {
+                                    other.hp = Math.max(0, other.hp - Math.ceil(b.damage * 0.45));
+                                }
+                            }
+                        }
+                        spawnExplosion(b.x, b.y, '#fb923c', 12, 24);
+                    }
                     hitSomething = true;
                     break;
                 }
             }
+        }
 
-            if (!hitSomething && b.team === 'red') {
-                const enemyBase = game.blueBase;
-                const inBaseX = Math.abs(b.x - enemyBase.x) <= enemyBase.width / 2;
-                const inBaseY = Math.abs(b.y - enemyBase.y) <= enemyBase.height / 2;
-                if (inBaseX && inBaseY) {
-                    enemyBase.hp = Math.max(0, enemyBase.hp - b.damage);
-                    spawnExplosion(b.x, b.y, '#f97316', 12, 24);
-                    addFloatingText(b.x, enemyBase.y, `-${b.damage}`, '#f87171', 14);
-                    checkGameOver();
+        // 2. Kiểm tra va chạm với Căn cứ (Nhà chính)
+        if (!hitSomething && !isHighInAir) {
+            if (b.team === 'blue' && game.currentDifficulty === 'easy') {
+                const rb = game.redOutpost;
+                if (
+                    b.x >= rb.x - rb.width * 0.5 &&
+                    b.x <= rb.x + rb.width * 0.5 &&
+                    b.y >= rb.y - rb.height * 0.5 &&
+                    b.y <= rb.y + rb.height * 0.5
+                ) {
+                    applyDamageToTarget({ isBase: true, entity: rb, hitX: b.x, hitY: b.y }, b.damage, true);
+                    hitSomething = true;
+                }
+            } else if (b.team === 'red') {
+                const bb = game.blueBase;
+                if (
+                    b.x >= bb.x - bb.width * 0.5 &&
+                    b.x <= bb.x + bb.width * 0.5 &&
+                    b.y >= bb.y - bb.height * 0.5 &&
+                    b.y <= bb.y + bb.height * 0.5
+                ) {
+                    applyDamageToTarget({ isBase: true, entity: bb, hitX: b.x, hitY: b.y }, b.damage, false);
                     hitSomething = true;
                 }
             }
         }
 
-        if (!hitSomething && b.arcHeight > 0 && b.traveled >= b.totalDist) {
-            spawnExplosion(b.x, b.y, '#f97316', 14, 26);
-            for (const u of game.units) {
-                if (u.team !== enemyTeam || u.hp <= 0) continue;
-                if (Math.hypot(u.x - b.x, u.y - b.y) <= u.radius + 22) {
-                    u.hp -= b.damage;
-                    addFloatingText(u.x, u.y - 14, `-${b.damage}`, '#fde047', 13);
-                    break;
+        // 3. Đạn bay hết tầm hoặc chạm điểm đích
+        if (!hitSomething && b.traveled >= b.totalDist) {
+            if (b.arcHeight > 0) {
+                spawnExplosion(b.x, b.y, '#f97316', 14, 26);
+                for (const u of game.units) {
+                    if (u.team === enemyTeam && u.hp > 0 && Math.hypot(u.x - b.x, u.y - b.y) <= 32) {
+                        applyDamageToTarget({ isBase: false, entity: u, hitX: u.x, hitY: u.y }, b.damage, b.team === 'blue');
+                    }
+                }
+                if (b.team === 'blue' && game.currentDifficulty === 'easy') {
+                    const rb = game.redOutpost;
+                    if (Math.abs(b.x - rb.x) <= rb.width * 0.55 && Math.abs(b.y - rb.y) <= rb.height * 0.65) {
+                        applyDamageToTarget({ isBase: true, entity: rb, hitX: b.x, hitY: b.y }, b.damage, true);
+                    }
+                } else if (b.team === 'red') {
+                    const bb = game.blueBase;
+                    if (Math.abs(b.x - bb.x) <= bb.width * 0.55 && Math.abs(b.y - bb.y) <= bb.height * 0.65) {
+                        applyDamageToTarget({ isBase: true, entity: bb, hitX: b.x, hitY: b.y }, b.damage, false);
+                    }
                 }
             }
             hitSomething = true;
         }
 
-        if (hitSomething || b.y < -20 || b.y > PLAYFIELD_HEIGHT + 20 || b.x < -20 || b.x > LOGICAL_WIDTH + 20) {
+        // 4. Xóa đạn nếu trúng mục tiêu hoặc bay ra ngoài màn hình
+        if (
+            hitSomething ||
+            b.x < -30 ||
+            b.x > LOGICAL_WIDTH + 30 ||
+            b.y < -30 ||
+            b.y > PLAYFIELD_HEIGHT + 30
+        ) {
             game.bullets.splice(i, 1);
         }
     }
 }
 
+// ============================================================================
+// CẬP NHẬT KHÔNG KÍCH (AIRSTRIKE PLANES) & QUÂN PHÒNG THỦ CHẾ ĐỘ DỄ
+// ============================================================================
 function updatePlanes(dt) {
     for (let i = game.planes.length - 1; i >= 0; i--) {
-        const plane = game.planes[i];
-        plane.y += plane.vy * dt;
+        const p = game.planes[i];
+        p.y += p.vy * dt;
 
-        const enemyTeam = plane.team === 'blue' ? 'red' : 'blue';
+        const isBlue = p.team === 'blue';
+        const enemyTeam = isBlue ? 'red' : 'blue';
 
+        // Gây sát thương lên các đơn vị địch khi phi đội bay ngang qua
         for (const u of game.units) {
-            if (u.team !== enemyTeam || u.hp <= 0) continue;
-            if (!plane.hitEntities.has(u.id) && Math.abs(u.y - plane.y) <= 32) {
-                plane.hitEntities.add(u.id);
-                u.hp -= plane.unitDamage;
-                spawnExplosion(u.x, u.y, '#f97316', 18, 36);
-                addFloatingText(u.x, u.y - 14, `-${plane.unitDamage} ✈️`, '#fb923c', 15);
-                sfx.play('boom');
-                triggerShake(0.18, 5);
+            if (u.team !== enemyTeam || u.hp <= 0 || p.hitEntities.has(u.id)) continue;
+            if (Math.abs(u.y - p.y) <= 36) {
+                p.hitEntities.add(u.id);
+                applyDamageToTarget({ isBase: false, entity: u, hitX: u.x, hitY: u.y }, p.unitDamage, isBlue);
+                spawnExplosion(u.x, u.y, '#f97316', 14, 26);
+                triggerShake(0.12, 4);
             }
         }
 
-        if (plane.team === 'red' && !plane.hitEntities.has('base') && Math.abs(game.blueBase.y - plane.y) <= 34) {
-            plane.hitEntities.add('base');
-            game.blueBase.hp = Math.max(0, game.blueBase.hp - plane.baseDamage);
-            spawnExplosion(game.blueBase.x, game.blueBase.y, '#ef4444', 28, 52);
-            addFloatingText(game.blueBase.x, game.blueBase.y, `-${plane.baseDamage} 💥`, '#ef4444', 17);
-            sfx.play('boom');
-            triggerShake(0.25, 7);
-            checkGameOver();
+        // Gây sát thương lên Căn cứ địch
+        if (isBlue && game.currentDifficulty === 'easy' && !p.hitEntities.has('red_base')) {
+            if (Math.abs(p.y - game.redOutpost.y) <= 34) {
+                p.hitEntities.add('red_base');
+                applyDamageToTarget(
+                    { isBase: true, entity: game.redOutpost, hitX: game.redOutpost.x, hitY: game.redOutpost.y },
+                    p.baseDamage,
+                    true
+                );
+                spawnExplosion(game.redOutpost.x, game.redOutpost.y, '#fb923c', 22, 36);
+                triggerShake(0.22, 6);
+                sfx.play('boom');
+            }
+        } else if (!isBlue && !p.hitEntities.has('blue_base')) {
+            if (Math.abs(p.y - game.blueBase.y) <= 34) {
+                p.hitEntities.add('blue_base');
+                applyDamageToTarget(
+                    { isBase: true, entity: game.blueBase, hitX: game.blueBase.x, hitY: game.blueBase.y },
+                    p.baseDamage,
+                    false
+                );
+                spawnExplosion(game.blueBase.x, game.blueBase.y, '#ef4444', 22, 36);
+                triggerShake(0.22, 6);
+                sfx.play('boom');
+            }
         }
 
-        if ((plane.team === 'blue' && plane.y < -90) || (plane.team === 'red' && plane.y > PLAYFIELD_HEIGHT + 90)) {
+        if ((isBlue && p.y < -80) || (!isBlue && p.y > PLAYFIELD_HEIGHT + 80)) {
             game.planes.splice(i, 1);
         }
     }
 }
 
-function spawnExplosion(x, y, color, count = 12, maxRadius = 24) {
+// Ở Chế độ Dễ (Công phá căn cứ Đỏ), Căn cứ Đỏ định kỳ cử toán quân tuần tra bảo vệ
+let easyEnemySpawnClock = 2.2;
+function updateEasyModeDefenderSpawner(dt) {
+    if (game.currentDifficulty !== 'easy' || game.gameOver || game.inMenu) return;
+
+    easyEnemySpawnClock -= dt;
+    if (easyEnemySpawnClock <= 0) {
+        const lv = game.currentLevel;
+        const interval = Math.max(2.6, 5.2 - lv * 0.14);
+        easyEnemySpawnClock = interval;
+
+        // Giới hạn số quân đỏ trên sân ở chế độ Dễ để giữ đúng tính chất dễ vượt ải
+        if (getAliveRedUnitsCount() < 6 + Math.floor(lv / 3)) {
+            const tierMaxCost = Math.min(8, 3 + Math.floor(lv / 2));
+            const cfg = LEVELS[lv - 1] || LEVELS[0];
+            const pool = UNIT_CATALOG.filter(u => {
+                if (u.isAirstrike) return false;
+                if (u.isNaval && !cfg.hasWater) return false;
+                return u.cost <= tierMaxCost;
+            });
+            const pick = pool[Math.floor(Math.random() * pool.length)] || UNIT_BY_ID['infantry'];
+            const gateSpread = 160;
+            const rx = (LOGICAL_WIDTH / 2 - gateSpread / 2) + Math.random() * gateSpread;
+            const statScale = 0.85 + (lv - 1) * 0.06;
+            spawnUnitBySpec('red', pick, rx, 108, statScale, statScale, false);
+        }
+    }
+}
+
+// ============================================================================
+// HIỆU ỨNG HẠT NỔ (PARTICLES), CHỮ NỔI (FLOATING TEXT) & RUNG MÀN HÌNH
+// ============================================================================
+function spawnExplosion(x, y, color = '#fde047', count = 10, maxSpeed = 24) {
     for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 20 + Math.random() * (maxRadius * 3);
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 6 + Math.random() * maxSpeed;
         game.particles.push({
             x,
             y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            size: 2.5 + Math.random() * 4,
-            color: i % 3 === 0 ? '#fde047' : color,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            radius: 2.5 + Math.random() * 4.5,
             alpha: 1,
-            life: 0.25 + Math.random() * 0.22
+            color: i % 3 === 0 ? '#ffffff' : color,
+            decay: 1.6 + Math.random() * 1.2
         });
     }
 }
 
-function addFloatingText(x, y, text, color = '#fff', size = 12) {
+function addFloatingText(x, y, text, color = '#ffffff', size = 13) {
     game.floatingTexts.push({
-        x,
+        x: Math.max(40, Math.min(LOGICAL_WIDTH - 40, x)),
         y,
+        vy: -26,
         text,
         color,
         size,
-        alpha: 1,
-        life: 0.75
+        alpha: 1.0,
+        life: 1.15
     });
 }
 
-function triggerShake(duration, intensity) {
+function triggerShake(duration = 0.15, intensity = 4) {
     game.shakeTime = Math.max(game.shakeTime, duration);
     game.shakeIntensity = Math.max(game.shakeIntensity, intensity);
 }
 
-function updateEffects(dt) {
+function updateParticlesAndText(dt) {
     if (game.shakeTime > 0) {
         game.shakeTime = Math.max(0, game.shakeTime - dt);
     }
 
     for (let i = game.particles.length - 1; i >= 0; i--) {
-        const pt = game.particles[i];
-        pt.x += pt.vx * dt;
-        pt.y += pt.vy * dt;
-        pt.life -= dt;
-        pt.alpha = Math.max(0, pt.life * 2.5);
-        if (pt.life <= 0) game.particles.splice(i, 1);
+        const p = game.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.alpha -= p.decay * dt;
+        if (p.alpha <= 0) game.particles.splice(i, 1);
     }
 
     for (let i = game.floatingTexts.length - 1; i >= 0; i--) {
         const ft = game.floatingTexts[i];
-        ft.y -= 28 * dt;
+        ft.y += ft.vy * dt;
         ft.life -= dt;
-        ft.alpha = Math.max(0, ft.life / 0.75);
+        ft.alpha = Math.max(0, Math.min(1, ft.life / 0.5));
         if (ft.life <= 0) game.floatingTexts.splice(i, 1);
     }
 }
 
+// ============================================================================
+// XỬ LÝ KẾT THÚC TRẬN ĐẤU (WIN / LOSE) & PHẦN THƯỞNG THEO ĐỘ KHÓ
+// ============================================================================
 function formatTime(sec) {
-    const m = Math.floor(sec / 60).toString().padStart(2, '0');
-    const s = Math.floor(sec % 60).toString().padStart(2, '0');
+    const total = Math.max(0, Math.floor(sec));
+    const m = String(Math.floor(total / 60)).padStart(2, '0');
+    const s = String(total % 60).padStart(2, '0');
     return `${m}:${s}`;
 }
 
-// ============================================================================
-// XỬ LÝ KẾT THÚC TRẬN ĐẤU (THẮNG / THUA) & CỘNG THƯỞNG META-GAME
-// ============================================================================
+function checkGameOver() {
+    if (game.gameOver) return;
+    if (game.blueBase.hp <= 0) {
+        triggerLoseGame();
+    } else if (game.currentDifficulty === 'easy' && game.redOutpost.hp <= 0) {
+        triggerWinGame();
+    }
+}
+
 function triggerWinGame() {
     if (game.gameOver) return;
     game.gameOver = true;
     game.draftActive = false;
     draftModalEl.classList.remove('active');
+    document.getElementById('boss-warning-banner')?.classList.add('hidden');
+
+    sfx.play('upgrade');
 
     const mapLv = game.currentLevel;
-    const diffId = game.currentDifficulty || 'easy';
+    const diffId = game.currentDifficulty;
     const diffCfg = DIFFICULTY_CONFIG[diffId] || DIFFICULTY_CONFIG.easy;
+    const rewardCoins = diffCfg.calcReward(mapLv);
 
     if (!metaState.mapDifficultyProgress[mapLv]) {
-        metaState.mapDifficultyProgress[mapLv] = { easy: false, normal: false, difficult: false };
+        metaState.mapDifficultyProgress[mapLv] = { easy: false, difficult: false };
     }
     metaState.mapDifficultyProgress[mapLv][diffId] = true;
 
-    const rewardCoins = diffCfg.calcReward(mapLv);
     metaState.coins += rewardCoins;
     metaState.missionsProgress.wins = (metaState.missionsProgress.wins || 0) + 1;
     if (diffId === 'difficult') {
@@ -5075,519 +4608,347 @@ function triggerWinGame() {
     saveProgress();
     updateTopBarUI();
 
-    spawnExplosion(game.redOutpost.x, game.redOutpost.y, '#38bdf8', 45, 70);
-    sfx.play('boom');
-
-    const cfg = LEVELS[mapLv - 1];
-    const subEl = document.getElementById('win-subtitle');
-    if (subEl) {
-        subEl.textContent = `Đã phá đảo Map ${mapLv} (${diffCfg.label}): ${cfg ? cfg.name : ''}!`;
+    const winSubtitle = document.getElementById('win-subtitle');
+    if (winSubtitle) {
+        winSubtitle.textContent = diffId === 'easy'
+            ? `Đã công phá hoàn toàn Căn cứ Đỏ (Map ${mapLv}) & Mở khóa Map tiếp theo!`
+            : `Đã sinh tồn xuất sắc qua 10 Wave & Hạ gục Siêu Boss (Map ${mapLv})!`;
     }
+
     const rewardEl = document.getElementById('win-coins-reward');
-    if (rewardEl) {
-        rewardEl.textContent = `+${formatCurrency(rewardCoins)} 🪙`;
-    }
+    if (rewardEl) rewardEl.textContent = `+${formatCurrency(rewardCoins)} 🪙`;
 
-    document.getElementById('win-time').textContent = formatTime(game.elapsedTime);
-    document.getElementById('win-hp').textContent = `${Math.ceil(game.blueBase.hp)} / ${game.blueBase.maxHp}`;
-    document.getElementById('win-spawned').textContent = `LV.${game.currentLevelInBattle}`;
-    document.getElementById('win-kills').textContent = game.stats.kills;
-    document.getElementById('win-panel').classList.add('active');
-    updateControllerUI();
+    const timeEl = document.getElementById('win-time');
+    if (timeEl) timeEl.textContent = formatTime(game.elapsedTime);
+
+    const hpEl = document.getElementById('win-hp');
+    if (hpEl) hpEl.textContent = `${Math.ceil(game.blueBase.hp)} / ${game.blueBase.maxHp}`;
+
+    const lvEl = document.getElementById('win-spawned');
+    if (lvEl) lvEl.textContent = `LV.${game.currentLevelInBattle}`;
+
+    const killsEl = document.getElementById('win-kills');
+    if (killsEl) killsEl.textContent = game.stats.kills.toString();
+
+    document.getElementById('win-panel')?.classList.add('active');
 }
 
-function checkGameOver() {
+function triggerLoseGame() {
     if (game.gameOver) return;
+    game.gameOver = true;
+    game.draftActive = false;
+    draftModalEl.classList.remove('active');
+    document.getElementById('boss-warning-banner')?.classList.add('hidden');
 
-    if (game.blueBase.hp <= 0) {
-        game.blueBase.hp = 0;
-        game.gameOver = true;
-        game.draftActive = false;
-        draftModalEl.classList.remove('active');
+    sfx.play('boom');
 
-        saveProgress();
-        updateTopBarUI();
+    const timeEl = document.getElementById('lose-time');
+    if (timeEl) timeEl.textContent = formatTime(game.elapsedTime);
 
-        spawnExplosion(game.blueBase.x, game.blueBase.y, '#3b82f6', 45, 70);
-        sfx.play('boom');
-
-        document.getElementById('lose-time').textContent = formatTime(game.elapsedTime);
-        const loseWaveEl = document.getElementById('lose-wave');
-        if (loseWaveEl) loseWaveEl.textContent = `Wave ${game.currentWave} / ${game.maxWaves}`;
-        document.getElementById('lose-spawned').textContent = game.stats.spawned;
-        document.getElementById('lose-kills').textContent = game.stats.kills;
-        document.getElementById('lose-panel').classList.add('active');
-        updateControllerUI();
+    const waveEl = document.getElementById('lose-wave');
+    if (waveEl) {
+        waveEl.textContent = game.currentDifficulty === 'easy'
+            ? `HP Địch còn: ${Math.ceil(game.redOutpost.hp)}`
+            : `Wave ${game.currentWave} / ${game.maxWaves}`;
     }
+
+    const spawnedEl = document.getElementById('lose-spawned');
+    if (spawnedEl) spawnedEl.textContent = game.stats.spawned.toString();
+
+    const killsEl = document.getElementById('lose-kills');
+    if (killsEl) killsEl.textContent = game.stats.kills.toString();
+
+    document.getElementById('lose-panel')?.classList.add('active');
 }
 
 window.restartGame = function() {
+    sfx.play('spawn');
     startLevel(game.currentLevel, game.currentDifficulty);
 };
 
 window.nextOrRestartLevel = function() {
-    if (game.currentDifficulty === 'easy') {
-        currentStageViewLevel = game.currentLevel;
-        currentSelectedDifficulty = 'normal';
-        startLevel(currentStageViewLevel, currentSelectedDifficulty);
-    } else if (game.currentDifficulty === 'normal') {
-        currentStageViewLevel = game.currentLevel;
+    sfx.play('spawn');
+    if (game.currentDifficulty === 'easy' && game.currentLevel < LEVELS.length) {
+        currentStageViewLevel = game.currentLevel + 1;
+        currentSelectedDifficulty = 'easy';
+        startLevel(currentStageViewLevel, 'easy');
+    } else if (game.currentDifficulty === 'easy') {
         currentSelectedDifficulty = 'difficult';
+        startLevel(game.currentLevel, 'difficult');
+    } else if (game.currentLevel < LEVELS.length) {
+        currentStageViewLevel = game.currentLevel + 1;
+        currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
         startLevel(currentStageViewLevel, currentSelectedDifficulty);
     } else {
-        const nextLv = game.currentLevel < LEVELS.length ? game.currentLevel + 1 : 1;
-        currentStageViewLevel = nextLv;
-        currentSelectedDifficulty = 'easy';
-        startLevel(currentStageViewLevel, currentSelectedDifficulty);
+        window.openLobbyScreen('battle');
     }
 };
 
 // ============================================================================
-// VẼ NỀN BẢN ĐỒ, CĂN CỨ XANH & THANH WAVE TRÊN ĐỈNH MÀN HÌNH
+// HỆ THỐNG RENDER TRẬN ĐẤU TRÊN CANVAS 2D
 // ============================================================================
-function drawMapBackground() {
-    if (atlas.bakedMapCanvas) {
-        ctx.drawImage(atlas.bakedMapCanvas, 0, 0);
-    } else {
-        ctx.fillStyle = '#58a846';
-        ctx.fillRect(0, 0, LOGICAL_WIDTH, PLAYFIELD_HEIGHT);
-    }
+function drawBaseBuilding(baseObj, isBlue) {
+    const cx = baseObj.x;
+    const cy = baseObj.y;
+    const bRow = isBlue ? 2 : 3;
+    const offsets = [-78, 0, 78];
 
-    if (game.rallyX !== null) {
-        const pulse = 1 + Math.sin(performance.now() * 0.008) * 0.1;
-        const ry = game.blueBase.y - 48;
+    ctx.save();
+    // Bóng nền căn cứ
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+    ctx.beginPath();
+    ctx.roundRect(cx - baseObj.width * 0.5, cy - baseObj.height * 0.45, baseObj.width, baseObj.height * 0.9, 12);
+    ctx.fill();
 
-        if (atlas.ready) {
-            atlas.draw(ctx, 7, 3, game.rallyX, ry, 28 * pulse, 28 * pulse);
-            atlas.draw(ctx, 16, 10, game.rallyX + 18, ry + 10, 20, 20);
-        } else {
-            ctx.beginPath();
-            ctx.arc(game.rallyX, ry, 12, 0, Math.PI * 2);
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+    offsets.forEach((dx, idx) => {
+        const bx = cx + dx;
+        const bCol = idx === 1 ? 11 : 10;
+        if (!atlas.ready || !atlas.draw(ctx, bCol, bRow, bx, cy, 52, 52)) {
+            ctx.fillStyle = isBlue ? '#0284c7' : '#dc2626';
+            ctx.fillRect(bx - 22, cy - 22, 44, 44);
         }
+    });
 
-        ctx.fillStyle = '#fef08a';
-        ctx.strokeStyle = '#020617';
-        ctx.lineWidth = 2.5;
-        ctx.font = 'bold 9px Chakra Petch';
+    // Vẽ thanh máu Căn cứ Xanh hoặc Căn cứ Đỏ (ở chế độ Dễ)
+    const showHpBar = isBlue || game.currentDifficulty === 'easy';
+    if (showHpBar) {
+        const barW = 196;
+        const barH = 11;
+        const bx = cx - barW / 2;
+        const by = isBlue ? cy + 28 : cy - 38;
+        const ratio = Math.max(0, Math.min(1, baseObj.hp / baseObj.maxHp));
+
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(bx - 2, by - 2, barW + 4, barH + 4, 6);
+        ctx.fill();
+
+        ctx.fillStyle = isBlue ? '#22c55e' : '#ef4444';
+        ctx.beginPath();
+        ctx.roundRect(bx, by, barW * ratio, barH, 4);
+        ctx.fill();
+
+        ctx.font = 'bold 9.5px "Chakra Petch", sans-serif';
+        ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
-        ctx.strokeText('MŨI TIẾN CÔNG', game.rallyX, ry - 16);
-        ctx.fillText('MŨI TIẾN CÔNG', game.rallyX, ry - 16);
-    }
-}
-
-function drawTopWaveOutpostAndHUD() {
-    const outpost = game.redOutpost;
-    const bRow = game.currentLevel === 10 ? 4 : 3;
-    const x = outpost.x - outpost.width / 2;
-    const y = outpost.y - outpost.height / 2;
-
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
-    const buildingCols = [10, 9, 13];
-    const offsetsX = [-72, 0, 72];
-
-    offsetsX.forEach((dx, idx) => {
-        const bx = outpost.x + dx;
-        const by = outpost.y;
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.roundRect(bx - 26, by - 24, 52, 48, 8);
-        ctx.fill();
-
-        ctx.strokeStyle = '#f87171';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        if (atlas.ready) {
-            atlas.draw(ctx, buildingCols[idx], bRow, bx, by, 44, 44);
-        }
-    });
-
-    if (atlas.ready) {
-        const wave = Math.sin(performance.now() * 0.006) * 0.08;
-        const flagY = y + outpost.height + 4;
-        atlas.draw(ctx, 16, bRow, x + 16, flagY, 24, 24, { rotation: wave });
-        atlas.draw(ctx, 17, bRow, x + outpost.width - 16, flagY, 24, 24, { rotation: -wave });
-    }
-
-    const barW = 236;
-    const barH = 22;
-    const barX = outpost.x - barW / 2;
-    const barY = y + outpost.height - 2;
-
-    const aliveRed = getAliveRedUnitsCount();
-    const remainingInWave = aliveRed + game.waveSpawnQueue.length;
-    const totalInWave = Math.max(1, game.waveTotalEnemies);
-
-    let fillRatio = 1;
-    let fillColor = '#f43f5e';
-    let statusText = `WAVE ${game.currentWave}/${game.maxWaves} • Còn: ${remainingInWave} địch`;
-
-    if (game.waveState === 'intermission') {
-        fillRatio = Math.max(0, Math.min(1, 1 - (game.waveIntermissionTimer / game.waveIntermissionMax)));
-        fillColor = '#eab308';
-        statusText = `WAVE ${game.currentWave + 1}/${game.maxWaves} sau ${game.waveIntermissionTimer.toFixed(1)}s`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+            `${isBlue ? 'CĂN CỨ XANH' : 'NHÀ CHÍNH ĐỎ'}: ${Math.ceil(baseObj.hp)} / ${baseObj.maxHp}`,
+            cx,
+            by + barH / 2 + 0.5
+        );
     } else {
-        fillRatio = Math.max(0, Math.min(1, remainingInWave / totalInWave));
-    }
+        // Ở Chế độ Khó: Hiển thị thanh trạng thái Wave sinh tồn trên Căn cứ Đỏ
+        const barW = 210;
+        const barH = 14;
+        const bx = cx - barW / 2;
+        const by = cy - 40;
 
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.94)';
-    ctx.beginPath();
-    ctx.roundRect(barX, barY, barW, barH, 6);
-    ctx.fill();
-
-    ctx.strokeStyle = game.waveState === 'intermission' ? '#facc15' : '#fb7185';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    if (fillRatio > 0) {
-        ctx.fillStyle = fillColor;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.roundRect(barX + 2, barY + 2, (barW - 4) * fillRatio, barH - 4, 4);
+        ctx.roundRect(bx, by, barW, barH, 7);
         ctx.fill();
-    }
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 11px Chakra Petch';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(statusText, outpost.x, barY + barH / 2 + 0.5);
-
-    ctx.restore();
-}
-
-function drawPlayerBase(base) {
-    const bRow = 2;
-    const x = base.x - base.width / 2;
-    const y = base.y - base.height / 2;
-
-    ctx.save();
-    ctx.imageSmoothingEnabled = false;
-
-    const buildingCols = [10, 9, 13];
-    const offsetsX = [-72, 0, 72];
-
-    offsetsX.forEach((dx, idx) => {
-        const bx = base.x + dx;
-        const by = base.y;
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.roundRect(bx - 26, by - 24, 52, 48, 8);
-        ctx.fill();
-
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 2;
         ctx.stroke();
 
-        if (atlas.ready) {
-            atlas.draw(ctx, buildingCols[idx], bRow, bx, by, 44, 44);
-        }
-    });
-
-    if (atlas.ready) {
-        const wave = Math.sin(performance.now() * 0.006) * 0.08;
-        const flagY = y - 4;
-        atlas.draw(ctx, 16, bRow, x + 16, flagY, 24, 24, { rotation: wave });
-        atlas.draw(ctx, 17, bRow, x + base.width - 16, flagY, 24, 24, { rotation: -wave });
+        ctx.font = '800 9.5px "Chakra Petch", sans-serif';
+        ctx.fillStyle = '#fde047';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const aliveRed = getAliveRedUnitsCount() + game.waveSpawnQueue.length;
+        ctx.fillText(
+            `💀 SINH TỒN WAVE ${game.currentWave}/${game.maxWaves} • ĐỊCH CÒN: ${aliveRed}`,
+            cx,
+            by + barH / 2 + 0.5
+        );
     }
-
-    const barW = 216;
-    const barH = 18;
-    const barX = base.x - barW / 2;
-    const barY = y - 16;
-    const hpRatio = Math.max(0, base.hp / base.maxHp);
-
-    ctx.fillStyle = 'rgba(2, 6, 23, 0.92)';
-    ctx.beginPath();
-    ctx.roundRect(barX, barY, barW, barH, 6);
-    ctx.fill();
-
-    ctx.fillStyle = '#38bdf8';
-    if (hpRatio > 0) {
-        ctx.beginPath();
-        ctx.roundRect(barX + 2, barY + 2, (barW - 4) * hpRatio, barH - 4, 4);
-        ctx.fill();
-    }
-
-    if (atlas.ready) {
-        atlas.draw(ctx, 15, 10, barX + 12, barY + barH / 2, 14, 14);
-    }
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 11px Chakra Petch';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(
-        `CĂN CỨ XANH: ${Math.ceil(base.hp)} / ${base.maxHp}`,
-        base.x + 6,
-        barY + barH / 2 + 0.5
-    );
 
     ctx.restore();
 }
 
-function drawUnits() {
-    if (game.showRangeCircles) {
-        for (const u of game.units) {
-            ctx.save();
-            ctx.translate(u.x, u.y);
-            ctx.beginPath();
-            ctx.arc(0, 0, u.range, 0, Math.PI * 2);
-            ctx.strokeStyle = u.team === 'blue'
-                ? (u.shoot ? 'rgba(56, 189, 248, 0.45)' : 'rgba(56, 189, 248, 0.18)')
-                : (u.shoot ? 'rgba(251, 113, 133, 0.40)' : 'rgba(251, 113, 133, 0.14)');
-            ctx.lineWidth = u.shoot ? 1.5 : 1;
-            ctx.setLineDash(u.isWalker ? [3, 3] : [6, 4]);
-            ctx.stroke();
-            ctx.setLineDash([]);
-            ctx.restore();
-        }
+function drawUnit(u) {
+    ctx.save();
+
+    // Vòng tầm bắn (nếu bật)
+    if (game.showRangeCircles && u.hp > 0) {
+        ctx.beginPath();
+        ctx.arc(u.x, u.y, u.range, 0, Math.PI * 2);
+        ctx.strokeStyle = u.team === 'blue' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(248, 113, 113, 0.14)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 
-    for (const u of game.units) {
-        const isBlue = u.team === 'blue';
-        const recoilX = -Math.cos(u.aimAngle) * u.recoil;
-        const recoilY = -Math.sin(u.aimAngle) * u.recoil;
+    // Hiệu ứng hào quang dưới chân Boss khổng lồ (Wave 5 & Wave 10)
+    if (u.isBoss) {
+        const pulse = 1 + Math.sin(performance.now() * 0.008) * 0.1;
+        ctx.beginPath();
+        ctx.arc(u.x, u.y + 4, u.radius * 1.3 * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(220, 38, 38, 0.28)';
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#fde047';
+        ctx.stroke();
+    }
 
-        let bobY = 0;
-        let strideX = 0;
-        let tilt = 0;
-        let scaleX = 1;
-        let scaleY = 1;
+    // Bóng đổ dưới chân đơn vị
+    const shadowY = u.isAir ? u.y + 18 : u.y + u.radius * 0.65;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.beginPath();
+    ctx.ellipse(u.x, shadowY, u.radius * 0.85, u.radius * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-        if (!u.shoot) {
-            if (u.isWalker) {
-                bobY = -Math.abs(Math.sin(u.walkCycle)) * 3.2;
-                strideX = Math.cos(u.walkCycle) * 1.2;
-                tilt = Math.sin(u.walkCycle) * 0.09;
-                scaleY = 1 + Math.sin(u.walkCycle * 2) * 0.05;
-            } else if (u.isNaval) {
-                bobY = Math.sin(u.walkCycle * 0.7) * 2.0;
-                tilt = Math.cos(u.walkCycle * 0.7) * 0.04;
-            } else if (u.isAir) {
-                bobY = Math.sin(u.walkCycle * 0.8) * 3.5;
-                tilt = (u.vx / Math.max(1, u.moveSpeed)) * 0.14;
-            } else {
-                bobY = Math.sin(u.walkCycle * 1.5) * 0.9;
-                tilt = (u.vx / Math.max(1, u.moveSpeed)) * 0.08;
-            }
-        } else {
-            const squash = Math.min(0.14, u.recoil * 0.025);
-            scaleX = 1 + squash;
-            scaleY = 1 - squash * 0.7;
-        }
+    // Tính toán độ nhún nhảy & giật lùi khi bắn
+    const bobOffset = u.shoot ? 0 : Math.sin(u.walkCycle) * (u.isWalker ? 2.2 : 1.0);
+    const recoilDx = -Math.cos(u.aimAngle) * u.recoil;
+    const recoilDy = -Math.sin(u.aimAngle) * u.recoil;
+    const drawX = u.x + recoilDx;
+    const drawY = u.y + bobOffset + recoilDy - (u.isAir ? 8 : 0);
+    const spriteSize = u.isBoss ? u.radius * 2.65 : u.radius * 2.25;
 
+    if (!atlas.ready || !atlas.draw(ctx, u.spriteCol, u.spriteRow, drawX, drawY, spriteSize, spriteSize, { flipX: u.flipX })) {
+        ctx.fillStyle = u.team === 'blue' ? '#3b82f6' : '#ef4444';
+        ctx.beginPath();
+        ctx.arc(drawX, drawY, u.radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Cánh quạt trực thăng quay
+    if (u.animStyle === 'heli_rotor') {
         ctx.save();
-        ctx.imageSmoothingEnabled = false;
-        ctx.translate(u.x + recoilX + strideX, u.y + recoilY + bobY);
-
-        if (u.attackType === 'beam' && u.beamActiveTimer > 0 && u.lastTargetX !== null) {
-            const relTX = u.lastTargetX - u.x;
-            const relTY = u.lastTargetY - u.y;
-            ctx.save();
-            ctx.strokeStyle = isBlue ? '#38bdf8' : '#fb7185';
-            ctx.lineWidth = 4;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(relTX, relTY);
-            ctx.stroke();
-
-            ctx.strokeStyle = '#fef08a';
-            ctx.lineWidth = 1.8;
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(relTX, relTY);
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        if (u.isNaval) {
-            const waveExpand = 1 + Math.sin(performance.now() * 0.008 + u.walkCycle) * 0.12;
-            ctx.strokeStyle = 'rgba(224, 242, 254, 0.85)';
-            ctx.lineWidth = 1.6;
-            ctx.beginPath();
-            ctx.ellipse(0, u.radius - 3, (u.radius + 3) * waveExpand, 7 * waveExpand, 0, 0, Math.PI * 2);
-            ctx.stroke();
-        } else if (u.isWalker) {
-            const leftFootY = u.radius - 2 + (u.shoot ? 0 : Math.sin(u.walkCycle) * 2.5);
-            const rightFootY = u.radius - 2 - (u.shoot ? 0 : Math.sin(u.walkCycle) * 2.5);
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
-            ctx.beginPath();
-            ctx.arc(-4, leftFootY, 2.5, 0, Math.PI * 2);
-            ctx.arc(4, rightFootY, 2.5, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
-            ctx.beginPath();
-            ctx.ellipse(0, u.isAir ? u.radius + 11 : u.radius - 2, u.radius * 0.85, 6, 0, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        ctx.save();
-        ctx.scale(scaleX, scaleY);
-        const drawSize = u.radius * 2 + 4;
-        const drewSprite = atlas.draw(ctx, u.spriteCol, u.spriteRow, 0, 0, drawSize, drawSize, {
-            flipX: u.flipX,
-            rotation: tilt
-        });
-
-        if (!drewSprite) {
-            ctx.fillStyle = isBlue ? '#3b82f6' : '#ef4444';
-            ctx.beginPath();
-            ctx.arc(0, 0, u.radius, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-
-        if (u.isAir) {
-            ctx.save();
-            ctx.rotate(u.rotorAngle);
-            ctx.strokeStyle = 'rgba(226, 232, 240, 0.8)';
-            ctx.lineWidth = 2.2;
-            ctx.beginPath();
-            ctx.moveTo(-u.radius * 1.15, 0);
-            ctx.lineTo(u.radius * 1.15, 0);
-            ctx.moveTo(0, -u.radius * 1.15);
-            ctx.lineTo(0, u.radius * 1.15);
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        if (u.muzzleFlashTimer > 0) {
-            const mx = Math.cos(u.aimAngle) * (u.radius + 4);
-            const my = Math.sin(u.aimAngle) * (u.radius + 4);
-            ctx.save();
-            ctx.translate(mx, my);
-            ctx.fillStyle = '#fde047';
-            ctx.beginPath();
-            ctx.arc(0, 0, u.isWalker ? 4.5 : 7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.strokeStyle = '#f97316';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            ctx.restore();
-        }
-
-        if (u.hp < u.maxHp) {
-            const bw = Math.max(24, u.radius * 1.7);
-            const bh = 4.5;
-            const by = -u.radius - 11;
-            ctx.fillStyle = 'rgba(0,0,0,0.8)';
-            ctx.fillRect(-bw / 2, by, bw, bh);
-            ctx.fillStyle = isBlue ? '#38bdf8' : '#f87171';
-            ctx.fillRect(-bw / 2 + 1, by + 1, (bw - 2) * Math.max(0, u.hp / u.maxHp), bh - 2);
-        }
-
+        ctx.translate(drawX, drawY - 4);
+        ctx.rotate(u.rotorAngle);
+        ctx.strokeStyle = 'rgba(241, 245, 249, 0.8)';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-16, 0);
+        ctx.lineTo(16, 0);
+        ctx.moveTo(0, -16);
+        ctx.lineTo(0, 16);
+        ctx.stroke();
         ctx.restore();
     }
+
+    // Tia bắn của Bộ binh (Beam)
+    if (u.beamActiveTimer > 0 && u.lastTargetX !== null && u.lastTargetY !== null) {
+        ctx.save();
+        ctx.strokeStyle = u.team === 'blue' ? '#fde047' : '#fb7185';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(drawX, drawY);
+        ctx.lineTo(u.lastTargetX, u.lastTargetY);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Chớp lửa đầu nòng
+    if (u.muzzleFlashTimer > 0) {
+        const mx = drawX + Math.cos(u.aimAngle) * (u.radius + 4);
+        const my = drawY + Math.sin(u.aimAngle) * (u.radius + 4);
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(mx, my, u.isBoss ? 7 : 4.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // Thanh máu của đơn vị (Boss có thanh máu lớn và nhãn BOSS)
+    const barW = u.isBoss ? 56 : Math.max(24, u.radius * 1.8);
+    const barH = u.isBoss ? 6.5 : 4;
+    const bx = u.x - barW / 2;
+    const by = drawY - u.radius - (u.isBoss ? 15 : 9);
+    const hpRatio = Math.max(0, Math.min(1, u.hp / u.maxHp));
+
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    ctx.fillRect(bx - 1, by - 1, barW + 2, barH + 2);
+
+    ctx.fillStyle = u.team === 'blue' ? '#38bdf8' : (u.isBoss ? '#f59e0b' : '#f43f5e');
+    ctx.fillRect(bx, by, barW * hpRatio, barH);
+
+    if (u.isBoss) {
+        ctx.font = '900 8.5px "Chakra Petch", sans-serif';
+        ctx.fillStyle = '#fde047';
+        ctx.textAlign = 'center';
+        ctx.fillText(`☠️ BOSS (${Math.ceil(u.hp)})`, u.x, by - 4);
+    }
+
+    ctx.restore();
 }
 
 function drawBullets() {
     for (const b of game.bullets) {
-        const isBlue = b.team === 'blue';
-        const progress = b.totalDist > 0 ? Math.min(1, b.traveled / b.totalDist) : 0;
-        const liftY = b.arcHeight ? Math.sin(progress * Math.PI) * b.arcHeight : 0;
-        const drawX = b.x;
-        const drawY = b.y - liftY;
-
         ctx.save();
-        ctx.imageSmoothingEnabled = false;
+        let drawY = b.y;
+        let scale = 1;
 
-        if (b.arcHeight > 0) {
-            ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
+        if (b.arcHeight > 0 && b.totalDist > 0) {
+            const p = Math.max(0, Math.min(1, b.traveled / b.totalDist));
+            const arcOffset = Math.sin(p * Math.PI) * b.arcHeight;
+            drawY -= arcOffset;
+            scale = 1 + Math.sin(p * Math.PI) * 0.35;
+
+            // Bóng viên đạn pháo trên mặt đất
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
             ctx.beginPath();
-            ctx.ellipse(b.x, b.y, b.radius * 0.9, b.radius * 0.5, 0, 0, Math.PI * 2);
+            ctx.arc(b.x, b.y, b.radius * 0.7, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        if (b.projType === 'tracer') {
-            const ang = Math.atan2(b.vy, b.vx || 0);
-            ctx.strokeStyle = '#fde047';
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(drawX, drawY);
-            ctx.lineTo(drawX - Math.cos(ang) * 14, drawY - Math.sin(ang) * 14);
-            ctx.stroke();
-        } else {
-            ctx.fillStyle = isBlue ? 'rgba(56, 189, 248, 0.45)' : 'rgba(248, 113, 113, 0.45)';
-            ctx.beginPath();
-            ctx.arc(drawX, drawY, b.radius + 2, 0, Math.PI * 2);
-            ctx.fill();
+        ctx.fillStyle = b.team === 'blue' ? '#fde047' : '#fb7185';
+        ctx.beginPath();
+        ctx.arc(b.x, drawY, b.radius * scale, 0, Math.PI * 2);
+        ctx.fill();
 
-            const rot = Math.atan2(b.vy, b.vx || 0);
-            const scale = 1 + (liftY / 90);
-            const size = 16 * scale;
-            if (!atlas.draw(ctx, 11, 10, drawX, drawY, size, size, { rotation: rot })) {
-                ctx.fillStyle = isBlue ? '#38bdf8' : '#f87171';
-                ctx.beginPath();
-                ctx.arc(drawX, drawY, b.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#0f172a';
+        ctx.stroke();
         ctx.restore();
     }
 }
 
 function drawPlanes() {
-    for (const plane of game.planes) {
-        const isBlue = plane.team === 'blue';
-        const row = plane.spriteRow;
-        const jetRot = isBlue ? -Math.PI / 2 : Math.PI / 2;
-
-        const squadron = [
-            { col: 10, dx: 0,    dy: 0,                 size: 56, rot: jetRot },
-            { col: 10, dx: -95,  dy: isBlue ? 28 : -28, size: 46, rot: jetRot },
-            { col: 10, dx: 95,   dy: isBlue ? 28 : -28, size: 46, rot: jetRot },
-            { col: 11, dx: -155, dy: isBlue ? 48 : -48, size: 42, rot: 0 },
-            { col: 11, dx: 155,  dy: isBlue ? 48 : -48, size: 42, rot: 0 }
-        ];
-
-        for (const member of squadron) {
-            const px = plane.x + member.dx;
-            const py = plane.y + member.dy;
-
-            atlas.draw(ctx, member.col, 5, px + 18, py + 24, member.size * 0.85, member.size * 0.85, {
-                rotation: member.rot,
-                alpha: 0.35
-            });
+    for (const p of game.planes) {
+        const isBlue = p.team === 'blue';
+        const offsets = [-65, 0, 65];
+        offsets.forEach((dx, idx) => {
+            const px = p.x + dx;
+            const py = p.y + (idx === 1 ? 0 : (isBlue ? 18 : -18));
 
             ctx.save();
-            ctx.fillStyle = '#fde047';
-            const tailY = py + (isBlue ? 22 : -22);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
             ctx.beginPath();
-            ctx.arc(px, tailY, 4 + Math.random() * 2, 0, Math.PI * 2);
+            ctx.ellipse(px + 12, py + 26, 16, 8, 0, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
 
-            atlas.draw(ctx, member.col, row, px, py, member.size, member.size, {
-                rotation: member.rot
-            });
-        }
+            const rot = isBlue ? -Math.PI / 2 : Math.PI / 2;
+            if (!atlas.ready || !atlas.draw(ctx, 10, p.spriteRow, px, py, 44, 44, { rotation: rot })) {
+                ctx.fillStyle = isBlue ? '#38bdf8' : '#f87171';
+                ctx.beginPath();
+                ctx.arc(px, py, 16, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
     }
 }
 
-function drawEffects() {
-    for (const pt of game.particles) {
+function drawParticlesAndTexts() {
+    for (const p of game.particles) {
         ctx.save();
-        ctx.globalAlpha = pt.alpha;
-        ctx.fillStyle = pt.color;
-        ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     }
 
     for (const ft of game.floatingTexts) {
         ctx.save();
-        ctx.globalAlpha = ft.alpha;
-        ctx.font = `800 ${ft.size}px Chakra Petch`;
+        ctx.globalAlpha = Math.max(0, ft.alpha);
+        ctx.font = `800 ${ft.size}px "Chakra Petch", sans-serif`;
         ctx.textAlign = 'center';
-        ctx.strokeStyle = '#020617';
         ctx.lineWidth = 3;
+        ctx.strokeStyle = '#0f172a';
         ctx.strokeText(ft.text, ft.x, ft.y);
         ctx.fillStyle = ft.color;
         ctx.fillText(ft.text, ft.x, ft.y);
@@ -5595,38 +4956,8 @@ function drawEffects() {
     }
 }
 
-// ============================================================================
-// VÒNG LẶP GAME CHÍNH (MAIN GAME LOOP) & SỰ KIỆN ĐIỀU KHIỂN
-// ============================================================================
-let lastFrameTime = performance.now();
-
-function gameLoop(now) {
-    const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
-    lastFrameTime = now;
-
-    if (game.inMenu && currentLobbyTab === 'army') {
-        renderArmyShowcaseCanvas();
-    }
-
-    if (!game.inMenu && !game.paused && !game.draftActive && !game.gameOver) {
-        game.elapsedTime += dt;
-
-        game.gasTimer -= dt;
-        if (game.gasTimer <= 0.0) {
-            timerEnded();
-        }
-        updateControllerUI();
-
-        updateWaveSystem(dt);
-        updateUnits(dt);
-        updateBullets(dt);
-        updatePlanes(dt);
-    }
-
-    updateEffects(dt);
-
+function renderBattleScene() {
     ctx.save();
-    ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
     if (game.shakeTime > 0) {
@@ -5635,79 +4966,129 @@ function gameLoop(now) {
         ctx.translate(dx, dy);
     }
 
-    drawMapBackground();
-    drawTopWaveOutpostAndHUD();
-    drawPlayerBase(game.blueBase);
-    drawUnits();
-    drawBullets();
-    drawPlanes();
-    drawEffects();
-
-    if (game.paused && !game.draftActive && !game.gameOver && !game.inMenu) {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+    // 1. Vẽ nền bản đồ tĩnh đã bake
+    if (atlas.bakedMapCanvas) {
+        ctx.drawImage(atlas.bakedMapCanvas, 0, 0, LOGICAL_WIDTH, PLAYFIELD_HEIGHT);
+    } else {
+        ctx.fillStyle = '#65a30d';
         ctx.fillRect(0, 0, LOGICAL_WIDTH, PLAYFIELD_HEIGHT);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 26px Chakra Petch';
-        ctx.textAlign = 'center';
-        ctx.fillText('TẠM DỪNG (PAUSED)', LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2);
     }
 
+    // 2. Vẽ cờ tập kết (Rally Point) của người chơi nếu có
+    if (game.rallyX !== null && !game.inMenu) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.75)';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.arc(game.rallyX, game.blueBase.y - 44, 14, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    }
+
+    // 3. Vẽ 2 Căn cứ Đỏ và Xanh
+    drawBaseBuilding(game.redOutpost, false);
+    drawBaseBuilding(game.blueBase, true);
+
+    // 4. Sắp xếp đơn vị theo trục Y (vẽ lính mặt đất trước, máy bay sau)
+    const sortedUnits = [...game.units].sort((a, b) => {
+        if (a.isAir !== b.isAir) return a.isAir ? 1 : -1;
+        return a.y - b.y;
+    });
+    sortedUnits.forEach(u => drawUnit(u));
+
+    // 5. Vẽ đạn, phi đội Không Kích, hiệu ứng nổ & chữ nổi
+    drawBullets();
+    drawPlanes();
+    drawParticlesAndTexts();
+
     ctx.restore();
-    requestAnimationFrame(gameLoop);
 }
 
+// ============================================================================
+// TƯƠNG TÁC TRÊN SÂN ĐẤU, PHÍM TẮT & NÚT TẠM DỪNG / ÂM THANH
+// ============================================================================
 canvas.addEventListener('pointerdown', (e) => {
     if (game.inMenu || game.gameOver || game.paused || game.draftActive) return;
     const rect = canvas.getBoundingClientRect();
-    const clickX = ((e.clientX - rect.left) / rect.width) * LOGICAL_WIDTH;
-    const clickY = ((e.clientY - rect.top) / rect.height) * LOGICAL_HEIGHT;
+    const scaleX = LOGICAL_WIDTH / rect.width;
+    const scaleY = LOGICAL_HEIGHT / rect.height;
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
 
-    if (clickY < PLAYFIELD_HEIGHT) {
-        if (clickY > game.blueBase.y - 20) {
-            game.rallyX = null;
-            addFloatingText(LOGICAL_WIDTH / 2, game.blueBase.y - 45, 'XUẤT TOÀN CỔNG', '#38bdf8', 13);
-        } else {
-            game.rallyX = Math.max(50, Math.min(LOGICAL_WIDTH - 50, clickX));
-            addFloatingText(game.rallyX, game.blueBase.y - 50, 'ĐÃ ĐẶT MŨI TIẾN CÔNG', '#4ade80', 12);
-        }
+    if (clickY < PLAYFIELD_HEIGHT - 10) {
+        game.rallyX = Math.max(44, Math.min(LOGICAL_WIDTH - 44, clickX));
+        addFloatingText(game.rallyX, game.blueBase.y - 52, '📍 ĐIỂM TẬP KẾT', '#38bdf8', 11);
+        sfx.play('gas');
     }
 });
 
-// Phím tắt bàn phím 1, 2, 3, 4, 5 gọi 5 ô quân + Space nạp xăng + U nâng tốc xăng
 window.addEventListener('keydown', (e) => {
-    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
-    if (game.inMenu || game.draftActive) return;
-    if (e.key === '1') buyUnitFromSlot(0);
-    if (e.key === '2') buyUnitFromSlot(1);
-    if (e.key === '3') buyUnitFromSlot(2);
-    if (e.key === '4') buyUnitFromSlot(3);
-    if (e.key === '5') buyUnitFromSlot(4);
-    if (e.key.toLowerCase() === 'u') upgradeGasRate();
+    if (game.inMenu || game.gameOver || game.paused || game.draftActive) return;
     if (e.code === 'Space') {
         e.preventDefault();
         document.getElementById('gas-generator-btn')?.click();
+    } else if (e.key >= '1' && e.key <= '5') {
+        const slotIdx = parseInt(e.key, 10) - 1;
+        buyUnitFromSlot(slotIdx);
+    } else if (e.key === 'u' || e.key === 'U') {
+        window.upgradeGasRate();
     }
 });
 
 document.getElementById('sound-btn')?.addEventListener('click', (e) => {
     sfx.enabled = !sfx.enabled;
     e.currentTarget.textContent = sfx.enabled ? '🔊' : '🔇';
+    if (sfx.enabled) sfx.play('gas');
 });
 
 document.getElementById('pause-btn')?.addEventListener('click', (e) => {
-    if (game.inMenu || game.gameOver || game.draftActive) return;
+    if (game.inMenu || game.gameOver) return;
     game.paused = !game.paused;
-    e.currentTarget.textContent = game.paused ? '▶' : '⏸';
+    e.currentTarget.textContent = game.paused ? '▶️' : '⏸';
+    sfx.play('gas');
 });
 
-window.onload = function() {
-    updateTopBarUI();
-    buildStaticMapCanvas(currentStageViewLevel);
-    renderStageScreenUI();
-    renderArmyTabUI();
-    renderBattleDeckButtons();
-    updateExpUI();
-    updateControllerUI();
-    checkAndPromptPlayerName(false);
+// ============================================================================
+// VÒNG LẶP GAME CHÍNH (MAIN GAME LOOP) & KHỞI CHẠY LẦN ĐẦU
+// ============================================================================
+let lastFrameTime = performance.now();
+
+function gameLoop(now) {
+    const rawDt = (now - lastFrameTime) / 1000;
+    lastFrameTime = now;
+    const dt = Math.min(0.05, Math.max(0.001, rawDt));
+
+    if (game.inMenu) {
+        if (currentLobbyTab === 'army') {
+            renderArmyShowcaseCanvas();
+        }
+    } else if (!game.paused && !game.draftActive && !game.gameOver) {
+        game.elapsedTime += dt;
+
+        // Bộ đếm nạp xăng tự động
+        game.gasTimer -= dt;
+        if (game.gasTimer <= 0) {
+            timerEnded();
+        }
+
+        updateWaveSystem(dt);
+        updateEasyModeDefenderSpawner(dt);
+        updateUnits(dt);
+        updateBullets(dt);
+        updatePlanes(dt);
+        updateParticlesAndText(dt);
+        updateControllerUI();
+    } else {
+        updateParticlesAndText(dt);
+    }
+
+    renderBattleScene();
     requestAnimationFrame(gameLoop);
-};
+}
+
+// Khởi tạo giao diện Sảnh chờ khi tải trang
+updateTopBarUI();
+renderStageScreenUI();
+checkAndPromptPlayerName(false);
+requestAnimationFrame(gameLoop);

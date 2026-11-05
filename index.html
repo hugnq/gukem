@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Battle - Mobile Meta-Game & 10-Wave Roguelike</title>
+    <title>Tiny Battle - Mobile Meta-Game & Tactical RTS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;0,800;1,700&family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="main.css">
@@ -17,23 +17,33 @@
         <!-- ============================================================== -->
         <div id="lobby-wrapper" class="lobby-wrapper active">
 
-            <!-- 1. TOP BAR: AVATAR + TÊN (TRÁI) | GEMS + COINS (PHẢI) -->
+            <!-- 1. TOP BAR: AVATAR + TÊN + NÚT SETTING ADMIN (TRÁI) | GEMS + COINS (PHẢI) -->
             <div class="lobby-top-bar">
-                <div id="btn-edit-name" class="player-profile-pill" title="Đổi tên nhân vật">
-                    <div class="avatar-box">
-                        <canvas id="topAvatarCanvas" width="32" height="32" class="pixel-art w-7 h-7"></canvas>
+                <div class="profile-settings-group">
+                    <div id="btn-edit-name" class="player-profile-pill" title="Đổi tên nhân vật">
+                        <div class="avatar-box">
+                            <canvas id="topAvatarCanvas" width="32" height="32" class="pixel-art w-7 h-7"></canvas>
+                        </div>
+                        <div class="player-name-wrap">
+                            <span id="player-name-display" class="player-name-text">COMMANDER</span>
+                            <span id="admin-active-tag" class="admin-status-mini-badge hidden">ADMIN ∞</span>
+                        </div>
                     </div>
-                    <span id="player-name-display" class="player-name-text">COMMANDER</span>
+
+                    <!-- Nút Setting (Cài đặt & Chế độ Admin) ngay cạnh Profile -->
+                    <button id="btn-open-settings" class="btn-settings-gear" title="Cài đặt & Chế độ Admin">
+                        <span class="gear-icon">⚙️</span>
+                    </button>
                 </div>
 
                 <div class="currency-group">
-                    <!-- Gems (Kim cương xanh lá) -->
-                    <div class="currency-pill">
+                    <!-- Gems (Kim cương) -->
+                    <div id="gems-pill-box" class="currency-pill">
                         <span class="currency-icon gem-icon">💎</span>
                         <span id="gems-count-display" class="currency-val">0</span>
                     </div>
                     <!-- Coins (Vàng) -->
-                    <div class="currency-pill">
+                    <div id="coins-pill-box" class="currency-pill">
                         <span class="currency-icon coin-icon">🪙</span>
                         <span id="coins-count-display" class="currency-val">0</span>
                     </div>
@@ -50,10 +60,15 @@
                             <span>GACHA TƯỚNG & TIẾP TẾ QUÂN ĐỘI</span>
                         </div>
 
+                        <div class="shop-discount-notice">
+                            🔥 <b>ƯU ĐÃI ĐẶC BIỆT:</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> khi mở số lượng tùy chỉnh!
+                        </div>
+
                         <!-- RƯƠNG 1: LEGENDARY CRATE -->
                         <div class="crate-card crate-legendary">
                             <div class="crate-card-header">
                                 <span class="crate-title">LEGENDARY CRATE</span>
+                                <span class="crate-price-unit-tag">Đơn giá: 💎 300 / Rương</span>
                             </div>
                             <div class="crate-card-body">
                                 <div class="crate-visual-box">
@@ -74,15 +89,36 @@
                                 </div>
                             </div>
                             <div class="crate-card-footer">
-                                <button id="btn-open-leg-1" class="btn-3d btn-3d-yellow crate-buy-btn">
-                                    <span class="buy-label">OPEN X1</span>
-                                    <span class="buy-price">💎 300</span>
-                                </button>
-                                <button id="btn-open-leg-10" class="btn-3d btn-3d-amber crate-buy-btn">
-                                    <span class="discount-pill">-10%</span>
-                                    <span class="buy-label">OPEN X10</span>
-                                    <span class="buy-price">💎 2700</span>
-                                </button>
+                                <div class="crate-quick-btns">
+                                    <button id="btn-open-leg-1" class="btn-3d btn-3d-yellow crate-buy-btn">
+                                        <span class="buy-label">OPEN X1</span>
+                                        <span class="buy-price">💎 300</span>
+                                    </button>
+                                    <button id="btn-open-leg-10" class="btn-3d btn-3d-amber crate-buy-btn">
+                                        <span class="discount-pill">-10%</span>
+                                        <span class="buy-label">OPEN X10</span>
+                                        <span class="buy-price">💎 2,700</span>
+                                    </button>
+                                </div>
+
+                                <!-- Khu vực nhập số lượng rương Legendary tùy chỉnh -->
+                                <div class="crate-custom-row">
+                                    <div class="custom-input-wrap">
+                                        <span class="custom-input-label">Số lượng:</span>
+                                        <input
+                                            id="input-custom-leg-count"
+                                            type="number"
+                                            min="1"
+                                            max="999"
+                                            value="20"
+                                            placeholder="Nhập số rương..."
+                                            class="crate-custom-input"
+                                        />
+                                    </div>
+                                    <button id="btn-open-leg-custom" class="btn-3d btn-3d-green crate-custom-buy-btn">
+                                        <span>📦 MỞ TÙY CHỈNH</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -90,6 +126,7 @@
                         <div class="crate-card crate-epic">
                             <div class="crate-card-header">
                                 <span class="crate-title">EPIC CRATE</span>
+                                <span class="crate-price-unit-tag">Đơn giá: 💎 150 / Rương</span>
                             </div>
                             <div class="crate-card-body">
                                 <div class="crate-visual-box">
@@ -110,15 +147,36 @@
                                 </div>
                             </div>
                             <div class="crate-card-footer">
-                                <button id="btn-open-epic-1" class="btn-3d btn-3d-yellow crate-buy-btn">
-                                    <span class="buy-label">OPEN X1</span>
-                                    <span class="buy-price">💎 150</span>
-                                </button>
-                                <button id="btn-open-epic-10" class="btn-3d btn-3d-amber crate-buy-btn">
-                                    <span class="discount-pill">-10%</span>
-                                    <span class="buy-label">OPEN X10</span>
-                                    <span class="buy-price">💎 1350</span>
-                                </button>
+                                <div class="crate-quick-btns">
+                                    <button id="btn-open-epic-1" class="btn-3d btn-3d-yellow crate-buy-btn">
+                                        <span class="buy-label">OPEN X1</span>
+                                        <span class="buy-price">💎 150</span>
+                                    </button>
+                                    <button id="btn-open-epic-10" class="btn-3d btn-3d-amber crate-buy-btn">
+                                        <span class="discount-pill">-10%</span>
+                                        <span class="buy-label">OPEN X10</span>
+                                        <span class="buy-price">💎 1,350</span>
+                                    </button>
+                                </div>
+
+                                <!-- Khu vực nhập số lượng rương Epic tùy chỉnh -->
+                                <div class="crate-custom-row">
+                                    <div class="custom-input-wrap">
+                                        <span class="custom-input-label">Số lượng:</span>
+                                        <input
+                                            id="input-custom-epic-count"
+                                            type="number"
+                                            min="1"
+                                            max="999"
+                                            value="20"
+                                            placeholder="Nhập số rương..."
+                                            class="crate-custom-input"
+                                        />
+                                    </div>
+                                    <button id="btn-open-epic-custom" class="btn-3d btn-3d-green crate-custom-buy-btn">
+                                        <span>📦 MỞ TÙY CHỈNH</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -139,24 +197,26 @@
                                 <button id="btn-next-stage" class="btn-3d btn-nav-arrow" title="Map tiếp theo">▶</button>
                             </div>
 
-                            <!-- Cụm chọn 3 Độ khó: Easy - Normal - Difficult -->
-                            <div class="difficulty-selector-bar">
+                            <!-- Cụm chọn 2 Độ khó: Dễ (Easy) & Khó (Hard/Difficult) -->
+                            <div class="difficulty-selector-bar two-modes">
                                 <button id="diff-btn-easy" data-diff="easy" class="diff-pill-btn active">
-                                    <span class="diff-name">EASY</span>
+                                    <span class="diff-icon">⚔️</span>
+                                    <span class="diff-name">CHẾ ĐỘ DỄ</span>
                                     <span id="diff-status-easy" class="diff-status">★</span>
                                 </button>
-                                <button id="diff-btn-normal" data-diff="normal" class="diff-pill-btn">
-                                    <span class="diff-name">NORMAL</span>
-                                    <span id="diff-status-normal" class="diff-status">🔒</span>
-                                </button>
                                 <button id="diff-btn-difficult" data-diff="difficult" class="diff-pill-btn">
-                                    <span class="diff-name">DIFFICULT</span>
+                                    <span class="diff-icon">💀</span>
+                                    <span class="diff-name">CHẾ ĐỘ KHÓ</span>
                                     <span id="diff-status-difficult" class="diff-status">🔒</span>
                                 </button>
                             </div>
 
+                            <!-- Thanh thông tin chế độ chơi & phần thưởng -->
                             <div id="diff-info-banner" class="diff-info-strip">
-                                Quái: <b>1.0x HP & DMG</b> • Thưởng thắng: <b class="text-amber-300">🪙 200 Coins</b>
+                                Mục tiêu: <b>Phá hủy Căn cứ Đỏ</b> • Thưởng: <b class="text-amber-300">🪙 200 Coins</b>
+                            </div>
+                            <div id="diff-mode-mechanic-badge" class="diff-mechanic-substrip">
+                                💡 Thắng chế độ <b>DỄ</b> sẽ mở khóa ngay Map tiếp theo & chế độ <b>KHÓ</b>!
                             </div>
                         </div>
 
@@ -206,7 +266,7 @@
                 <div id="tab-army" class="lobby-tab-pane">
                     <div class="army-tab-layout">
 
-                        <!-- Nửa trên: Nhân vật đại diện ở chính giữa trên nền sáng (Không có 6 ô đồ, không có thanh chỉ số tổng) -->
+                        <!-- Nửa trên: Nhân vật đại diện ở chính giữa trên nền sáng -->
                         <div class="army-Hero-stage">
                             <div class="army-pedestal-circle"></div>
                             <canvas id="army-hero-showcase" width="128" height="128" class="army-showcase-canvas pixel-art"></canvas>
@@ -230,12 +290,15 @@
 
                             <!-- Chế độ 1: ARMY (Danh sách 11 binh chủng & Nâng cấp bằng Coins) -->
                             <div id="army-list-view" class="army-subview active">
+                                <div class="army-cost-rule-banner">
+                                    🪙 <b>Ưu đãi nâng cấp:</b> Giá giữ cố định mỗi <b>5 Level</b> (Lv 1-5, Lv 6-10, Lv 11-15...)!
+                                </div>
                                 <div id="army-units-grid" class="army-cards-grid"></div>
                             </div>
 
-                            <!-- Chế độ 2: MERGE (Ghép 2 thẻ cùng loại & cùng độ hiếm) -->
+                            <!-- Chế độ 2: MERGE (Ghép 2 thẻ cùng loại & cùng độ hiếm + AUTO MERGE) -->
                             <div id="army-merge-view" class="army-subview">
-                                <!-- Bàn ghép tướng -->
+                                <!-- Bàn ghép tướng thủ công & Nút Auto Merge -->
                                 <div class="merge-workbench">
                                     <div id="merge-slot-1" class="merge-slot" title="Bấm để bỏ chọn">
                                         <span class="merge-slot-placeholder">+ THẺ 1</span>
@@ -248,12 +311,17 @@
                                     <div id="merge-slot-result" class="merge-slot result-slot">
                                         <span class="merge-slot-placeholder">KẾT QUẢ</span>
                                     </div>
-                                    <button id="btn-execute-merge" class="btn-3d btn-3d-amber merge-action-btn" disabled>
-                                        MERGE
-                                    </button>
+                                    <div class="merge-btns-stack">
+                                        <button id="btn-execute-merge" class="btn-3d btn-3d-amber merge-action-btn" disabled>
+                                            MERGE
+                                        </button>
+                                        <button id="btn-auto-merge" class="btn-3d btn-3d-green auto-merge-action-btn" title="Tự động ghép toàn bộ cặp thẻ hợp lệ trong kho">
+                                            ⚡ AUTO MERGE
+                                        </button>
+                                    </div>
                                 </div>
                                 <div id="merge-hint-text" class="merge-hint-bar">
-                                    Chọn 2 thẻ tướng <b>cùng tên & cùng độ hiếm</b> để tiến hóa bậc cao hơn (+1 Level vĩnh viễn)!
+                                    Chọn 2 thẻ <b>cùng tên & cùng độ hiếm</b> hoặc bấm <b>⚡ AUTO MERGE</b> để ghép tất cả (+1 Level/lần ghép)!
                                 </div>
                                 <!-- Kho thẻ đang sở hữu -->
                                 <div id="merge-inventory-grid" class="army-cards-grid merge-inv-scroll"></div>
@@ -314,7 +382,128 @@
             </div>
         </div>
 
-        <!-- 2. POPUP NHIỆM VỤ (MISSIONS) -->
+        <!-- 2. POPUP CÀI ĐẶT & HỆ THỐNG QUYỀN ADMIN (SETTINGS / ADMIN MODAL) -->
+        <div id="settings-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box">
+                <div class="bright-modal-header settings-header-grad">
+                    <h3 class="bright-modal-title">⚙️ CÀI ĐẶT & QUYỀN ADMIN</h3>
+                    <button id="btn-close-settings" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body">
+                    <!-- Trạng thái chế độ hiện tại -->
+                    <div class="settings-status-card">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-extrabold text-slate-600">CHẾ ĐỘ HIỆN TẠI:</span>
+                            <span id="settings-mode-badge" class="mode-pill-normal">NGƯỜI CHƠI THƯỜNG</span>
+                        </div>
+                        <p id="settings-mode-desc" class="text-[11px] font-bold text-slate-600 mt-1.5 leading-snug">
+                            Tài nguyên và tiến trình mở khóa Map đang áp dụng theo dữ liệu lưu thực tế.
+                        </p>
+                    </div>
+
+                    <!-- Khối dành cho khi đang ở Chế độ Người chơi thường: Mở form nhập mật khẩu Admin -->
+                    <div id="admin-login-section" class="admin-panel-box mt-3">
+                        <button id="btn-toggle-admin-form" class="btn-3d btn-3d-amber w-full py-2.5 text-xs flex items-center justify-center gap-1.5">
+                            <span>🔐</span>
+                            <span>VÀO CHẾ ĐỘ ADMIN</span>
+                        </button>
+
+                        <div id="admin-password-form" class="admin-pass-form hidden mt-3">
+                            <label class="block text-[11px] font-extrabold text-slate-700 mb-1.5 text-center">
+                                Nhập mật khẩu xác thực quyền Admin:
+                            </label>
+                            <input
+                                id="admin-password-input"
+                                type="password"
+                                placeholder="Nhập mật khẩu Admin..."
+                                class="bright-input-field text-xs"
+                            />
+                            <p id="admin-auth-feedback" class="text-[11px] font-extrabold mt-1.5 text-center hidden"></p>
+                            <button id="btn-submit-admin-pass" class="btn-3d btn-3d-green w-full py-2 mt-2.5 text-xs">
+                                XÁC NHẬN KÍCH HOẠT ADMIN
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Khối dành cho khi đang ở Chế độ Admin: Nút quay lại chế độ người chơi thường -->
+                    <div id="admin-active-section" class="admin-panel-box active-admin-box mt-3 hidden">
+                        <div class="text-xs font-extrabold text-amber-900 mb-2 text-center">
+                            👑 ĐANG KÍCH HOẠT ĐẶC QUYỀN ADMIN:
+                        </div>
+                        <ul class="text-[11px] font-bold text-slate-700 space-y-1 mb-3 pl-2">
+                            <li>• Kim cương (💎) & Vàng (🪙) vô tận (<b>∞</b>)</li>
+                            <li>• Mua Gacha & Nâng cấp quân không tốn tài nguyên</li>
+                            <li>• Mở khóa toàn bộ <b>15/15 Map</b> (cả chế độ Dễ & Khó)</li>
+                        </ul>
+                        <button id="btn-Return-normal-mode" class="btn-3d btn-3d-rose w-full py-2.5 text-xs">
+                            🔄 QUAY LẠI CHẾ ĐỘ NGƯỜI CHƠI THƯỜNG
+                        </button>
+                    </div>
+
+                    <!-- Tiện ích phụ trong Cài đặt -->
+                    <div class="settings-extra-actions mt-3 pt-3 border-t-2 border-slate-200 flex gap-2">
+                        <button id="btn-settings-rename" class="btn-3d btn-3d-slate flex-1 py-2 text-[11px]">
+                            ✏️ ĐỔI TÊN
+                        </button>
+                        <button id="btn-settings-sound" class="btn-3d btn-3d-slate flex-1 py-2 text-[11px]">
+                            🔊 ÂM THANH: BẬT
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. POPUP XÁC NHẬN MỞ RƯƠNG TÙY CHỈNH & TÍNH CHIẾT KHẤU (CUSTOM GACHA CONFIRM MODAL) -->
+        <div id="gacha-confirm-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box">
+                <div class="bright-modal-header">
+                    <h3 class="bright-modal-title">📦 XÁC NHẬN MỞ RƯƠNG</h3>
+                    <button id="btn-close-gacha-confirm" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body">
+                    <div class="gacha-confirm-summary-card">
+                        <div id="gacha-conf-crate-title" class="text-sm font-black text-amber-600 text-center mb-2">
+                            LEGENDARY CRATE
+                        </div>
+                        <div class="gacha-calc-row">
+                            <span>Số lượng rương mở:</span>
+                            <b id="gacha-conf-qty" class="text-slate-900">20 rương</b>
+                        </div>
+                        <div class="gacha-calc-row">
+                            <span>Giá gốc chưa giảm:</span>
+                            <span id="gacha-conf-raw-cost" class="line-through text-slate-500 font-bold">💎 6,000</span>
+                        </div>
+                        <div class="gacha-calc-row">
+                            <span>Chiết khấu (10% mỗi cụm 10 rương):</span>
+                            <b id="gacha-conf-discount-tag" class="text-emerald-600">-10% (2 cụm 10)</b>
+                        </div>
+                        <div class="gacha-calc-row">
+                            <span>Tiết kiệm được:</span>
+                            <b id="gacha-conf-saved" class="text-emerald-600">💎 600</b>
+                        </div>
+                        <div class="gacha-calc-total-row">
+                            <span>TỔNG THANH TOÁN:</span>
+                            <span id="gacha-conf-final-cost" class="gacha-final-price-badge">💎 5,400</span>
+                        </div>
+                    </div>
+
+                    <p id="gacha-conf-error" class="text-[11px] font-extrabold text-rose-600 text-center mt-2 hidden">
+                        ⚠️ Bạn không đủ Gems để mở số lượng rương này!
+                    </p>
+
+                    <div class="flex gap-2 mt-4">
+                        <button id="btn-cancel-custom-gacha" class="btn-3d btn-3d-slate flex-1 py-2.5 text-xs">
+                            HỦY BỎ
+                        </button>
+                        <button id="btn-confirm-custom-gacha" class="btn-3d btn-3d-green flex-1 py-2.5 text-xs">
+                            ✨ XÁC NHẬN MỞ
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. POPUP NHIỆM VỤ (MISSIONS) -->
         <div id="mission-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header">
@@ -323,14 +512,14 @@
                 </div>
                 <div class="bright-modal-body">
                     <p class="text-[11px] font-bold text-slate-600 mb-2 text-center">
-                        Hoàn thành các thử thách độ khó cao để nhận <b>💎 Gems</b> mở rương tướng!
+                        Hoàn thành các thử thách để nhận <b>💎 Gems</b> mở rương tướng!
                     </p>
                     <div id="mission-list-container" class="mission-scroll-list"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 3. POPUP NHẬP GIFTCODE -->
+        <!-- 5. POPUP NHẬP GIFTCODE (10 CODE DÙNG 1 LẦN) -->
         <div id="code-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header">
@@ -338,30 +527,47 @@
                     <button id="btn-close-code" class="bright-close-btn">✕</button>
                 </div>
                 <div class="bright-modal-body text-center">
-                    <p class="text-xs font-bold text-slate-700 mb-3">
-                        Nhập mã quà tặng từ nhà phát triển để nhận tài nguyên đặc biệt:
+                    <p class="text-xs font-bold text-slate-700 mb-1">
+                        Nhập mã quà tặng chính thức để nhận phần thưởng
+                    </p>
+                    <p class="text-[10.5px] font-bold text-slate-500 mb-2.5">
+                        (Mỗi mã Giftcode chỉ được sử dụng 1 lần duy nhất)
                     </p>
                     <input
                         id="giftcode-input"
                         type="text"
-                        placeholder="Nhập mã code tại đây..."
+                        placeholder="VD: HUNGDZ01..."
                         class="bright-input-field uppercase"
                     />
                     <p id="giftcode-feedback" class="text-xs font-extrabold mt-2 hidden"></p>
-                    <button id="btn-submit-code" class="btn-3d btn-3d-green w-full py-2.5 mt-4 text-sm">
+                    <button id="btn-submit-code" class="btn-3d btn-3d-green w-full py-2.5 mt-3 text-sm">
                         NHẬN QUÀ NGAY
                     </button>
+
+                    <!-- Thống kê các mã code đã sử dụng -->
+                    <div class="giftcode-status-box mt-3 pt-2.5 border-t-2 border-slate-200 text-left">
+                        <div class="flex items-center justify-between text-[11px] font-extrabold text-slate-600 mb-1">
+                            <span>Mã đã kích hoạt:</span>
+                            <span id="giftcode-used-count" class="text-sky-700">0 / 10 mã</span>
+                        </div>
+                        <div id="giftcode-used-tags" class="giftcode-tags-wrap">
+                            <span class="text-[10px] text-slate-400 italic">Chưa có mã nào được nhập</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- 4. POPUP KẾT QUẢ MỞ RƯƠNG GACHA -->
+        <!-- 6. POPUP KẾT QUẢ MỞ RƯƠNG GACHA -->
         <div id="gacha-result-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header">
                     <h3 id="gacha-modal-title" class="bright-modal-title">🎉 KẾT QUẢ MỞ RƯƠNG</h3>
                 </div>
                 <div class="bright-modal-body text-center">
+                    <div id="gacha-summary-banner" class="gacha-result-summary-strip">
+                        Đã nhận <b id="gacha-total-pulled">1</b> thẻ tướng vào kho!
+                    </div>
                     <div id="gacha-cards-grid" class="gacha-results-grid"></div>
                     <button id="btn-close-gacha" class="btn-3d btn-3d-amber w-full py-2.5 mt-4 text-sm">
                         THU NHẬN VÀO KHO
@@ -370,7 +576,26 @@
             </div>
         </div>
 
-        <!-- 5. POPUP CHI TIẾT & NÂNG CẤP TƯỚNG BẰNG VÀNG (ARMY UPGRADE MODAL) -->
+        <!-- 7. POPUP KẾT QUẢ TỰ ĐỘNG GHÉP QUÂN (AUTO MERGE SUMMARY MODAL) -->
+        <div id="auto-merge-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box modal-wide">
+                <div class="bright-modal-header">
+                    <h3 class="bright-modal-title">⚡ TỔNG KẾT AUTO MERGE</h3>
+                    <button id="btn-close-auto-merge-x" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body text-center">
+                    <p id="auto-merge-summary-text" class="text-xs font-extrabold text-slate-700 mb-2.5">
+                        Hệ thống đã tự động hợp nhất thành công các cặp thẻ hợp lệ!
+                    </p>
+                    <div id="auto-merge-results-grid" class="gacha-results-grid"></div>
+                    <button id="btn-close-auto-merge" class="btn-3d btn-3d-green w-full py-2.5 mt-4 text-sm">
+                        HOÀN TẤT & ĐÓNG
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. POPUP CHI TIẾT & NÂNG CẤP TƯỚNG BẰNG VÀNG (ARMY UPGRADE MODAL) -->
         <div id="unit-upgrade-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header">
@@ -390,6 +615,9 @@
                             <p id="upg-modal-role" class="text-[11px] font-bold text-slate-600 mt-1">Đi bộ • Tầm gần</p>
                             <p id="upg-modal-mult-info" class="text-[10px] font-extrabold text-sky-700 mt-0.5">
                                 Hệ số Độ hiếm: 1.0x HP & DMG
+                            </p>
+                            <p id="upg-modal-tier-bracket" class="text-[10px] font-extrabold text-amber-600 mt-0.5">
+                                Khung giá cố định: Cấp 1 - 5
                             </p>
                         </div>
                     </div>
@@ -426,8 +654,20 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- GIAO DIỆN CHIẾN ĐẤU TRONG TRẬN (IN-GAME BATTLE UI - GIỮ NGUYÊN) -->
+        <!-- GIAO DIỆN CHIẾN ĐẤU TRONG TRẬN (IN-GAME BATTLE UI)             -->
         <!-- ============================================================== -->
+
+        <!-- BANNER CẢNH BÁO BOSS KHỔNG LỒ XUẤT HIỆN (WAVE 5 & WAVE 10 CHẾ ĐỘ KHÓ) -->
+        <div id="boss-warning-banner" class="boss-alert-banner hidden">
+            <div class="boss-alert-inner">
+                <span class="boss-skull-icon">☠️</span>
+                <div class="boss-alert-text-block">
+                    <div id="boss-alert-title" class="boss-alert-title">CẢNH BÁO BOSS KHỔNG LỒ!</div>
+                    <div id="boss-alert-sub" class="boss-alert-sub">Siêu Boss hạng nặng đã xuất hiện tại chiến trường!</div>
+                </div>
+                <span class="boss-skull-icon">☠️</span>
+            </div>
+        </div>
 
         <!-- POPUP ROGUELIKE CHỌN 1 TRONG 3 THẺ BÀI TRONG TRẬN (DRAFTING MODAL) -->
         <div id="draft-modal" class="draft-overlay">
@@ -532,7 +772,7 @@
                 <span class="text-4xl">🏆</span>
             </div>
             <h1 class="text-4xl font-extrabold text-white tracking-wider drop-shadow mb-1">CHIẾN THẮNG!</h1>
-            <p id="win-subtitle" class="text-sky-200 text-sm font-semibold mb-2">Đã đẩy lùi toàn bộ 10 Đợt tiến công!</p>
+            <p id="win-subtitle" class="text-sky-200 text-sm font-semibold mb-2">Đã hoàn thành nhiệm vụ chiến dịch!</p>
 
             <div class="bg-amber-400/20 border-2 border-amber-300 rounded-full px-4 py-1 mb-4 flex items-center gap-1.5 shadow">
                 <span class="text-xs font-bold text-amber-200">THƯỞNG CHIẾN THẮNG:</span>
@@ -585,7 +825,7 @@
                     <div id="lose-time" class="text-lg font-bold text-white">00:00</div>
                 </div>
                 <div>
-                    <div class="text-[11px] text-slate-400">Đợt (Wave) dừng lại</div>
+                    <div class="text-[11px] text-slate-400">Tiến trình dừng lại</div>
                     <div id="lose-wave" class="text-lg font-bold text-rose-400">Wave 1 / 10</div>
                 </div>
                 <div>

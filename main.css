@@ -80,12 +80,12 @@ canvas {
     animation: popIn 0.2s ease-out;
 }
 
-/* 1. TOP BAR: AVATAR + TÊN | GEMS + COINS */
+/* 1. TOP BAR: AVATAR + TÊN + SETTING GEAR | GEMS + COINS */
 .lobby-top-bar {
-    height: 54px;
+    height: 56px;
     background: #334155;
     border-bottom: 3.5px solid #0f172a;
-    padding: 6px 10px;
+    padding: 6px 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -94,14 +94,20 @@ canvas {
     z-index: 5;
 }
 
+.profile-settings-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .player-profile-pill {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     background: #1e293b;
     border: 2.5px solid #0f172a;
     border-radius: 12px;
-    padding: 3px 10px 3px 4px;
+    padding: 3px 8px 3px 4px;
     cursor: pointer;
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12);
     transition: transform 0.1s ease;
@@ -121,48 +127,120 @@ canvas {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    flex-shrink: 0;
+}
+
+.player-name-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
 }
 
 .player-name-text {
     color: #ffffff;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 800;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     text-shadow: 0 2px 0 #0f172a;
-    max-width: 110px;
+    max-width: 92px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    line-height: 1.1;
+}
+
+.admin-status-mini-badge {
+    background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+    color: #ffffff;
+    font-size: 8.5px;
+    font-weight: 900;
+    padding: 0.5px 5px;
+    border-radius: 999px;
+    border: 1.5px solid #0f172a;
+    line-height: 1.1;
+    margin-top: 1px;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+}
+
+/* Nút Setting (Bánh răng) bên cạnh Profile */
+.btn-settings-gear {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    border: 2.5px solid #0f172a;
+    background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.65);
+    transition: transform 0.1s ease, filter 0.15s ease;
+    flex-shrink: 0;
+}
+
+.btn-settings-gear:hover {
+    filter: brightness(1.06);
+}
+
+.btn-settings-gear:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0f172a;
+}
+
+.btn-settings-gear.admin-active-gear {
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    border-color: #0f172a;
+    box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.85);
+}
+
+.gear-icon {
+    font-size: 18px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 0 rgba(15, 23, 42, 0.4));
 }
 
 .currency-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .currency-pill {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     background: #1e293b;
     border: 2.5px solid #0f172a;
     border-radius: 999px;
-    padding: 3px 10px 3px 6px;
-    min-width: 78px;
+    padding: 3px 9px 3px 6px;
+    min-width: 72px;
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.currency-pill.admin-infinite-pill {
+    border-color: #fde047;
+    background: linear-gradient(180deg, #422006 0%, #1e293b 100%);
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .currency-icon {
-    font-size: 14px;
+    font-size: 13.5px;
     filter: drop-shadow(0 1.5px 0 #0f172a);
 }
 
 .currency-val {
     color: #ffffff;
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 800;
     text-shadow: 0 1.5px 0 #0f172a;
+}
+
+.currency-pill.admin-infinite-pill .currency-val {
+    color: #fde047;
+    font-size: 16px;
+    line-height: 0.9;
 }
 
 /* 2. MAIN CONTENT VIEW */
@@ -229,20 +307,30 @@ canvas {
     color: #ffffff;
 }
 
+.btn-3d-rose {
+    background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
+    color: #ffffff;
+}
+
+.btn-3d-slate {
+    background: linear-gradient(180deg, #94a3b8 0%, #475569 100%);
+    color: #ffffff;
+}
+
 /* ==================== TAB BATTLE ==================== */
 .battle-tab-layout {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 10px 10px 14px 10px;
+    padding: 8px 10px 12px 10px;
 }
 
 .battle-header-zone {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 
 .map-selector-row {
@@ -273,7 +361,7 @@ canvas {
 
 .map-big-title {
     margin: 0;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: 0.8px;
@@ -284,59 +372,55 @@ canvas {
 
 .map-sub-progress {
     margin: 2px 0 0 0;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 800;
     color: #fef08a;
     text-shadow: 0 1.5px 0 #0f172a;
     letter-spacing: 0.6px;
 }
 
-/* Cụm 3 nút Độ khó Easy - Normal - Difficult */
-.difficulty-selector-bar {
+/* Cụm 2 nút Độ khó: Dễ (Easy) & Khó (Difficult) */
+.difficulty-selector-bar.two-modes {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
     width: 100%;
     max-width: 340px;
-    background: rgba(15, 23, 42, 0.35);
+    background: rgba(15, 23, 42, 0.38);
     padding: 4px;
     border-radius: 14px;
     border: 2.5px solid #0f172a;
 }
 
 .diff-pill-btn {
-    border: 2px solid #0f172a;
+    border: 2.5px solid #0f172a;
     border-radius: 10px;
-    padding: 5px 4px;
+    padding: 6px 8px;
     background: #334155;
     color: #cbd5e1;
     font-weight: 800;
-    font-size: 11px;
+    font-size: 11.5px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 5px;
     transition: all 0.12s ease;
-    box-shadow: 0 2px 0 #0f172a;
+    box-shadow: 0 2.5px 0 #0f172a;
 }
 
 .diff-pill-btn.active[data-diff="easy"] {
     background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
     color: #ffffff;
     text-shadow: 0 1.5px 0 #0f172a;
-}
-
-.diff-pill-btn.active[data-diff="normal"] {
-    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
-    color: #ffffff;
-    text-shadow: 0 1.5px 0 #0f172a;
+    transform: translateY(-1px);
 }
 
 .diff-pill-btn.active[data-diff="difficult"] {
     background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
     color: #ffffff;
     text-shadow: 0 1.5px 0 #0f172a;
+    transform: translateY(-1px);
 }
 
 .diff-pill-btn.locked {
@@ -344,12 +428,27 @@ canvas {
     cursor: not-allowed;
 }
 
+.diff-icon {
+    font-size: 13px;
+}
+
 .diff-info-strip {
-    background: rgba(15, 23, 42, 0.78);
+    background: rgba(15, 23, 42, 0.82);
     border: 2px solid #0f172a;
     color: #f8fafc;
-    font-size: 11px;
+    font-size: 10.5px;
     padding: 3px 12px;
+    border-radius: 999px;
+    text-align: center;
+}
+
+.diff-mechanic-substrip {
+    font-size: 10px;
+    font-weight: 700;
+    color: #0f172a;
+    background: rgba(254, 240, 138, 0.9);
+    border: 1.5px solid #0f172a;
+    padding: 1.5px 10px;
     border-radius: 999px;
 }
 
@@ -359,7 +458,8 @@ canvas {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    my: auto;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .battle-side-column {
@@ -437,7 +537,7 @@ canvas {
 .map-canvas-frame {
     position: relative;
     width: 168px;
-    height: 224px;
+    height: 214px;
     border-radius: 12px;
     border: 3px solid #0f172a;
     overflow: hidden;
@@ -489,27 +589,27 @@ canvas {
 }
 
 .map-demo-desc {
-    margin: 7px 0 2px 0;
+    margin: 6px 0 2px 0;
     font-size: 10.5px;
     font-weight: 700;
     color: #e2e8f0;
     text-align: center;
     line-height: 1.3;
-    min-height: 28px;
+    min-height: 26px;
 }
 
 .battle-footer-zone {
     display: flex;
     justify-content: center;
-    padding-top: 4px;
+    padding-top: 2px;
 }
 
 .btn-start-huge {
     width: 220px;
-    padding: 13px 24px;
+    padding: 12px 24px;
     background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
     color: #ffffff;
-    font-size: 26px;
+    font-size: 25px;
     font-weight: 900;
     letter-spacing: 2px;
     border-radius: 18px;
@@ -519,7 +619,7 @@ canvas {
     box-shadow: 0 6px 0 #0f172a, inset 0 3px 0 rgba(255, 255, 255, 0.55);
 }
 
-/* ==================== TAB SHOP (GACHA CRATES) ==================== */
+/* ==================== TAB SHOP (GACHA CRATES + CUSTOM INPUT) ==================== */
 #tab-shop {
     background:
         radial-gradient(circle at 50% 20%, rgba(192, 132, 252, 0.25) 0%, transparent 50%),
@@ -529,24 +629,35 @@ canvas {
 .shop-scroll-area {
     flex: 1;
     overflow-y: auto;
-    padding: 12px;
+    padding: 10px 12px 16px 12px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
 }
 
 .shop-banner-ribbon {
     background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
     border: 3px solid #0f172a;
     border-radius: 12px;
-    padding: 6px 12px;
+    padding: 5px 12px;
     text-align: center;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 900;
     color: #ffffff;
     -webkit-text-stroke: 1px #0f172a;
     text-shadow: 0 2px 0 #0f172a;
     box-shadow: 0 4px 0 #0f172a;
+}
+
+.shop-discount-notice {
+    background: rgba(15, 23, 42, 0.72);
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 5px 10px;
+    font-size: 10.5px;
+    color: #e2e8f0;
+    text-align: center;
+    line-height: 1.3;
 }
 
 .crate-card {
@@ -556,45 +667,58 @@ canvas {
     box-shadow: 0 6px 0 rgba(15, 23, 42, 0.65);
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
 }
 
 .crate-legendary {
-    background: linear-gradient(180deg, #fb923c 0%, #facc15 65%, #1e293b 65%, #1e293b 100%);
+    background: linear-gradient(180deg, #fb923c 0%, #facc15 54%, #1e293b 54%, #1e293b 100%);
 }
 
 .crate-epic {
-    background: linear-gradient(180deg, #c084fc 0%, #9333ea 65%, #1e293b 65%, #1e293b 100%);
+    background: linear-gradient(180deg, #c084fc 0%, #9333ea 54%, #1e293b 54%, #1e293b 100%);
 }
 
 .crate-card-header {
-    padding: 7px 12px;
+    padding: 6px 12px;
     border-bottom: 2.5px solid rgba(15, 23, 42, 0.35);
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .crate-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 900;
     color: #ffffff;
-    letter-spacing: 1px;
-    -webkit-text-stroke: 1.2px #0f172a;
-    text-shadow: 0 2.5px 0 #0f172a;
+    letter-spacing: 0.8px;
+    -webkit-text-stroke: 1.1px #0f172a;
+    text-shadow: 0 2px 0 #0f172a;
+}
+
+.crate-price-unit-tag {
+    background: rgba(15, 23, 42, 0.78);
+    color: #fde047;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1.5px solid #0f172a;
 }
 
 .crate-card-body {
     display: flex;
     align-items: center;
-    padding: 10px 12px;
-    gap: 12px;
+    padding: 8px 10px;
+    gap: 10px;
 }
 
 .crate-visual-box {
     position: relative;
-    width: 96px;
-    height: 96px;
+    width: 84px;
+    height: 84px;
     background: rgba(15, 23, 42, 0.28);
     border: 2.5px solid #0f172a;
-    border-radius: 16px;
+    border-radius: 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -603,40 +727,40 @@ canvas {
 }
 
 .crate-art-icon {
-    font-size: 44px;
+    font-size: 38px;
     filter: drop-shadow(0 4px 0 #0f172a);
 }
 
 .crate-rate-tag {
-    font-size: 8.5px;
+    font-size: 8px;
     font-weight: 800;
     color: #fef08a;
     background: #0f172a;
-    padding: 1.5px 6px;
+    padding: 1.5px 5px;
     border-radius: 999px;
-    margin-top: 3px;
+    margin-top: 2px;
 }
 
 .crate-info-box {
     flex: 1;
-    background: rgba(15, 23, 42, 0.72);
+    background: rgba(15, 23, 42, 0.78);
     border: 2px solid #0f172a;
     border-radius: 12px;
-    padding: 8px;
+    padding: 7px 8px;
     color: #ffffff;
 }
 
 .crate-desc-main {
-    margin: 0 0 6px 0;
-    font-size: 11px;
-    line-height: 1.3;
+    margin: 0 0 4px 0;
+    font-size: 10.5px;
+    line-height: 1.25;
 }
 
 .crate-odds-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 2px 6px;
-    font-size: 9.5px;
+    font-size: 9px;
     font-weight: 700;
     color: #cbd5e1;
 }
@@ -644,16 +768,22 @@ canvas {
 .crate-card-footer {
     background: #1e293b;
     border-top: 3px solid #0f172a;
-    padding: 10px 12px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.crate-quick-btns {
     display: flex;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 .crate-buy-btn {
     position: relative;
     flex: 1;
-    padding: 7px 10px;
+    padding: 5px 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -661,12 +791,12 @@ canvas {
 }
 
 .buy-label {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 900;
 }
 
 .buy-price {
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 800;
     color: #fef08a;
 }
@@ -684,7 +814,56 @@ canvas {
     border-radius: 999px;
 }
 
-/* ==================== TAB ARMY (QUÂN ĐỘI & MERGE) ==================== */
+/* Hàng nhập số lượng rương tùy chỉnh */
+.crate-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0f172a;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 5px 6px;
+}
+
+.custom-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+}
+
+.custom-input-label {
+    font-size: 10px;
+    font-weight: 800;
+    color: #94a3b8;
+    white-space: nowrap;
+    padding-left: 4px;
+}
+
+.crate-custom-input {
+    width: 100%;
+    background: #1e293b;
+    border: 2px solid #475569;
+    border-radius: 8px;
+    padding: 4px 6px;
+    color: #fde047;
+    font-size: 13px;
+    font-weight: 900;
+    text-align: center;
+    outline: none;
+}
+
+.crate-custom-input:focus {
+    border-color: #38bdf8;
+}
+
+.crate-custom-buy-btn {
+    padding: 6px 10px;
+    font-size: 10.5px;
+    white-space: nowrap;
+}
+
+/* ==================== TAB ARMY (QUÂN ĐỘI & MERGE + AUTO MERGE) ==================== */
 .army-tab-layout {
     flex: 1;
     display: flex;
@@ -692,9 +871,8 @@ canvas {
     overflow: hidden;
 }
 
-/* Nửa trên: Nhân vật đại diện ở chính giữa */
 .army-Hero-stage {
-    height: 175px;
+    height: 162px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -705,17 +883,17 @@ canvas {
 
 .army-pedestal-circle {
     position: absolute;
-    bottom: 24px;
-    width: 126px;
-    height: 34px;
+    bottom: 20px;
+    width: 122px;
+    height: 32px;
     background: rgba(15, 23, 42, 0.28);
     border: 3px solid #0f172a;
     border-radius: 50%;
 }
 
 .army-showcase-canvas {
-    width: 112px;
-    height: 112px;
+    width: 106px;
+    height: 106px;
     z-index: 2;
     filter: drop-shadow(0 6px 0 rgba(15, 23, 42, 0.55));
 }
@@ -729,14 +907,13 @@ canvas {
 }
 
 .showcase-unit-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 900;
     color: #ffffff;
     -webkit-text-stroke: 1px #0f172a;
     text-shadow: 0 2px 0 #0f172a;
 }
 
-/* Nửa dưới: Panel danh sách ARMY & MERGE */
 .army-bottom-panel {
     flex: 1;
     background: #334155;
@@ -750,15 +927,15 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 10px;
+    padding: 7px 10px;
     background: #1e293b;
     border-bottom: 3px solid #0f172a;
     flex-shrink: 0;
 }
 
 .army-mode-btn {
-    padding: 6px 14px;
-    font-size: 11.5px;
+    padding: 5px 13px;
+    font-size: 11px;
     background: #475569;
     color: #cbd5e1;
 }
@@ -769,7 +946,7 @@ canvas {
 }
 
 .army-panel-heading {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: 0.5px;
@@ -781,11 +958,23 @@ canvas {
     display: none;
     flex-direction: column;
     overflow: hidden;
-    padding: 8px;
+    padding: 7px 8px;
 }
 
 .army-subview.active {
     display: flex;
+}
+
+.army-cost-rule-banner {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1.5px solid #0f172a;
+    color: #fef08a;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 6px;
+    flex-shrink: 0;
 }
 
 .army-cards-grid {
@@ -796,7 +985,7 @@ canvas {
     padding-bottom: 8px;
 }
 
-/* Thẻ Quân đội & Độ hiếm (6 Bậc Rarity) */
+/* Thẻ Quân đội & Độ hiếm (7 Bậc Rarity) */
 .army-unit-card {
     position: relative;
     border: 3px solid #0f172a;
@@ -904,7 +1093,7 @@ canvas {
     margin-top: 2px;
 }
 
-/* Giao diện Bàn Ghép Tướng (MERGE WORKBENCH) */
+/* Giao diện Bàn Ghép Tướng (MERGE WORKBENCH + AUTO MERGE) */
 .merge-workbench {
     display: flex;
     align-items: center;
@@ -912,14 +1101,14 @@ canvas {
     background: #1e293b;
     border: 3px solid #0f172a;
     border-radius: 14px;
-    padding: 7px 8px;
-    gap: 5px;
+    padding: 6px 7px;
+    gap: 4px;
     flex-shrink: 0;
 }
 
 .merge-slot {
-    width: 58px;
-    height: 64px;
+    width: 54px;
+    height: 62px;
     border: 2.5px dashed #64748b;
     border-radius: 10px;
     background: #0f172a;
@@ -929,6 +1118,7 @@ canvas {
     justify-content: center;
     cursor: pointer;
     position: relative;
+    flex-shrink: 0;
 }
 
 .merge-slot.result-slot {
@@ -937,34 +1127,48 @@ canvas {
 }
 
 .merge-slot-placeholder {
-    font-size: 8.5px;
+    font-size: 8px;
     font-weight: 800;
     color: #64748b;
     text-align: center;
 }
 
 .merge-plus-symbol {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 900;
     color: #fde047;
 }
 
+.merge-btns-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
 .merge-action-btn {
-    padding: 10px 10px;
-    font-size: 11px;
+    padding: 5px 8px;
+    font-size: 10px;
+    border-radius: 10px;
+}
+
+.auto-merge-action-btn {
+    padding: 5px 8px;
+    font-size: 9.5px;
+    border-radius: 10px;
+    white-space: nowrap;
 }
 
 .merge-hint-bar {
-    font-size: 10px;
+    font-size: 9.5px;
     color: #cbd5e1;
     text-align: center;
-    margin: 5px 0;
+    margin: 4px 0;
     flex-shrink: 0;
 }
 
 /* 3. BOTTOM NAVIGATION BAR: 3 TAB (SHOP - BATTLE - ARMY) */
 .lobby-bottom-nav {
-    height: 64px;
+    height: 62px;
     background: #1e293b;
     border-top: 4px solid #0f172a;
     display: grid;
@@ -1000,13 +1204,13 @@ canvas {
 }
 
 .nav-tab-icon {
-    font-size: 22px;
+    font-size: 21px;
     line-height: 1;
     filter: drop-shadow(0 2px 0 #0f172a);
 }
 
 .nav-tab-label {
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 900;
     letter-spacing: 0.8px;
     margin-top: 2px;
@@ -1028,23 +1232,26 @@ canvas {
     backdrop-filter: blur(4px);
 }
 
-.bright-modal-overlay.active {
-    display: flex;
-    animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+.bright-modal-overlay.active,
+.draft-overlay.active,
+.lobby-wrapper.active,
+.result-modal.active {
+    display: flex !important;
 }
 
 .bright-modal-box {
     width: 100%;
-    max-width: 340px;
+    max-width: 344px;
     background: #f8fafc;
     border: 4px solid #0f172a;
     border-radius: 20px;
     overflow: hidden;
     box-shadow: 0 12px 0 #0f172a, 0 20px 40px rgba(0, 0, 0, 0.65);
+    animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bright-modal-box.modal-wide {
-    max-width: 382px;
+    max-width: 386px;
 }
 
 .bright-modal-header {
@@ -1056,9 +1263,13 @@ canvas {
     justify-content: space-between;
 }
 
+.bright-modal-header.settings-header-grad {
+    background: linear-gradient(180deg, #64748b 0%, #334155 100%);
+}
+
 .bright-modal-title {
     margin: 0;
-    font-size: 16px;
+    font-size: 15.5px;
     font-weight: 900;
     color: #ffffff;
     letter-spacing: 0.6px;
@@ -1099,6 +1310,124 @@ canvas {
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
 }
 
+/* Modal Cài đặt & Admin Mode */
+.settings-status-card {
+    background: #e2e8f0;
+    border: 2.5px solid #0f172a;
+    border-radius: 14px;
+    padding: 10px 12px;
+}
+
+.mode-pill-normal {
+    background: #334155;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1.5px solid #0f172a;
+}
+
+.mode-pill-admin {
+    background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1.5px solid #0f172a;
+}
+
+.admin-panel-box {
+    background: #ffffff;
+    border: 2.5px solid #0f172a;
+    border-radius: 14px;
+    padding: 10px;
+}
+
+.admin-panel-box.active-admin-box {
+    background: #fef9c3;
+    border-color: #d97706;
+}
+
+.admin-pass-form {
+    background: #f1f5f9;
+    border: 2px dashed #64748b;
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* Modal Xác nhận mở rương Gacha tùy chỉnh */
+.gacha-confirm-summary-card {
+    background: #ffffff;
+    border: 2.5px solid #0f172a;
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gacha-calc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11.5px;
+    color: #475569;
+    font-weight: 700;
+}
+
+.gacha-calc-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 2px dashed #cbd5e1;
+    padding-top: 8px;
+    margin-top: 2px;
+    font-size: 12.5px;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.gacha-final-price-badge {
+    background: #0f172a;
+    color: #fde047;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 900;
+}
+
+.gacha-result-summary-strip {
+    background: #e2e8f0;
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+/* Giftcode Tags */
+.giftcode-tags-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 68px;
+    overflow-y: auto;
+}
+
+.used-code-pill {
+    background: #dcfce7;
+    border: 1.5px solid #16a34a;
+    color: #15803d;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 6px;
+}
+
 /* Danh sách Nhiệm vụ (Mission List) */
 .mission-scroll-list {
     max-height: 360px;
@@ -1135,12 +1464,12 @@ canvas {
     background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
 }
 
-/* Kết quả mở rương Gacha */
+/* Kết quả mở rương Gacha & Auto Merge */
 .gacha-results-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
     gap: 8px;
-    max-height: 320px;
+    max-height: 300px;
     overflow-y: auto;
     padding: 4px;
 }
@@ -1199,7 +1528,60 @@ canvas {
 }
 
 /* ============================================================================
-   GIAO DIỆN TRONG TRẬN ĐẤU (ROGUELIKE DRAFTING, HUD, BOTTOM DECK - GIỮ NGUYÊN)
+   BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN (WAVE 5 & WAVE 10 CHẾ ĐỘ KHÓ)
+   ============================================================================ */
+.boss-alert-banner {
+    position: absolute;
+    top: 122px;
+    left: 14px;
+    right: 14px;
+    z-index: 45;
+    pointer-events: none;
+    animation: bossPulse 0.45s ease-in-out infinite alternate;
+}
+
+.boss-alert-inner {
+    background: linear-gradient(90deg, rgba(127, 29, 29, 0.95) 0%, rgba(220, 38, 38, 0.96) 50%, rgba(127, 29, 29, 0.95) 100%);
+    border: 3px solid #fde047;
+    border-radius: 14px;
+    padding: 7px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 8px 25px rgba(220, 38, 38, 0.75);
+}
+
+.boss-skull-icon {
+    font-size: 24px;
+    filter: drop-shadow(0 2px 0 #0f172a);
+}
+
+.boss-alert-text-block {
+    text-align: center;
+    flex: 1;
+}
+
+.boss-alert-title {
+    font-size: 14px;
+    font-weight: 900;
+    color: #fde047;
+    letter-spacing: 0.8px;
+    text-shadow: 0 2px 0 #0f172a;
+}
+
+.boss-alert-sub {
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+@keyframes bossPulse {
+    from { transform: scale(0.98); }
+    to { transform: scale(1.03); }
+}
+
+/* ============================================================================
+   GIAO DIỆN TRONG TRẬN ĐẤU (ROGUELIKE DRAFTING, HUD, BOTTOM DECK)
    ============================================================================ */
 .draft-overlay {
     position: absolute;
