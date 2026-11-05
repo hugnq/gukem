@@ -59,6 +59,39 @@ canvas {
 }
 
 /* ============================================================================
+   THANH CUỘN TÙY CHỈNH CHO CÁC KHUNG DANH SÁCH TRÊN MOBILE
+   ============================================================================ */
+.shop-scroll-area::-webkit-scrollbar,
+.army-cards-grid::-webkit-scrollbar,
+.mission-scroll-list::-webkit-scrollbar,
+.gacha-results-grid::-webkit-scrollbar,
+.settings-modal-scroll::-webkit-scrollbar,
+.giftcode-tags-wrap::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.shop-scroll-area::-webkit-scrollbar-track,
+.army-cards-grid::-webkit-scrollbar-track,
+.mission-scroll-list::-webkit-scrollbar-track,
+.gacha-results-grid::-webkit-scrollbar-track,
+.settings-modal-scroll::-webkit-scrollbar-track,
+.giftcode-tags-wrap::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.2);
+    border-radius: 999px;
+}
+
+.shop-scroll-area::-webkit-scrollbar-thumb,
+.army-cards-grid::-webkit-scrollbar-thumb,
+.mission-scroll-list::-webkit-scrollbar-thumb,
+.gacha-results-grid::-webkit-scrollbar-thumb,
+.settings-modal-scroll::-webkit-scrollbar-thumb,
+.giftcode-tags-wrap::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.55);
+    border-radius: 999px;
+}
+
+/* ============================================================================
    PHONG CÁCH BRIGHT MOBILE UI - SẢNH CHÍNH (LOBBY WRAPPER)
    ============================================================================ */
 .lobby-wrapper {
@@ -110,7 +143,11 @@ canvas {
     padding: 3px 8px 3px 4px;
     cursor: pointer;
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12);
-    transition: transform 0.1s ease;
+    transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.player-profile-pill:hover {
+    border-color: #38bdf8;
 }
 
 .player-profile-pill:active {
@@ -312,25 +349,38 @@ canvas {
     color: #ffffff;
 }
 
+.btn-3d-danger {
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+    color: #ffffff;
+    border-color: #450a0a;
+    box-shadow: 0 4px 0 #450a0a, inset 0 2px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-3d-danger:active:not(:disabled) {
+    box-shadow: 0 1px 0 #450a0a, inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
 .btn-3d-slate {
     background: linear-gradient(180deg, #94a3b8 0%, #475569 100%);
     color: #ffffff;
 }
 
-/* ==================== TAB BATTLE ==================== */
+/* ============================================================================
+   TAB BATTLE: CHỌN MAP & (2 ĐỘ KHÓ x 2 HÌNH THỨC CHIẾN ĐẤU)
+   ============================================================================ */
 .battle-tab-layout {
     flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 8px 10px 12px 10px;
+    padding: 6px 10px 10px 10px;
 }
 
 .battle-header-zone {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
 }
 
 .map-selector-row {
@@ -342,12 +392,12 @@ canvas {
 }
 
 .btn-nav-arrow {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
     background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
     color: #0f172a;
     text-shadow: none;
-    font-size: 16px;
+    font-size: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -361,7 +411,7 @@ canvas {
 
 .map-big-title {
     margin: 0;
-    font-size: 21px;
+    font-size: 19px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: 0.8px;
@@ -371,42 +421,46 @@ canvas {
 }
 
 .map-sub-progress {
-    margin: 2px 0 0 0;
-    font-size: 10.5px;
+    margin: 1px 0 0 0;
+    font-size: 10px;
     font-weight: 800;
     color: #fef08a;
     text-shadow: 0 1.5px 0 #0f172a;
     letter-spacing: 0.6px;
 }
 
-/* Cụm 2 nút Độ khó: Dễ (Easy) & Khó (Difficult) */
+/* Cụm 1: Chọn 2 Độ khó: Dễ (Easy) & Khó (Difficult) */
 .difficulty-selector-bar.two-modes {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 6px;
     width: 100%;
-    max-width: 340px;
-    background: rgba(15, 23, 42, 0.38);
-    padding: 4px;
-    border-radius: 14px;
+    max-width: 356px;
+    background: rgba(15, 23, 42, 0.42);
+    padding: 3.5px;
+    border-radius: 13px;
     border: 2.5px solid #0f172a;
 }
 
 .diff-pill-btn {
-    border: 2.5px solid #0f172a;
-    border-radius: 10px;
-    padding: 6px 8px;
+    border: 2px solid #0f172a;
+    border-radius: 9px;
+    padding: 4.5px 6px;
     background: #334155;
     color: #cbd5e1;
     font-weight: 800;
-    font-size: 11.5px;
+    font-size: 11px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 4px;
     transition: all 0.12s ease;
-    box-shadow: 0 2.5px 0 #0f172a;
+    box-shadow: 0 2px 0 #0f172a;
+}
+
+.diff-pill-btn:hover:not(.locked) {
+    filter: brightness(1.06);
 }
 
 .diff-pill-btn.active[data-diff="easy"] {
@@ -414,6 +468,7 @@ canvas {
     color: #ffffff;
     text-shadow: 0 1.5px 0 #0f172a;
     transform: translateY(-1px);
+    box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(74, 222, 128, 0.45);
 }
 
 .diff-pill-btn.active[data-diff="difficult"] {
@@ -421,35 +476,110 @@ canvas {
     color: #ffffff;
     text-shadow: 0 1.5px 0 #0f172a;
     transform: translateY(-1px);
+    box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(244, 63, 94, 0.5);
 }
 
 .diff-pill-btn.locked {
-    opacity: 0.55;
+    opacity: 0.52;
     cursor: not-allowed;
 }
 
 .diff-icon {
-    font-size: 13px;
+    font-size: 12px;
+}
+
+.diff-name {
+    letter-spacing: 0.2px;
+}
+
+.diff-status {
+    font-size: 10.5px;
+    color: #fde047;
+}
+
+/* Cụm 2: Chọn Hình thức chơi dưới mỗi Độ khó: Chiến Đấu (Phá căn cứ) vs Sinh Tồn (10 Wave) */
+.battle-mode-selector-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    width: 100%;
+    max-width: 356px;
+    background: rgba(15, 23, 42, 0.62);
+    padding: 3.5px;
+    border-radius: 12px;
+    border: 2px solid #0f172a;
+}
+
+.mode-pill-btn {
+    border: 2px solid #0f172a;
+    border-radius: 8px;
+    padding: 4px 5px;
+    background: #1e293b;
+    color: #94a3b8;
+    font-weight: 800;
+    font-size: 9.8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3.5px;
+    transition: all 0.12s ease;
+    box-shadow: 0 2px 0 #0f172a;
+    white-space: nowrap;
+}
+
+.mode-pill-btn:hover {
+    color: #e2e8f0;
+}
+
+.mode-pill-btn.active[data-mode="destroy"] {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    color: #ffffff;
+    border-color: #bae6fd;
+    text-shadow: 0 1px 0 #0f172a;
+    box-shadow: 0 2px 0 #0f172a, 0 0 8px rgba(56, 189, 248, 0.45);
+}
+
+.mode-pill-btn.active[data-mode="survival"] {
+    background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+    color: #ffffff;
+    border-color: #fde047;
+    text-shadow: 0 1px 0 #0f172a;
+    box-shadow: 0 2px 0 #0f172a, 0 0 8px rgba(245, 158, 11, 0.45);
+}
+
+.mode-icon {
+    font-size: 11px;
+}
+
+.mode-name {
+    letter-spacing: 0.15px;
+}
+
+.mode-status {
+    font-size: 10px;
+    color: #fde047;
 }
 
 .diff-info-strip {
-    background: rgba(15, 23, 42, 0.82);
+    background: rgba(15, 23, 42, 0.85);
     border: 2px solid #0f172a;
     color: #f8fafc;
-    font-size: 10.5px;
-    padding: 3px 12px;
+    font-size: 10px;
+    padding: 2.5px 10px;
     border-radius: 999px;
     text-align: center;
 }
 
 .diff-mechanic-substrip {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
     color: #0f172a;
-    background: rgba(254, 240, 138, 0.9);
+    background: rgba(254, 240, 138, 0.92);
     border: 1.5px solid #0f172a;
-    padding: 1.5px 10px;
+    padding: 1.5px 9px;
     border-radius: 999px;
+    text-align: center;
 }
 
 /* Khu vực giữa: 2 Sidebar + Demo Map */
@@ -466,14 +596,14 @@ canvas {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: 66px;
+    width: 64px;
     align-items: center;
 }
 
 .side-feature-btn {
     position: relative;
-    width: 62px;
-    height: 66px;
+    width: 60px;
+    height: 64px;
     background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
     border: 3px solid #0f172a;
     border-radius: 16px;
@@ -483,7 +613,11 @@ canvas {
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 0 #0f172a;
-    transition: transform 0.1s ease;
+    transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.side-feature-btn:hover {
+    filter: brightness(1.05);
 }
 
 .side-feature-btn:active {
@@ -492,7 +626,7 @@ canvas {
 }
 
 .side-btn-icon {
-    font-size: 24px;
+    font-size: 23px;
     line-height: 1;
 }
 
@@ -519,15 +653,21 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: center;
+    animation: notifPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes notifPulse {
+    from { transform: scale(0.95); }
+    to { transform: scale(1.12); }
 }
 
 .map-demo-card {
     flex: 1;
-    max-width: 228px;
+    max-width: 224px;
     background: #1e293b;
     border: 4px solid #0f172a;
     border-radius: 20px;
-    padding: 8px;
+    padding: 7px;
     box-shadow: 0 8px 0 rgba(15, 23, 42, 0.45);
     display: flex;
     flex-direction: column;
@@ -536,8 +676,8 @@ canvas {
 
 .map-canvas-frame {
     position: relative;
-    width: 168px;
-    height: 214px;
+    width: 162px;
+    height: 202px;
     border-radius: 12px;
     border: 3px solid #0f172a;
     overflow: hidden;
@@ -554,7 +694,7 @@ canvas {
     top: 6px;
     left: 6px;
     right: 6px;
-    font-size: 9px;
+    font-size: 8.5px;
     font-weight: 800;
     padding: 2px 6px;
     border-radius: 999px;
@@ -580,7 +720,7 @@ canvas {
     background: #22c55e;
     border: 2px solid #0f172a;
     color: #ffffff;
-    font-size: 9.5px;
+    font-size: 9px;
     font-weight: 800;
     padding: 2px 4px;
     border-radius: 8px;
@@ -589,13 +729,13 @@ canvas {
 }
 
 .map-demo-desc {
-    margin: 6px 0 2px 0;
-    font-size: 10.5px;
+    margin: 5px 0 1px 0;
+    font-size: 10px;
     font-weight: 700;
     color: #e2e8f0;
     text-align: center;
-    line-height: 1.3;
-    min-height: 26px;
+    line-height: 1.25;
+    min-height: 25px;
 }
 
 .battle-footer-zone {
@@ -605,11 +745,11 @@ canvas {
 }
 
 .btn-start-huge {
-    width: 220px;
-    padding: 12px 24px;
+    width: 216px;
+    padding: 10px 24px;
     background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
     color: #ffffff;
-    font-size: 25px;
+    font-size: 24px;
     font-weight: 900;
     letter-spacing: 2px;
     border-radius: 18px;
@@ -619,7 +759,9 @@ canvas {
     box-shadow: 0 6px 0 #0f172a, inset 0 3px 0 rgba(255, 255, 255, 0.55);
 }
 
-/* ==================== TAB SHOP (GACHA CRATES + CUSTOM INPUT) ==================== */
+/* ============================================================================
+   TAB SHOP (GACHA CRATES + CUSTOM INPUT + CRATE GLOW RINGS)
+   ============================================================================ */
 #tab-shop {
     background:
         radial-gradient(circle at 50% 20%, rgba(192, 132, 252, 0.25) 0%, transparent 50%),
@@ -657,7 +799,7 @@ canvas {
     font-size: 10.5px;
     color: #e2e8f0;
     text-align: center;
-    line-height: 1.3;
+    line-height: 1.35;
 }
 
 .crate-card {
@@ -724,14 +866,38 @@ canvas {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.crate-glow-ring {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(254, 240, 138, 0.55) 0%, transparent 70%);
+    pointer-events: none;
+    animation: crateGlowPulse 2.2s ease-in-out infinite alternate;
+}
+
+.crate-glow-ring.purple-glow {
+    background: radial-gradient(circle, rgba(216, 180, 254, 0.55) 0%, transparent 70%);
+}
+
+@keyframes crateGlowPulse {
+    from { transform: scale(0.9); opacity: 0.7; }
+    to { transform: scale(1.18); opacity: 1; }
 }
 
 .crate-art-icon {
+    position: relative;
+    z-index: 2;
     font-size: 38px;
     filter: drop-shadow(0 4px 0 #0f172a);
 }
 
 .crate-rate-tag {
+    position: relative;
+    z-index: 2;
     font-size: 8px;
     font-weight: 800;
     color: #fef08a;
@@ -863,7 +1029,9 @@ canvas {
     white-space: nowrap;
 }
 
-/* ==================== TAB ARMY (QUÂN ĐỘI & MERGE + AUTO MERGE) ==================== */
+/* ============================================================================
+   TAB ARMY (QUÂN ĐỘI, MERGE THỦ CÔNG & CASCADE AUTO MERGE)
+   ============================================================================ */
 .army-tab-layout {
     flex: 1;
     display: flex;
@@ -985,7 +1153,9 @@ canvas {
     padding-bottom: 8px;
 }
 
-/* Thẻ Quân đội & Độ hiếm (7 Bậc Rarity) */
+/* ============================================================================
+   HỆ THỐNG 21 BẬC ĐỘ HIẾM (RARITY SYSTEM: COMMON ➔ MYTHIC ➔ SECRET +5)
+   ============================================================================ */
 .army-unit-card {
     position: relative;
     border: 3px solid #0f172a;
@@ -998,7 +1168,11 @@ canvas {
     cursor: pointer;
     min-height: 92px;
     box-shadow: 0 3px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.35);
-    transition: transform 0.1s ease;
+    transition: transform 0.1s ease, filter 0.12s ease;
+}
+
+.army-unit-card:hover {
+    filter: brightness(1.05);
 }
 
 .army-unit-card:active {
@@ -1015,44 +1189,183 @@ canvas {
     filter: grayscale(75%);
 }
 
+/* 1. Common (1.0x) */
 .rarity-common {
     background: linear-gradient(180deg, #cbd5e1 0%, #64748b 100%);
     border-color: #0f172a;
 }
 
+/* 2. Uncommon (1.25x) */
 .rarity-uncommon {
     background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
     border-color: #0f172a;
 }
 
+/* 3. Rare (1.55x) */
 .rarity-rare {
     background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
     border-color: #0f172a;
 }
 
+/* 4. Epic (1.9x) */
 .rarity-epic {
     background: linear-gradient(180deg, #c084fc 0%, #7e22ce 100%);
     border-color: #0f172a;
 }
 
+/* 5. Epic +1 (2.3x) */
 .rarity-epic1 {
     background: linear-gradient(180deg, #d8b4fe 0%, #9333ea 100%);
     border-color: #f0abfc;
     box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(192, 132, 252, 0.7);
 }
 
+/* 6. Epic +2 (2.75x) */
 .rarity-epic2 {
     background: linear-gradient(180deg, #f0abfc 0%, #a21caf 100%);
     border-color: #fde047;
     box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.75);
 }
 
+/* 7. Legendary (3.4x) */
 .rarity-legendary {
     background: linear-gradient(180deg, #fde047 0%, #ea580c 100%);
     border-color: #fef08a;
     box-shadow: 0 3px 0 #0f172a, 0 0 12px rgba(245, 158, 11, 0.85);
 }
 
+/* 8. Legendary +1 (4.2x) */
+.rarity-legendary1 {
+    background: linear-gradient(180deg, #fef08a 0%, #f59e0b 45%, #c2410c 100%);
+    border-color: #fde047;
+    box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(251, 191, 36, 0.9);
+}
+
+/* 9. Legendary +2 (5.2x) */
+.rarity-legendary2 {
+    background: linear-gradient(180deg, #fef9c3 0%, #fbbf24 40%, #b45309 100%);
+    border-color: #ffffff;
+    box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(250, 204, 21, 0.95);
+}
+
+/* 10. Legendary +3 (6.4x) */
+.rarity-legendary3 {
+    background: linear-gradient(180deg, #ffffff 0%, #facc15 35%, #ea580c 85%, #9a3412 100%);
+    border-color: #fef08a;
+    box-shadow: 0 3px 0 #0f172a, 0 0 18px rgba(249, 115, 22, 1);
+}
+
+/* Hiệu ứng nhịp đập rực lửa cho các bậc Mythic (Đỏ rực chủ đạo) */
+@keyframes mythicCrimsonPulse {
+    0% {
+        box-shadow: 0 3px 0 #0f172a, 0 0 12px rgba(225, 29, 72, 0.85);
+    }
+    100% {
+        box-shadow: 0 3px 0 #0f172a, 0 0 22px rgba(239, 68, 68, 1), inset 0 0 8px rgba(254, 205, 211, 0.55);
+    }
+}
+
+/* 11. Mythic (8.0x) */
+.rarity-mythic {
+    background: linear-gradient(180deg, #fb7185 0%, #e11d48 50%, #881337 100%);
+    border-color: #fda4af;
+    box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(225, 29, 72, 0.9);
+}
+
+/* 12. Mythic +1 (10.0x) */
+.rarity-mythic1 {
+    background: linear-gradient(180deg, #fda4af 0%, #f43f5e 45%, #9f1239 100%);
+    border-color: #fecdd3;
+    box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(244, 63, 94, 0.95);
+}
+
+/* 13. Mythic +2 (12.5x) */
+.rarity-mythic2 {
+    background: linear-gradient(180deg, #fecdd3 0%, #ef4444 45%, #991b1b 90%, #450a0a 100%);
+    border-color: #fde047;
+    box-shadow: 0 3px 0 #0f172a, 0 0 18px rgba(239, 68, 68, 1);
+}
+
+/* 14. Mythic +3 (15.5x) */
+.rarity-mythic3 {
+    background: linear-gradient(180deg, #fde047 0%, #ef4444 40%, #b91c1c 85%, #450a0a 100%);
+    border-color: #fef08a;
+    animation: mythicCrimsonPulse 1.6s ease-in-out infinite alternate;
+}
+
+/* 15. Mythic +4 (19.0x) */
+.rarity-mythic4 {
+    background: linear-gradient(135deg, #fef08a 0%, #f97316 25%, #dc2626 60%, #7f1d1d 100%);
+    border-color: #ffffff;
+    animation: mythicCrimsonPulse 1.2s ease-in-out infinite alternate;
+}
+
+/* Hiệu ứng cầu vồng / đen huyền bí / vàng kim phát sáng cho các bậc Secret */
+@keyframes secretRainbowGlow {
+    0% {
+        background-position: 0% 50%;
+        box-shadow: 0 3px 0 #0f172a, 0 0 15px rgba(250, 204, 21, 0.9);
+    }
+    50% {
+        background-position: 100% 50%;
+        box-shadow: 0 3px 0 #0f172a, 0 0 22px rgba(56, 189, 248, 0.95), 0 0 8px rgba(236, 72, 153, 0.85);
+    }
+    100% {
+        background-position: 0% 50%;
+        box-shadow: 0 3px 0 #0f172a, 0 0 15px rgba(250, 204, 21, 0.9);
+    }
+}
+
+/* 16. Secret (24.0x) */
+.rarity-secret {
+    background: linear-gradient(135deg, #090d16 0%, #3b0764 25%, #be185d 50%, #0284c7 75%, #090d16 100%);
+    background-size: 240% 240%;
+    animation: secretRainbowGlow 4s ease infinite;
+    border-color: #fde047;
+}
+
+/* 17. Secret +1 (30.0x) */
+.rarity-secret1 {
+    background: linear-gradient(135deg, #090d16 0%, #4c1d95 22%, #e11d48 48%, #f59e0b 74%, #090d16 100%);
+    background-size: 240% 240%;
+    animation: secretRainbowGlow 3.6s ease infinite;
+    border-color: #fef08a;
+}
+
+/* 18. Secret +2 (38.0x) */
+.rarity-secret2 {
+    background: linear-gradient(135deg, #020617 0%, #7e22ce 20%, #ec4899 45%, #38bdf8 70%, #eab308 100%);
+    background-size: 240% 240%;
+    animation: secretRainbowGlow 3.2s ease infinite;
+    border-color: #38bdf8;
+}
+
+/* 19. Secret +3 (48.0x) */
+.rarity-secret3 {
+    background: linear-gradient(135deg, #020617 0%, #db2777 20%, #f59e0b 45%, #10b981 70%, #6366f1 100%);
+    background-size: 240% 240%;
+    animation: secretRainbowGlow 2.8s ease infinite;
+    border-color: #f472b6;
+}
+
+/* 20. Secret +4 (60.0x) */
+.rarity-secret4 {
+    background: linear-gradient(135deg, #0f172a 0%, #facc15 22%, #ec4899 48%, #06b6d4 74%, #facc15 100%);
+    background-size: 240% 240%;
+    animation: secretRainbowGlow 2.4s ease infinite;
+    border-color: #ffffff;
+}
+
+/* 21. Secret +5 - Bậc Tối Thượng (75.0x) */
+.rarity-secret5 {
+    background: linear-gradient(135deg, #020617 0%, #fde047 20%, #ef4444 40%, #a855f7 60%, #38bdf8 80%, #fde047 100%);
+    background-size: 260% 260%;
+    animation: secretRainbowGlow 1.9s ease infinite;
+    border-color: #fde047;
+    outline: 1.5px solid #ffffff;
+}
+
+/* Huy hiệu Rarity (Badge) chuyên biệt cho Mythic & Secret */
 .rarity-badge {
     font-size: 9px;
     font-weight: 900;
@@ -1062,6 +1375,27 @@ canvas {
     color: #ffffff;
     text-shadow: 0 1px 0 #0f172a;
     text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.rarity-badge.rarity-mythic,
+.rarity-badge.rarity-mythic1,
+.rarity-badge.rarity-mythic2,
+.rarity-badge.rarity-mythic3,
+.rarity-badge.rarity-mythic4 {
+    border-color: #fde047;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
+}
+
+.rarity-badge.rarity-secret,
+.rarity-badge.rarity-secret1,
+.rarity-badge.rarity-secret2,
+.rarity-badge.rarity-secret3,
+.rarity-badge.rarity-secret4,
+.rarity-badge.rarity-secret5 {
+    border-color: #fde047;
+    color: #fef08a;
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.9);
 }
 
 .card-top-lv {
@@ -1069,10 +1403,11 @@ canvas {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 9px;
+    font-size: 8.5px;
     font-weight: 900;
     color: #ffffff;
     text-shadow: 0 1px 0 #0f172a;
+    gap: 2px;
 }
 
 .card-plus-tag {
@@ -1080,7 +1415,9 @@ canvas {
     color: #fde047;
     padding: 0 4px;
     border-radius: 4px;
-    font-size: 8.5px;
+    font-size: 8px;
+    flex-shrink: 0;
+    border: 1px solid rgba(254, 240, 138, 0.35);
 }
 
 .card-unit-title {
@@ -1119,6 +1456,12 @@ canvas {
     cursor: pointer;
     position: relative;
     flex-shrink: 0;
+    padding: 2px;
+    transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.merge-slot:hover {
+    border-color: #94a3b8;
 }
 
 .merge-slot.result-slot {
@@ -1267,6 +1610,14 @@ canvas {
     background: linear-gradient(180deg, #64748b 0%, #334155 100%);
 }
 
+.bright-modal-header.danger-header-grad {
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+}
+
+.bright-modal-header.refund-header-grad {
+    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+}
+
 .bright-modal-title {
     margin: 0;
     font-size: 15.5px;
@@ -1286,10 +1637,25 @@ canvas {
     font-weight: 900;
     cursor: pointer;
     box-shadow: 0 2px 0 #0f172a;
+    transition: transform 0.1s ease, filter 0.12s ease;
+}
+
+.bright-close-btn:hover {
+    filter: brightness(1.08);
+}
+
+.bright-close-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 0 #0f172a;
 }
 
 .bright-modal-body {
     padding: 14px;
+}
+
+.settings-modal-scroll {
+    max-height: 76dvh;
+    overflow-y: auto;
 }
 
 .bright-input-field {
@@ -1310,7 +1676,7 @@ canvas {
     box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
 }
 
-/* Modal Cài đặt & Admin Mode */
+/* Modal Cài đặt, Admin Mode & Danger Zone (Reset Account) */
 .settings-status-card {
     background: #e2e8f0;
     border: 2.5px solid #0f172a;
@@ -1355,6 +1721,131 @@ canvas {
     border: 2px dashed #64748b;
     border-radius: 12px;
     padding: 10px;
+}
+
+.settings-danger-zone {
+    background: #fef2f2;
+    border: 2.5px solid #dc2626;
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: inset 0 0 8px rgba(220, 38, 38, 0.08);
+}
+
+.danger-zone-title {
+    font-size: 11px;
+    font-weight: 900;
+    color: #991b1b;
+    letter-spacing: 0.4px;
+}
+
+.danger-zone-desc {
+    font-size: 10px;
+    font-weight: 700;
+    color: #7f1d1d;
+    margin: 3px 0 0 0;
+    line-height: 1.3;
+}
+
+.danger-warning-icon-box {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 10px auto;
+    border-radius: 999px;
+    background: #fee2e2;
+    border: 3px solid #dc2626;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+/* Modal Hoàn lại cấp độ (Level Refund Modal) */
+.refund-summary-card {
+    background: #ffffff;
+    border: 2.5px solid #0f172a;
+    border-radius: 14px;
+    padding: 10px 12px;
+}
+
+.refund-level-compare-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.refund-lv-box {
+    flex: 1;
+    background: #f1f5f9;
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.refund-lv-box.target-box {
+    background: #ecfdf5;
+    border-color: #059669;
+}
+
+.refund-lv-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: #64748b;
+}
+
+.refund-lv-val {
+    font-size: 15px;
+    font-weight: 900;
+    margin-top: 1px;
+}
+
+.refund-input-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.refund-level-input {
+    width: 72px;
+    padding: 6px 8px;
+    border: 2.5px solid #0f172a;
+    border-radius: 10px;
+    background: #fffbeb;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 900;
+    text-align: center;
+    outline: none;
+}
+
+.refund-level-input:focus {
+    border-color: #d97706;
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35);
+}
+
+.refund-total-coins-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 2px dashed #cbd5e1;
+    padding-top: 8px;
+    font-size: 11.5px;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.refund-coins-badge {
+    background: #0f172a;
+    color: #fde047;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 900;
 }
 
 /* Modal Xác nhận mở rương Gacha tùy chỉnh */
@@ -1528,7 +2019,7 @@ canvas {
 }
 
 /* ============================================================================
-   BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN (WAVE 5 & WAVE 10 CHẾ ĐỘ KHÓ)
+   BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN (WAVE 5 & WAVE 10 CHẾ ĐỘ SINH TỒN)
    ============================================================================ */
 .boss-alert-banner {
     position: absolute;
@@ -1969,5 +2460,9 @@ canvas {
     }
     .army-cards-grid {
         grid-template-columns: repeat(3, 1fr);
+    }
+    .mode-pill-btn {
+        font-size: 8.8px;
+        padding: 4px 3px;
     }
 }

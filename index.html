@@ -61,7 +61,8 @@
                         </div>
 
                         <div class="shop-discount-notice">
-                            🔥 <b>ƯU ĐÃI ĐẶC BIỆT:</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> khi mở số lượng tùy chỉnh!
+                            🔥 <b>ƯU ĐÃI ĐẶC BIỆT:</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> khi mở số lượng tùy chỉnh! <br/>
+                            <span class="text-[10px] text-rose-300 font-bold">✨ Các bậc từ <b>Legendary +1 ➔ Mythic ➔ Secret +5</b> chỉ có thể sở hữu thông qua <b>Merge (Ghép thẻ)</b>!</span>
                         </div>
 
                         <!-- RƯƠNG 1: LEGENDARY CRATE -->
@@ -197,26 +198,40 @@
                                 <button id="btn-next-stage" class="btn-3d btn-nav-arrow" title="Map tiếp theo">▶</button>
                             </div>
 
-                            <!-- Cụm chọn 2 Độ khó: Dễ (Easy) & Khó (Hard/Difficult) -->
+                            <!-- Cụm 1: Chọn 2 Độ khó: DỄ (Easy) & KHÓ (Difficult) -->
                             <div class="difficulty-selector-bar two-modes">
                                 <button id="diff-btn-easy" data-diff="easy" class="diff-pill-btn active">
                                     <span class="diff-icon">⚔️</span>
-                                    <span class="diff-name">CHẾ ĐỘ DỄ</span>
+                                    <span class="diff-name">ĐỘ KHÓ: DỄ</span>
                                     <span id="diff-status-easy" class="diff-status">★</span>
                                 </button>
                                 <button id="diff-btn-difficult" data-diff="difficult" class="diff-pill-btn">
                                     <span class="diff-icon">💀</span>
-                                    <span class="diff-name">CHẾ ĐỘ KHÓ</span>
+                                    <span class="diff-name">ĐỘ KHÓ: KHÓ</span>
                                     <span id="diff-status-difficult" class="diff-status">🔒</span>
+                                </button>
+                            </div>
+
+                            <!-- Cụm 2: Chọn 1 trong 2 Hình thức chơi dưới mỗi Độ khó -->
+                            <div class="battle-mode-selector-bar">
+                                <button id="mode-btn-destroy" data-mode="destroy" class="mode-pill-btn active">
+                                    <span class="mode-icon">🏰</span>
+                                    <span class="mode-name">CHIẾN ĐẤU (PHÁ CĂN CỨ)</span>
+                                    <span id="mode-status-destroy" class="mode-status">★</span>
+                                </button>
+                                <button id="mode-btn-survival" data-mode="survival" class="mode-pill-btn">
+                                    <span class="mode-icon">🛡️</span>
+                                    <span class="mode-name">SINH TỒN (10 WAVE)</span>
+                                    <span id="mode-status-survival" class="mode-status">★</span>
                                 </button>
                             </div>
 
                             <!-- Thanh thông tin chế độ chơi & phần thưởng -->
                             <div id="diff-info-banner" class="diff-info-strip">
-                                Mục tiêu: <b>Phá hủy Căn cứ Đỏ</b> • Thưởng: <b class="text-amber-300">🪙 200 Coins</b>
+                                Mục tiêu: <b>Phá hủy Căn cứ Đỏ</b> • Thưởng: <b class="text-amber-300">🪙 240 Coins</b>
                             </div>
                             <div id="diff-mode-mechanic-badge" class="diff-mechanic-substrip">
-                                💡 Thắng chế độ <b>DỄ</b> sẽ mở khóa ngay Map tiếp theo & chế độ <b>KHÓ</b>!
+                                💡 Thắng <b>1 trong 2 hình thức</b> ở độ khó <b>DỄ</b> sẽ mở khóa Map kế tiếp & độ khó <b>KHÓ</b>!
                             </div>
                         </div>
 
@@ -288,15 +303,15 @@
                                 </button>
                             </div>
 
-                            <!-- Chế độ 1: ARMY (Danh sách 11 binh chủng & Nâng cấp bằng Coins) -->
+                            <!-- Chế độ 1: ARMY (Danh sách 11 binh chủng & Nâng cấp / Hoàn cấp bằng Coins) -->
                             <div id="army-list-view" class="army-subview active">
                                 <div class="army-cost-rule-banner">
-                                    🪙 <b>Ưu đãi nâng cấp:</b> Giá giữ cố định mỗi <b>5 Level</b> (Lv 1-5, Lv 6-10, Lv 11-15...)!
+                                    🪙 <b>Cấp độ độc lập:</b> Giá giữ cố định mỗi <b>5 Level</b> & hỗ trợ <b>🔄 Hoàn lại 100% Vàng</b>!
                                 </div>
                                 <div id="army-units-grid" class="army-cards-grid"></div>
                             </div>
 
-                            <!-- Chế độ 2: MERGE (Ghép 2 thẻ cùng loại & cùng độ hiếm + AUTO MERGE) -->
+                            <!-- Chế độ 2: MERGE (Ghép 2 thẻ cùng loại & cùng độ hiếm + CASCADE AUTO MERGE) -->
                             <div id="army-merge-view" class="army-subview">
                                 <!-- Bàn ghép tướng thủ công & Nút Auto Merge -->
                                 <div class="merge-workbench">
@@ -315,13 +330,13 @@
                                         <button id="btn-execute-merge" class="btn-3d btn-3d-amber merge-action-btn" disabled>
                                             MERGE
                                         </button>
-                                        <button id="btn-auto-merge" class="btn-3d btn-3d-green auto-merge-action-btn" title="Tự động ghép toàn bộ cặp thẻ hợp lệ trong kho">
+                                        <button id="btn-auto-merge" class="btn-3d btn-3d-green auto-merge-action-btn" title="Tự động ghép dây chuyền toàn bộ thẻ trong kho">
                                             ⚡ AUTO MERGE
                                         </button>
                                     </div>
                                 </div>
                                 <div id="merge-hint-text" class="merge-hint-bar">
-                                    Chọn 2 thẻ <b>cùng tên & cùng độ hiếm</b> hoặc bấm <b>⚡ AUTO MERGE</b> để ghép tất cả (+1 Level/lần ghép)!
+                                    Chọn 2 thẻ <b>cùng tên & cùng độ hiếm</b> hoặc bấm <b>⚡ AUTO MERGE</b> để ghép dây chuyền lên tới <b>Mythic / Secret +5</b>!
                                 </div>
                                 <!-- Kho thẻ đang sở hữu -->
                                 <div id="merge-inventory-grid" class="army-cards-grid merge-inv-scroll"></div>
@@ -382,14 +397,14 @@
             </div>
         </div>
 
-        <!-- 2. POPUP CÀI ĐẶT & HỆ THỐNG QUYỀN ADMIN (SETTINGS / ADMIN MODAL) -->
+        <!-- 2. POPUP CÀI ĐẶT, QUYỀN ADMIN & RESET TÀI KHOẢN (SETTINGS / ADMIN MODAL) -->
         <div id="settings-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header settings-header-grad">
                     <h3 class="bright-modal-title">⚙️ CÀI ĐẶT & QUYỀN ADMIN</h3>
                     <button id="btn-close-settings" class="bright-close-btn">✕</button>
                 </div>
-                <div class="bright-modal-body">
+                <div class="bright-modal-body settings-modal-scroll">
                     <!-- Trạng thái chế độ hiện tại -->
                     <div class="settings-status-card">
                         <div class="flex items-center justify-between">
@@ -433,7 +448,7 @@
                         <ul class="text-[11px] font-bold text-slate-700 space-y-1 mb-3 pl-2">
                             <li>• Kim cương (💎) & Vàng (🪙) vô tận (<b>∞</b>)</li>
                             <li>• Mua Gacha & Nâng cấp quân không tốn tài nguyên</li>
-                            <li>• Mở khóa toàn bộ <b>15/15 Map</b> (cả chế độ Dễ & Khó)</li>
+                            <li>• Mở khóa toàn bộ <b>15/15 Map</b> (mọi Độ khó & Hình thức)</li>
                         </ul>
                         <button id="btn-Return-normal-mode" class="btn-3d btn-3d-rose w-full py-2.5 text-xs">
                             🔄 QUAY LẠI CHẾ ĐỘ NGƯỜI CHƠI THƯỜNG
@@ -447,6 +462,41 @@
                         </button>
                         <button id="btn-settings-sound" class="btn-3d btn-3d-slate flex-1 py-2 text-[11px]">
                             🔊 ÂM THANH: BẬT
+                        </button>
+                    </div>
+
+                    <!-- KHỐI NGUY HIỂM: CÀI LẠI TOÀN BỘ TÀI KHOẢN (RESET DATA) -->
+                    <div class="settings-danger-zone mt-3">
+                        <div class="danger-zone-title">🚨 VÙNG NGUY HIỂM (DANGER ZONE)</div>
+                        <p class="danger-zone-desc">
+                            Xóa toàn bộ tiến trình, tướng, vàng, kim cương và đưa game về trạng thái mặc định ban đầu.
+                        </p>
+                        <button id="btn-reset-account-data" class="btn-3d btn-3d-danger w-full py-2.5 mt-2 text-xs">
+                            ⚠️ CÀI LẠI TOÀN BỘ TÀI KHOẢN (RESET DATA)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2B. POPUP XÁC NHẬN CÀI LẠI TÀI KHOẢN (RESET ACCOUNT CONFIRM MODAL) -->
+        <div id="reset-confirm-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box">
+                <div class="bright-modal-header danger-header-grad">
+                    <h3 class="bright-modal-title">⚠️ XÁC NHẬN RESET DỮ LIỆU</h3>
+                    <button id="btn-close-reset-confirm" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body text-center">
+                    <div class="danger-warning-icon-box">⚠️</div>
+                    <p class="text-xs font-extrabold text-slate-800 leading-relaxed mb-3">
+                        Hành động này sẽ xóa toàn bộ vàng, gems, tướng, tiến trình mở khóa màn và đưa game về trạng thái ban đầu khi mới tải trang. Bạn có chắc chắn không?
+                    </p>
+                    <div class="flex gap-2 mt-4">
+                        <button id="btn-cancel-reset-data" class="btn-3d btn-3d-slate flex-1 py-2.5 text-xs">
+                            HỦY BỎ
+                        </button>
+                        <button id="btn-confirm-reset-data" class="btn-3d btn-3d-danger flex-1 py-2.5 text-xs">
+                            🗑️ XÓA & CÀI LẠI
                         </button>
                     </div>
                 </div>
@@ -576,7 +626,7 @@
             </div>
         </div>
 
-        <!-- 7. POPUP KẾT QUẢ TỰ ĐỘNG GHÉP QUÂN (AUTO MERGE SUMMARY MODAL) -->
+        <!-- 7. POPUP KẾT QUẢ TỰ ĐỘNG GHÉP QUÂN DÂY CHUYỀN (AUTO MERGE SUMMARY MODAL) -->
         <div id="auto-merge-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header">
@@ -585,7 +635,7 @@
                 </div>
                 <div class="bright-modal-body text-center">
                     <p id="auto-merge-summary-text" class="text-xs font-extrabold text-slate-700 mb-2.5">
-                        Hệ thống đã tự động hợp nhất thành công các cặp thẻ hợp lệ!
+                        Hệ thống đã tự động hợp nhất dây chuyền thành công các thẻ hợp lệ!
                     </p>
                     <div id="auto-merge-results-grid" class="gacha-results-grid"></div>
                     <button id="btn-close-auto-merge" class="btn-3d btn-3d-green w-full py-2.5 mt-4 text-sm">
@@ -595,7 +645,7 @@
             </div>
         </div>
 
-        <!-- 8. POPUP CHI TIẾT & NÂNG CẤP TƯỚNG BẰNG VÀNG (ARMY UPGRADE MODAL) -->
+        <!-- 8. POPUP CHI TIẾT, NÂNG CẤP & HOÀN LẠI CẤP ĐỘ TƯỚNG (ARMY UPGRADE & REFUND MODAL) -->
         <div id="unit-upgrade-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header">
@@ -608,7 +658,7 @@
                             <img id="upg-modal-sprite" class="w-14 h-14 pixel-art" alt="Unit" />
                         </div>
                         <div class="flex-1 text-left pl-3">
-                            <div class="flex items-center gap-1.5">
+                            <div class="flex items-center gap-1.5 flex-wrap">
                                 <span id="upg-modal-rarity-badge" class="rarity-badge rarity-common">COMMON</span>
                                 <span id="upg-modal-level-badge" class="upg-lv-pill">LV.1</span>
                             </div>
@@ -645,10 +695,93 @@
                         </div>
                     </div>
 
-                    <button id="btn-confirm-unit-upgrade" class="btn-3d btn-3d-green w-full py-2.5 mt-3 flex items-center justify-center gap-2 text-sm">
-                        <span>NÂNG CẤP LEVEL</span>
-                        <span id="upg-cost-coins" class="bg-slate-900/25 px-2 py-0.5 rounded-full text-amber-200">🪙 100</span>
-                    </button>
+                    <!-- Cụm nút Nâng cấp Level & Mở Hoàn lại cấp -->
+                    <div class="flex flex-col gap-2 mt-3">
+                        <button id="btn-confirm-unit-upgrade" class="btn-3d btn-3d-green w-full py-2.5 flex items-center justify-center gap-2 text-sm">
+                            <span>⬆️ NÂNG CẤP LEVEL</span>
+                            <span id="upg-cost-coins" class="bg-slate-900/25 px-2 py-0.5 rounded-full text-amber-200">🪙 100</span>
+                        </button>
+
+                        <button id="btn-open-level-refund" class="btn-3d btn-3d-amber w-full py-2 flex items-center justify-center gap-1.5 text-xs">
+                            <span>🔄 HOÀN LẠI CẤP</span>
+                            <span class="text-[10px] bg-slate-900/20 px-2 py-0.5 rounded-full text-white">Nhận lại 100% Vàng</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. POPUP HOÀN LẠI CẤP ĐỘ & NHẬN LẠI 100% VÀNG (LEVEL REFUND MODAL) -->
+        <div id="level-refund-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box">
+                <div class="bright-modal-header refund-header-grad">
+                    <h3 class="bright-modal-title">🔄 HOÀN LẠI CẤP ĐỘ</h3>
+                    <button id="btn-close-refund-modal" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body">
+                    <div class="refund-summary-card">
+                        <div id="refund-unit-title" class="text-sm font-black text-amber-700 text-center mb-1">
+                            BỘ BINH
+                        </div>
+                        <p class="text-[10.5px] font-bold text-slate-600 text-center mb-2.5">
+                            Chọn cấp độ muốn hạ về. Độ hiếm thẻ trong kho được <b>giữ nguyên 100%</b>!
+                        </p>
+
+                        <div class="refund-level-compare-row">
+                            <div class="refund-lv-box">
+                                <span class="refund-lv-label">CẤP HIỆN TẠI</span>
+                                <span id="refund-current-lv" class="refund-lv-val text-slate-800">LV.10</span>
+                            </div>
+                            <span class="text-lg font-black text-amber-600">➔</span>
+                            <div class="refund-lv-box target-box">
+                                <span class="refund-lv-label">HẠ VỀ CẤP</span>
+                                <span id="refund-target-lv-preview" class="refund-lv-val text-emerald-600">LV.1</span>
+                            </div>
+                        </div>
+
+                        <!-- Bộ chọn / nhập cấp độ mục tiêu -->
+                        <div class="refund-input-controls mt-3">
+                            <button id="btn-refund-lv-min" class="btn-3d btn-3d-slate px-2.5 py-1.5 text-[10px]" title="Về cấp 1">
+                                LV.1
+                            </button>
+                            <button id="btn-refund-lv-minus" class="btn-3d btn-3d-slate px-3 py-1.5 text-xs">
+                                -
+                            </button>
+                            <input
+                                id="refund-target-level-input"
+                                type="number"
+                                min="1"
+                                max="999"
+                                value="1"
+                                class="refund-level-input"
+                            />
+                            <button id="btn-refund-lv-plus" class="btn-3d btn-3d-slate px-3 py-1.5 text-xs">
+                                +
+                            </button>
+                            <button id="btn-refund-lv-max" class="btn-3d btn-3d-slate px-2.5 py-1.5 text-[10px]" title="Giảm 1 cấp">
+                                -1 CẤP
+                            </button>
+                        </div>
+
+                        <!-- Tổng tiền vàng hoàn trả -->
+                        <div class="refund-total-coins-box mt-3">
+                            <span>HOÀN TRẢ 100% VÀNG:</span>
+                            <span id="refund-total-coins-val" class="refund-coins-badge">+🪙 0</span>
+                        </div>
+                    </div>
+
+                    <p id="refund-error-msg" class="text-[11px] font-extrabold text-rose-600 text-center mt-2 hidden">
+                        ⚠️ Cấp độ mục tiêu phải từ 1 và nhỏ hơn cấp hiện tại!
+                    </p>
+
+                    <div class="flex gap-2 mt-4">
+                        <button id="btn-cancel-level-refund" class="btn-3d btn-3d-slate flex-1 py-2.5 text-xs">
+                            HỦY BỎ
+                        </button>
+                        <button id="btn-confirm-level-refund" class="btn-3d btn-3d-green flex-1 py-2.5 text-xs">
+                            💰 XÁC NHẬN HOÀN CẤP
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -657,7 +790,7 @@
         <!-- GIAO DIỆN CHIẾN ĐẤU TRONG TRẬN (IN-GAME BATTLE UI)             -->
         <!-- ============================================================== -->
 
-        <!-- BANNER CẢNH BÁO BOSS KHỔNG LỒ XUẤT HIỆN (WAVE 5 & WAVE 10 CHẾ ĐỘ KHÓ) -->
+        <!-- BANNER CẢNH BÁO BOSS KHỔNG LỒ XUẤT HIỆN (WAVE 5 & WAVE 10 CHẾ ĐỘ SINH TỒN) -->
         <div id="boss-warning-banner" class="boss-alert-banner hidden">
             <div class="boss-alert-inner">
                 <span class="boss-skull-icon">☠️</span>
