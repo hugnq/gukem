@@ -5184,57 +5184,65 @@ function drawBaseBuilding(baseObj, isBlue) {
         }
     });
 
-    const showHpBar = isBlue || game.currentBattleMode === 'destroy';
-    if (showHpBar) {
-        const barW = 196;
-        const barH = 11;
-        const bx = cx - barW / 2;
-        const by = isBlue ? cy + 28 : cy - 38;
-        const ratio = Math.max(0, Math.min(1, baseObj.hp / baseObj.maxHp));
+    // =========================================================================
+    // 1. LUÔN VẼ THANH MÁU CĂN CỨ CHO CẢ 2 PHE Ở MỌI CHẾ ĐỘ
+    // =========================================================================
+    const barW = 196;
+    const barH = 11;
+    const bx = cx - barW / 2;
+    // Chuyển thanh máu Đỏ xuống dưới (cy + 30) để không bị HUD trên che
+    const by = isBlue ? (cy + 28) : (cy + 30);
+    const ratio = Math.max(0, Math.min(1, baseObj.hp / baseObj.maxHp));
 
-        ctx.fillStyle = '#0f172a';
-        ctx.beginPath();
-        ctx.roundRect(bx - 2, by - 2, barW + 4, barH + 4, 6);
-        ctx.fill();
+    // Khung viền thanh máu
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.roundRect(bx - 2, by - 2, barW + 4, barH + 4, 6);
+    ctx.fill();
 
-        ctx.fillStyle = isBlue ? '#22c55e' : '#ef4444';
-        ctx.beginPath();
-        ctx.roundRect(bx, by, barW * ratio, barH, 4);
-        ctx.fill();
+    // Ruột máu (Xanh lá cho Xanh, Đỏ tươi cho Địch)
+    ctx.fillStyle = isBlue ? '#22c55e' : '#ef4444';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, barW * ratio, barH, 4);
+    ctx.fill();
 
-        ctx.font = 'bold 9.5px "Chakra Petch", sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(
-            `${isBlue ? 'CĂN CỨ XANH' : 'NHÀ CHÍNH ĐỎ'}: ${Math.ceil(baseObj.hp)} / ${baseObj.maxHp}`,
-            cx,
-            by + barH / 2 + 0.5
-        );
-    } else {
-        // Ở Hình thức Sinh Tồn (10 Wave): Hiển thị tiến độ Wave trên Căn cứ Đỏ
-        const barW = 210;
-        const barH = 14;
-        const bx = cx - barW / 2;
-        const by = cy - 40;
+    // Chữ hiển thị số máu rõ ràng
+    ctx.font = 'bold 9.5px "Chakra Petch", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(
+        `${isBlue ? 'CĂN CỨ XANH' : 'NHÀ CHÍNH ĐỎ'}: ${Math.ceil(baseObj.hp)} / ${baseObj.maxHp}`,
+        cx,
+        by + barH / 2 + 0.5
+    );
 
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    // =========================================================================
+    // 2. NẾU LÀ CHẾ ĐỘ SINH TỒN: VẼ THÊM THANH WAVE PHỤ PHÍA TRÊN CĂN CỨ ĐỎ
+    // =========================================================================
+    if (!isBlue && game.currentBattleMode === 'survival') {
+        const waveBarW = 210;
+        const waveBarH = 13;
+        const waveBx = cx - waveBarW / 2;
+        const waveBy = cy - 38; // Nằm phía trên nóc nhà chính
+
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
         ctx.strokeStyle = '#f59e0b';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.roundRect(bx, by, barW, barH, 7);
+        ctx.roundRect(waveBx, waveBy, waveBarW, waveBarH, 6);
         ctx.fill();
         ctx.stroke();
 
-        ctx.font = '800 9.5px "Chakra Petch", sans-serif';
+        ctx.font = '800 9px "Chakra Petch", sans-serif';
         ctx.fillStyle = '#fde047';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const aliveRed = getAliveRedUnitsCount() + game.waveSpawnQueue.length;
         ctx.fillText(
-            `🛡️ SINH TỒN WAVE ${game.currentWave}/${game.maxWaves} • ĐỊCH CÒN: ${aliveRed}`,
+            `🛡️ WAVE ${game.currentWave}/${game.maxWaves} • ĐỊCH CÒN: ${aliveRed}`,
             cx,
-            by + barH / 2 + 0.5
+            waveBy + waveBarH / 2 + 0.5
         );
     }
 
