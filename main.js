@@ -1,111 +1,111 @@
 class SoundFX {
-    constructor() {
-        this.enabled = true;
-        this.ctx = null;
-    }
-    init() {
-        if (!this.ctx) {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            if (AudioCtx) this.ctx = new AudioCtx();
-        }
-        if (this.ctx && this.ctx.state === 'suspended') {
-            this.ctx.resume();
-        }
-    }
-    play(type) {
-        if (!this.enabled) return;
-        try {
-            this.init();
-            if (!this.ctx) return;
-            const now = this.ctx.currentTime;
+    constructor() {
+        this.enabled = true;
+        this.ctx = null;
+    }
+    init() {
+        if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
+    }
+    play(type) {
+        if (!this.enabled) return;
+        try {
+            this.init();
+            if (!this.ctx) return;
+            const now = this.ctx.currentTime;
 
-            if (type === 'beam') {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(360, now);
-                osc.frequency.exponentialRampToValueAtTime(110, now + 0.07);
-                gain.gain.setValueAtTime(0.06, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.07);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.07);
-            } else if (type === 'cannon') {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(38, now + 0.18);
-                gain.gain.setValueAtTime(0.12, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.18);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.18);
-            } else if (type === 'boom') {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(110, now);
-                osc.frequency.exponentialRampToValueAtTime(22, now + 0.32);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.32);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.32);
-            } else if (type === 'spawn') {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(340, now);
-                osc.frequency.exponentialRampToValueAtTime(620, now + 0.1);
-                gain.gain.setValueAtTime(0.09, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.1);
-            } else if (type === 'gas') {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(520, now);
-                osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
-                gain.gain.setValueAtTime(0.05, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.08);
-            } else if (type === 'airstrike') {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(240, now);
-                osc.frequency.linearRampToValueAtTime(120, now + 0.65);
-                gain.gain.setValueAtTime(0.11, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.65);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.65);
-            } else if (type === 'upgrade') {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(900, now + 0.22);
-                gain.gain.setValueAtTime(0.15, now);
-                gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.22);
-            }
-        } catch (e) {}
-    }
+            if (type === 'beam') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(360, now);
+                osc.frequency.exponentialRampToValueAtTime(110, now + 0.07);
+                gain.gain.setValueAtTime(0.06, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.07);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.07);
+            } else if (type === 'cannon') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(38, now + 0.18);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.18);
+            } else if (type === 'boom') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(110, now);
+                osc.frequency.exponentialRampToValueAtTime(22, now + 0.32);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.32);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.32);
+            } else if (type === 'spawn') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(340, now);
+                osc.frequency.exponentialRampToValueAtTime(620, now + 0.1);
+                gain.gain.setValueAtTime(0.09, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'gas') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520, now);
+                osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'airstrike') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(240, now);
+                osc.frequency.linearRampToValueAtTime(120, now + 0.65);
+                gain.gain.setValueAtTime(0.11, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.65);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.65);
+            } else if (type === 'upgrade') {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(900, now + 0.22);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            }
+        } catch (e) {}
+    }
 }
 
 const sfx = new SoundFX();
@@ -122,240 +122,240 @@ const STORAGE_KEY = 'tiny_battle_meta_save_v3';
 // 1. HỆ THỐNG 21 BẬC ĐỘ HIẾM (RARITY SYSTEM: COMMON ➔ MYTHIC ➔ SECRET +5)
 // ============================================================================
 const RARITY_ORDER = [
-    'common',
-    'uncommon',
-    'rare',
-    'epic',
-    'epic1',
-    'epic2',
-    'legendary',
-    'legendary1',
-    'legendary2',
-    'legendary3',
-    'mythic',
-    'mythic1',
-    'mythic2',
-    'mythic3',
-    'mythic4',
-    'secret',
-    'secret1',
-    'secret2',
-    'secret3',
-    'secret4',
-    'secret5'
+    'common',
+    'uncommon',
+    'rare',
+    'epic',
+    'epic1',
+    'epic2',
+    'legendary',
+    'legendary1',
+    'legendary2',
+    'legendary3',
+    'mythic',
+    'mythic1',
+    'mythic2',
+    'mythic3',
+    'mythic4',
+    'secret',
+    'secret1',
+    'secret2',
+    'secret3',
+    'secret4',
+    'secret5'
 ];
 
 const RARITY_CONFIG = {
-    common: {
-        id: 'common',
-        rank: 0,
-        name: 'Common',
-        plusLabel: '',
-        color: '#94a3b8',
-        cssClass: 'rarity-common',
-        mult: 1.0,
-        next: 'uncommon'
-    },
-    uncommon: {
-        id: 'uncommon',
-        rank: 1,
-        name: 'Uncommon',
-        plusLabel: '',
-        color: '#22c55e',
-        cssClass: 'rarity-uncommon',
-        mult: 1.25,
-        next: 'rare'
-    },
-    rare: {
-        id: 'rare',
-        rank: 2,
-        name: 'Rare',
-        plusLabel: '',
-        color: '#3b82f6',
-        cssClass: 'rarity-rare',
-        mult: 1.55,
-        next: 'epic'
-    },
-    epic: {
-        id: 'epic',
-        rank: 3,
-        name: 'Epic',
-        plusLabel: '',
-        color: '#a855f7',
-        cssClass: 'rarity-epic',
-        mult: 1.9,
-        next: 'epic1'
-    },
-    epic1: {
-        id: 'epic1',
-        rank: 4,
-        name: 'Epic +1',
-        plusLabel: '+1',
-        color: '#c084fc',
-        cssClass: 'rarity-epic1',
-        mult: 2.3,
-        next: 'epic2'
-    },
-    epic2: {
-        id: 'epic2',
-        rank: 5,
-        name: 'Epic +2',
-        plusLabel: '+2',
-        color: '#e879f9',
-        cssClass: 'rarity-epic2',
-        mult: 2.75,
-        next: 'legendary'
-    },
-    legendary: {
-        id: 'legendary',
-        rank: 6,
-        name: 'Legendary',
-        plusLabel: '★',
-        color: '#f59e0b',
-        cssClass: 'rarity-legendary',
-        mult: 3.4,
-        next: 'legendary1'
-    },
-    legendary1: {
-        id: 'legendary1',
-        rank: 7,
-        name: 'Legendary +1',
-        plusLabel: 'L+1',
-        color: '#fbbf24',
-        cssClass: 'rarity-legendary1',
-        mult: 4.2,
-        next: 'legendary2'
-    },
-    legendary2: {
-        id: 'legendary2',
-        rank: 8,
-        name: 'Legendary +2',
-        plusLabel: 'L+2',
-        color: '#facc15',
-        cssClass: 'rarity-legendary2',
-        mult: 5.2,
-        next: 'legendary3'
-    },
-    legendary3: {
-        id: 'legendary3',
-        rank: 9,
-        name: 'Legendary +3',
-        plusLabel: 'L+3',
-        color: '#fde047',
-        cssClass: 'rarity-legendary3',
-        mult: 6.4,
-        next: 'mythic'
-    },
-    mythic: {
-        id: 'mythic',
-        rank: 10,
-        name: 'Mythic',
-        plusLabel: '🔥',
-        color: '#e11d48',
-        cssClass: 'rarity-mythic',
-        mult: 8.0,
-        next: 'mythic1'
-    },
-    mythic1: {
-        id: 'mythic1',
-        rank: 11,
-        name: 'Mythic +1',
-        plusLabel: 'M+1',
-        color: '#f43f5e',
-        cssClass: 'rarity-mythic1',
-        mult: 10.0,
-        next: 'mythic2'
-    },
-    mythic2: {
-        id: 'mythic2',
-        rank: 12,
-        name: 'Mythic +2',
-        plusLabel: 'M+2',
-        color: '#ef4444',
-        cssClass: 'rarity-mythic2',
-        mult: 12.5,
-        next: 'mythic3'
-    },
-    mythic3: {
-        id: 'mythic3',
-        rank: 13,
-        name: 'Mythic +3',
-        plusLabel: 'M+3',
-        color: '#dc2626',
-        cssClass: 'rarity-mythic3',
-        mult: 15.5,
-        next: 'mythic4'
-    },
-    mythic4: {
-        id: 'mythic4',
-        rank: 14,
-        name: 'Mythic +4',
-        plusLabel: 'M+4',
-        color: '#b91c1c',
-        cssClass: 'rarity-mythic4',
-        mult: 19.0,
-        next: 'secret'
-    },
-    secret: {
-        id: 'secret',
-        rank: 15,
-        name: 'Secret',
-        plusLabel: '✦',
-        color: '#ec4899',
-        cssClass: 'rarity-secret',
-        mult: 24.0,
-        next: 'secret1'
-    },
-    secret1: {
-        id: 'secret1',
-        rank: 16,
-        name: 'Secret +1',
-        plusLabel: 'S+1',
-        color: '#d946ef',
-        cssClass: 'rarity-secret1',
-        mult: 30.0,
-        next: 'secret2'
-    },
-    secret2: {
-        id: 'secret2',
-        rank: 17,
-        name: 'Secret +2',
-        plusLabel: 'S+2',
-        color: '#38bdf8',
-        cssClass: 'rarity-secret2',
-        mult: 38.0,
-        next: 'secret3'
-    },
-    secret3: {
-        id: 'secret3',
-        rank: 18,
-        name: 'Secret +3',
-        plusLabel: 'S+3',
-        color: '#10b981',
-        cssClass: 'rarity-secret3',
-        mult: 48.0,
-        next: 'secret4'
-    },
-    secret4: {
-        id: 'secret4',
-        rank: 19,
-        name: 'Secret +4',
-        plusLabel: 'S+4',
-        color: '#facc15',
-        cssClass: 'rarity-secret4',
-        mult: 60.0,
-        next: 'secret5'
-    },
-    secret5: {
-        id: 'secret5',
-        rank: 20,
-        name: 'Secret +5',
-        plusLabel: '👑MAX',
-        color: '#fde047',
-        cssClass: 'rarity-secret5',
-        mult: 75.0,
-        next: null
-    }
+    common: {
+        id: 'common',
+        rank: 0,
+        name: 'Common',
+        plusLabel: '',
+        color: '#94a3b8',
+        cssClass: 'rarity-common',
+        mult: 1.0,
+        next: 'uncommon'
+    },
+    uncommon: {
+        id: 'uncommon',
+        rank: 1,
+        name: 'Uncommon',
+        plusLabel: '',
+        color: '#22c55e',
+        cssClass: 'rarity-uncommon',
+        mult: 1.25,
+        next: 'rare'
+    },
+    rare: {
+        id: 'rare',
+        rank: 2,
+        name: 'Rare',
+        plusLabel: '',
+        color: '#3b82f6',
+        cssClass: 'rarity-rare',
+        mult: 1.55,
+        next: 'epic'
+    },
+    epic: {
+        id: 'epic',
+        rank: 3,
+        name: 'Epic',
+        plusLabel: '',
+        color: '#a855f7',
+        cssClass: 'rarity-epic',
+        mult: 1.9,
+        next: 'epic1'
+    },
+    epic1: {
+        id: 'epic1',
+        rank: 4,
+        name: 'Epic +1',
+        plusLabel: '+1',
+        color: '#c084fc',
+        cssClass: 'rarity-epic1',
+        mult: 2.3,
+        next: 'epic2'
+    },
+    epic2: {
+        id: 'epic2',
+        rank: 5,
+        name: 'Epic +2',
+        plusLabel: '+2',
+        color: '#e879f9',
+        cssClass: 'rarity-epic2',
+        mult: 2.75,
+        next: 'legendary'
+    },
+    legendary: {
+        id: 'legendary',
+        rank: 6,
+        name: 'Legendary',
+        plusLabel: '★',
+        color: '#f59e0b',
+        cssClass: 'rarity-legendary',
+        mult: 3.4,
+        next: 'legendary1'
+    },
+    legendary1: {
+        id: 'legendary1',
+        rank: 7,
+        name: 'Legendary +1',
+        plusLabel: 'L+1',
+        color: '#fbbf24',
+        cssClass: 'rarity-legendary1',
+        mult: 4.2,
+        next: 'legendary2'
+    },
+    legendary2: {
+        id: 'legendary2',
+        rank: 8,
+        name: 'Legendary +2',
+        plusLabel: 'L+2',
+        color: '#facc15',
+        cssClass: 'rarity-legendary2',
+        mult: 5.2,
+        next: 'legendary3'
+    },
+    legendary3: {
+        id: 'legendary3',
+        rank: 9,
+        name: 'Legendary +3',
+        plusLabel: 'L+3',
+        color: '#fde047',
+        cssClass: 'rarity-legendary3',
+        mult: 6.4,
+        next: 'mythic'
+    },
+    mythic: {
+        id: 'mythic',
+        rank: 10,
+        name: 'Mythic',
+        plusLabel: '🔥',
+        color: '#e11d48',
+        cssClass: 'rarity-mythic',
+        mult: 8.0,
+        next: 'mythic1'
+    },
+    mythic1: {
+        id: 'mythic1',
+        rank: 11,
+        name: 'Mythic +1',
+        plusLabel: 'M+1',
+        color: '#f43f5e',
+        cssClass: 'rarity-mythic1',
+        mult: 10.0,
+        next: 'mythic2'
+    },
+    mythic2: {
+        id: 'mythic2',
+        rank: 12,
+        name: 'Mythic +2',
+        plusLabel: 'M+2',
+        color: '#ef4444',
+        cssClass: 'rarity-mythic2',
+        mult: 12.5,
+        next: 'mythic3'
+    },
+    mythic3: {
+        id: 'mythic3',
+        rank: 13,
+        name: 'Mythic +3',
+        plusLabel: 'M+3',
+        color: '#dc2626',
+        cssClass: 'rarity-mythic3',
+        mult: 15.5,
+        next: 'mythic4'
+    },
+    mythic4: {
+        id: 'mythic4',
+        rank: 14,
+        name: 'Mythic +4',
+        plusLabel: 'M+4',
+        color: '#b91c1c',
+        cssClass: 'rarity-mythic4',
+        mult: 19.0,
+        next: 'secret'
+    },
+    secret: {
+        id: 'secret',
+        rank: 15,
+        name: 'Secret',
+        plusLabel: '✦',
+        color: '#000000',
+        cssClass: 'rarity-secret',
+        mult: 24.0,
+        next: 'secret1'
+    },
+    secret1: {
+        id: 'secret1',
+        rank: 16,
+        name: 'Secret +1',
+        plusLabel: 'S+1',
+        color: '#000000',
+        cssClass: 'rarity-secret1',
+        mult: 30.0,
+        next: 'secret2'
+    },
+    secret2: {
+        id: 'secret2',
+        rank: 17,
+        name: 'Secret +2',
+        plusLabel: 'S+2',
+        color: '#000000',
+        cssClass: 'rarity-secret2',
+        mult: 38.0,
+        next: 'secret3'
+    },
+    secret3: {
+        id: 'secret3',
+        rank: 18,
+        name: 'Secret +3',
+        plusLabel: 'S+3',
+        color: '#000000',
+        cssClass: 'rarity-secret3',
+        mult: 48.0,
+        next: 'secret4'
+    },
+    secret4: {
+        id: 'secret4',
+        rank: 19,
+        name: 'Secret +4',
+        plusLabel: 'S+4',
+        color: '#000000',
+        cssClass: 'rarity-secret4',
+        mult: 60.0,
+        next: 'secret5'
+    },
+    secret5: {
+        id: 'secret5',
+        rank: 20,
+        name: 'Secret +5',
+        plusLabel: '👑MAX',
+        color: '#000000',
+        cssClass: 'rarity-secret5',
+        mult: 75.0,
+        next: null
+    }
 };
 
 // ============================================================================
@@ -365,55 +365,55 @@ const DIFFICULTY_ORDER = ['easy', 'difficult'];
 const BATTLE_MODE_ORDER = ['destroy', 'survival'];
 
 const DIFFICULTY_CONFIG = {
-    easy: {
-        id: 'easy',
-        shortLabel: 'DỄ',
-        statMult: 1.0,
-        baseHpMult: 1.0
-    },
-    difficult: {
-        id: 'difficult',
-        shortLabel: 'KHÓ',
-        statMult: 1.85,
-        baseHpMult: 1.85
-    }
+    easy: {
+        id: 'easy',
+        shortLabel: 'DỄ',
+        statMult: 1.0,
+        baseHpMult: 1.0
+    },
+    difficult: {
+        id: 'difficult',
+        shortLabel: 'KHÓ',
+        statMult: 1.85,
+        baseHpMult: 1.85
+    }
 };
 
 const BATTLE_MODE_CONFIG = {
-    destroy: {
-        id: 'destroy',
-        name: 'CHIẾN ĐẤU (PHÁ CĂN CỨ)',
-        shortLabel: 'PHÁ CĂN CỨ',
-        isSurvival: false
-    },
-    survival: {
-        id: 'survival',
-        name: 'SINH TỒN (10 WAVE)',
-        shortLabel: '10 WAVE',
-        isSurvival: true
-    }
+    destroy: {
+        id: 'destroy',
+        name: 'CHIẾN ĐẤU (PHÁ CĂN CỨ)',
+        shortLabel: 'PHÁ CĂN CỨ',
+        isSurvival: false
+    },
+    survival: {
+        id: 'survival',
+        name: 'SINH TỒN (10 WAVE)',
+        shortLabel: '10 WAVE',
+        isSurvival: true
+    }
 };
 
 function calcStageRewardCoins(mapLv, diffId, modeId) {
-    const isHard = diffId === 'difficult';
-    const isSurvival = modeId === 'survival';
-    if (!isHard && !isSurvival) {
-        return 180 + mapLv * 60; // Dễ - Phá căn cứ
-    } else if (!isHard && isSurvival) {
-        return 260 + mapLv * 85; // Dễ - Sinh tồn 10 Wave
-    } else if (isHard && !isSurvival) {
-        return 520 + mapLv * 150; // Khó - Phá căn cứ
-    } else {
-        return 680 + mapLv * 200; // Khó - Sinh tồn 10 Wave
-    }
+    const isHard = diffId === 'difficult';
+    const isSurvival = modeId === 'survival';
+    if (!isHard && !isSurvival) {
+        return 180 + mapLv * 60; // Dễ - Phá căn cứ
+    } else if (!isHard && isSurvival) {
+        return 260 + mapLv * 85; // Dễ - Sinh tồn 10 Wave
+    } else if (isHard && !isSurvival) {
+        return 520 + mapLv * 150; // Khó - Phá căn cứ
+    } else {
+        return 680 + mapLv * 200; // Khó - Sinh tồn 10 Wave
+    }
 }
 
 // ============================================================================
 // HỆ THỐNG 10 GIFTCODE CHÍNH THỨC (DÙNG 1 LẦN) + 1,500 GEMS & 15,000 COINS
 // ============================================================================
 const OFFICIAL_GIFTCODES = [
-    'HUNGDZ01', 'HUNGDZ02', 'HUNGDZ03', 'HUNGDZ04', 'HUNGDZ05',
-    'HUNGDZ06', 'HUNGDZ07', 'HUNGDZ08', 'HUNGDZ09', 'HUNGDZ10'
+    'HUNGDZ01', 'HUNGDZ02', 'HUNGDZ03', 'HUNGDZ04', 'HUNGDZ05',
+    'HUNGDZ06', 'HUNGDZ07', 'HUNGDZ08', 'HUNGDZ09', 'HUNGDZ10'
 ];
 const GIFTCODE_REWARD_GEMS = 1500;
 const GIFTCODE_REWARD_COINS = 15000;
@@ -422,14 +422,14 @@ const GIFTCODE_REWARD_COINS = 15000;
 // DANH SÁCH NHIỆM VỤ KIẾM GEMS (MISSIONS CATALOG)
 // ============================================================================
 const MISSIONS_CATALOG = [
-    { id: 'm_kills_500', title: 'Tiêu diệt 500 quân địch', statKey: 'kills', target: 500, rewardGems: 20 },
-    { id: 'm_diff_3', title: 'Hoàn thành 3 màn chế độ Khó (Difficult)', statKey: 'diffWins', target: 3, rewardGems: 40 },
-    { id: 'm_spawn_200', title: 'Gọi 200 đơn vị quân trong trận', statKey: 'spawns', target: 200, rewardGems: 15 },
-    { id: 'm_crates_10', title: 'Mở 10 rương Gacha bất kỳ', statKey: 'cratesOpened', target: 10, rewardGems: 25 },
-    { id: 'm_merge_5', title: 'Hợp nhất (Merge) tướng thành công 5 lần', statKey: 'merges', target: 5, rewardGems: 30 },
-    { id: 'm_wins_10', title: 'Chiến thắng 10 trận đấu bất kỳ', statKey: 'wins', target: 10, rewardGems: 30 },
-    { id: 'm_upg_15', title: 'Nâng cấp Level quân đội 15 lần', statKey: 'upgrades', target: 15, rewardGems: 25 },
-    { id: 'm_kills_2000', title: 'Tiêu diệt 2000 quân địch', statKey: 'kills', target: 2000, rewardGems: 60 }
+    { id: 'm_kills_500', title: 'Tiêu diệt 500 quân địch', statKey: 'kills', target: 500, rewardGems: 20 },
+    { id: 'm_diff_3', title: 'Hoàn thành 3 màn chế độ Khó (Difficult)', statKey: 'diffWins', target: 3, rewardGems: 40 },
+    { id: 'm_spawn_200', title: 'Gọi 200 đơn vị quân trong trận', statKey: 'spawns', target: 200, rewardGems: 15 },
+    { id: 'm_crates_10', title: 'Mở 10 rương Gacha bất kỳ', statKey: 'cratesOpened', target: 10, rewardGems: 25 },
+    { id: 'm_merge_5', title: 'Hợp nhất (Merge) tướng thành công 5 lần', statKey: 'merges', target: 5, rewardGems: 30 },
+    { id: 'm_wins_10', title: 'Chiến thắng 10 trận đấu bất kỳ', statKey: 'wins', target: 10, rewardGems: 30 },
+    { id: 'm_upg_15', title: 'Nâng cấp Level quân đội 15 lần', statKey: 'upgrades', target: 15, rewardGems: 25 },
+    { id: 'm_kills_2000', title: 'Tiêu diệt 2000 quân địch', statKey: 'kills', target: 2000, rewardGems: 60 }
 ];
 
 // ============================================================================
@@ -446,51 +446,51 @@ const T_BRIDGE = 3;
 const T_OBSTACLE = 4;
 
 // ============================================================================
-// DỮ LIỆU 15 MAP CHIẾN THUẬT
+// DỮ LIỆU 15 MAP CHIẾN THUẬT (ĐỒNG BỘ THEO ẢNH "15 maps.png")
 // ============================================================================
 const MAPS_DATA = [
-    { level: 1, name: 'Cầu Qua Sông', hasWater: true, waterZones: [{ x: 0, y: 290, w: 420, h: 130 }], bridgeLanes: [210], desc: 'Sông lớn cắt ngang. Quân bộ phải qua cầu đá ở giữa.' },
-    { level: 2, name: 'Đường Đèo Chữ S', hasWater: false, waterZones: [], bridgeLanes: [210], desc: 'Đường nhựa uốn lượn chữ S xuyên qua rừng thông và núi đá.' },
-    { level: 3, name: 'Đại Lộ Đô Thị', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Đường phố đô thị chia ô vuông bao quanh các khu nhà.' },
-    { level: 4, name: 'Pháo Đài Hồ Nước', hasWater: true, waterZones: [{ x: 25, y: 145, w: 120, h: 420 }, { x: 275, y: 145, w: 120, h: 420 }], bridgeLanes: [210], desc: 'Hồ nước bao quanh đảo pháo đài giữa chiến trường.' },
-    { level: 5, name: 'Mê Cung Rừng Rậm', hasWater: false, waterZones: [], bridgeLanes: [120, 210, 300], desc: 'Mạng lưới đường xám nhiều ngã rẽ xuyên rừng thông.' },
-    { level: 6, name: 'Khu Công Nghiệp', hasWater: false, waterZones: [], bridgeLanes: [100, 210, 320], desc: 'Khu nhà máy công nghiệp nặng và xưởng cơ khí.' },
-    { level: 7, name: 'Hồ Đôi Vách Đá', hasWater: true, waterZones: [{ x: 72, y: 165, w: 210, h: 145 }], bridgeLanes: [210], desc: 'Đường đèo lách qua khe đất giữa 2 hồ nước sâu.' },
-    { level: 8, name: 'Hẻm Núi Đá Hiểm Trở', hasWater: false, waterZones: [], bridgeLanes: [210], desc: 'Hai dãy núi đá khổng lồ ép thành khe độc đạo.' },
-    { level: 9, name: 'Vòng Xoay Thị Trấn', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Vòng xoay lớn nối liền khu dân cư thị trấn.' },
-    { level: 10, name: 'Bờ Biển Cát Vàng', hasWater: true, waterZones: [{ x: 0, y: 105, w: 118, h: 505 }], bridgeLanes: [220, 295], desc: 'Biển trái cho tàu chiến, bãi cát phải cho bộ binh.' },
-    { level: 11, name: 'Căn Cứ Tên Lửa', hasWater: false, waterZones: [], bridgeLanes: [100, 210, 320], desc: 'Đường chữ thập trung tâm bao quanh 4 tổ hợp phóng.' },
-    { level: 12, name: 'Thành Cổ Kiên Cố', hasWater: false, waterZones: [], bridgeLanes: [105, 210, 315], desc: 'Tường thành đá kiên cố vòng ngoài, pháo đài tâm.' },
-    { level: 13, name: 'Quần Đảo Cầu Gỗ', hasWater: true, waterZones: [{ x: 0, y: 135, w: 420, h: 445 }], bridgeLanes: [88, 210, 332], desc: 'Quần đảo giữa sông nước nối bằng cầu gỗ.' },
-    { level: 14, name: 'Vòng Xoay Hồ Trung Tâm', hasWater: true, waterZones: [{ x: 158, y: 310, w: 104, h: 96 }], bridgeLanes: [90, 210, 330], desc: 'Đại lộ hình tròn lớn ôm trọn hồ nước giữa tâm.' },
-    { level: 15, name: 'Chiến Tuyến Phòng Thủ', hasWater: false, waterZones: [], bridgeLanes: [100, 320], desc: 'Hai bức tường thành chắn ngang, buộc đi qua cổng biên.' }
+    { level: 1, name: 'Cầu Qua Sông', hasWater: true, waterZones: [{ x: 0, y: 285, w: 420, h: 140 }], bridgeLanes: [210], desc: 'Đường đất nối 2 căn cứ, sông cắt ngang ở giữa với cầu đá thẳng đứng, rừng thông và 4 góc núi đá.' },
+    { level: 2, name: 'Đường Đèo Chữ S', hasWater: false, waterZones: [], bridgeLanes: [210], desc: 'Đường nhựa uốn lượn chữ S lớn xuyên qua cánh rừng thông dày đặc và sườn núi đá hai bên.' },
+    { level: 3, name: 'Đại Lộ Đô Thị', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Đô thị hiện đại chia ô bàn cờ, xen kẽ các tòa nhà cao tầng màu xám, xanh lá, cam và xanh dương.' },
+    { level: 4, name: 'Pháo Đài Hồ Nước', hasWater: true, waterZones: [{ x: 30, y: 135, w: 360, h: 440 }], bridgeLanes: [210], desc: 'Hồ nước lớn bao quanh đảo pháo đài đá ở giữa, nối với 2 căn cứ bằng 2 cây cầu gỗ thẳng đứng.' },
+    { level: 5, name: 'Mê Cung Rừng Rậm', hasWater: false, waterZones: [], bridgeLanes: [105, 210, 315], desc: 'Mê cung đường nhựa ngã tư ziczac đan xen giữa những cụm rừng thông rậm rạp.' },
+    { level: 6, name: 'Khu Công Nghiệp', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Khu công nghiệp nặng với các nhà máy ống khói, hàng rào thép gai và vạch sơn cảnh báo vàng/đen.' },
+    { level: 7, name: 'Hồ Đôi Vách Đá', hasWater: true, waterZones: [{ x: 68, y: 150, w: 190, h: 145 }, { x: 85, y: 420, w: 195, h: 135 }], bridgeLanes: [210], desc: 'Hai hồ nước nằm so le, đường nhựa uốn lượn lách qua khe đất ở giữa 2 hồ và vách núi đá.' },
+    { level: 8, name: 'Hẻm Núi Đá Hiểm Trở', hasWater: false, waterZones: [], bridgeLanes: [210], desc: 'Hai rặng núi đá dựng đứng ép thành con đường hẹp độc đạo có rào chắn gai cắt ngang.' },
+    { level: 9, name: 'Vòng Xoay Thị Trấn', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Hệ thống 2 bùng binh giao thông tròn nối các dãy nhà dân cư và công viên cây xanh ở giữa.' },
+    { level: 10, name: 'Bờ Biển Cát Vàng', hasWater: true, waterZones: [{ x: 0, y: 0, w: 118, h: PLAYFIELD_HEIGHT }], bridgeLanes: [275], desc: 'Bờ biển bãi cát vàng bên trái cho thủy quân, đường đất uốn lượn bên phải dọc vách núi đá.' },
+    { level: 11, name: 'Căn Cứ Tên Lửa', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Căn cứ quân sự phòng thủ với 4 góc là tháp phóng tên lửa & radar kiên cố, đường chữ thập lớn ở giữa.' },
+    { level: 12, name: 'Thành Cổ Kiên Cố', hasWater: false, waterZones: [], bridgeLanes: [105, 210, 315], desc: 'Tường thành đá cổ kiên cố bao quanh vòng ngoài và tòa tháp thành lũy đá phòng thủ ở chính giữa.' },
+    { level: 13, name: 'Quần Đảo Cầu Gỗ', hasWater: true, waterZones: [{ x: 0, y: 125, w: 420, h: 465 }], bridgeLanes: [88, 210, 332], desc: 'Mạng lưới quần đảo sông nước chằng chịt, nối các cồn đất bằng hệ thống 8 cây cầu gỗ dạng lưới.' },
+    { level: 14, name: 'Vòng Xoay Hồ Trung Tâm', hasWater: true, waterZones: [{ x: 162, y: 312, w: 96, h: 90 }], bridgeLanes: [85, 210, 335], desc: 'Đại lộ vòng tròn lớn bao quanh một hồ nước xanh và rừng thông ở lõi tâm.' },
+    { level: 15, name: 'Chiến Tuyến Phòng Thủ', hasWater: false, waterZones: [], bridgeLanes: [95, 210, 325], desc: 'Tuyến phòng thủ biên giới với 2 bức tường đá kiên cố có cổng thông 2 bên và đường đất xuyên tâm.' }
 ];
 
 const LEVELS = MAPS_DATA.map((m, idx) => {
-    const lv = idx + 1;
-    return {
-        ...m,
-        playerBaseHp: 120 + Math.floor((lv - 1) / 2) * 20,
-        enemyBaseHp: 150 + (lv - 1) * 35,
-        startingGas: lv <= 3 ? 5 : 4
-    };
+    const lv = idx + 1;
+    return {
+        ...m,
+        playerBaseHp: 120 + Math.floor((lv - 1) / 2) * 20,
+        enemyBaseHp: 150 + (lv - 1) * 35,
+        startingGas: lv <= 3 ? 5 : 4
+    };
 });
 
 // ============================================================================
 // DANH SÁCH 11 BINH CHỦNG (UNIT_CATALOG)
 // ============================================================================
 const UNIT_CATALOG = [
-    { id: 'infantry', name: 'Bộ Binh', role: 'Đi bộ • Tầm gần', spriteCol: 16, damage: 2, cost: 2, hp: 9, speed: 54, fireRate: 0.85, range: 48, radius: 12, attackType: 'beam', animStyle: 'walker_rifle', isWalker: true, isNaval: false, isAir: false, isAirstrike: false },
-    { id: 'bazooka', name: 'Lính Tên Lửa', role: 'Đi bộ • Tầm ngắn', spriteCol: 17, damage: 3, cost: 3, hp: 11, speed: 46, fireRate: 1.15, range: 84, radius: 13, attackType: 'bullet', projType: 'rocket_short', projSpeed: 235, projRadius: 5, animStyle: 'walker_bazooka', isWalker: true, isNaval: false, isAir: false, isAirstrike: false },
-    { id: 'humvee', name: 'Xe Thiết Giáp', role: 'Cơ giới • Tầm trung', spriteCol: 5, damage: 4, cost: 4, hp: 16, speed: 62, fireRate: 0.92, range: 115, radius: 15, attackType: 'bullet', projType: 'tracer', projSpeed: 290, projRadius: 4.5, animStyle: 'vehicle_mg', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
-    { id: 'apc', name: 'Pháo Tự Hành', role: 'Thiết giáp • Tầm khá', spriteCol: 7, damage: 5, cost: 5, hp: 20, speed: 40, fireRate: 1.2, range: 148, radius: 16, attackType: 'bullet', projType: 'shell', projSpeed: 255, projRadius: 6, animStyle: 'vehicle_cannon', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
-    { id: 'gunboat', name: 'Thuyền Tuần Tra', role: 'Thủy quân 🌊 • Tầm xa', spriteCol: 15, damage: 5, cost: 5, hp: 21, speed: 50, fireRate: 1.0, range: 162, radius: 16, attackType: 'bullet', projType: 'shell', projSpeed: 275, projRadius: 5.5, animStyle: 'naval_light', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
-    { id: 'tank', name: 'Xe Tăng Nặng', role: 'Chủ lực • Tầm xa', spriteCol: 8, damage: 6, cost: 6, hp: 28, speed: 35, fireRate: 1.25, range: 168, radius: 18, attackType: 'bullet', projType: 'heavy_shell', projSpeed: 265, projRadius: 6.5, animStyle: 'vehicle_heavy', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
-    { id: 'heli', name: 'Trực Thăng', role: 'Không quân • Cơ động', spriteCol: 11, damage: 7, cost: 7, hp: 20, speed: 58, fireRate: 1.08, range: 138, radius: 16, attackType: 'bullet', projType: 'air_missile', projSpeed: 285, projRadius: 6, animStyle: 'heli_rotor', isWalker: false, isNaval: false, isAir: true, isAirstrike: false },
-    { id: 'destroyer', name: 'Tàu Khu Trục', role: 'Thủy quân 🌊 • Rất xa', spriteCol: 13, damage: 8, cost: 8, hp: 32, speed: 38, fireRate: 1.22, range: 195, radius: 18, attackType: 'bullet', projType: 'arc_shell', arcHeight: 28, projSpeed: 260, projRadius: 7, animStyle: 'naval_heavy', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
-    { id: 'rocket', name: 'Pháo Phản Lực', role: 'Pháo binh • Siêu xa', spriteCol: 9, damage: 9, cost: 9, hp: 22, speed: 32, fireRate: 1.5, range: 215, radius: 17, attackType: 'bullet', projType: 'arc_missile', arcHeight: 46, projSpeed: 240, projRadius: 7.5, animStyle: 'artillery_salvo', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
-    { id: 'battleship', name: 'Chiến Hạm Lớn', role: 'Thủy quân 🌊 • Siêu xa', spriteCol: 14, damage: 11, cost: 11, hp: 42, speed: 30, fireRate: 1.38, range: 230, radius: 20, attackType: 'bullet', projType: 'arc_shell', arcHeight: 40, projSpeed: 255, projRadius: 8, animStyle: 'naval_battleship', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
-    { id: 'airstrike', name: 'Không Kích', role: 'Oanh tạc ✈️ • Toàn bản đồ', spriteCol: 10, damage: 15, baseDamage: 20, cost: 10, hp: 1, speed: 350, fireRate: 1, range: 999, radius: 20, attackType: 'airstrike', animStyle: 'airstrike', isWalker: false, isNaval: false, isAir: true, isAirstrike: true }
+    { id: 'infantry', name: 'Bộ Binh', role: 'Đi bộ • Tầm gần', spriteCol: 16, damage: 2, cost: 2, hp: 9, speed: 54, fireRate: 0.85, range: 48, radius: 12, attackType: 'beam', animStyle: 'walker_rifle', isWalker: true, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'bazooka', name: 'Lính Tên Lửa', role: 'Đi bộ • Tầm ngắn', spriteCol: 17, damage: 3, cost: 3, hp: 11, speed: 46, fireRate: 1.15, range: 84, radius: 13, attackType: 'bullet', projType: 'rocket_short', projSpeed: 235, projRadius: 5, animStyle: 'walker_bazooka', isWalker: true, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'humvee', name: 'Xe Thiết Giáp', role: 'Cơ giới • Tầm trung', spriteCol: 5, damage: 4, cost: 4, hp: 16, speed: 62, fireRate: 0.92, range: 115, radius: 15, attackType: 'bullet', projType: 'tracer', projSpeed: 290, projRadius: 4.5, animStyle: 'vehicle_mg', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'apc', name: 'Pháo Tự Hành', role: 'Thiết giáp • Tầm khá', spriteCol: 7, damage: 5, cost: 5, hp: 20, speed: 40, fireRate: 1.2, range: 148, radius: 16, attackType: 'bullet', projType: 'shell', projSpeed: 255, projRadius: 6, animStyle: 'vehicle_cannon', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'gunboat', name: 'Thuyền Tuần Tra', role: 'Thủy quân 🌊 • Tầm xa', spriteCol: 15, damage: 5, cost: 5, hp: 21, speed: 50, fireRate: 1.0, range: 162, radius: 16, attackType: 'bullet', projType: 'shell', projSpeed: 275, projRadius: 5.5, animStyle: 'naval_light', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
+    { id: 'tank', name: 'Xe Tăng Nặng', role: 'Chủ lực • Tầm xa', spriteCol: 8, damage: 6, cost: 6, hp: 28, speed: 35, fireRate: 1.25, range: 168, radius: 18, attackType: 'bullet', projType: 'heavy_shell', projSpeed: 265, projRadius: 6.5, animStyle: 'vehicle_heavy', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'heli', name: 'Trực Thăng', role: 'Không quân • Cơ động', spriteCol: 11, damage: 7, cost: 7, hp: 20, speed: 58, fireRate: 1.08, range: 138, radius: 16, attackType: 'bullet', projType: 'air_missile', projSpeed: 285, projRadius: 6, animStyle: 'heli_rotor', isWalker: false, isNaval: false, isAir: true, isAirstrike: false },
+    { id: 'destroyer', name: 'Tàu Khu Trục', role: 'Thủy quân 🌊 • Rất xa', spriteCol: 13, damage: 8, cost: 8, hp: 32, speed: 38, fireRate: 1.22, range: 195, radius: 18, attackType: 'bullet', projType: 'arc_shell', arcHeight: 28, projSpeed: 260, projRadius: 7, animStyle: 'naval_heavy', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
+    { id: 'rocket', name: 'Pháo Phản Lực', role: 'Pháo binh • Siêu xa', spriteCol: 9, damage: 9, cost: 9, hp: 22, speed: 32, fireRate: 1.5, range: 215, radius: 17, attackType: 'bullet', projType: 'arc_missile', arcHeight: 46, projSpeed: 240, projRadius: 7.5, animStyle: 'artillery_salvo', isWalker: false, isNaval: false, isAir: false, isAirstrike: false },
+    { id: 'battleship', name: 'Chiến Hạm Lớn', role: 'Thủy quân 🌊 • Siêu xa', spriteCol: 14, damage: 11, cost: 11, hp: 42, speed: 30, fireRate: 1.38, range: 230, radius: 20, attackType: 'bullet', projType: 'arc_shell', arcHeight: 40, projSpeed: 255, projRadius: 8, animStyle: 'naval_battleship', isWalker: false, isNaval: true, isAir: false, isAirstrike: false },
+    { id: 'airstrike', name: 'Không Kích', role: 'Oanh tạc ✈️ • Toàn bản đồ', spriteCol: 10, damage: 15, baseDamage: 20, cost: 10, hp: 1, speed: 350, fireRate: 1, range: 999, radius: 20, attackType: 'airstrike', animStyle: 'airstrike', isWalker: false, isNaval: false, isAir: true, isAirstrike: true }
 ];
 
 const UNIT_BY_ID = {};
@@ -500,74 +500,74 @@ UNIT_CATALOG.forEach(u => { UNIT_BY_ID[u.id] = u; });
 // DANH SÁCH THẺ BUFF KHI LÊN CẤP TRONG TRẬN
 // ============================================================================
 const BUFF_CATALOG = [
-    {
-        id: 'buff_dmg', name: 'Đạn Xuyên Giáp', tag: 'NÂNG CẤP HỎA LỰC', desc: '+25% Sát thương cho toàn bộ quân đội Xanh', iconCol: 11, iconRow: 10,
-        apply: () => {
-            game.buffs.dmgMult += 0.25;
-            game.units.forEach(u => {
-                if (u.team === 'blue') {
-                    const spec = UNIT_BY_ID[u.unitId];
-                    if (spec) u.damage = getEffectiveUnitStats(spec, true).damage;
-                }
-            });
-            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '⚔️ +25% SÁT THƯƠNG TOÀN QUÂN!', '#fde047', 15);
-        }
-    },
-    {
-        id: 'buff_hp', name: 'Giáp Hợp Kim', tag: 'NÂNG CẤP PHÒNG THỦ', desc: '+25% Máu tối đa cho quân Xanh & Hồi 100% máu quân trên sân', iconCol: 15, iconRow: 10,
-        apply: () => {
-            game.buffs.hpMult += 0.25;
-            game.units.forEach(u => {
-                if (u.team === 'blue') {
-                    const spec = UNIT_BY_ID[u.unitId];
-                    if (spec) {
-                        u.maxHp = getEffectiveUnitStats(spec, true).hp;
-                        u.hp = u.maxHp;
-                    }
-                }
-            });
-            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '🛡️ +25% MÁU & HỒI PHỤC TOÀN QUÂN!', '#34d399', 15);
-        }
-    },
-    {
-        id: 'buff_haste', name: 'Nòng Pháo Siêu Tốc', tag: 'NÂNG CẤP TỐC BẮN', desc: '+20% Tốc độ bắn & +12% Tầm bắn cho toàn bộ quân Xanh', iconCol: 7, iconRow: 3,
-        apply: () => {
-            game.buffs.fireRateMult *= 0.82;
-            game.buffs.rangeMult += 0.12;
-            game.units.forEach(u => {
-                if (u.team === 'blue') {
-                    u.fireRate = Math.max(0.25, +(u.baseFireRate * game.buffs.fireRateMult).toFixed(2));
-                    u.range = Math.round(u.baseRange * game.buffs.rangeMult);
-                }
-            });
-            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '🎯 +20% TỐC BẮN & +12% TẦM BẮN!', '#38bdf8', 15);
-        }
-    },
-    {
-        id: 'buff_supply', name: 'Tiếp Viện Khẩn Cấp', tag: 'HẬU CẦN CHIẾN TRƯỜNG', desc: 'Nhận ngay +7 Bình Xăng & Sửa chữa +35 HP Căn cứ Xanh', iconCol: 12, iconRow: 10,
-        apply: () => {
-            game.gasCount = Math.min(game.maxGas, game.gasCount + 7);
-            game.blueBase.hp = Math.min(game.blueBase.maxHp, game.blueBase.hp + 35);
-            addFloatingText(LOGICAL_WIDTH / 2, game.blueBase.y - 40, '⛽ +7 XĂNG & +35 HP CĂN CỨ!', '#4ade80', 15);
-        }
-    }
+    {
+        id: 'buff_dmg', name: 'Đạn Xuyên Giáp', tag: 'NÂNG CẤP HỎA LỰC', desc: '+25% Sát thương cho toàn bộ quân đội Xanh', iconCol: 11, iconRow: 10,
+        apply: () => {
+            game.buffs.dmgMult += 0.25;
+            game.units.forEach(u => {
+                if (u.team === 'blue') {
+                    const spec = UNIT_BY_ID[u.unitId];
+                    if (spec) u.damage = getEffectiveUnitStats(spec, true).damage;
+                }
+            });
+            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '⚔️ +25% SÁT THƯƠNG TOÀN QUÂN!', '#fde047', 15);
+        }
+    },
+    {
+        id: 'buff_hp', name: 'Giáp Hợp Kim', tag: 'NÂNG CẤP PHÒNG THỦ', desc: '+25% Máu tối đa cho quân Xanh & Hồi 100% máu quân trên sân', iconCol: 15, iconRow: 10,
+        apply: () => {
+            game.buffs.hpMult += 0.25;
+            game.units.forEach(u => {
+                if (u.team === 'blue') {
+                    const spec = UNIT_BY_ID[u.unitId];
+                    if (spec) {
+                        u.maxHp = getEffectiveUnitStats(spec, true).hp;
+                        u.hp = u.maxHp;
+                    }
+                }
+            });
+            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '🛡️ +25% MÁU & HỒI PHỤC TOÀN QUÂN!', '#34d399', 15);
+        }
+    },
+    {
+        id: 'buff_haste', name: 'Nòng Pháo Siêu Tốc', tag: 'NÂNG CẤP TỐC BẮN', desc: '+20% Tốc độ bắn & +12% Tầm bắn cho toàn bộ quân Xanh', iconCol: 7, iconRow: 3,
+        apply: () => {
+            game.buffs.fireRateMult *= 0.82;
+            game.buffs.rangeMult += 0.12;
+            game.units.forEach(u => {
+                if (u.team === 'blue') {
+                    u.fireRate = Math.max(0.25, +(u.baseFireRate * game.buffs.fireRateMult).toFixed(2));
+                    u.range = Math.round(u.baseRange * game.buffs.rangeMult);
+                }
+            });
+            addFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '🎯 +20% TỐC BẮN & +12% TẦM BẮN!', '#38bdf8', 15);
+        }
+    },
+    {
+        id: 'buff_supply', name: 'Tiếp Viện Khẩn Cấp', tag: 'HẬU CẦN CHIẾN TRƯỜNG', desc: 'Nhận ngay +7 Bình Xăng & Sửa chữa +35 HP Căn cứ Xanh', iconCol: 12, iconRow: 10,
+        apply: () => {
+            game.gasCount = Math.min(game.maxGas, game.gasCount + 7);
+            game.blueBase.hp = Math.min(game.blueBase.maxHp, game.blueBase.hp + 35);
+            addFloatingText(LOGICAL_WIDTH / 2, game.blueBase.y - 40, '⛽ +7 XĂNG & +35 HP CĂN CỨ!', '#4ade80', 15);
+        }
+    }
 ];
 
 // ============================================================================
-// TRẠNG THÁI META-GAME & LƯU TRỮ LOCALSTORAGE
+// TRẠNG THÁI META-GAME & LƯU TRỮ LOCALSTORAGE (HỖ TRỢ LƯU TRỮ TỐI ƯU 100K THẺ)
 // ============================================================================
 let metaState = {
-    playerName: '',
-    coins: 350,
-    gems: 400,
-    isAdminMode: false,
-    usedCodes: [],
-    mapDifficultyProgress: {},
-    inventory: [],
-    armyPermanentLevels: {},
-    missionsProgress: {
-        kills: 0, diffWins: 0, spawns: 0, cratesOpened: 0, merges: 0, wins: 0, upgrades: 0, claimed: {}
-    }
+    playerName: '',
+    coins: 350,
+    gems: 400,
+    isAdminMode: false,
+    usedCodes: [],
+    mapDifficultyProgress: {},
+    inventory: [],
+    armyPermanentLevels: {},
+    missionsProgress: {
+        kills: 0, diffWins: 0, spawns: 0, cratesOpened: 0, merges: 0, wins: 0, upgrades: 0, claimed: {}
+    }
 };
 
 let currentLobbyTab = 'battle';
@@ -578,249 +578,303 @@ let currentArmyMode = 'army'; // 'army' | 'merge'
 let showcaseUnitId = 'infantry';
 let inspectingUnitId = 'infantry';
 let mergeSelectedCardUids = [];
+let uidCounter = 1;
+
+function nextCompactUid(prefix = 'c') {
+    uidCounter = (uidCounter + 1) % 1000000000;
+    return `${prefix}_${ Date.now().toString(36) }_${ uidCounter.toString(36) }`;
+}
 
 function createDefaultInventory() {
-    const starterUnits = ['infantry', 'bazooka', 'humvee', 'apc'];
-    return starterUnits.map((unitId, idx) => ({
-        uid: 'init_card_' + idx + '_' + Date.now(),
-        unitId,
-        rarity: 'common'
-    }));
+    const starterUnits = ['infantry', 'bazooka', 'humvee', 'apc'];
+    return starterUnits.map((unitId, idx) => ({
+        uid: 'init_card_' + idx + '_' + Date.now(),
+        unitId,
+        rarity: 'common'
+    }));
 }
 
 function createDefaultArmyLevels() {
-    const lvMap = {};
-    UNIT_CATALOG.forEach(u => { lvMap[u.id] = 1; });
-    return lvMap;
+    const lvMap = {};
+    UNIT_CATALOG.forEach(u => { lvMap[u.id] = 1; });
+    return lvMap;
 }
 
 function createDefaultMapDifficultyProgress() {
-    const prog = {};
-    for (let i = 1; i <= LEVELS.length; i++) {
-        prog[i] = {
-            easy: false,
-            difficult: false,
-            easy_destroy: false,
-            easy_survival: false,
-            difficult_destroy: false,
-            difficult_survival: false
-        };
-    }
-    return prog;
+    const prog = {};
+    for (let i = 1; i <= LEVELS.length; i++) {
+        prog[i] = {
+            easy: false,
+            difficult: false,
+            easy_destroy: false,
+            easy_survival: false,
+            difficult_destroy: false,
+            difficult_survival: false
+        };
+    }
+    return prog;
 }
 
 function normalizeMapProgressEntry(rawEntry) {
-    if (!rawEntry || typeof rawEntry !== 'object') {
-        return {
-            easy: false,
-            difficult: false,
-            easy_destroy: false,
-            easy_survival: false,
-            difficult_destroy: false,
-            difficult_survival: false
-        };
-    }
-    const easyDestroy = !!rawEntry.easy_destroy || (!!rawEntry.easy && !rawEntry.easy_survival);
-    const easySurvival = !!rawEntry.easy_survival;
-    const diffDestroy = !!rawEntry.difficult_destroy;
-    const diffSurvival = !!rawEntry.difficult_survival || (!!rawEntry.difficult && !rawEntry.difficult_destroy);
+    if (!rawEntry || typeof rawEntry !== 'object') {
+        return {
+            easy: false,
+            difficult: false,
+            easy_destroy: false,
+            easy_survival: false,
+            difficult_destroy: false,
+            difficult_survival: false
+        };
+    }
+    const easyDestroy = !!rawEntry.easy_destroy || (!!rawEntry.easy && !rawEntry.easy_survival);
+    const easySurvival = !!rawEntry.easy_survival;
+    const diffDestroy = !!rawEntry.difficult_destroy;
+    const diffSurvival = !!rawEntry.difficult_survival || (!!rawEntry.difficult && !rawEntry.difficult_destroy);
 
-    return {
-        easy: !!rawEntry.easy || easyDestroy || easySurvival,
-        difficult: !!rawEntry.difficult || diffDestroy || diffSurvival,
-        easy_destroy: easyDestroy,
-        easy_survival: easySurvival,
-        difficult_destroy: diffDestroy,
-        difficult_survival: diffSurvival
-    };
+    return {
+        easy: !!rawEntry.easy || easyDestroy || easySurvival,
+        difficult: !!rawEntry.difficult || diffDestroy || diffSurvival,
+        easy_destroy: easyDestroy,
+        easy_survival: easySurvival,
+        difficult_destroy: diffDestroy,
+        difficult_survival: diffSurvival
+    };
 }
 
 function loadProgress() {
-    const defaultLevels = createDefaultArmyLevels();
-    const defaultMapProg = createDefaultMapDifficultyProgress();
+    const defaultLevels = createDefaultArmyLevels();
+    const defaultMapProg = createDefaultMapDifficultyProgress();
 
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            metaState.playerName = typeof parsed.playerName === 'string' ? parsed.playerName : '';
-            metaState.coins = typeof parsed.coins === 'number' ? parsed.coins : 350;
-            metaState.gems = typeof parsed.gems === 'number' ? parsed.gems : 400;
-            metaState.isAdminMode = !!parsed.isAdminMode;
-            metaState.usedCodes = Array.isArray(parsed.usedCodes) ? parsed.usedCodes : [];
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            metaState.playerName = typeof parsed.playerName === 'string' ? parsed.playerName : '';
+            metaState.coins = typeof parsed.coins === 'number' ? parsed.coins : 350;
+            metaState.gems = typeof parsed.gems === 'number' ? parsed.gems : 400;
+            metaState.isAdminMode = !!parsed.isAdminMode;
+            metaState.usedCodes = Array.isArray(parsed.usedCodes) ? parsed.usedCodes : [];
 
-            metaState.mapDifficultyProgress = defaultMapProg;
-            if (parsed.mapDifficultyProgress && typeof parsed.mapDifficultyProgress === 'object') {
-                for (let i = 1; i <= LEVELS.length; i++) {
-                    if (parsed.mapDifficultyProgress[i]) {
-                        metaState.mapDifficultyProgress[i] = normalizeMapProgressEntry(parsed.mapDifficultyProgress[i]);
-                    }
-                }
-            }
+            metaState.mapDifficultyProgress = defaultMapProg;
+            if (parsed.mapDifficultyProgress && typeof parsed.mapDifficultyProgress === 'object') {
+                for (let i = 1; i <= LEVELS.length; i++) {
+                    if (parsed.mapDifficultyProgress[i]) {
+                        metaState.mapDifficultyProgress[i] = normalizeMapProgressEntry(parsed.mapDifficultyProgress[i]);
+                    }
+                }
+            }
 
-            if (Array.isArray(parsed.inventory) && parsed.inventory.length > 0) {
-                metaState.inventory = parsed.inventory.filter(
-                    item => item && UNIT_BY_ID[item.unitId] && RARITY_CONFIG[item.rarity]
-                );
-            } else {
-                metaState.inventory = createDefaultInventory();
-            }
+            if (parsed.inventoryStacks && typeof parsed.inventoryStacks === 'object') {
+                const rebuilt = [];
+                for (const [key, count] of Object.entries(parsed.inventoryStacks)) {
+                    const [unitId, rarity] = key.split('__');
+                    const qty = Math.max(0, Math.floor(Number(count) || 0));
+                    if (UNIT_BY_ID[unitId] && RARITY_CONFIG[rarity] && qty > 0) {
+                        for (let i = 0; i < qty; i++) {
+                            rebuilt.push({
+                                uid: nextCompactUid('s'),
+                                unitId,
+                                rarity
+                            });
+                        }
+                    }
+                }
+                metaState.inventory = rebuilt.length > 0 ? rebuilt : createDefaultInventory();
+            } else if (Array.isArray(parsed.inventory) && parsed.inventory.length > 0) {
+                metaState.inventory = parsed.inventory.filter(
+                    item => item && UNIT_BY_ID[item.unitId] && RARITY_CONFIG[item.rarity]
+                );
+            } else {
+                metaState.inventory = createDefaultInventory();
+            }
 
-            metaState.armyPermanentLevels = { ...defaultLevels, ...(parsed.armyPermanentLevels || {}) };
+            metaState.armyPermanentLevels = { ...defaultLevels, ...(parsed.armyPermanentLevels || {}) };
 
-            const mp = parsed.missionsProgress || {};
-            metaState.missionsProgress = {
-                kills: Number(mp.kills) || 0,
-                diffWins: Number(mp.diffWins) || 0,
-                spawns: Number(mp.spawns) || 0,
-                cratesOpened: Number(mp.cratesOpened) || 0,
-                merges: Number(mp.merges) || 0,
-                wins: Number(mp.wins) || 0,
-                upgrades: Number(mp.upgrades) || 0,
-                claimed: mp.claimed && typeof mp.claimed === 'object' ? mp.claimed : {}
-            };
-        } else {
-            metaState.playerName = '';
-            metaState.coins = 350;
-            metaState.gems = 400;
-            metaState.isAdminMode = false;
-            metaState.usedCodes = [];
-            metaState.mapDifficultyProgress = defaultMapProg;
-            metaState.inventory = createDefaultInventory();
-            metaState.armyPermanentLevels = defaultLevels;
-        }
-    } catch (e) {
-        metaState.mapDifficultyProgress = defaultMapProg;
-        metaState.inventory = createDefaultInventory();
-        metaState.armyPermanentLevels = defaultLevels;
-    }
+            const mp = parsed.missionsProgress || {};
+            metaState.missionsProgress = {
+                kills: Number(mp.kills) || 0,
+                diffWins: Number(mp.diffWins) || 0,
+                spawns: Number(mp.spawns) || 0,
+                cratesOpened: Number(mp.cratesOpened) || 0,
+                merges: Number(mp.merges) || 0,
+                wins: Number(mp.wins) || 0,
+                upgrades: Number(mp.upgrades) || 0,
+                claimed: mp.claimed && typeof mp.claimed === 'object' ? mp.claimed : {}
+            };
+        } else {
+            metaState.playerName = '';
+            metaState.coins = 350;
+            metaState.gems = 400;
+            metaState.isAdminMode = false;
+            metaState.usedCodes = [];
+            metaState.mapDifficultyProgress = defaultMapProg;
+            metaState.inventory = createDefaultInventory();
+            metaState.armyPermanentLevels = defaultLevels;
+        }
+    } catch (e) {
+        metaState.mapDifficultyProgress = defaultMapProg;
+        metaState.inventory = createDefaultInventory();
+        metaState.armyPermanentLevels = defaultLevels;
+    }
 
-    currentStageViewLevel = getMaxUnlockedMapLevel();
-    currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
+    currentStageViewLevel = getMaxUnlockedMapLevel();
+    currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
 }
 
 function saveProgress() {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(metaState));
-    } catch (e) {}
+    try {
+        if (metaState.inventory.length <= 2500) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(metaState));
+        } else {
+            const stacks = {};
+            for (let i = 0; i < metaState.inventory.length; i++) {
+                const c = metaState.inventory[i];
+                const key = `${c.unitId}__${c.rarity}`;
+                stacks[key] = (stacks[key] || 0) + 1;
+            }
+            const compactPayload = {
+                ...metaState,
+                inventory: [],
+                inventoryStacks: stacks
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(compactPayload));
+        }
+    } catch (e) {
+        try {
+            const stacks = {};
+            for (let i = 0; i < metaState.inventory.length; i++) {
+                const c = metaState.inventory[i];
+                const key = `${c.unitId}__${c.rarity}`;
+                stacks[key] = (stacks[key] || 0) + 1;
+            }
+            const compactPayload = {
+                ...metaState,
+                inventory: [],
+                inventoryStacks: stacks
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(compactPayload));
+        } catch (err) {}
+    }
 }
 
 function resetAllAccountData() {
-    try {
-        localStorage.removeItem(STORAGE_KEY);
-    } catch (e) {}
-    metaState = {
-        playerName: '',
-        coins: 350,
-        gems: 400,
-        isAdminMode: false,
-        usedCodes: [],
-        mapDifficultyProgress: createDefaultMapDifficultyProgress(),
-        inventory: createDefaultInventory(),
-        armyPermanentLevels: createDefaultArmyLevels(),
-        missionsProgress: {
-            kills: 0, diffWins: 0, spawns: 0, cratesOpened: 0, merges: 0, wins: 0, upgrades: 0, claimed: {}
-        }
-    };
-    window.location.reload();
+    try {
+        localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
+    metaState = {
+        playerName: '',
+        coins: 350,
+        gems: 400,
+        isAdminMode: false,
+        usedCodes: [],
+        mapDifficultyProgress: createDefaultMapDifficultyProgress(),
+        inventory: createDefaultInventory(),
+        armyPermanentLevels: createDefaultArmyLevels(),
+        missionsProgress: {
+            kills: 0, diffWins: 0, spawns: 0, cratesOpened: 0, merges: 0, wins: 0, upgrades: 0, claimed: {}
+        }
+    };
+    window.location.reload();
 }
 
 function isDifficultyCleared(mapLv, diffId) {
-    const prog = metaState.mapDifficultyProgress[mapLv];
-    if (!prog) return false;
-    if (diffId === 'easy') {
-        return !!(prog.easy || prog.easy_destroy || prog.easy_survival);
-    }
-    if (diffId === 'difficult') {
-        return !!(prog.difficult || prog.difficult_destroy || prog.difficult_survival);
-    }
-    return false;
+    const prog = metaState.mapDifficultyProgress[mapLv];
+    if (!prog) return false;
+    if (diffId === 'easy') {
+        return !!(prog.easy || prog.easy_destroy || prog.easy_survival);
+    }
+    if (diffId === 'difficult') {
+        return !!(prog.difficult || prog.difficult_destroy || prog.difficult_survival);
+    }
+    return false;
 }
 
 function isDifficultyModeCleared(mapLv, diffId, modeId) {
-    const prog = metaState.mapDifficultyProgress[mapLv];
-    if (!prog) return false;
-    const key = `${diffId}_${modeId}`;
-    return !!prog[key];
+    const prog = metaState.mapDifficultyProgress[mapLv];
+    if (!prog) return false;
+    const key = `${diffId}_${modeId}`;
+    return !!prog[key];
 }
 
 function getMaxUnlockedMapLevel() {
-    if (metaState.isAdminMode) return LEVELS.length;
-    let maxLv = 1;
-    for (let i = 1; i < LEVELS.length; i++) {
-        if (isDifficultyCleared(i, 'easy')) {
-            maxLv = i + 1;
-        } else {
-            break;
-        }
-    }
-    return maxLv;
+    if (metaState.isAdminMode) return LEVELS.length;
+    let maxLv = 1;
+    for (let i = 1; i < LEVELS.length; i++) {
+        if (isDifficultyCleared(i, 'easy')) {
+            maxLv = i + 1;
+        } else {
+            break;
+        }
+    }
+    return maxLv;
 }
 
 function isDifficultyUnlocked(mapLv, diffId) {
-    if (metaState.isAdminMode) return true;
-    if (mapLv > getMaxUnlockedMapLevel()) return false;
-    if (diffId === 'easy') return true;
-    if (diffId === 'difficult') return isDifficultyCleared(mapLv, 'easy');
-    return false;
+    if (metaState.isAdminMode) return true;
+    if (mapLv > getMaxUnlockedMapLevel()) return false;
+    if (diffId === 'easy') return true;
+    if (diffId === 'difficult') return isDifficultyCleared(mapLv, 'easy');
+    return false;
 }
 
 function getDefaultDifficultyForMap(mapLv) {
-    if (!isDifficultyCleared(mapLv, 'easy')) return 'easy';
-    return 'difficult';
+    if (!isDifficultyCleared(mapLv, 'easy')) return 'easy';
+    return 'difficult';
 }
 
 function getHighestRarityForUnit(unitId) {
-    let bestRarity = 'common';
-    let bestRank = -1;
+    let bestRarity = 'common';
+    let bestRank = -1;
 
-    for (const card of metaState.inventory) {
-        if (card.unitId === unitId && RARITY_CONFIG[card.rarity]) {
-            const rRank = RARITY_CONFIG[card.rarity].rank;
-            if (rRank > bestRank) {
-                bestRank = rRank;
-                bestRarity = card.rarity;
-            }
-        }
-    }
-    return bestRarity;
+    for (let i = 0; i < metaState.inventory.length; i++) {
+        const card = metaState.inventory[i];
+        if (card.unitId === unitId) {
+            const cfg = RARITY_CONFIG[card.rarity];
+            if (cfg && cfg.rank > bestRank) {
+                bestRank = cfg.rank;
+                bestRarity = card.rarity;
+                if (bestRank === 20) break;
+            }
+        }
+    }
+    return bestRarity;
 }
 
 function hasUnitInInventory(unitId) {
-    return metaState.inventory.some(c => c.unitId === unitId);
+    return metaState.inventory.some(c => c.unitId === unitId);
 }
 
 // ============================================================================
 // HỆ THỐNG CÂN BẰNG GIÁ NÂNG CẤP & HOÀN LẠI 100% VÀNG THEO CẤP ĐỘ
 // ============================================================================
 function getUnitUpgradeCost(currentLv) {
-    const tierBlock = Math.floor((currentLv - 1) / 5);
-    const basePrices = [100, 280, 750, 1800, 4200, 9500, 20000];
-    return basePrices[Math.min(tierBlock, basePrices.length - 1)];
+    const tierBlock = Math.floor((currentLv - 1) / 5);
+    const basePrices = [100, 280, 750, 1800, 4200, 9500, 20000];
+    return basePrices[Math.min(tierBlock, basePrices.length - 1)];
 }
 
 function calcTotalRefundCoins(targetLv, currentLv) {
-    const start = Math.max(1, Math.floor(Number(targetLv) || 1));
-    const end = Math.floor(Number(currentLv) || 1);
-    if (start >= end) return 0;
-    let totalRefund = 0;
-    for (let lv = start; lv < end; lv++) {
-        totalRefund += getUnitUpgradeCost(lv);
-    }
-    return totalRefund;
+    const start = Math.max(1, Math.floor(Number(targetLv) || 1));
+    const end = Math.floor(Number(currentLv) || 1);
+    if (start >= end) return 0;
+    let totalRefund = 0;
+    for (let lv = start; lv < end; lv++) {
+        totalRefund += getUnitUpgradeCost(lv);
+    }
+    return totalRefund;
 }
 
 function getUpgradeTierBracketText(currentLv) {
-    const block = Math.floor((currentLv - 1) / 5);
-    const startLv = block * 5 + 1;
-    const endLv = startLv + 4;
-    return `Khung giá cố định: Cấp ${startLv} - ${endLv}`;
+    const block = Math.floor((currentLv - 1) / 5);
+    const startLv = block * 5 + 1;
+    const endLv = startLv + 4;
+    return `Khung giá cố định: Cấp ${startLv} - ${endLv}`;
 }
 
 function formatCurrency(val) {
-    if (metaState.isAdminMode) return '∞';
-    const n = Math.floor(Number(val) || 0);
-    return n.toLocaleString('en-US');
+    if (metaState.isAdminMode) return '∞';
+    const n = Math.floor(Number(val) || 0);
+    return n.toLocaleString('en-US');
 }
 
 loadProgress();
@@ -829,781 +883,786 @@ loadProgress();
 // QUẢN LÝ SPRITE ATLAS ("Preview.png")
 // ============================================================================
 class SpriteAtlas {
-    constructor() {
-        this.ready = false;
-        this.tiles = new Map();
-        this.bakedMapCanvas = null;
+    constructor() {
+        this.ready = false;
+        this.tiles = new Map();
+        this.bakedMapCanvas = null;
 
-        this.image = new Image();
-        this.image.src = 'Preview.png';
-        this.image.onload = () => this.processAtlas();
-        this.image.onerror = () => {
-            if (!this.image.src.endsWith('preview.png')) {
-                this.image.src = 'preview.png';
-            }
-        };
-    }
+        this.image = new Image();
+        this.image.src = 'Preview.png';
+        this.image.onload = () => this.processAtlas();
+        this.image.onerror = () => {
+            if (!this.image.src.endsWith('preview.png')) {
+                this.image.src = 'preview.png';
+            }
+        };
+    }
 
-    isSolidTerrainTile(col, row) {
-        if (col <= 3 && row <= 5) return true;
-        if (col === 4 && (row === 0 || row === 1 || row === 8)) return true;
-        return false;
-    }
+    isSolidTerrainTile(col, row) {
+        if (col <= 3 && row <= 5) return true;
+        if (col === 4 && (row === 0 || row === 1 || row === 8)) return true;
+        return false;
+    }
 
-    extractUnitOrBuilding(sx, sy, tileW, bgR, bgG, bgB, hasFullData, filterDisconnected = true) {
-        const tileCanvas = document.createElement('canvas');
-        tileCanvas.width = tileW;
-        tileCanvas.height = tileW;
-        const tCtx = tileCanvas.getContext('2d');
-        tCtx.imageSmoothingEnabled = false;
-        tCtx.drawImage(this.image, sx, sy, tileW, tileW, 0, 0, tileW, tileW);
+    extractUnitOrBuilding(sx, sy, tileW, bgR, bgG, bgB, hasFullData, filterDisconnected = true) {
+        const tileCanvas = document.createElement('canvas');
+        tileCanvas.width = tileW;
+        tileCanvas.height = tileW;
+        const tCtx = tileCanvas.getContext('2d');
+        tCtx.imageSmoothingEnabled = false;
+        tCtx.drawImage(this.image, sx, sy, tileW, tileW, 0, 0, tileW, tileW);
 
-        if (!hasFullData) return tileCanvas;
+        if (!hasFullData) return tileCanvas;
 
-        try {
-            const subData = tCtx.getImageData(0, 0, tileW, tileW);
-            const d = subData.data;
-            const total = tileW * tileW;
-            const visitedBg = new Uint8Array(total);
-            const queue = [];
+        try {
+            const subData = tCtx.getImageData(0, 0, tileW, tileW);
+            const d = subData.data;
+            const total = tileW * tileW;
+            const visitedBg = new Uint8Array(total);
+            const queue = [];
 
-            const matchBg = (idx, tol = 24) =>
-                Math.abs(d[idx] - bgR) <= tol &&
-                Math.abs(d[idx + 1] - bgG) <= tol &&
-                Math.abs(d[idx + 2] - bgB) <= tol;
+            const matchBg = (idx, tol = 24) =>
+                Math.abs(d[idx] - bgR) <= tol &&
+                Math.abs(d[idx + 1] - bgG) <= tol &&
+                Math.abs(d[idx + 2] - bgB) <= tol;
 
-            for (let x = 0; x < tileW; x++) {
-                queue.push(x, (tileW - 1) * tileW + x);
-            }
-            for (let y = 0; y < tileW; y++) {
-                queue.push(y * tileW, y * tileW + (tileW - 1));
-            }
+            for (let x = 0; x < tileW; x++) {
+                queue.push(x, (tileW - 1) * tileW + x);
+            }
+            for (let y = 0; y < tileW; y++) {
+                queue.push(y * tileW, y * tileW + (tileW - 1));
+            }
 
-            while (queue.length > 0) {
-                const pos = queue.pop();
-                if (pos < 0 || pos >= total || visitedBg[pos]) continue;
-                visitedBg[pos] = 1;
+            while (queue.length > 0) {
+                const pos = queue.pop();
+                if (pos < 0 || pos >= total || visitedBg[pos]) continue;
+                visitedBg[pos] = 1;
 
-                const pIdx = pos * 4;
-                if (matchBg(pIdx, 24)) {
-                    d[pIdx + 3] = 0;
-                    const px = pos % tileW;
-                    const py = (pos / tileW) | 0;
-                    if (px > 0) queue.push(pos - 1);
-                    if (px < tileW - 1) queue.push(pos + 1);
-                    if (py > 0) queue.push(pos - tileW);
-                    if (py < tileW - 1) queue.push(pos + tileW);
-                }
-            }
+                const pIdx = pos * 4;
+                if (matchBg(pIdx, 24)) {
+                    d[pIdx + 3] = 0;
+                    const px = pos % tileW;
+                    const py = (pos / tileW) | 0;
+                    if (px > 0) queue.push(pos - 1);
+                    if (px < tileW - 1) queue.push(pos + 1);
+                    if (py > 0) queue.push(pos - tileW);
+                    if (py < tileW - 1) queue.push(pos + tileW);
+                }
+            }
 
-            if (filterDisconnected) {
-                const keep = new Uint8Array(total);
-                const fgQueue = [];
-                const c0 = Math.max(2, Math.floor(tileW * 0.2));
-                const c1 = Math.min(tileW - 3, Math.ceil(tileW * 0.8));
+            if (filterDisconnected) {
+                const keep = new Uint8Array(total);
+                const fgQueue = [];
+                const c0 = Math.max(2, Math.floor(tileW * 0.2));
+                const c1 = Math.min(tileW - 3, Math.ceil(tileW * 0.8));
 
-                for (let y = c0; y <= c1; y++) {
-                    for (let x = c0; x <= c1; x++) {
-                        const pos = y * tileW + x;
-                        if (d[pos * 4 + 3] > 0) {
-                            keep[pos] = 1;
-                            fgQueue.push(pos);
-                        }
-                    }
-                }
+                for (let y = c0; y <= c1; y++) {
+                    for (let x = c0; x <= c1; x++) {
+                        const pos = y * tileW + x;
+                        if (d[pos * 4 + 3] > 0) {
+                            keep[pos] = 1;
+                            fgQueue.push(pos);
+                        }
+                    }
+                }
 
-                while (fgQueue.length > 0) {
-                    const pos = fgQueue.pop();
-                    const px = pos % tileW;
-                    const py = (pos / tileW) | 0;
+                while (fgQueue.length > 0) {
+                    const pos = fgQueue.pop();
+                    const px = pos % tileW;
+                    const py = (pos / tileW) | 0;
 
-                    for (let ny = Math.max(0, py - 1); ny <= Math.min(tileW - 1, py + 1); ny++) {
-                        for (let nx = Math.max(0, px - 1); nx <= Math.min(tileW - 1, px + 1); nx++) {
-                            const nPos = ny * tileW + nx;
-                            if (!keep[nPos] && d[nPos * 4 + 3] > 0) {
-                                keep[nPos] = 1;
-                                fgQueue.push(nPos);
-                            }
-                        }
-                    }
-                }
+                    for (let ny = Math.max(0, py - 1); ny <= Math.min(tileW - 1, py + 1); ny++) {
+                        for (let nx = Math.max(0, px - 1); nx <= Math.min(tileW - 1, px + 1); nx++) {
+                            const nPos = ny * tileW + nx;
+                            if (!keep[nPos] && d[nPos * 4 + 3] > 0) {
+                                keep[nPos] = 1;
+                                fgQueue.push(nPos);
+                            }
+                        }
+                    }
+                }
 
-                for (let i = 0; i < total; i++) {
-                    if (!keep[i]) d[i * 4 + 3] = 0;
-                }
-            }
+                for (let i = 0; i < total; i++) {
+                    if (!keep[i]) d[i * 4 + 3] = 0;
+                }
+            }
 
-            tCtx.putImageData(subData, 0, 0);
-        } catch (e) {}
+            tCtx.putImageData(subData, 0, 0);
+        } catch (e) {}
 
-        return tileCanvas;
-    }
+        return tileCanvas;
+    }
 
-    extractRow10Icon(sx, sy, sw, sh, outSize, bgR, bgG, bgB, hasFullData) {
-        const tileCanvas = document.createElement('canvas');
-        tileCanvas.width = outSize;
-        tileCanvas.height = outSize;
-        const tCtx = tileCanvas.getContext('2d');
-        tCtx.imageSmoothingEnabled = false;
+    extractRow10Icon(sx, sy, sw, sh, outSize, bgR, bgG, bgB, hasFullData) {
+        const tileCanvas = document.createElement('canvas');
+        tileCanvas.width = outSize;
+        tileCanvas.height = outSize;
+        const tCtx = tileCanvas.getContext('2d');
+        tCtx.imageSmoothingEnabled = false;
 
-        const w = Math.max(1, Math.round(sw));
-        const h = Math.max(1, Math.round(sh));
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = w;
-        tempCanvas.height = h;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.imageSmoothingEnabled = false;
-        tempCtx.drawImage(this.image, Math.round(sx), Math.round(sy), w, h, 0, 0, w, h);
+        const w = Math.max(1, Math.round(sw));
+        const h = Math.max(1, Math.round(sh));
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = w;
+        tempCanvas.height = h;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.imageSmoothingEnabled = false;
+        tempCtx.drawImage(this.image, Math.round(sx), Math.round(sy), w, h, 0, 0, w, h);
 
-        if (!hasFullData) {
-            tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
-            return tileCanvas;
-        }
+        if (!hasFullData) {
+            tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
+            return tileCanvas;
+        }
 
-        try {
-            const subData = tempCtx.getImageData(0, 0, w, h);
-            const d = subData.data;
+        try {
+            const subData = tempCtx.getImageData(0, 0, w, h);
+            const d = subData.data;
 
-            const matchBg = (idx, tol = 24) =>
-                Math.abs(d[idx] - bgR) <= tol &&
-                Math.abs(d[idx + 1] - bgG) <= tol &&
-                Math.abs(d[idx + 2] - bgB) <= tol;
+            const matchBg = (idx, tol = 24) =>
+                Math.abs(d[idx] - bgR) <= tol &&
+                Math.abs(d[idx + 1] - bgG) <= tol &&
+                Math.abs(d[idx + 2] - bgB) <= tol;
 
-            let bMinX = w, bMaxX = -1, bMinY = h, bMaxY = -1;
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    const pIdx = (y * w + x) * 4;
-                    if (matchBg(pIdx, 24)) {
-                        d[pIdx + 3] = 0;
-                    } else if (d[pIdx + 3] > 0) {
-                        if (x < bMinX) bMinX = x;
-                        if (x > bMaxX) bMaxX = x;
-                        if (y < bMinY) bMinY = y;
-                        if (y > bMaxY) bMaxY = y;
-                    }
-                }
-            }
+            let bMinX = w, bMaxX = -1, bMinY = h, bMaxY = -1;
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const pIdx = (y * w + x) * 4;
+                    if (matchBg(pIdx, 24)) {
+                        d[pIdx + 3] = 0;
+                    } else if (d[pIdx + 3] > 0) {
+                        if (x < bMinX) bMinX = x;
+                        if (x > bMaxX) bMaxX = x;
+                        if (y < bMinY) bMinY = y;
+                        if (y > bMaxY) bMaxY = y;
+                    }
+                }
+            }
 
-            tempCtx.putImageData(subData, 0, 0);
+            tempCtx.putImageData(subData, 0, 0);
 
-            if (bMaxX >= bMinX && bMaxY >= bMinY) {
-                const cw = bMaxX - bMinX + 1;
-                const ch = bMaxY - bMinY + 1;
-                const pad = 2;
-                const targetMax = outSize - pad * 2;
-                const scale = Math.min(targetMax / Math.max(cw, ch, 1), 1.2);
-                const dw = Math.max(1, Math.round(cw * scale));
-                const dh = Math.max(1, Math.round(ch * scale));
-                const dx = Math.floor((outSize - dw) / 2);
-                const dy = Math.floor((outSize - dh) / 2);
-                tCtx.drawImage(tempCanvas, bMinX, bMinY, cw, ch, dx, dy, dw, dh);
-            } else {
-                tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
-            }
-        } catch (e) {
-            tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
-        }
+            if (bMaxX >= bMinX && bMaxY >= bMinY) {
+                const cw = bMaxX - bMinX + 1;
+                const ch = bMaxY - bMinY + 1;
+                const pad = 2;
+                const targetMax = outSize - pad * 2;
+                const scale = Math.min(targetMax / Math.max(cw, ch, 1), 1.2);
+                const dw = Math.max(1, Math.round(cw * scale));
+                const dh = Math.max(1, Math.round(ch * scale));
+                const dx = Math.floor((outSize - dw) / 2);
+                const dy = Math.floor((outSize - dh) / 2);
+                tCtx.drawImage(tempCanvas, bMinX, bMinY, cw, ch, dx, dy, dw, dh);
+            } else {
+                tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
+            }
+        } catch (e) {
+            tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
+        }
 
-        return tileCanvas;
-    }
+        return tileCanvas;
+    }
 
-    processAtlas() {
-        const W = this.image.naturalWidth;
-        const H = this.image.naturalHeight;
-        const rawCanvas = document.createElement('canvas');
-        rawCanvas.width = W;
-        rawCanvas.height = H;
-        const rawCtx = rawCanvas.getContext('2d', { willReadFrequently: true });
-        rawCtx.imageSmoothingEnabled = false;
-        rawCtx.drawImage(this.image, 0, 0);
+    processAtlas() {
+        const W = this.image.naturalWidth;
+        const H = this.image.naturalHeight;
+        const rawCanvas = document.createElement('canvas');
+        rawCanvas.width = W;
+        rawCanvas.height = H;
+        const rawCtx = rawCanvas.getContext('2d', { willReadFrequently: true });
+        rawCtx.imageSmoothingEnabled = false;
+        rawCtx.drawImage(this.image, 0, 0);
 
-        let minX = Math.round(W * 0.16875);
-        let maxX = Math.round(W * 0.83125);
-        let minY = Math.round(H * 0.0963);
-        let tileW = Math.round(((maxX - minX + 1) * 16) / 305);
-        let stepX = (maxX - minX + 1 - tileW) / 17;
-        let rowStarts = Array.from({ length: 10 }, (_, r) => Math.round(minY + r * stepX));
-        let row10Y0 = Math.round(minY + 10 * stepX + tileW * 0.25);
-        let row10Y1 = row10Y0 + tileW + 4;
+        let minX = Math.round(W * 0.16875);
+        let maxX = Math.round(W * 0.83125);
+        let minY = Math.round(H * 0.0963);
+        let tileW = Math.round(((maxX - minX + 1) * 16) / 305);
+        let stepX = (maxX - minX + 1 - tileW) / 17;
+        let rowStarts = Array.from({ length: 10 }, (_, r) => Math.round(minY + r * stepX));
+        let row10Y0 = Math.round(minY + 10 * stepX + tileW * 0.25);
+        let row10Y1 = row10Y0 + tileW + 4;
 
-        let fullData = null;
-        let bgR = 59, bgG = 136, bgB = 214;
+        let fullData = null;
+        let bgR = 59, bgG = 136, bgB = 214;
 
-        try {
-            const imgData = rawCtx.getImageData(0, 0, W, H);
-            fullData = imgData.data;
-            bgR = fullData[0];
-            bgG = fullData[1];
-            bgB = fullData[2];
+        try {
+            const imgData = rawCtx.getImageData(0, 0, W, H);
+            fullData = imgData.data;
+            bgR = fullData[0];
+            bgG = fullData[1];
+            bgB = fullData[2];
 
-            const isBg = (x, y, tol = 20) => {
-                const idx = (y * W + x) * 4;
-                return (
-                    Math.abs(fullData[idx] - bgR) <= tol &&
-                    Math.abs(fullData[idx + 1] - bgG) <= tol &&
-                    Math.abs(fullData[idx + 2] - bgB) <= tol
-                );
-            };
+            const isBg = (x, y, tol = 20) => {
+                const idx = (y * W + x) * 4;
+                return (
+                    Math.abs(fullData[idx] - bgR) <= tol &&
+                    Math.abs(fullData[idx + 1] - bgG) <= tol &&
+                    Math.abs(fullData[idx + 2] - bgB) <= tol
+                );
+            };
 
-            let detMinX = W, detMaxX = 0, detMinY = H, detMaxY = 0;
-            const scanMaxY = Math.floor(H * 0.84);
-            for (let y = Math.floor(H * 0.04); y < scanMaxY; y++) {
-                for (let x = Math.floor(W * 0.08); x < Math.floor(W * 0.92); x++) {
-                    if (!isBg(x, y, 22)) {
-                        if (x < detMinX) detMinX = x;
-                        if (x > detMaxX) detMaxX = x;
-                        if (y < detMinY) detMinY = y;
-                        if (y > detMaxY) detMaxY = y;
-                    }
-                }
-            }
+            let detMinX = W, detMaxX = 0, detMinY = H, detMaxY = 0;
+            const scanMaxY = Math.floor(H * 0.84);
+            for (let y = Math.floor(H * 0.04); y < scanMaxY; y++) {
+                for (let x = Math.floor(W * 0.08); x < Math.floor(W * 0.92); x++) {
+                    if (!isBg(x, y, 22)) {
+                        if (x < detMinX) detMinX = x;
+                        if (x > detMaxX) detMaxX = x;
+                        if (y < detMinY) detMinY = y;
+                        if (y > detMaxY) detMaxY = y;
+                    }
+                }
+            }
 
-            if (detMaxX > detMinX && detMaxY > detMinY) {
-                minX = detMinX;
-                maxX = detMaxX;
-                minY = detMinY;
+            if (detMaxX > detMinX && detMaxY > detMinY) {
+                minX = detMinX;
+                maxX = detMaxX;
+                minY = detMinY;
 
-                const rightStartX = Math.floor(minX + (maxX - minX) * 0.46);
-                const segments = [];
-                let inRow = false;
-                let rStart = 0;
+                const rightStartX = Math.floor(minX + (maxX - minX) * 0.46);
+                const segments = [];
+                let inRow = false;
+                let rStart = 0;
 
-                for (let y = detMinY; y <= detMaxY + 1; y++) {
-                    let nonBgCount = 0;
-                    if (y <= detMaxY) {
-                        for (let x = rightStartX; x <= maxX; x++) {
-                            if (!isBg(x, y, 22)) nonBgCount++;
-                        }
-                    }
-                    if (nonBgCount > 2 && !inRow) {
-                        inRow = true;
-                        rStart = y;
-                    } else if (nonBgCount <= 2 && inRow) {
-                        inRow = false;
-                        if (y - rStart >= 6) {
-                            segments.push({ y0: rStart, y1: y - 1 });
-                        }
-                    }
-                }
+                for (let y = detMinY; y <= detMaxY + 1; y++) {
+                    let nonBgCount = 0;
+                    if (y <= detMaxY) {
+                        for (let x = rightStartX; x <= maxX; x++) {
+                            if (!isBg(x, y, 22)) nonBgCount++;
+                        }
+                    }
+                    if (nonBgCount > 2 && !inRow) {
+                        inRow = true;
+                        rStart = y;
+                    } else if (nonBgCount <= 2 && inRow) {
+                        inRow = false;
+                        if (y - rStart >= 6) {
+                            segments.push({ y0: rStart, y1: y - 1 });
+                        }
+                    }
+                }
 
-                if (segments.length >= 10) {
-                    const heights = segments.slice(0, 10).map(s => s.y1 - s.y0 + 1).sort((a, b) => a - b);
-                    tileW = heights[Math.floor(heights.length / 2)];
-                    stepX = (maxX - minX + 1 - tileW) / 17;
-                    rowStarts = [];
-                    for (let r = 0; r < 10; r++) {
-                        rowStarts.push(Math.round(minY + r * stepX));
-                    }
-                    if (segments[10]) {
-                        row10Y0 = segments[10].y0 - 2;
-                        row10Y1 = segments[10].y1 + 2;
-                    } else {
-                        row10Y0 = segments[9].y1 + 4;
-                        row10Y1 = detMaxY + 2;
-                    }
-                }
-            }
-        } catch (err) {}
+                if (segments.length >= 10) {
+                    const heights = segments.slice(0, 10).map(s => s.y1 - s.y0 + 1).sort((a, b) => a - b);
+                    tileW = heights[Math.floor(heights.length / 2)];
+                    stepX = (maxX - minX + 1 - tileW) / 17;
+                    rowStarts = [];
+                    for (let r = 0; r < 10; r++) {
+                        rowStarts.push(Math.round(minY + r * stepX));
+                    }
+                    if (segments[10]) {
+                        row10Y0 = segments[10].y0 - 2;
+                        row10Y1 = segments[10].y1 + 2;
+                    } else {
+                        row10Y0 = segments[9].y1 + 4;
+                        row10Y1 = detMaxY + 2;
+                    }
+                }
+            }
+        } catch (err) {}
 
-        for (let row = 0; row < 10; row++) {
-            for (let col = 0; col < 18; col++) {
-                const sx = Math.round(minX + col * stepX);
-                const sy = rowStarts[row];
-                const isTerrain = this.isSolidTerrainTile(col, row);
+        for (let row = 0; row < 10; row++) {
+            for (let col = 0; col < 18; col++) {
+                const sx = Math.round(minX + col * stepX);
+                const sy = rowStarts[row];
+                const isTerrain = this.isSolidTerrainTile(col, row);
 
-                if (isTerrain) {
-                    const tileCanvas = document.createElement('canvas');
-                    tileCanvas.width = tileW;
-                    tileCanvas.height = tileW;
-                    const tCtx = tileCanvas.getContext('2d');
-                    tCtx.imageSmoothingEnabled = false;
-                    const inset = Math.max(1, Math.floor(tileW * 0.04));
-                    tCtx.drawImage(
-                        this.image,
-                        sx + inset,
-                        sy + inset,
-                        tileW - inset * 2,
-                        tileW - inset * 2,
-                        0,
-                        0,
-                        tileW,
-                        tileW
-                    );
-                    this.tiles.set(`${col},${row}`, tileCanvas);
-                } else {
-                    const isRoadOrMulti = (row >= 6 && col <= 4) || (col === 7 && row === 3);
-                    const tileCanvas = this.extractUnitOrBuilding(
-                        sx,
-                        sy,
-                        tileW,
-                        bgR,
-                        bgG,
-                        bgB,
-                        !!fullData,
-                        !isRoadOrMulti
-                    );
-                    this.tiles.set(`${col},${row}`, tileCanvas);
-                }
-            }
-        }
+                if (isTerrain) {
+                    const tileCanvas = document.createElement('canvas');
+                    tileCanvas.width = tileW;
+                    tileCanvas.height = tileW;
+                    const tCtx = tileCanvas.getContext('2d');
+                    tCtx.imageSmoothingEnabled = false;
+                    const inset = Math.max(1, Math.floor(tileW * 0.04));
+                    tCtx.drawImage(
+                        this.image,
+                        sx + inset,
+                        sy + inset,
+                        tileW - inset * 2,
+                        tileW - inset * 2,
+                        0,
+                        0,
+                        tileW,
+                        tileW
+                    );
+                    this.tiles.set(`${col},${row}`, tileCanvas);
+                } else {
+                    const isRoadOrMulti = (row >= 6 && col <= 4) || (col === 7 && row === 3);
+                    const tileCanvas = this.extractUnitOrBuilding(
+                        sx,
+                        sy,
+                        tileW,
+                        bgR,
+                        bgG,
+                        bgB,
+                        !!fullData,
+                        !isRoadOrMulti
+                    );
+                    this.tiles.set(`${col},${row}`, tileCanvas);
+                }
+            }
+        }
 
-        const row10Islands = [];
-        if (fullData) {
-            let inIsland = false;
-            let iStart = 0;
-            for (let x = minX; x <= maxX + 1; x++) {
-                let colHasFg = false;
-                if (x <= maxX) {
-                    for (let y = row10Y0; y <= row10Y1; y++) {
-                        const idx = (y * W + x) * 4;
-                        if (
-                            Math.abs(fullData[idx] - bgR) > 20 ||
-                            Math.abs(fullData[idx + 1] - bgG) > 20 ||
-                            Math.abs(fullData[idx + 2] - bgB) > 20
-                        ) {
-                            colHasFg = true;
-                            break;
-                        }
-                    }
-                }
-                if (colHasFg && !inIsland) {
-                    inIsland = true;
-                    iStart = x;
-                } else if (!colHasFg && inIsland) {
-                    inIsland = false;
-                    if (x - iStart >= 4) {
-                        row10Islands.push({ x0: iStart, x1: x - 1 });
-                    }
-                }
-            }
-        }
+        const row10Islands = [];
+        if (fullData) {
+            let inIsland = false;
+            let iStart = 0;
+            for (let x = minX; x <= maxX + 1; x++) {
+                let colHasFg = false;
+                if (x <= maxX) {
+                    for (let y = row10Y0; y <= row10Y1; y++) {
+                        const idx = (y * W + x) * 4;
+                        if (
+                            Math.abs(fullData[idx] - bgR) > 20 ||
+                            Math.abs(fullData[idx + 1] - bgG) > 20 ||
+                            Math.abs(fullData[idx + 2] - bgB) > 20
+                        ) {
+                            colHasFg = true;
+                            break;
+                        }
+                    }
+                }
+                if (colHasFg && !inIsland) {
+                    inIsland = true;
+                    iStart = x;
+                } else if (!colHasFg && inIsland) {
+                    inIsland = false;
+                    if (x - iStart >= 4) {
+                        row10Islands.push({ x0: iStart, x1: x - 1 });
+                    }
+                }
+            }
+        }
 
-        for (let col = 0; col < 18; col++) {
-            let sx, sw;
-            if (row10Islands.length === 18) {
-                sx = row10Islands[col].x0 - 2;
-                sw = row10Islands[col].x1 - row10Islands[col].x0 + 5;
-            } else {
-                sx = Math.round(minX + col * stepX);
-                sw = tileW;
-            }
-            const sy = row10Y0;
-            const sh = row10Y1 - row10Y0 + 1;
+        for (let col = 0; col < 18; col++) {
+            let sx, sw;
+            if (row10Islands.length === 18) {
+                sx = row10Islands[col].x0 - 2;
+                sw = row10Islands[col].x1 - row10Islands[col].x0 + 5;
+            } else {
+                sx = Math.round(minX + col * stepX);
+                sw = tileW;
+            }
+            const sy = row10Y0;
+            const sh = row10Y1 - row10Y0 + 1;
 
-            const iconCanvas = this.extractRow10Icon(
-                sx,
-                sy,
-                sw,
-                sh,
-                tileW,
-                bgR,
-                bgG,
-                bgB,
-                !!fullData
-            );
-            this.tiles.set(`${col},10`, iconCanvas);
-        }
+            const iconCanvas = this.extractRow10Icon(
+                sx,
+                sy,
+                sw,
+                sh,
+                tileW,
+                bgR,
+                bgG,
+                bgB,
+                !!fullData
+            );
+            this.tiles.set(`${col},10`, iconCanvas);
+        }
 
-        this.ready = true;
-        this.populateUIDeckIcons();
-        this.renderTopAvatarArt();
-        buildStaticMapCanvas(game.currentLevel);
-        renderStageScreenUI();
-        renderArmyTabUI();
-        renderBattleDeckButtons();
-    }
+        this.ready = true;
+        this.populateUIDeckIcons();
+        this.renderTopAvatarArt();
+        buildStaticMapCanvas(game.currentLevel);
+        renderStageScreenUI();
+        renderArmyTabUI();
+        renderBattleDeckButtons();
+    }
 
-    get(col, row) {
-        return this.tiles.get(`${col},${row}`) || null;
-    }
+    get(col, row) {
+        return this.tiles.get(`${col},${row}`) || null;
+    }
 
-    draw(ctx, col, row, cx, cy, w, h, opts = {}) {
-        const sprite = this.get(col, row);
-        if (!sprite) return false;
-        ctx.save();
-        ctx.imageSmoothingEnabled = false;
-        ctx.translate(cx, cy);
-        if (opts.rotation) ctx.rotate(opts.rotation);
-        if (opts.flipX || opts.flipY) {
-            ctx.scale(opts.flipX ? -1 : 1, opts.flipY ? -1 : 1);
-        }
-        if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
-        ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
-        ctx.restore();
-        return true;
-    }
+    draw(ctx, col, row, cx, cy, w, h, opts = {}) {
+        const sprite = this.get(col, row);
+        if (!sprite) return false;
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        ctx.translate(cx, cy);
+        if (opts.rotation) ctx.rotate(opts.rotation);
+        if (opts.flipX || opts.flipY) {
+            ctx.scale(opts.flipX ? -1 : 1, opts.flipY ? -1 : 1);
+        }
+        if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
+        ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
+        ctx.restore();
+        return true;
+    }
 
-    toDataURL(col, row) {
-        const sprite = this.get(col, row);
-        return sprite ? sprite.toDataURL() : '';
-    }
+    toDataURL(col, row) {
+        const sprite = this.get(col, row);
+        return sprite ? sprite.toDataURL() : '';
+    }
 
-    populateUIDeckIcons() {
-        const setImg = (id, col, row) => {
-            const el = document.getElementById(id);
-            if (el) el.src = this.toDataURL(col, row);
-        };
+    populateUIDeckIcons() {
+        const setImg = (id, col, row) => {
+            const el = document.getElementById(id);
+            if (el) el.src = this.toDataURL(col, row);
+        };
 
-        const gasUrl = this.toDataURL(12, 10);
-        setImg('icon-gas-can', 12, 10);
-        setImg('icon-upgrade-building', 11, 2);
+        const gasUrl = this.toDataURL(12, 10);
+        setImg('icon-gas-can', 12, 10);
+        setImg('icon-upgrade-building', 11, 2);
 
-        document.querySelectorAll('.gas-inline-sprite').forEach(img => {
-            img.src = gasUrl;
-        });
+        document.querySelectorAll('.gas-inline-sprite').forEach(img => {
+            img.src = gasUrl;
+        });
 
-        const lockUrl = this.toDataURL(13, 10);
-        document.querySelectorAll('.lock-sprite').forEach(img => {
-            img.src = lockUrl;
-        });
-    }
+        const lockUrl = this.toDataURL(13, 10);
+        document.querySelectorAll('.lock-sprite').forEach(img => {
+            img.src = lockUrl;
+        });
+    }
 
-    renderTopAvatarArt() {
-        const avatarCanvas = document.getElementById('topAvatarCanvas');
-        if (!avatarCanvas) return;
-        const aCtx = avatarCanvas.getContext('2d');
-        aCtx.imageSmoothingEnabled = false;
-        aCtx.clearRect(0, 0, 32, 32);
-        this.draw(aCtx, 16, 7, 16, 17, 26, 26);
-    }
+    renderTopAvatarArt() {
+        const avatarCanvas = document.getElementById('topAvatarCanvas');
+        if (!avatarCanvas) return;
+        const aCtx = avatarCanvas.getContext('2d');
+        aCtx.imageSmoothingEnabled = false;
+        aCtx.clearRect(0, 0, 32, 32);
+        this.draw(aCtx, 16, 7, 16, 17, 26, 26);
+    }
 }
 
 const atlas = new SpriteAtlas();
 
 // ============================================================================
-// HỆ THỐNG LƯỚI ĐỊA HÌNH, VẬT CẢN VÀ TÌM ĐƯỜNG FLOW-FIELD
+// HỆ THỐNG LƯỚI ĐỊA HÌNH, VẬT CẢN VÀ TÌM ĐƯỜNG FLOW-FIELD (BLUE DƯỚI ➔ RED TRÊN)
 // ============================================================================
 class NavSystem {
-    constructor() {
-        this.grid = new Uint8Array(GRID_W * GRID_H);
-        this.obstacles = [];
-        this.bridges = [];
-        this.waterBoxes = [];
-        this.flowBlueLand = new Float32Array(GRID_W * GRID_H);
-        this.flowRedLand = new Float32Array(GRID_W * GRID_H);
-        this.flowBlueNaval = new Float32Array(GRID_W * GRID_H);
-        this.flowRedNaval = new Float32Array(GRID_W * GRID_H);
-    }
+    constructor() {
+        this.grid = new Uint8Array(GRID_W * GRID_H);
+        this.obstacles = [];
+        this.bridges = [];
+        this.waterBoxes = [];
+        this.flowBlueLand = new Float32Array(GRID_W * GRID_H);
+        this.flowRedLand = new Float32Array(GRID_W * GRID_H);
+        this.flowBlueNaval = new Float32Array(GRID_W * GRID_H);
+        this.flowRedNaval = new Float32Array(GRID_W * GRID_H);
+    }
 
-    reset() {
-        this.grid.fill(T_OPEN);
-        this.obstacles = [];
-        this.bridges = [];
-        this.waterBoxes = [];
-    }
+    reset() {
+        this.grid.fill(T_OPEN);
+        this.obstacles = [];
+        this.bridges = [];
+        this.waterBoxes = [];
+    }
 
-    idx(gx, gy) {
-        return gy * GRID_W + gx;
-    }
+    idx(gx, gy) {
+        return gy * GRID_W + gx;
+    }
 
-    inBounds(gx, gy) {
-        return gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H;
-    }
+    inBounds(gx, gy) {
+        return gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H;
+    }
 
-    getCellAtPixel(x, y) {
-        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
-        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
-        return this.grid[this.idx(gx, gy)];
-    }
+    getCellAtPixel(x, y) {
+        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
+        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
+        return this.grid[this.idx(gx, gy)];
+    }
 
-    markRect(x, y, w, h, type, overrideAll = true) {
-        const c0 = Math.max(0, Math.floor(x / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((x + w) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor(y / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((y + h) / NAV_CELL));
+    markRect(x, y, w, h, type, overrideAll = true) {
+        const c0 = Math.max(0, Math.floor(x / NAV_CELL));
+        const c1 = Math.min(GRID_W - 1, Math.floor((x + w) / NAV_CELL));
+        const r0 = Math.max(0, Math.floor(y / NAV_CELL));
+        const r1 = Math.min(GRID_H - 1, Math.floor((y + h) / NAV_CELL));
 
-        for (let r = r0; r <= r1; r++) {
-            for (let c = c0; c <= c1; c++) {
-                const i = this.idx(c, r);
-                if (overrideAll || this.grid[i] === T_OPEN) {
-                    this.grid[i] = type;
-                }
-            }
-        }
-    }
+        for (let r = r0; r <= r1; r++) {
+            for (let c = c0; c <= c1; c++) {
+                const i = this.idx(c, r);
+                if (overrideAll || this.grid[i] === T_OPEN) {
+                    this.grid[i] = type;
+                }
+            }
+        }
+    }
 
-    markCircle(cx, cy, radius, type, overrideAll = true) {
-        const c0 = Math.max(0, Math.floor((cx - radius) / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((cx + radius) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor((cy - radius) / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((cy + radius) / NAV_CELL));
+    markCircle(cx, cy, radius, type, overrideAll = true) {
+        const c0 = Math.max(0, Math.floor((cx - radius) / NAV_CELL));
+        const c1 = Math.min(GRID_W - 1, Math.floor((cx + radius) / NAV_CELL));
+        const r0 = Math.max(0, Math.floor((cy - radius) / NAV_CELL));
+        const r1 = Math.min(GRID_H - 1, Math.floor((cy + radius) / NAV_CELL));
 
-        for (let r = r0; r <= r1; r++) {
-            for (let c = c0; c <= c1; c++) {
-                const px = (c + 0.5) * NAV_CELL;
-                const py = (r + 0.5) * NAV_CELL;
-                if (Math.hypot(px - cx, py - cy) <= radius) {
-                    const i = this.idx(c, r);
-                    if (overrideAll || this.grid[i] === T_OPEN) {
-                        this.grid[i] = type;
-                    }
-                }
-            }
-        }
-    }
+        for (let r = r0; r <= r1; r++) {
+            for (let c = c0; c <= c1; c++) {
+                const px = (c + 0.5) * NAV_CELL;
+                const py = (r + 0.5) * NAV_CELL;
+                if (Math.hypot(px - cx, py - cy) <= radius) {
+                    const i = this.idx(c, r);
+                    if (overrideAll || this.grid[i] === T_OPEN) {
+                        this.grid[i] = type;
+                    }
+                }
+            }
+        }
+    }
 
-    markPolyline(pts, width, type) {
-        const halfW = width * 0.5;
-        for (let i = 0; i < pts.length - 1; i++) {
-            const [x1, y1] = pts[i];
-            const [x2, y2] = pts[i + 1];
-            const len = Math.hypot(x2 - x1, y2 - y1);
-            const steps = Math.max(1, Math.ceil(len / (NAV_CELL * 0.5)));
-            for (let s = 0; s <= steps; s++) {
-                const t = s / steps;
-                const px = x1 + (x2 - x1) * t;
-                const py = y1 + (y2 - y1) * t;
-                this.markCircle(px, py, halfW, type, false);
-            }
-        }
-    }
+    markPolyline(pts, width, type) {
+        const halfW = width * 0.5;
+        for (let i = 0; i < pts.length - 1; i++) {
+            const [x1, y1] = pts[i];
+            const [x2, y2] = pts[i + 1];
+            const len = Math.hypot(x2 - x1, y2 - y1);
+            const steps = Math.max(1, Math.ceil(len / (NAV_CELL * 0.5)));
+            for (let s = 0; s <= steps; s++) {
+                const t = s / steps;
+                const px = x1 + (x2 - x1) * t;
+                const py = y1 + (y2 - y1) * t;
+                this.markCircle(px, py, halfW, type, false);
+            }
+        }
+    }
 
-    markRing(cx, cy, r, width, type) {
-        const halfW = width * 0.5;
-        const steps = Math.max(24, Math.ceil((2 * Math.PI * r) / (NAV_CELL * 0.5)));
-        for (let s = 0; s < steps; s++) {
-            const a = (s / steps) * Math.PI * 2;
-            const px = cx + Math.cos(a) * r;
-            const py = cy + Math.sin(a) * r;
-            this.markCircle(px, py, halfW, type, false);
-        }
-    }
+    markRing(cx, cy, r, width, type) {
+        const halfW = width * 0.5;
+        const steps = Math.max(24, Math.ceil((2 * Math.PI * r) / (NAV_CELL * 0.5)));
+        for (let s = 0; s < steps; s++) {
+            const a = (s / steps) * Math.PI * 2;
+            const px = cx + Math.cos(a) * r;
+            const py = cy + Math.sin(a) * r;
+            this.markCircle(px, py, halfW, type, false);
+        }
+    }
 
-    isRoadOrBridgeOrSpawn(cx, cy, pad = 16) {
-        if (cy < 108 || cy > PLAYFIELD_HEIGHT - 108) {
-            if (cx > 68 && cx < LOGICAL_WIDTH - 68) return true;
-        }
-        const c0 = Math.max(0, Math.floor((cx - pad) / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((cx + pad) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor((cy - pad) / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((cy + pad) / NAV_CELL));
+    isRoadOrBridgeOrSpawn(cx, cy, pad = 16) {
+        if (cy < 115 || cy > PLAYFIELD_HEIGHT - 115) {
+            if (cx > 68 && cx < LOGICAL_WIDTH - 68) return true;
+        }
+        const c0 = Math.max(0, Math.floor((cx - pad) / NAV_CELL));
+        const c1 = Math.min(GRID_W - 1, Math.floor((cx + pad) / NAV_CELL));
+        const r0 = Math.max(0, Math.floor((cy - pad) / NAV_CELL));
+        const r1 = Math.min(GRID_H - 1, Math.floor((cy + pad) / NAV_CELL));
 
-        for (let r = r0; r <= r1; r++) {
-            for (let c = c0; c <= c1; c++) {
-                const cell = this.grid[this.idx(c, r)];
-                if (cell === T_ROAD || cell === T_BRIDGE) return true;
-            }
-        }
-        return false;
-    }
+        for (let r = r0; r <= r1; r++) {
+            for (let c = c0; c <= c1; c++) {
+                const cell = this.grid[this.idx(c, r)];
+                if (cell === T_ROAD || cell === T_BRIDGE) return true;
+            }
+        }
+        return false;
+    }
 
-    addCircleObstacle(x, y, r, kind = 'tree') {
-        this.obstacles.push({ type: 'circle', kind, x, y, r });
-        this.markCircle(x, y, r + 2, T_OBSTACLE, true);
-    }
+    addCircleObstacle(x, y, r, kind = 'tree') {
+        this.obstacles.push({ type: 'circle', kind, x, y, r });
+        this.markCircle(x, y, r + 2, T_OBSTACLE, true);
+    }
 
-    addBoxObstacle(x, y, w, h, kind = 'building') {
-        this.obstacles.push({ type: 'box', kind, x, y, w, h });
-        this.markRect(x - 2, y - 2, w + 4, h + 4, T_OBSTACLE, true);
-    }
+    addBoxObstacle(x, y, w, h, kind = 'building') {
+        this.obstacles.push({ type: 'box', kind, x, y, w, h });
+        this.markRect(x - 2, y - 2, w + 4, h + 4, T_OBSTACLE, true);
+    }
 
-    addBridge(cx, cy, w, h, isVertical = true) {
-        const bw = isVertical ? w : h;
-        const bh = isVertical ? h : w;
-        const bx = cx - bw / 2;
-        const by = cy - bh / 2;
-        this.bridges.push({ x: bx, y: by, w: bw, h: bh });
-        const padX = isVertical ? 2 : 10;
-        const padY = isVertical ? 10 : 2;
-        this.markRect(bx - padX, by - padY, bw + padX * 2, bh + padY * 2, T_BRIDGE, true);
-    }
+    addBridge(cx, cy, w, h, isVertical = true) {
+        const bw = isVertical ? w : h;
+        const bh = isVertical ? h : w;
+        const bx = cx - bw / 2;
+        const by = cy - bh / 2;
+        this.bridges.push({ x: bx, y: by, w: bw, h: bh });
+        const padX = isVertical ? 2 : 10;
+        const padY = isVertical ? 10 : 2;
+        this.markRect(bx - padX, by - padY, bw + padX * 2, bh + padY * 2, T_BRIDGE, true);
+    }
 
-    isPointOnBridge(x, y, margin = 4) {
-        for (const br of this.bridges) {
-            if (
-                x >= br.x - margin &&
-                x <= br.x + br.w + margin &&
-                y >= br.y - margin &&
-                y <= br.y + br.h + margin
-            ) {
-                return true;
-            }
-        }
-        return false;
-    }
+    isPointOnBridge(x, y, margin = 4) {
+        for (const br of this.bridges) {
+            if (
+                x >= br.x - margin &&
+                x <= br.x + br.w + margin &&
+                y >= br.y - margin &&
+                y <= br.y + br.h + margin
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-    isPointInWaterRaw(x, y) {
-        if (this.isPointOnBridge(x, y, 4)) return false;
-        const cell = this.getCellAtPixel(x, y);
-        return cell === T_WATER;
-    }
+    isPointInWaterRaw(x, y) {
+        if (this.isPointOnBridge(x, y, 4)) return false;
+        const cell = this.getCellAtPixel(x, y);
+        return cell === T_WATER;
+    }
 
-    buildFlowFields() {
-        this.markRect(80, 94, 260, 22, T_ROAD, false);
-        this.markRect(80, PLAYFIELD_HEIGHT - 116, 260, 22, T_ROAD, false);
+    buildFlowFields() {
+        // Mở thoáng vùng tập kết trước Căn cứ Đỏ (phía trên) và Căn cứ Xanh (phía dưới)
+        this.markRect(75, 92, 270, 26, T_ROAD, false);
+        this.markRect(75, PLAYFIELD_HEIGHT - 118, 270, 26, T_ROAD, false);
 
-        const blueLandGoals = [];
-        for (let c = 8; c <= GRID_W - 9; c++) {
-            blueLandGoals.push([c, 9], [c, 10]);
-        }
-        this.computeDijkstra(this.flowBlueLand, blueLandGoals, false);
+        // Quân Xanh (từ đáy đi lên) nhắm tới Căn cứ Đỏ ở đỉnh sân (row 9 - 10)
+        const blueLandGoals = [];
+        for (let c = 8; c <= GRID_W - 9; c++) {
+            blueLandGoals.push([c, 9], [c, 10]);
+        }
+        this.computeDijkstra(this.flowBlueLand, blueLandGoals, false);
 
-        const redLandGoals = [];
-        const by = Math.floor((PLAYFIELD_HEIGHT - 95) / NAV_CELL);
-        for (let c = 8; c <= GRID_W - 9; c++) {
-            redLandGoals.push([c, by], [c, by - 1]);
-        }
-        this.computeDijkstra(this.flowRedLand, redLandGoals, false);
+        // Quân Đỏ (từ đỉnh đi xuống) nhắm tới Căn cứ Xanh ở đáy sân
+        const redLandGoals = [];
+        const by = Math.floor((PLAYFIELD_HEIGHT - 95) / NAV_CELL);
+        for (let c = 8; c <= GRID_W - 9; c++) {
+            redLandGoals.push([c, by], [c, by - 1]);
+        }
+        this.computeDijkstra(this.flowRedLand, redLandGoals, false);
 
-        const blueNavalGoals = [];
-        const redNavalGoals = [];
-        let minWaterRow = GRID_H, maxWaterRow = -1;
-        for (let r = 0; r < GRID_H; r++) {
-            for (let c = 0; c < GRID_W; c++) {
-                const t = this.grid[this.idx(c, r)];
-                if (t === T_WATER || t === T_BRIDGE) {
-                    if (r < minWaterRow) minWaterRow = r;
-                    if (r > maxWaterRow) maxWaterRow = r;
-                }
-            }
-        }
-        if (maxWaterRow >= minWaterRow) {
-            for (let r = minWaterRow; r <= Math.min(GRID_H - 1, minWaterRow + 3); r++) {
-                for (let c = 0; c < GRID_W; c++) {
-                    if (this.grid[this.idx(c, r)] === T_WATER) blueNavalGoals.push([c, r]);
-                }
-            }
-            for (let r = Math.max(0, maxWaterRow - 3); r <= maxWaterRow; r++) {
-                for (let c = 0; c < GRID_W; c++) {
-                    if (this.grid[this.idx(c, r)] === T_WATER) redNavalGoals.push([c, r]);
-                }
-            }
-        }
-        this.computeDijkstra(this.flowBlueNaval, blueNavalGoals, true);
-        this.computeDijkstra(this.flowRedNaval, redNavalGoals, true);
-    }
+        // Flow-field cho Thủy quân: Thủy quân Xanh tiến lên mép nước phía trên, Thủy quân Đỏ tiến xuống mép nước phía dưới
+        const blueNavalGoals = [];
+        const redNavalGoals = [];
+        let minWaterRow = GRID_H, maxWaterRow = -1;
+        for (let r = 0; r < GRID_H; r++) {
+            for (let c = 0; c < GRID_W; c++) {
+                const t = this.grid[this.idx(c, r)];
+                if (t === T_WATER || t === T_BRIDGE) {
+                    if (r < minWaterRow) minWaterRow = r;
+                    if (r > maxWaterRow) maxWaterRow = r;
+                }
+            }
+        }
+        if (maxWaterRow >= minWaterRow) {
+            for (let r = minWaterRow; r <= Math.min(GRID_H - 1, minWaterRow + 3); r++) {
+                for (let c = 0; c < GRID_W; c++) {
+                    if (this.grid[this.idx(c, r)] === T_WATER) blueNavalGoals.push([c, r]);
+                }
+            }
+            for (let r = Math.max(0, maxWaterRow - 3); r <= maxWaterRow; r++) {
+                for (let c = 0; c < GRID_W; c++) {
+                    if (this.grid[this.idx(c, r)] === T_WATER) redNavalGoals.push([c, r]);
+                }
+            }
+        }
+        this.computeDijkstra(this.flowBlueNaval, blueNavalGoals, true);
+        this.computeDijkstra(this.flowRedNaval, redNavalGoals, true);
+    }
 
-    computeDijkstra(distArr, goals, isNaval) {
-        distArr.fill(1e9);
-        const queue = [];
+    computeDijkstra(distArr, goals, isNaval) {
+        distArr.fill(1e9);
+        const queue = [];
 
-        for (const [gx, gy] of goals) {
-            if (!this.inBounds(gx, gy)) continue;
-            const i = this.idx(gx, gy);
-            distArr[i] = 0;
-            queue.push(i);
-        }
+        for (const [gx, gy] of goals) {
+            if (!this.inBounds(gx, gy)) continue;
+            const i = this.idx(gx, gy);
+            distArr[i] = 0;
+            queue.push(i);
+        }
 
-        const dirs = [
-            [-1, 0, 1.0], [1, 0, 1.0], [0, -1, 1.0], [0, 1, 1.0],
-            [-1, -1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [1, 1, 1.414]
-        ];
+        const dirs = [
+            [-1, 0, 1.0], [1, 0, 1.0], [0, -1, 1.0], [0, 1, 1.0],
+            [-1, -1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [1, 1, 1.414]
+        ];
 
-        const isNearBlocked = (cx, cy) => {
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    const nx = cx + dx, ny = cy + dy;
-                    if (!this.inBounds(nx, ny)) continue;
-                    const nt = this.grid[this.idx(nx, ny)];
-                    if (isNaval) {
-                        if (nt !== T_WATER && nt !== T_BRIDGE) return true;
-                    } else {
-                        if (nt === T_OBSTACLE || nt === T_WATER) return true;
-                    }
-                }
-            }
-            return false;
-        };
+        const isNearBlocked = (cx, cy) => {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nx = cx + dx, ny = cy + dy;
+                    if (!this.inBounds(nx, ny)) continue;
+                    const nt = this.grid[this.idx(nx, ny)];
+                    if (isNaval) {
+                        if (nt !== T_WATER && nt !== T_BRIDGE) return true;
+                    } else {
+                        if (nt === T_OBSTACLE || nt === T_WATER) return true;
+                    }
+                }
+            }
+            return false;
+        };
 
-        let head = 0;
-        while (head < queue.length) {
-            const curr = queue[head++];
-            const cx = curr % GRID_W;
-            const cy = (curr / GRID_W) | 0;
-            const baseDist = distArr[curr];
+        let head = 0;
+        while (head < queue.length) {
+            const curr = queue[head++];
+            const cx = curr % GRID_W;
+            const cy = (curr / GRID_W) | 0;
+            const baseDist = distArr[curr];
 
-            for (const [dx, dy, stepLen] of dirs) {
-                const nx = cx + dx;
-                const ny = cy + dy;
-                if (!this.inBounds(nx, ny)) continue;
+            for (const [dx, dy, stepLen] of dirs) {
+                const nx = cx + dx;
+                const ny = cy + dy;
+                if (!this.inBounds(nx, ny)) continue;
 
-                if (dx !== 0 && dy !== 0) {
-                    const t1 = this.grid[this.idx(cx + dx, cy)];
-                    const t2 = this.grid[this.idx(cx, cy + dy)];
-                    if (isNaval) {
-                        if ((t1 !== T_WATER && t1 !== T_BRIDGE) || (t2 !== T_WATER && t2 !== T_BRIDGE)) continue;
-                    } else {
-                        if (t1 === T_OBSTACLE || t1 === T_WATER || t2 === T_OBSTACLE || t2 === T_WATER) continue;
-                    }
-                }
+                if (dx !== 0 && dy !== 0) {
+                    const t1 = this.grid[this.idx(cx + dx, cy)];
+                    const t2 = this.grid[this.idx(cx, cy + dy)];
+                    if (isNaval) {
+                        if ((t1 !== T_WATER && t1 !== T_BRIDGE) || (t2 !== T_WATER && t2 !== T_BRIDGE)) continue;
+                    } else {
+                        if (t1 === T_OBSTACLE || t1 === T_WATER || t2 === T_OBSTACLE || t2 === T_WATER) continue;
+                    }
+                }
 
-                const nIdx = this.idx(nx, ny);
-                const cellType = this.grid[nIdx];
-                let terrainCost = 1.0;
+                const nIdx = this.idx(nx, ny);
+                const cellType = this.grid[nIdx];
+                let terrainCost = 1.0;
 
-                if (isNaval) {
-                    if (cellType === T_WATER) terrainCost = 1.0;
-                    else if (cellType === T_BRIDGE) terrainCost = 1.15;
-                    else continue;
-                } else {
-                    if (cellType === T_OBSTACLE || cellType === T_WATER) continue;
-                    if (cellType === T_BRIDGE) terrainCost = 0.72;
-                    else if (cellType === T_ROAD) terrainCost = 0.82;
-                    else terrainCost = 1.38;
-                }
+                if (isNaval) {
+                    if (cellType === T_WATER) terrainCost = 1.0;
+                    else if (cellType === T_BRIDGE) terrainCost = 1.15;
+                    else continue;
+                } else {
+                    if (cellType === T_OBSTACLE || cellType === T_WATER) continue;
+                    if (cellType === T_BRIDGE) terrainCost = 0.72;
+                    else if (cellType === T_ROAD) terrainCost = 0.82;
+                    else terrainCost = 1.38;
+                }
 
-                if (cellType !== T_BRIDGE && isNearBlocked(nx, ny)) {
-                    terrainCost += 0.42;
-                }
+                if (cellType !== T_BRIDGE && isNearBlocked(nx, ny)) {
+                    terrainCost += 0.42;
+                }
 
-                const newDist = baseDist + stepLen * terrainCost;
-                if (newDist < distArr[nIdx]) {
-                    distArr[nIdx] = newDist;
-                    queue.push(nIdx);
-                }
-            }
-        }
-    }
+                const newDist = baseDist + stepLen * terrainCost;
+                if (newDist < distArr[nIdx]) {
+                    distArr[nIdx] = newDist;
+                    queue.push(nIdx);
+                }
+            }
+        }
+    }
 
-    getFlowDirection(x, y, team, isNaval) {
-        const distArr = isNaval
-            ? (team === 'blue' ? this.flowBlueNaval : this.flowRedNaval)
-            : (team === 'blue' ? this.flowBlueLand : this.flowRedLand);
+    getFlowDirection(x, y, team, isNaval) {
+        const distArr = isNaval
+            ? (team === 'blue' ? this.flowBlueNaval : this.flowRedNaval)
+            : (team === 'blue' ? this.flowBlueLand : this.flowRedLand);
 
-        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
-        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
+        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
+        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
 
-        let bestDx = 0;
-        let bestDy = team === 'blue' ? -1 : 1;
-        let bestVal = distArr[this.idx(gx, gy)];
+        let bestDx = 0;
+        let bestDy = team === 'blue' ? -1 : 1;
+        let bestVal = distArr[this.idx(gx, gy)];
 
-        if (bestVal >= 1e8) {
-            let minD = Infinity;
-            for (let r = -4; r <= 4; r++) {
-                for (let c = -4; c <= 4; c++) {
-                    const nx = gx + c, ny = gy + r;
-                    if (!this.inBounds(nx, ny)) continue;
-                    const v = distArr[this.idx(nx, ny)];
-                    if (v < 1e8) {
-                        const d = Math.hypot(c, r) + v * 0.05;
-                        if (d < minD) {
-                            minD = d;
-                            bestDx = c;
-                            bestDy = r;
-                        }
-                    }
-                }
-            }
-            const l = Math.hypot(bestDx, bestDy) || 1;
-            return { dirX: bestDx / l, dirY: bestDy / l };
-        }
+        if (bestVal >= 1e8) {
+            let minD = Infinity;
+            for (let r = -4; r <= 4; r++) {
+                for (let c = -4; c <= 4; c++) {
+                    const nx = gx + c, ny = gy + r;
+                    if (!this.inBounds(nx, ny)) continue;
+                    const v = distArr[this.idx(nx, ny)];
+                    if (v < 1e8) {
+                        const d = Math.hypot(c, r) + v * 0.05;
+                        if (d < minD) {
+                            minD = d;
+                            bestDx = c;
+                            bestDy = r;
+                        }
+                    }
+                }
+            }
+            const l = Math.hypot(bestDx, bestDy) || 1;
+            return { dirX: bestDx / l, dirY: bestDy / l };
+        }
 
-        let gradX = 0;
-        let gradY = 0;
-        for (let dy = -2; dy <= 2; dy++) {
-            for (let dx = -2; dx <= 2; dx++) {
-                if (dx === 0 && dy === 0) continue;
-                const nx = gx + dx;
-                const ny = gy + dy;
-                if (!this.inBounds(nx, ny)) continue;
-                const nVal = distArr[this.idx(nx, ny)];
+        let gradX = 0;
+        let gradY = 0;
+        for (let dy = -2; dy <= 2; dy++) {
+            for (let dx = -2; dx <= 2; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                const nx = gx + dx;
+                const ny = gy + dy;
+                if (!this.inBounds(nx, ny)) continue;
+                const nVal = distArr[this.idx(nx, ny)];
                 if (nVal >= 1e8) continue;
 
                 const diff = bestVal - nVal;
                 if (diff > 0) {
-                    const w = diff / Math.hypot(dx, dy);
-                    gradX += (dx / Math.hypot(dx, dy)) * w;
-                    gradY += (dy / Math.hypot(dx, dy)) * w;
+                    const d = Math.hypot(dx, dy);
+                    const w = diff / d;
+                    gradX += (dx / d) * w;
+                    gradY += (dy / d) * w;
                 }
             }
         }
@@ -1776,7 +1835,7 @@ class NavSystem {
 const nav = new NavSystem();
 
 // ============================================================================
-// BỘ VẼ 15 MAP CHIẾN THUẬT (MAP 1 -> MAP 15)
+// BỘ VẼ CHI TIẾT 15 MAP CHIẾN THUẬT (MAP 1 ➔ MAP 15 THEO ẢNH "15 maps.png")
 // ============================================================================
 function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases = false) {
     const W = LOGICAL_WIDTH;
@@ -1791,6 +1850,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
     targetCtx.scale(targetW / W, targetH / H);
     targetCtx.imageSmoothingEnabled = false;
 
+    // 1. Nền cỏ xanh & hoa cỏ chi tiết
     const fillGrassBg = (shade = '#7bc64d') => {
         targetCtx.fillStyle = shade;
         targetCtx.fillRect(0, 0, W, H);
@@ -1805,7 +1865,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
                 }
             }
         }
-        for (let i = 0; i < 28; i++) {
+        for (let i = 0; i < 32; i++) {
             const gx = ((i * 73 + levelNum * 29) % (W - 30)) + 15;
             const gy = ((i * 113 + levelNum * 43) % (H - 40)) + 20;
             targetCtx.fillStyle = i % 4 === 0 ? '#fde047' : '#5ea332';
@@ -1813,6 +1873,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         }
     };
 
+    // 2. Hồ nước / Sông nước có viền bờ cát vàng & gợn sóng trắng
     const drawWaterBox = (x, y, w, h, rounded = 0) => {
         if (registerNav) {
             nav.waterBoxes.push({ x, y, w, h });
@@ -1829,7 +1890,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.roundRect(x, y, w, h, rounded);
         targetCtx.fill();
 
-        targetCtx.fillStyle = 'rgba(224, 242, 254, 0.75)';
+        targetCtx.fillStyle = 'rgba(224, 242, 254, 0.78)';
         for (let wy = y + 14; wy < y + h - 10; wy += 24) {
             for (let wx = x + 16; wx < x + w - 22; wx += 42) {
                 const offset = ((wy / 24) | 0) % 2 === 0 ? 0 : 18;
@@ -1841,6 +1902,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.restore();
     };
 
+    // 3. Đường đất vàng cam
     const drawDirtPolyline = (pts, width = 34) => {
         if (registerNav) nav.markPolyline(pts, width + 4, T_ROAD);
         targetCtx.save();
@@ -1861,6 +1923,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.restore();
     };
 
+    // 4. Đường nhựa xám viền trắng + vạch kẻ đứt đoạn ở tâm
     const drawAsphaltPolyline = (pts, width = 44, dashed = true) => {
         if (registerNav) nav.markPolyline(pts, width + 4, T_ROAD);
         targetCtx.save();
@@ -1897,6 +1960,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.restore();
     };
 
+    // 5. Vòng xuyến nhựa tròn
     const drawAsphaltCircle = (cx, cy, r, width = 44) => {
         if (registerNav) nav.markRing(cx, cy, r, width + 4, T_ROAD);
         targetCtx.save();
@@ -1922,6 +1986,7 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.restore();
     };
 
+    // 6. Cây thông rừng
     const drawPine = (cx, cy, scale = 1) => {
         if (registerNav && nav.isRoadOrBridgeOrSpawn(cx, cy, 18)) return;
         if (registerNav) nav.addCircleObstacle(cx, cy, 9.5 * scale, 'tree');
@@ -1955,49 +2020,63 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         }
     };
 
+    // 7. Núi đá đa giác góc cạnh
     const drawRockMountain = (cx, cy, r = 28) => {
-        if (registerNav && nav.isRoadOrBridgeOrSpawn(cx, cy, r * 0.65)) return;
-        if (registerNav) nav.addCircleObstacle(cx, cy, r * 0.68, 'rock');
+        if (registerNav && nav.isRoadOrBridgeOrSpawn(cx, cy, r * 0.62)) return;
+        if (registerNav) nav.addCircleObstacle(cx, cy, r * 0.66, 'rock');
         targetCtx.save();
         targetCtx.translate(cx, cy);
-        targetCtx.fillStyle = '#334155';
+        targetCtx.fillStyle = '#1e293b';
         targetCtx.beginPath();
         targetCtx.moveTo(-r, r * 0.65);
-        targetCtx.lineTo(-r * 0.65, -r * 0.45);
-        targetCtx.lineTo(0, -r * 0.95);
-        targetCtx.lineTo(r * 0.7, -r * 0.35);
+        targetCtx.lineTo(-r * 0.68, -r * 0.45);
+        targetCtx.lineTo(0, -r * 0.96);
+        targetCtx.lineTo(r * 0.72, -r * 0.38);
         targetCtx.lineTo(r, r * 0.65);
         targetCtx.closePath();
         targetCtx.fill();
 
         targetCtx.fillStyle = '#94a3b8';
         targetCtx.beginPath();
-        targetCtx.moveTo(-r * 0.85, r * 0.55);
-        targetCtx.lineTo(-r * 0.55, -r * 0.4);
-        targetCtx.lineTo(0, -r * 0.9);
+        targetCtx.moveTo(-r * 0.86, r * 0.55);
+        targetCtx.lineTo(-r * 0.56, -r * 0.4);
+        targetCtx.lineTo(0, -r * 0.88);
         targetCtx.lineTo(0, r * 0.55);
         targetCtx.closePath();
         targetCtx.fill();
 
         targetCtx.fillStyle = '#64748b';
         targetCtx.beginPath();
-        targetCtx.moveTo(0, -r * 0.9);
+        targetCtx.moveTo(0, -r * 0.88);
         targetCtx.lineTo(r * 0.65, -r * 0.35);
-        targetCtx.lineTo(r * 0.85, r * 0.55);
+        targetCtx.lineTo(r * 0.86, r * 0.55);
         targetCtx.lineTo(0, r * 0.55);
+        targetCtx.closePath();
+        targetCtx.fill();
+
+        targetCtx.fillStyle = '#cbd5e1';
+        targetCtx.beginPath();
+        targetCtx.moveTo(-r * 0.32, -r * 0.35);
+        targetCtx.lineTo(0, -r * 0.88);
+        targetCtx.lineTo(r * 0.22, -r * 0.45);
         targetCtx.closePath();
         targetCtx.fill();
         targetCtx.restore();
     };
 
+    // 8. Cầu gỗ (dọc hoặc ngang)
     const drawWoodBridge = (cx, cy, w, h, isVertical = true) => {
         if (registerNav) nav.addBridge(cx, cy, w, h, isVertical);
         targetCtx.save();
         targetCtx.translate(cx, cy);
         if (!isVertical) targetCtx.rotate(Math.PI / 2);
 
-        targetCtx.fillStyle = '#78350f';
-        targetCtx.fillRect(-w / 2 - 4, -h / 2, w + 8, h);
+        targetCtx.fillStyle = '#451a03';
+        targetCtx.fillRect(-w / 2 - 5, -h / 2, w + 10, h);
+
+        targetCtx.fillStyle = '#92400e';
+        targetCtx.fillRect(-w / 2 - 3, -h / 2, 4, h);
+        targetCtx.fillRect(w / 2 - 1, -h / 2, 4, h);
 
         targetCtx.fillStyle = '#b45309';
         targetCtx.fillRect(-w / 2, -h / 2, w, h);
@@ -2009,37 +2088,55 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.restore();
     };
 
+    // 9. Cầu đá kiên cố
     const drawStoneBridge = (cx, cy, w, h) => {
         if (registerNav) nav.addBridge(cx, cy, w, h, true);
         targetCtx.save();
-        targetCtx.fillStyle = '#334155';
-        targetCtx.fillRect(cx - w / 2 - 6, cy - h / 2, w + 12, h);
+        targetCtx.fillStyle = '#1e293b';
+        targetCtx.fillRect(cx - w / 2 - 7, cy - h / 2, w + 14, h);
+        targetCtx.fillStyle = '#64748b';
+        targetCtx.fillRect(cx - w / 2 - 5, cy - h / 2, w + 10, h);
         targetCtx.fillStyle = '#94a3b8';
         targetCtx.fillRect(cx - w / 2, cy - h / 2, w, h);
+
+        // Lan can trụ đá 2 bên thành cầu
+        targetCtx.fillStyle = '#cbd5e1';
+        for (let py = cy - h / 2 + 6; py <= cy + h / 2 - 12; py += 22) {
+            targetCtx.fillRect(cx - w / 2 - 5, py, 5, 10);
+            targetCtx.fillRect(cx + w / 2, py, 5, 10);
+        }
         targetCtx.restore();
     };
 
+    // 10. Tường thành đá & Tháp canh đá
     const drawStoneWallSegment = (x, y, w, h) => {
         if (registerNav) nav.addBoxObstacle(x, y, w, h, 'wall');
         targetCtx.save();
-        targetCtx.fillStyle = '#1e293b';
+        targetCtx.fillStyle = '#0f172a';
         targetCtx.fillRect(x - 2, y - 2, w + 4, h + 4);
         targetCtx.fillStyle = '#64748b';
         targetCtx.fillRect(x, y, w, h);
+        targetCtx.fillStyle = '#94a3b8';
+        targetCtx.fillRect(x + 2, y + 2, w - 4, Math.max(4, h * 0.45));
         targetCtx.restore();
     };
 
     const drawStoneTower = (cx, cy, size = 28) => {
         if (registerNav) nav.addBoxObstacle(cx - size / 2, cy - size / 2, size, size, 'pillar');
         targetCtx.save();
-        targetCtx.fillStyle = '#1e293b';
+        targetCtx.fillStyle = '#0f172a';
         targetCtx.fillRect(cx - size / 2 - 2, cy - size / 2 - 2, size + 4, size + 4);
-        targetCtx.fillStyle = '#94a3b8';
+        targetCtx.fillStyle = '#64748b';
         targetCtx.fillRect(cx - size / 2, cy - size / 2, size, size);
+        targetCtx.fillStyle = '#cbd5e1';
+        targetCtx.fillRect(cx - size / 2 + 3, cy - size / 2 + 3, size - 6, size - 6);
+        targetCtx.fillStyle = '#475569';
+        targetCtx.fillRect(cx - size / 4, cy - size / 4, size / 2, size / 2);
         targetCtx.restore();
     };
 
-    const drawBuildingBlock = (x, y, w, h, mainColor, roofColor) => {
+    // 11. Tòa nhà đô thị / Nhà dân / Nhà máy ống khói
+    const drawBuildingBlock = (x, y, w, h, mainColor, roofColor, hasWindows = true) => {
         if (registerNav) nav.addBoxObstacle(x, y, w, h, 'building');
         targetCtx.save();
         targetCtx.fillStyle = '#0f172a';
@@ -2047,12 +2144,42 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
         targetCtx.fillStyle = mainColor;
         targetCtx.fillRect(x, y, w, h);
         targetCtx.fillStyle = roofColor;
-        targetCtx.fillRect(x + 3, y + 3, w - 6, h * 0.42);
+        targetCtx.fillRect(x + 3, y + 3, w - 6, Math.max(8, h * 0.36));
+
+        if (hasWindows) {
+            targetCtx.fillStyle = '#e0f2fe';
+            for (let wy = y + Math.floor(h * 0.44); wy < y + h - 7; wy += 11) {
+                for (let wx = x + 6; wx < x + w - 8; wx += 11) {
+                    targetCtx.fillRect(wx, wy, 5, 6);
+                }
+            }
+        }
         targetCtx.restore();
     };
 
-    const drawHazardStripes = (x, y, w, h, isPillar = false) => {
-        if (registerNav && isPillar) nav.addBoxObstacle(x, y, w, h, 'pillar');
+    const drawFactoryBuilding = (x, y, w, h) => {
+        drawBuildingBlock(x, y, w, h, '#475569', '#64748b', true);
+        targetCtx.save();
+        // Ống khói nhà máy + khói trắng
+        const cx = x + w - 12;
+        const cy = y - 10;
+        targetCtx.fillStyle = '#1e293b';
+        targetCtx.fillRect(cx - 5, cy, 10, 16);
+        targetCtx.fillStyle = '#94a3b8';
+        targetCtx.fillRect(cx - 3, cy + 2, 6, 12);
+        targetCtx.fillStyle = '#ef4444';
+        targetCtx.fillRect(cx - 3, cy + 3, 6, 3);
+        targetCtx.fillStyle = 'rgba(241, 245, 249, 0.78)';
+        targetCtx.beginPath();
+        targetCtx.arc(cx + 2, cy - 5, 5, 0, Math.PI * 2);
+        targetCtx.arc(cx + 7, cy - 11, 6.5, 0, Math.PI * 2);
+        targetCtx.fill();
+        targetCtx.restore();
+    };
+
+    // 12. Vạch sơn cảnh báo vàng/đen (Hazard Stripes)
+    const drawHazardStripes = (x, y, w, h, isObstacle = false) => {
+        if (registerNav && isObstacle) nav.addBoxObstacle(x, y, w, h, 'pillar');
         targetCtx.save();
         targetCtx.beginPath();
         targetCtx.rect(x, y, w, h);
@@ -2067,194 +2194,702 @@ function renderMap1To15(targetCtx, targetW, targetH, levelNum, includeMiniBases 
             targetCtx.lineTo(x + i - h, y + h);
             targetCtx.stroke();
         }
+        targetCtx.strokeStyle = '#0f172a';
+        targetCtx.lineWidth = 2;
+        targetCtx.strokeRect(x, y, w, h);
         targetCtx.restore();
     };
 
+    // ==================== DỰNG ĐỊA HÌNH TỪNG MAP (1 ➔ 15) ====================
     switch (levelNum) {
-        case 1:
+        case 1: {
+            // Map 1: Đường đất nối 2 căn cứ, sông ngang ở giữa, cầu đá thẳng đứng, rặng thông 2 bờ & núi đá 4 góc
             fillGrassBg();
-            drawDirtPolyline([[115, 70], [115, 165], [305, 165], [305, 70]], 26);
-            drawDirtPolyline([[115, 645], [115, 550], [305, 550], [305, 645]], 26);
-            drawDirtPolyline([[210, 165], [210, 550]], 30);
-            drawWaterBox(-10, 290, W + 20, 130, 0);
-            drawStoneBridge(210, 355, 54, 146);
-            [45, 95, 145, 275, 325, 375].forEach(tx => {
-                drawPine(tx, 250, 1.0);
-                drawPine(tx, 460, 1.0);
+            drawDirtPolyline([[110, 62], [110, 160], [310, 160], [310, 62]], 28);
+            drawDirtPolyline([[110, 650], [110, 550], [310, 550], [310, 650]], 28);
+            drawDirtPolyline([[210, 160], [210, 550]], 32);
+
+            drawWaterBox(-10, 285, W + 20, 140, 0);
+            drawStoneBridge(210, 355, 52, 156);
+
+            // Rặng thông 2 bên bờ sông
+            [42, 86, 134, 286, 334, 378].forEach(tx => {
+                drawPine(tx, 242, 1.05);
+                drawPine(tx, 468, 1.05);
             });
+            [35, 68, 352, 385].forEach(tx => {
+                drawPine(tx, 195, 0.95);
+                drawPine(tx, 515, 0.95);
+            });
+
+            // 4 cụm núi đá ở 4 góc bản đồ
+            drawRockMountain(36, 48, 28);
+            drawRockMountain(68, 86, 24);
+            drawRockMountain(30, 118, 25);
+
+            drawRockMountain(384, 48, 28);
+            drawRockMountain(352, 86, 24);
+            drawRockMountain(390, 118, 25);
+
+            drawRockMountain(36, 662, 28);
+            drawRockMountain(68, 624, 24);
+            drawRockMountain(30, 592, 25);
+
+            drawRockMountain(384, 662, 28);
+            drawRockMountain(352, 624, 24);
+            drawRockMountain(390, 592, 25);
             break;
-        case 2:
-            fillGrassBg();
-            drawAsphaltPolyline([[265, 60], [265, 165], [125, 165], [125, 350], [295, 350], [295, 535], [135, 535], [135, 655]], 44, true);
-            drawTreeCluster(15, 120, 82, 620, 30);
-            drawTreeCluster(340, 90, 405, 610, 30);
-            break;
-        case 3:
-            targetCtx.fillStyle = '#64748b';
-            targetCtx.fillRect(0, 0, W, H);
-            [95, 210, 325].forEach(lx => drawAsphaltPolyline([[lx, 0], [lx, H]], 36, true));
-            [155, 355, 555].forEach(ly => drawAsphaltPolyline([[0, ly], [W, ly]], 36, true));
-            drawBuildingBlock(12, 20, 56, 105, '#64748b', '#94a3b8');
-            drawBuildingBlock(352, 20, 56, 105, '#64748b', '#94a3b8');
-            drawBuildingBlock(124, 185, 58, 65, '#22c55e', '#86efac');
-            drawBuildingBlock(238, 185, 58, 140, '#3b82f6', '#93c5fd');
-            break;
-        case 4:
-            fillGrassBg();
-            drawWaterBox(28, 140, 125, 435, 22);
-            drawWaterBox(267, 140, 125, 435, 22);
-            drawWoodBridge(210, 206, 44, 148, true);
-            drawWoodBridge(210, 506, 44, 148, true);
-            break;
-        case 5:
+        }
+
+        case 2: {
+            // Map 2: Đường nhựa chữ S lớn xuyên rừng thông dày đặc ở giữa, núi đá sườn trên trái & dưới phải
             fillGrassBg();
             drawAsphaltPolyline([
-                [210, 45], [295, 45], [295, 145], [205, 145],
-                [205, 260], [105, 260], [105, 420], [315, 420],
-                [315, 540], [210, 540], [210, 665]
-            ], 34, true);
-            drawTreeCluster(15, 60, 80, 240, 28);
-            drawTreeCluster(325, 160, 400, 400, 28);
-            drawTreeCluster(15, 440, 85, 640, 28);
+                [275, 58],
+                [275, 160],
+                [115, 160],
+                [115, 345],
+                [305, 345],
+                [305, 535],
+                [135, 535],
+                [135, 655]
+            ], 44, true);
+
+            // Núi đá góc trên bên trái & góc dưới bên phải
+            [[34, 45], [75, 42], [28, 92], [65, 95], [32, 142], [68, 148], [26, 192]].forEach(([rx, ry]) => {
+                drawRockMountain(rx, ry, 25);
+            });
+            [[386, 665], [345, 668], [392, 618], [355, 615], [388, 568], [352, 562]].forEach(([rx, ry]) => {
+                drawRockMountain(rx, ry, 25);
+            });
+
+            // Rừng thông dày đặc kẹp giữa các khúc cua chữ S và 2 bên sườn
+            drawTreeCluster(185, 215, 395, 285, 26);
+            drawTreeCluster(22, 405, 235, 475, 26);
+            drawTreeCluster(20, 235, 65, 390, 26);
+            drawTreeCluster(355, 90, 400, 510, 26);
+            drawTreeCluster(20, 500, 75, 645, 26);
             break;
-        case 6:
+        }
+
+        case 3: {
+            // Map 3: Đô thị hiện đại chia ô bàn cờ (Grid phố), xen kẽ các tòa nhà cao tầng xám, xanh lá, cam, xanh dương
             targetCtx.fillStyle = '#94a3b8';
             targetCtx.fillRect(0, 0, W, H);
-            drawAsphaltPolyline([[100, 0], [100, H]], 38, true);
-            drawAsphaltPolyline([[210, 0], [210, H]], 42, true);
-            drawAsphaltPolyline([[320, 0], [320, H]], 38, true);
-            drawAsphaltPolyline([[0, 220], [W, 220]], 36, true);
-            drawAsphaltPolyline([[0, 480], [W, 480]], 36, true);
-            drawHazardStripes(16, 80, 68, 110, true);
-            drawHazardStripes(336, 80, 68, 110, true);
-            drawBuildingBlock(126, 250, 64, 90, '#475569', '#334155');
-            drawBuildingBlock(230, 250, 64, 90, '#475569', '#334155');
+
+            // Lưới đường phố đô thị
+            [95, 210, 325].forEach(lx => drawAsphaltPolyline([[lx, 0], [lx, H]], 36, true));
+            [155, 355, 555].forEach(ly => drawAsphaltPolyline([[0, ly], [W, ly]], 36, true));
+
+            // Các khu nhà cao tầng hai bên rìa trái & phải
+            drawBuildingBlock(12, 18, 54, 105, '#64748b', '#94a3b8');
+            drawBuildingBlock(354, 18, 54, 105, '#64748b', '#94a3b8');
+
+            drawBuildingBlock(12, 190, 54, 72, '#3b82f6', '#93c5fd');
+            drawBuildingBlock(12, 272, 54, 52, '#ea580c', '#fdba74');
+            drawBuildingBlock(354, 190, 54, 134, '#64748b', '#cbd5e1');
+
+            drawBuildingBlock(12, 390, 54, 72, '#22c55e', '#86efac');
+            drawBuildingBlock(12, 472, 54, 52, '#ef4444', '#fca5a5');
+            drawBuildingBlock(354, 390, 54, 134, '#3b82f6', '#93c5fd');
+
+            drawBuildingBlock(12, 588, 54, 105, '#0284c7', '#7dd3fc');
+            drawBuildingBlock(354, 588, 54, 105, '#64748b', '#94a3b8');
+
+            // 4 ô phố trung tâm (giữa đường 95 - 210 - 325 và 155 - 355 - 555)
+            drawBuildingBlock(124, 188, 58, 62, '#22c55e', '#86efac');
+            drawBuildingBlock(124, 260, 58, 62, '#ef4444', '#fca5a5');
+
+            drawBuildingBlock(238, 188, 58, 62, '#22c55e', '#86efac');
+            drawBuildingBlock(238, 260, 58, 62, '#0284c7', '#7dd3fc');
+
+            drawBuildingBlock(124, 388, 58, 62, '#ea580c', '#fdba74');
+            drawBuildingBlock(124, 460, 58, 62, '#0284c7', '#7dd3fc');
+
+            drawBuildingBlock(238, 388, 58, 134, '#f97316', '#fed7aa');
             break;
-        case 7:
+        }
+
+        case 4: {
+            // Map 4: Hồ nước lớn bao quanh đảo trung tâm, pháo đài đá ở giữa hồ, nối 2 căn cứ bằng 2 cầu gỗ thẳng đứng
             fillGrassBg();
-            drawWaterBox(60, 140, 200, 130, 16);
-            drawWaterBox(60, 410, 200, 130, 16);
-            drawAsphaltPolyline([
-                [210, 45], [325, 45], [325, 240],
-                [180, 340], [325, 440], [325, 665], [210, 665]
-            ], 40, true);
-            drawTreeCluster(15, 150, 48, 530, 26);
-            drawTreeCluster(345, 250, 405, 430, 26);
-            break;
-        case 8:
-            fillGrassBg();
-            drawAsphaltPolyline([[210, 45], [210, 665]], 42, true);
-            for (let y = 100; y <= 580; y += 46) {
-                drawRockMountain(50, y, 32);
-                drawRockMountain(105, y + 15, 28);
-                drawRockMountain(315, y + 15, 28);
-                drawRockMountain(370, y, 32);
-            }
-            drawStoneWallSegment(140, 335, 40, 20);
-            drawStoneWallSegment(240, 335, 40, 20);
-            break;
-        case 9:
-            fillGrassBg();
-            drawAsphaltPolyline([[210, 45], [210, 160]], 38, true);
-            drawAsphaltCircle(210, 210, 50, 36);
-            drawAsphaltPolyline([[210, 260], [210, 420]], 38, true);
-            drawAsphaltCircle(210, 470, 50, 36);
-            drawAsphaltPolyline([[210, 520], [210, 665]], 38, true);
-            drawAsphaltPolyline([[95, 120], [95, 560]], 34, true);
-            drawAsphaltPolyline([[325, 120], [325, 560]], 34, true);
-            drawBuildingBlock(25, 260, 55, 75, '#f97316', '#c2410c');
-            drawBuildingBlock(340, 260, 55, 75, '#3b82f6', '#1d4ed8');
-            break;
-        case 10:
-            fillGrassBg();
-            targetCtx.fillStyle = '#38bdf8';
-            targetCtx.fillRect(0, 0, 120, H);
-            targetCtx.fillStyle = '#fde047';
-            targetCtx.fillRect(120, 0, 45, H);
+
+            // Hồ nước lớn ở giữa
+            drawWaterBox(34, 140, 352, 434, 24);
+
+            // Phần đất nhô ra ở giữa bờ trên và bờ dưới để bắc cầu
+            targetCtx.fillStyle = '#7bc64d';
+            targetCtx.beginPath();
+            targetCtx.roundRect(128, 125, 164, 42, 14);
+            targetCtx.roundRect(128, 546, 164, 42, 14);
+            targetCtx.fill();
             if (registerNav) {
-                nav.waterBoxes.push({ x: 0, y: 0, w: 120, h: H });
-                nav.markRect(0, 0, 120, H, T_WATER, true);
+                nav.markRect(132, 125, 156, 42, T_ROAD, true);
+                nav.markRect(132, 546, 156, 42, T_ROAD, true);
             }
-            drawDirtPolyline([[260, 45], [260, 665]], 36);
-            drawDirtPolyline([[150, 200], [260, 340], [150, 480]], 30);
-            drawTreeCluster(330, 90, 405, 600, 32);
+
+            // Đảo trung tâm giữa hồ nước
+            targetCtx.fillStyle = '#d9e37c';
+            targetCtx.beginPath();
+            targetCtx.roundRect(130, 276, 160, 160, 24);
+            targetCtx.fill();
+            targetCtx.fillStyle = '#7bc64d';
+            targetCtx.beginPath();
+            targetCtx.roundRect(136, 282, 148, 148, 20);
+            targetCtx.fill();
+            if (registerNav) {
+                nav.markRect(138, 284, 144, 144, T_ROAD, true);
+            }
+
+            // 2 Cây cầu gỗ thẳng đứng nối căn cứ trên & dưới với đảo pháo đài
+            drawWoodBridge(210, 222, 44, 124, true);
+            drawWoodBridge(210, 490, 44, 124, true);
+
+            // Pháo đài đá ở chính giữa đảo (quân bộ đi vòng qua sân đảo xung quanh pháo đài)
+            drawStoneWallSegment(172, 318, 76, 76);
+            drawStoneTower(172, 318, 22);
+            drawStoneTower(248, 318, 22);
+            drawStoneTower(172, 394, 22);
+            drawStoneTower(248, 394, 22);
+            drawStoneTower(210, 356, 32);
+
+            // Cây thông trang trí hai bên rìa hồ
+            [295, 355, 415].forEach(py => {
+                drawPine(18, py, 0.95);
+                drawPine(402, py, 0.95);
+            });
             break;
-        case 11:
+        }
+
+        case 5: {
+            // Map 5: Mê cung đường nhựa ngã tư ziczac đan xen giữa rừng cây rậm rạp
             fillGrassBg();
-            drawAsphaltPolyline([[210, 45], [210, 665]], 44, true);
-            drawAsphaltPolyline([[35, 355], [385, 355]], 40, true);
-            drawBuildingBlock(45, 120, 72, 85, '#64748b', '#334155');
-            drawBuildingBlock(305, 120, 72, 85, '#64748b', '#334155');
-            drawBuildingBlock(45, 500, 72, 85, '#64748b', '#334155');
-            drawBuildingBlock(305, 500, 72, 85, '#64748b', '#334155');
+
+            // Mạng lưới đường nhựa mê cung đa nhánh
+            drawAsphaltPolyline([[210, 55], [210, 130]], 34, false);
+            drawAsphaltPolyline([[95, 130], [325, 130]], 34, false);
+            drawAsphaltPolyline([[95, 130], [95, 250], [185, 250], [185, 355]], 34, false);
+            drawAsphaltPolyline([[325, 130], [325, 230], [250, 230], [250, 355]], 34, false);
+            drawAsphaltPolyline([[85, 355], [335, 355]], 34, false);
+            drawAsphaltPolyline([[85, 355], [85, 495], [195, 495], [195, 585]], 34, false);
+            drawAsphaltPolyline([[265, 355], [265, 465], [335, 465], [335, 585]], 34, false);
+            drawAsphaltPolyline([[115, 585], [335, 585]], 34, false);
+            drawAsphaltPolyline([[210, 585], [210, 655]], 34, false);
+
+            // Rừng cây rậm rạp bao quanh & xen kẽ các ngách mê cung
+            drawTreeCluster(18, 40, 62, 665, 25);
+            drawTreeCluster(358, 40, 402, 665, 25);
+            drawTreeCluster(135, 175, 215, 215, 24);
+            drawTreeCluster(115, 295, 150, 320, 24);
+            drawTreeCluster(285, 275, 330, 315, 24);
+            drawTreeCluster(125, 405, 225, 450, 24);
+            drawTreeCluster(235, 515, 295, 545, 24);
             break;
-        case 12:
+        }
+
+        case 6: {
+            // Map 6: Khu công nghiệp nặng với nhà máy ống khói, hàng rào thép gai, vạch sơn cảnh báo vàng/đen
+            targetCtx.fillStyle = '#94a3b8';
+            targetCtx.fillRect(0, 0, W, H);
+
+            // Đường nội khu nhà máy
+            drawAsphaltPolyline([[95, 0], [95, H]], 36, true);
+            drawAsphaltPolyline([[210, 145], [210, 565]], 36, true);
+            drawAsphaltPolyline([[325, 0], [325, H]], 36, true);
+            drawAsphaltPolyline([[0, 145], [W, 145]], 36, true);
+            drawAsphaltPolyline([[0, 355], [W, 355]], 36, true);
+            drawAsphaltPolyline([[0, 565], [W, 565]], 36, true);
+
+            // Vạch sơn cảnh báo sọc vàng/đen (Hazard Zones)
+            drawHazardStripes(12, 235, 56, 85, false);
+            drawHazardStripes(125, 175, 58, 22, false);
+            drawHazardStripes(238, 298, 58, 24, false);
+            drawHazardStripes(352, 275, 56, 48, false);
+            drawHazardStripes(238, 498, 58, 32, false);
+            drawHazardStripes(125, 600, 58, 24, false);
+
+            // Các tổ hợp nhà máy ống khói & kho xưởng
+            drawFactoryBuilding(124, 205, 58, 95);
+            drawFactoryBuilding(238, 185, 58, 95);
+            drawFactoryBuilding(352, 185, 54, 82);
+
+            drawFactoryBuilding(14, 395, 54, 92);
+            drawFactoryBuilding(124, 395, 58, 98);
+            drawFactoryBuilding(238, 392, 58, 96);
+            drawFactoryBuilding(352, 395, 54, 92);
+
+            drawFactoryBuilding(124, 625, 56, 62);
+            drawFactoryBuilding(240, 625, 56, 62);
+            break;
+        }
+
+        case 7: {
+            // Map 7: Hai hồ nước nằm so le (trên trái và dưới phải), đường nhựa uốn lượn lách qua khe đất ở giữa 2 hồ
             fillGrassBg();
+
+            // 2 Hồ nước lớn nằm so le
+            drawWaterBox(68, 150, 190, 145, 18);
+            drawWaterBox(85, 420, 195, 135, 18);
+
+            // Đường nhựa uốn lượn lách qua khe giữa 2 hồ nước
             drawAsphaltPolyline([
-                [210, 45], [210, 150], [95, 150], [95, 560],
-                [210, 560], [210, 665]
-            ], 38, true);
+                [315, 45],
+                [315, 295],
+                [265, 350],
+                [105, 365],
+                [48, 425],
+                [48, 675]
+            ], 42, true);
+            // Nhánh nối phụ về trung tâm 2 căn cứ
+            drawDirtPolyline([[210, 65], [315, 95]], 28);
+            drawDirtPolyline([[48, 625], [210, 645]], 28);
+
+            // Vách núi đá dọc sườn trái và sườn phải
+            for (let ry = 40; ry <= 340; ry += 42) {
+                drawRockMountain(24, ry, 25);
+            }
+            for (let ry = 230; ry <= 665; ry += 42) {
+                drawRockMountain(388, ry, 26);
+                if (ry >= 310 && ry <= 560) {
+                    drawRockMountain(350, ry + 16, 24);
+                }
+            }
+            break;
+        }
+
+        case 8: {
+            // Map 8: Hai rặng núi đá dựng đứng ép thành con đường hẹp độc đạo (choke point) ở giữa có rào chắn cảnh báo
+            fillGrassBg();
+
+            // Đường nhựa uốn về khe hẹp chính giữa
             drawAsphaltPolyline([
-                [210, 150], [325, 150], [325, 560], [210, 560]
+                [285, 48],
+                [285, 145],
+                [210, 165],
+                [210, 545],
+                [135, 565],
+                [135, 665]
+            ], 42, true);
+
+            // 2 Rặng núi đá khổng lồ ép 2 bên cánh trái và cánh phải
+            for (let ry = 135; ry <= 535; ry += 44) {
+                for (let rx = 26; rx <= 148; rx += 42) {
+                    drawRockMountain(rx + ((ry % 88 === 0) ? 8 : -6), ry, 27);
+                }
+                for (let rx = 272; rx <= 394; rx += 42) {
+                    drawRockMountain(rx + ((ry % 88 === 0) ? -8 : 6), ry, 27);
+                }
+            }
+
+            // Rào chắn cảnh báo vàng/đen (Choke point) kẹp 2 mép đường trung tâm
+            drawHazardStripes(156, 330, 26, 16, true);
+            drawHazardStripes(238, 330, 26, 16, true);
+            drawHazardStripes(156, 372, 26, 16, true);
+            drawHazardStripes(238, 372, 26, 16, true);
+
+            drawTreeCluster(20, 40, 95, 105, 26);
+            drawTreeCluster(325, 585, 400, 665, 26);
+            break;
+        }
+
+        case 9: {
+            // Map 9: Hệ thống vòng xuyến giao thông đôi (2 bùng binh tròn) nối các dãy nhà dân cư và cụm cây xanh ở giữa
+            fillGrassBg();
+
+            // Đường trục nối 2 vòng xuyến đôi và 2 đại lộ vòng ngoài
+            drawAsphaltPolyline([[0, 135], [145, 135]], 34, true);
+            drawAsphaltPolyline([[275, 135], [W, 135]], 34, true);
+            drawAsphaltPolyline([[0, 575], [145, 575]], 34, true);
+            drawAsphaltPolyline([[275, 575], [W, 575]], 34, true);
+
+            drawAsphaltPolyline([
+                [150, 200],
+                [82, 200],
+                [82, 510],
+                [150, 510]
+            ], 36, true);
+            drawAsphaltPolyline([
+                [270, 200],
+                [338, 200],
+                [338, 510],
+                [270, 510]
+            ], 36, true);
+
+            // 2 Bùng binh tròn (trên & dưới)
+            drawAsphaltCircle(210, 200, 52, 34);
+            drawAsphaltCircle(210, 510, 52, 34);
+
+            // Đường kết nối vào 2 căn cứ
+            drawDirtPolyline([[210, 75], [210, 148]], 30);
+            drawDirtPolyline([[210, 562], [210, 645]], 30);
+
+            // Khu dân cư & công viên ở lõi giữa
+            drawBuildingBlock(125, 275, 32, 32, '#ef4444', '#fca5a5', false);
+            drawBuildingBlock(118, 328, 32, 32, '#3b82f6', '#93c5fd', false);
+            drawBuildingBlock(125, 412, 32, 32, '#0284c7', '#7dd3fc', false);
+
+            drawBuildingBlock(264, 275, 32, 32, '#22c55e', '#86efac', false);
+            drawBuildingBlock(272, 328, 32, 32, '#ef4444', '#fca5a5', false);
+            drawBuildingBlock(264, 412, 32, 32, '#22c55e', '#86efac', false);
+
+            drawPine(185, 355, 1.05);
+            drawPine(212, 342, 1.05);
+            drawPine(235, 362, 1.05);
+
+            // Dãy phố 2 bên mép bản đồ
+            [255, 310, 365, 420].forEach((hy, idx) => {
+                const c1 = idx % 2 === 0 ? '#eab308' : '#22c55e';
+                const c2 = idx % 2 === 0 ? '#fde047' : '#86efac';
+                drawBuildingBlock(12, hy, 34, 38, c1, c2, false);
+                drawBuildingBlock(374, hy, 34, 38, c1, c2, false);
+            });
+
+            drawTreeCluster(18, 45, 95, 95, 26);
+            drawTreeCluster(325, 45, 400, 95, 26);
+            drawTreeCluster(18, 615, 95, 668, 26);
+            drawTreeCluster(325, 615, 400, 668, 26);
+            break;
+        }
+
+        case 10: {
+            // Map 10: Bờ biển bãi cát vàng bên trái (thủy quân cơ động), đường đất chạy uốn lượn bên phải dọc vách núi đá
+            fillGrassBg();
+
+            // Bãi cát vàng uốn lượn dọc bờ biển
+            targetCtx.fillStyle = '#fde68a';
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, 0);
+            targetCtx.lineTo(148, 0);
+            targetCtx.bezierCurveTo(135, 180, 195, 320, 175, 480);
+            targetCtx.bezierCurveTo(160, 580, 125, 650, 118, H);
+            targetCtx.lineTo(0, H);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            // Biển xanh bên trái cho Thủy quân cơ động
+            targetCtx.fillStyle = '#e0f2fe';
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, 0);
+            targetCtx.lineTo(106, 0);
+            targetCtx.bezierCurveTo(95, 180, 132, 340, 118, 500);
+            targetCtx.bezierCurveTo(105, 600, 72, 660, 64, H);
+            targetCtx.lineTo(0, H);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            targetCtx.fillStyle = '#38bdf8';
+            targetCtx.beginPath();
+            targetCtx.moveTo(0, 0);
+            targetCtx.lineTo(98, 0);
+            targetCtx.bezierCurveTo(88, 180, 124, 340, 110, 500);
+            targetCtx.bezierCurveTo(96, 600, 64, 660, 56, H);
+            targetCtx.lineTo(0, H);
+            targetCtx.closePath();
+            targetCtx.fill();
+
+            if (registerNav) {
+                nav.waterBoxes.push({ x: 0, y: 0, w: 108, h: H });
+                nav.markRect(0, 0, 108, H, T_WATER, true);
+            }
+
+            // Con đường đất uốn lượn bên phải dọc theo vách núi đá
+            drawDirtPolyline([
+                [295, 55],
+                [295, 145],
+                [255, 225],
+                [295, 315],
+                [255, 415],
+                [295, 515],
+                [255, 605],
+                [285, 665]
+            ], 32);
+
+            // Vách núi đá dựng đứng dọc sườn phải
+            for (let ry = 48; ry <= 665; ry += 46) {
+                drawRockMountain(386, ry, 28);
+                drawRockMountain(348, ry + 22, 25);
+            }
+            break;
+        }
+
+        case 11: {
+            // Map 11: Căn cứ quân sự phòng thủ với 4 góc là các tháp phóng tên lửa / radar kiên cố, đường chữ thập lớn ở giữa
+            fillGrassBg();
+
+            // Đường chữ thập lớn ở trung tâm + các nhánh ngang
+            drawAsphaltPolyline([[210, 55], [210, 655]], 44, true);
+            drawAsphaltPolyline([[0, 215], [W, 215]], 38, true);
+            drawAsphaltPolyline([[0, 505], [W, 505]], 38, true);
+
+            // 4 Khu căn cứ tên lửa / radar ở 4 góc có tường đá bao quanh
+            const drawCornerMissileBase = (bx, by) => {
+                drawStoneWallSegment(bx, by, 108, 92);
+                targetCtx.save();
+                targetCtx.fillStyle = '#94a3b8';
+                targetCtx.fillRect(bx + 6, by + 6, 96, 80);
+                // Bệ phóng & tên lửa hạt nhân
+                targetCtx.fillStyle = '#334155';
+                targetCtx.fillRect(bx + 26, by + 18, 56, 52);
+                targetCtx.fillStyle = '#f8fafc';
+                targetCtx.beginPath();
+                targetCtx.moveTo(bx + 54, by + 8);
+                targetCtx.lineTo(bx + 66, by + 32);
+                targetCtx.lineTo(bx + 42, by + 32);
+                targetCtx.closePath();
+                targetCtx.fill();
+                targetCtx.fillStyle = '#ef4444';
+                targetCtx.beginPath();
+                targetCtx.moveTo(bx + 54, by + 8);
+                targetCtx.lineTo(bx + 61, by + 20);
+                targetCtx.lineTo(bx + 47, by + 20);
+                targetCtx.closePath();
+                targetCtx.fill();
+                targetCtx.restore();
+            };
+
+            drawCornerMissileBase(14, 78);
+            drawCornerMissileBase(298, 78);
+            drawCornerMissileBase(14, 542);
+            drawCornerMissileBase(298, 542);
+
+            // Các dãy nhà doanh trại quân sự ở dải giữa (y: 255 -> 465)
+            drawBuildingBlock(22, 260, 38, 38, '#f97316', '#fed7aa', false);
+            drawBuildingBlock(72, 260, 38, 38, '#eab308', '#fef08a', false);
+            drawBuildingBlock(132, 260, 38, 38, '#22c55e', '#86efac', false);
+            drawBuildingBlock(132, 338, 38, 38, '#22c55e', '#86efac', false);
+            drawBuildingBlock(72, 420, 38, 38, '#eab308', '#fef08a', false);
+            drawBuildingBlock(132, 420, 38, 38, '#64748b', '#cbd5e1', false);
+
+            drawBuildingBlock(250, 260, 38, 38, '#3b82f6', '#93c5fd', false);
+            drawBuildingBlock(310, 260, 38, 38, '#3b82f6', '#93c5fd', false);
+            drawBuildingBlock(362, 260, 38, 38, '#22c55e', '#86efac', false);
+            drawBuildingBlock(250, 338, 38, 38, '#ef4444', '#fca5a5', false);
+            drawBuildingBlock(250, 420, 38, 38, '#3b82f6', '#93c5fd', false);
+            drawBuildingBlock(310, 420, 38, 38, '#eab308', '#fef08a', false);
+            drawBuildingBlock(362, 420, 38, 38, '#ef4444', '#fca5a5', false);
+            break;
+        }
+
+        case 12: {
+            // Map 12: Tường thành đá cổ kiên cố bao quanh vòng ngoài và 1 tòa tháp thành lũy đá phòng thủ ở chính giữa
+            fillGrassBg();
+
+            // Đại lộ nhựa hình chữ nhật chạy vòng quanh bên trong tường thành
+            drawAsphaltPolyline([
+                [102, 162],
+                [318, 162],
+                [318, 548],
+                [102, 548],
+                [102, 162]
             ], 38, true);
-            drawStoneWallSegment(145, 250, 130, 20);
-            drawStoneWallSegment(145, 450, 130, 20);
-            drawStoneWallSegment(145, 270, 20, 180);
-            drawStoneWallSegment(255, 270, 20, 180);
-            drawStoneTower(210, 355, 42);
+
+            // 4 Nhánh đường kết nối ra 4 hướng (trên, dưới, trái, phải)
+            drawAsphaltPolyline([[210, 55], [210, 162]], 38, true);
+            drawAsphaltPolyline([[210, 548], [210, 655]], 38, true);
+            drawAsphaltPolyline([[0, 355], [102, 355]], 38, true);
+            drawAsphaltPolyline([[318, 355], [W, 355]], 38, true);
+
+            // Tường thành đá vòng ngoài + các tháp canh góc
+            drawStoneWallSegment(26, 62, 85, 18);
+            drawStoneWallSegment(309, 62, 85, 18);
+            drawStoneWallSegment(26, 62, 18, 225);
+            drawStoneWallSegment(376, 62, 18, 225);
+
+            drawStoneWallSegment(26, 425, 18, 225);
+            drawStoneWallSegment(376, 425, 18, 225);
+            drawStoneWallSegment(26, 632, 85, 18);
+            drawStoneWallSegment(309, 632, 85, 18);
+
+            drawStoneTower(35, 70, 26);
+            drawStoneTower(385, 70, 26);
+            drawStoneTower(35, 285, 26);
+            drawStoneTower(385, 285, 26);
+            drawStoneTower(35, 425, 26);
+            drawStoneTower(385, 425, 26);
+            drawStoneTower(35, 640, 26);
+            drawStoneTower(385, 640, 26);
+
+            // Thành lũy đá cổ kiên cố ở chính giữa (x: 152 -> 268, y: 275 -> 435)
+            drawStoneWallSegment(152, 275, 116, 160);
+            targetCtx.fillStyle = '#94a3b8';
+            targetCtx.fillRect(164, 287, 92, 136);
+            drawStoneTower(156, 280, 28);
+            drawStoneTower(264, 280, 28);
+            drawStoneTower(156, 430, 28);
+            drawStoneTower(264, 430, 28);
+            drawStoneTower(210, 355, 38);
             break;
-        case 13:
+        }
+
+        case 13: {
+            // Map 13: Mạng lưới quần đảo sông nước chằng chịt, nối các cồn đất bằng hệ thống 8 cây cầu gỗ dạng lưới
             fillGrassBg();
-            drawWaterBox(0, 200, W, 280, 0);
-            drawDirtPolyline([[95, 45], [95, 665]], 32);
-            drawDirtPolyline([[210, 45], [210, 665]], 34);
-            drawDirtPolyline([[325, 45], [325, 665]], 32);
-            drawWoodBridge(95, 340, 46, 300, true);
-            drawWoodBridge(210, 340, 52, 300, true);
-            drawWoodBridge(325, 340, 46, 300, true);
+
+            // Sông nước rộng chia cắt chiến trường
+            drawWaterBox(0, 125, W, 465, 0);
+
+            // Các cồn đảo cỏ xanh giữa sông nước
+            const drawGrassIsland = (ix, iy, iw, ih) => {
+                targetCtx.save();
+                targetCtx.fillStyle = '#d9e37c';
+                targetCtx.beginPath();
+                targetCtx.roundRect(ix - 4, iy - 4, iw + 8, ih + 8, 16);
+                targetCtx.fill();
+                targetCtx.fillStyle = '#7bc64d';
+                targetCtx.beginPath();
+                targetCtx.roundRect(ix, iy, iw, ih, 12);
+                targetCtx.fill();
+                targetCtx.restore();
+                if (registerNav) {
+                    nav.markRect(ix + 2, iy + 2, iw - 4, ih - 4, T_OPEN, true);
+                }
+            };
+
+            drawGrassIsland(38, 175, 135, 145);
+            drawGrassIsland(247, 175, 135, 145);
+            drawGrassIsland(38, 390, 135, 145);
+            drawGrassIsland(247, 390, 135, 145);
+            drawGrassIsland(155, 295, 110, 120);
+
+            // Lưới đường đá xám nối các đảo và căn cứ
+            const drawGreyTrack = (pts) => {
+                if (registerNav) nav.markPolyline(pts, 28, T_ROAD);
+                targetCtx.save();
+                targetCtx.lineCap = 'round';
+                targetCtx.lineJoin = 'round';
+                targetCtx.strokeStyle = '#475569';
+                targetCtx.lineWidth = 26;
+                targetCtx.beginPath();
+                pts.forEach((p, i) => (i === 0 ? targetCtx.moveTo(p[0], p[1]) : targetCtx.lineTo(p[0], p[1])));
+                targetCtx.stroke();
+                targetCtx.strokeStyle = '#94a3b8';
+                targetCtx.lineWidth = 20;
+                targetCtx.beginPath();
+                pts.forEach((p, i) => (i === 0 ? targetCtx.moveTo(p[0], p[1]) : targetCtx.lineTo(p[0], p[1])));
+                targetCtx.stroke();
+                targetCtx.restore();
+            };
+
+            drawGreyTrack([[88, 70], [88, 645]]);
+            drawGreyTrack([[210, 70], [210, 645]]);
+            drawGreyTrack([[332, 70], [332, 645]]);
+            drawGreyTrack([[88, 245], [332, 245]]);
+            drawGreyTrack([[88, 465], [332, 465]]);
+
+            // Hệ thống 8 cây cầu gỗ ngang dọc nối các cồn đảo
+            drawWoodBridge(88, 150, 38, 62, true);
+            drawWoodBridge(332, 150, 38, 62, true);
+
+            drawWoodBridge(210, 245, 38, 82, false);
+
+            drawWoodBridge(88, 355, 38, 80, true);
+            drawWoodBridge(210, 355, 38, 80, true);
+            drawWoodBridge(332, 355, 38, 80, true);
+
+            drawWoodBridge(210, 465, 38, 82, false);
+
+            drawWoodBridge(88, 562, 38, 62, true);
+            drawWoodBridge(332, 562, 38, 62, true);
+
+            // Cây xanh trên các cồn đảo
+            drawPine(125, 208, 0.95);
+            drawPine(285, 208, 0.95);
+            drawPine(125, 425, 0.95);
+            drawPine(285, 425, 0.95);
             break;
-        case 14:
+        }
+
+        case 14: {
+            // Map 14: Đại lộ vòng tròn lớn bao quanh một hồ nước nhỏ và rừng thông ở lõi tâm
             fillGrassBg();
-            drawAsphaltPolyline([[210, 45], [210, 180]], 42, true);
-            drawAsphaltCircle(210, 355, 140, 44);
-            drawAsphaltPolyline([[210, 530], [210, 665]], 42, true);
-            drawWaterBox(155, 305, 110, 100, 20);
-            drawTreeCluster(15, 100, 55, 610, 28);
-            drawTreeCluster(365, 100, 405, 610, 28);
+
+            // Nhánh nối từ 2 căn cứ vào đại lộ vòng tròn
+            drawDirtPolyline([[210, 58], [210, 195]], 32);
+            drawDirtPolyline([[210, 515], [210, 655]], 32);
+
+            // Đại lộ vòng tròn lớn ở chính giữa
+            drawAsphaltCircle(210, 355, 148, 44);
+
+            // Hồ nước vuông bo góc ở lõi tâm
+            drawWaterBox(162, 312, 96, 88, 16);
+
+            // Vòng cây thông bao quanh hồ nước trung tâm (bên trong đại lộ tròn)
+            const innerAngles = [0, 0.6, 1.2, 1.8, 2.4, 3.0, 3.6, 4.2, 4.8, 5.4, 5.9];
+            innerAngles.forEach(ang => {
+                const tx = 210 + Math.cos(ang) * 84;
+                const ty = 355 + Math.sin(ang) * 82;
+                drawPine(tx, ty, 0.95);
+            });
+
+            // 4 Cánh rừng thông rậm rạp ở 4 góc ngoài đại lộ tròn
+            drawTreeCluster(16, 42, 105, 195, 26);
+            drawTreeCluster(315, 42, 404, 195, 26);
+            drawTreeCluster(16, 515, 105, 668, 26);
+            drawTreeCluster(315, 515, 404, 668, 26);
             break;
-        case 15:
+        }
+
+        case 15: {
+            // Map 15: Tuyến phòng thủ biên giới với 2 bức tường đá kiên cố có cổng thông 2 bên và đường đất dẫn thẳng qua trung tâm
             fillGrassBg();
-            drawAsphaltPolyline([[100, 45], [100, 665]], 40, true);
-            drawAsphaltPolyline([[320, 45], [320, 665]], 40, true);
-            drawDirtPolyline([[210, 45], [210, 665]], 32);
-            drawStoneWallSegment(0, 240, 75, 26);
-            drawStoneWallSegment(125, 240, 170, 26);
-            drawStoneWallSegment(345, 240, 75, 26);
-            drawStoneWallSegment(0, 450, 75, 26);
-            drawStoneWallSegment(125, 450, 170, 26);
-            drawStoneWallSegment(345, 450, 75, 26);
+
+            // 2 Đường nhựa ở 2 cánh biên + Đường đất xuyên qua cổng thành giữa
+            drawAsphaltPolyline([[95, 0], [95, 225]], 40, true);
+            drawAsphaltPolyline([[325, 0], [325, 225]], 40, true);
+
+            drawAsphaltPolyline([[95, 485], [95, H]], 40, true);
+            drawAsphaltPolyline([[325, 485], [325, H]], 40, true);
+
+            drawDirtPolyline([[95, 225], [95, 485]], 30);
+            drawDirtPolyline([[325, 225], [325, 485]], 30);
+            drawDirtPolyline([[210, 65], [210, 645]], 32);
+
+            // Tuyến phòng thủ tường thành đá phía trên (y = 215) và phía dưới (y = 475)
+            // Cổng mở tại x = 95, x = 210, x = 325 để quân bộ di chuyển qua được
+            drawStoneWallSegment(0, 212, 66, 28);
+            drawStoneWallSegment(124, 212, 60, 28);
+            drawStoneWallSegment(236, 212, 60, 28);
+            drawStoneWallSegment(354, 212, 66, 28);
+
+            drawStoneWallSegment(0, 472, 66, 28);
+            drawStoneWallSegment(124, 472, 60, 28);
+            drawStoneWallSegment(236, 472, 60, 28);
+            drawStoneWallSegment(354, 472, 66, 28);
+
+            // Các trụ tháp canh bảo vệ cổng thành
+            [62, 128, 180, 240, 292, 358].forEach(tx => {
+                drawStoneTower(tx, 226, 20);
+                drawStoneTower(tx, 486, 20);
+            });
             break;
+        }
     }
 
     if (registerNav) nav.buildFlowFields();
 
+    // Khi vẽ thumbnail preview ở sảnh: Nhà chính Đỏ ở PHÍA TRÊN, Nhà chính Xanh ở PHÍA DƯỚI
     if (includeMiniBases) {
         const drawThreeMiniBases = (cy, isBlue) => {
             const cols = [-58, 0, 58];
-            cols.forEach(dx => {
+            cols.forEach((dx, idx) => {
                 const bx = W / 2 + dx;
-                targetCtx.fillStyle = '#0f172a';
-                targetCtx.fillRect(bx - 22, cy - 22, 44, 44);
-                targetCtx.fillStyle = isBlue ? '#0284c7' : '#dc2626';
-                targetCtx.fillRect(bx - 19, cy - 19, 38, 38);
+                const bRow = isBlue ? 2 : 3;
+                const bCol = idx === 1 ? 11 : 10;
+                if (!atlas.ready || !atlas.draw(targetCtx, bCol, bRow, bx, cy, 46, 46)) {
+                    targetCtx.fillStyle = '#0f172a';
+                    targetCtx.fillRect(bx - 22, cy - 22, 44, 44);
+                    targetCtx.fillStyle = isBlue ? '#0284c7' : '#dc2626';
+                    targetCtx.fillRect(bx - 19, cy - 19, 38, 38);
+                }
             });
         };
-        drawThreeMiniBases(42, false);
-        drawThreeMiniBases(H - 42, true);
+        drawThreeMiniBases(44, false);     // Nhà Đỏ (Địch) ở đỉnh bản đồ
+        drawThreeMiniBases(H - 44, true);  // Nhà Xanh (Mình) ở đáy bản đồ
     }
 
     targetCtx.restore();
 }
+
 const canvas = document.getElementById('battleCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -2268,7 +2903,7 @@ const GAS_UPGRADE_LEVELS = [
 ];
 
 // ============================================================================
-// TRẠNG THÁI GAME TRONG TRẬN (ĐỘ KHÓ x HÌNH THỨC CHIẾN ĐẤU + EXP + DECK 5 Ô)
+// TRẠNG THÁI GAME TRONG TRẬN (CĂN CỨ ĐỎ Ở TRÊN - CĂN CỨ XANH Ở DƯỚI)
 // ============================================================================
 let game = {
     inMenu: true,
@@ -2307,8 +2942,9 @@ let game = {
 
     rallyX: null,
 
-    blueBase: { team: 'blue', x: LOGICAL_WIDTH / 2, y: PLAYFIELD_HEIGHT - 56, width: 268, height: 64, hp: 120, maxHp: 120 },
-    redOutpost: { team: 'red', x: LOGICAL_WIDTH / 2, y: 64, width: 268, height: 64, hp: 150, maxHp: 150 },
+    // Căn cứ Xanh (Team mình) ở PHÍA DƯỚI; Căn cứ Đỏ (Team địch) ở PHÍA TRÊN
+    blueBase: { team: 'blue', x: LOGICAL_WIDTH / 2, y: PLAYFIELD_HEIGHT - 54, width: 268, height: 64, hp: 120, maxHp: 120 },
+    redOutpost: { team: 'red', x: LOGICAL_WIDTH / 2, y: 66, width: 268, height: 64, hp: 150, maxHp: 150 },
 
     units: [],
     bullets: [],
@@ -2602,7 +3238,6 @@ document.getElementById('btn-settings-sound')?.addEventListener('click', (e) => 
     sfx.play('gas');
 });
 
-// Nút Cài lại toàn bộ tài khoản (Reset Account Data) trong Settings
 document.getElementById('btn-reset-account-data')?.addEventListener('click', () => {
     sfx.play('cannon');
     document.getElementById('reset-confirm-modal')?.classList.add('active');
@@ -2649,7 +3284,6 @@ function renderStageScreenUI() {
     const nextBtn = document.getElementById('btn-next-stage');
     if (nextBtn) nextBtn.disabled = currentStageViewLevel >= maxUnlocked;
 
-    // Cập nhật 2 nút Độ khó: Dễ & Khó
     DIFFICULTY_ORDER.forEach(diffKey => {
         const btn = document.getElementById(`diff-btn-${diffKey}`);
         const statusEl = document.getElementById(`diff-status-${diffKey}`);
@@ -2667,7 +3301,6 @@ function renderStageScreenUI() {
         }
     });
 
-    // Cập nhật 2 nút Hình thức chiến đấu dưới Độ khó đang chọn: Chiến Đấu (destroy) & Sinh Tồn (survival)
     BATTLE_MODE_ORDER.forEach(modeKey => {
         const mBtn = document.getElementById(`mode-btn-${modeKey}`);
         const mStatus = document.getElementById(`mode-status-${modeKey}`);
@@ -2813,7 +3446,7 @@ function renderMissionsList() {
                 <div class="mission-progress-track">
                     <div class="mission-progress-fill" style="width: ${pct}%"></div>
                 </div>
-                <div class="text-[10px] font-bold text-slate-500 mt-0.5">Tiến độ: ${cur} / ${m.target}</div>
+                <div class="text-[10px] font-bold text-slate-500 mt-0.5">Tiến độ: ${cur.toLocaleString('en-US')} / ${m.target.toLocaleString('en-US')}</div>
             </div>
             <div>
                 <button class="btn-3d ${canClaim ? 'btn-3d-green' : 'btn-3d-yellow'} px-3 py-1.5 text-[11px]" ${canClaim ? '' : 'disabled'}>
@@ -2930,22 +3563,23 @@ document.getElementById('btn-submit-code')?.addEventListener('click', () => {
 });
 
 // ============================================================================
-// 6. TAB "SHOP": GACHA TƯỚNG (GIỮ NGUYÊN TỈ LỆ, KHÔNG MỞ TRỰC TIẾP MYTHIC/SECRET)
+// 6. TAB "SHOP": MỞ RƯƠNG TỐI ĐA 100,000 RƯƠNG & AGGREGATE SUMMARY SIÊU TỐC
 // ============================================================================
 let pendingGachaData = null;
 
 function rollRarityFromTable(oddsTable) {
     const rand = Math.random() * 100;
     let acc = 0;
-    for (const item of oddsTable) {
-        acc += item.weight;
-        if (rand <= acc) return item.rarity;
+    for (let i = 0; i < oddsTable.length; i++) {
+        acc += oddsTable[i].weight;
+        if (rand <= acc) return oddsTable[i].rarity;
     }
     return oddsTable[0].rarity;
 }
 
 function requestOpenGachaCrate(crateType, count) {
-    const qty = Math.max(1, Math.min(999, Math.floor(Number(count) || 1)));
+    // 1. Nâng giới hạn trần lên 1,000,000 rương
+    const qty = Math.max(1, Math.min(1000000, Math.floor(Number(count) || 1)));
     const isLegendary = crateType === 'legendary';
     const unitPrice = isLegendary ? 300 : 150;
 
@@ -2976,11 +3610,11 @@ function requestOpenGachaCrate(crateType, count) {
     const confirmBtn = document.getElementById('btn-confirm-custom-gacha');
 
     if (titleEl) titleEl.textContent = isLegendary ? '👑 LEGENDARY CRATE' : '🧰 EPIC CRATE';
-    if (qtyEl) qtyEl.textContent = `${qty} rương`;
-    if (rawCostEl) rawCostEl.textContent = `💎 ${formatCurrency(rawCost)}`;
-    if (discEl) discEl.textContent = blocksOf10 > 0 ? `-10% (${blocksOf10} cụm 10 rương)` : 'Không đủ 10 rương để giảm giá';
-    if (savedEl) savedEl.textContent = `💎 ${formatCurrency(discountAmount)}`;
-    if (finalCostEl) finalCostEl.textContent = metaState.isAdminMode ? '💎 0 (ADMIN ∞)' : `💎 ${formatCurrency(finalCost)}`;
+    if (qtyEl) qtyEl.textContent = `${qty.toLocaleString('en-US')} rương`;
+    if (rawCostEl) rawCostEl.textContent = `💎 ${rawCost.toLocaleString('en-US')}`;
+    if (discEl) discEl.textContent = blocksOf10 > 0 ? `-10% (${blocksOf10.toLocaleString('en-US')} cụm 10 rương)` : 'Không đủ 10 rương để giảm giá';
+    if (savedEl) savedEl.textContent = `💎 ${discountAmount.toLocaleString('en-US')}`;
+    if (finalCostEl) finalCostEl.textContent = metaState.isAdminMode ? '💎 0 (ADMIN ∞)' : `💎 ${finalCost.toLocaleString('en-US')}`;
 
     const hasEnough = metaState.isAdminMode || metaState.gems >= finalCost;
     if (errEl) errEl.classList.toggle('hidden', hasEnough);
@@ -3011,7 +3645,6 @@ document.getElementById('btn-confirm-custom-gacha')?.addEventListener('click', (
     }
     metaState.missionsProgress.cratesOpened = (metaState.missionsProgress.cratesOpened || 0) + qty;
 
-    // Quy tắc sở hữu: Rương chỉ mở tối đa đến Legendary (Legendary Crate) hoặc Epic (Epic Crate)
     const oddsTable = isLegendary
         ? [
             { rarity: 'uncommon', weight: 50 },
@@ -3026,17 +3659,30 @@ document.getElementById('btn-confirm-custom-gacha')?.addEventListener('click', (
             { rarity: 'epic', weight: 3 }
         ];
 
-    const pulledCards = [];
+    const unitRarityCounts = new Map();
+    const rarityTotals = {};
+    const singlePulledCards = [];
+    const numUnits = UNIT_CATALOG.length;
+    const baseUid = Date.now().toString(36);
+
+    // Vòng lặp tối ưu: UID dạng nhẹ, không gọi Date.now() lặp lại
     for (let i = 0; i < qty; i++) {
         const rarity = rollRarityFromTable(oddsTable);
-        const randomUnit = UNIT_CATALOG[Math.floor(Math.random() * UNIT_CATALOG.length)];
+        const randomUnit = UNIT_CATALOG[(Math.random() * numUnits) | 0];
         const newCard = {
-            uid: 'card_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '_' + i,
+            uid: `g_${baseUid}_${i}`,
             unitId: randomUnit.id,
             rarity
         };
         metaState.inventory.push(newCard);
-        pulledCards.push(newCard);
+
+        rarityTotals[rarity] = (rarityTotals[rarity] || 0) + 1;
+        const aggKey = `${randomUnit.id}__${rarity}`;
+        unitRarityCounts.set(aggKey, (unitRarityCounts.get(aggKey) || 0) + 1);
+
+        if (qty <= 10) {
+            singlePulledCards.push(newCard);
+        }
     }
 
     saveProgress();
@@ -3047,32 +3693,92 @@ document.getElementById('btn-confirm-custom-gacha')?.addEventListener('click', (
     const resModal = document.getElementById('gacha-result-modal');
     const titleEl = document.getElementById('gacha-modal-title');
     const sumBanner = document.getElementById('gacha-total-pulled');
+    const breakdownEl = document.getElementById('gacha-rarity-breakdown');
     const gridEl = document.getElementById('gacha-cards-grid');
 
     if (titleEl) {
-        titleEl.textContent = isLegendary ? `👑 KẾT QUẢ LEGENDARY CRATE X${qty}` : `🧰 KẾT QUẢ EPIC CRATE X${qty}`;
+        titleEl.textContent = isLegendary
+            ? `👑 KẾT QUẢ LEGENDARY CRATE X${qty.toLocaleString('en-US')}`
+            : `🧰 KẾT QUẢ EPIC CRATE X${qty.toLocaleString('en-US')}`;
     }
-    if (sumBanner) sumBanner.textContent = `${qty} thẻ tướng`;
+    if (sumBanner) sumBanner.textContent = `${qty.toLocaleString('en-US')} thẻ tướng`;
+
+    if (breakdownEl) {
+        breakdownEl.innerHTML = '';
+        const orderedRarities = ['legendary', 'epic', 'rare', 'uncommon', 'common'];
+        let hasAny = false;
+        orderedRarities.forEach(rKey => {
+            const count = rarityTotals[rKey] || 0;
+            if (count > 0) {
+                hasAny = true;
+                const rCfg = RARITY_CONFIG[rKey];
+                const pill = document.createElement('span');
+                pill.className = `gacha-rarity-stat-pill ${rCfg.cssClass}`;
+                pill.textContent = `${rCfg.name}: ${count.toLocaleString('en-US')}`;
+                breakdownEl.appendChild(pill);
+            }
+        });
+        breakdownEl.classList.toggle('hidden', !hasAny);
+    }
 
     if (gridEl) {
         gridEl.innerHTML = '';
-        pulledCards.forEach(c => {
-            const u = UNIT_BY_ID[c.unitId];
-            const rCfg = RARITY_CONFIG[c.rarity] || RARITY_CONFIG.common;
-            const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+        const fragment = document.createDocumentFragment();
 
-            const cardEl = document.createElement('div');
-            cardEl.className = `army-unit-card ${rCfg.cssClass}`;
-            cardEl.innerHTML = `
-                <div class="card-top-lv">
-                    <span>${rCfg.name.toUpperCase()}</span>
-                    ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
-                </div>
-                <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-                <div class="card-unit-title">${u.name}</div>
-            `;
-            gridEl.appendChild(cardEl);
-        });
+        if (qty <= 10) {
+            singlePulledCards.forEach(c => {
+                const u = UNIT_BY_ID[c.unitId];
+                const rCfg = RARITY_CONFIG[c.rarity] || RARITY_CONFIG.common;
+                const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
+                const cardEl = document.createElement('div');
+                cardEl.className = `army-unit-card ${rCfg.cssClass}`;
+                cardEl.innerHTML = `
+                    <div class="card-top-lv">
+                        <span>${rCfg.name.toUpperCase()}</span>
+                        ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
+                    </div>
+                    <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+                    <div class="card-unit-title">${u.name}</div>
+                `;
+                fragment.appendChild(cardEl);
+            });
+        } else {
+            const aggregatedEntries = Array.from(unitRarityCounts.entries()).map(([key, count]) => {
+                const [unitId, rarity] = key.split('__');
+                return {
+                    unitId,
+                    rarity,
+                    count,
+                    rank: RARITY_CONFIG[rarity]?.rank ?? 0
+                };
+            }).sort((a, b) => {
+                if (b.rank !== a.rank) return b.rank - a.rank;
+                return b.count - a.count;
+            });
+
+            aggregatedEntries.forEach(item => {
+                const u = UNIT_BY_ID[item.unitId];
+                const rCfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
+                if (!u) return;
+                const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
+
+                const cardEl = document.createElement('div');
+                cardEl.className = `army-unit-card ${rCfg.cssClass}`;
+                cardEl.innerHTML = `
+                    <div class="card-top-lv">
+                        <span>${rCfg.name.toUpperCase()}</span>
+                        ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
+                    </div>
+                    <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+                    <span class="card-qty-badge">x${item.count.toLocaleString('en-US')}</span>
+                    <div class="card-unit-title">${u.name}</div>
+                `;
+                fragment.appendChild(cardEl);
+            });
+        }
+
+        gridEl.appendChild(fragment);
     }
 
     if (resModal) resModal.classList.add('active');
@@ -3147,7 +3853,7 @@ function renderArmyTabUI() {
         btnMerge?.classList.add('active');
         listView?.classList.remove('active');
         mergeView?.classList.add('active');
-        if (headingEl) headingEl.textContent = `GHÉP TƯỚNG (${metaState.inventory.length} THẺ)`;
+        if (headingEl) headingEl.textContent = `GHÉP TƯỚNG (${metaState.inventory.length.toLocaleString('en-US')} THẺ)`;
         renderMergeWorkbenchAndInventory();
     }
 }
@@ -3437,7 +4143,7 @@ document.getElementById('btn-confirm-level-refund')?.addEventListener('click', (
 });
 
 // ============================================================================
-// CHẾ ĐỘ MERGE: TÁCH BIỆT LEVEL & AUTO-MERGE THÁC CUỘN (CASCADE AUTO MERGE)
+// CHẾ ĐỘ MERGE: TỐI ƯU HIỂN THỊ KHO LỚN & AUTO-MERGE THÁC CUỘN O(1) SIÊU TỐC
 // ============================================================================
 document.getElementById('btn-mode-army')?.addEventListener('click', () => {
     currentArmyMode = 'army';
@@ -3459,6 +4165,11 @@ function renderMergeWorkbenchAndInventory() {
     const btnMergeExec = document.getElementById('btn-execute-merge');
     const hintEl = document.getElementById('merge-hint-text');
     const invGrid = document.getElementById('merge-inventory-grid');
+    const headingEl = document.getElementById('army-panel-title');
+
+    if (headingEl && currentArmyMode === 'merge') {
+        headingEl.textContent = `GHÉP TƯỚNG (${metaState.inventory.length.toLocaleString('en-US')} THẺ)`;
+    }
 
     const card1 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]) || null;
     const card2 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[1]) || null;
@@ -3521,80 +4232,115 @@ function renderMergeWorkbenchAndInventory() {
     if (!invGrid) return;
     invGrid.innerHTML = '';
 
-    const sortedInv = [...metaState.inventory].sort((a, b) => {
-        const rA = RARITY_CONFIG[a.rarity]?.rank ?? 0;
-        const rB = RARITY_CONFIG[b.rarity]?.rank ?? 0;
-        if (rB !== rA) return rB - rA;
+    // Để tránh treo trình duyệt khi kho có 100,000 thẻ, gom nhóm theo (unitId, rarity) và chỉ render tối đa 2 thẻ đại diện cho mỗi nhóm kèm badge tổng số lượng
+    const stackGroups = new Map();
+    for (let i = 0; i < metaState.inventory.length; i++) {
+        const c = metaState.inventory[i];
+        const key = `${c.unitId}__${c.rarity}`;
+        let grp = stackGroups.get(key);
+        if (!grp) {
+            grp = {
+                unitId: c.unitId,
+                rarity: c.rarity,
+                rank: RARITY_CONFIG[c.rarity]?.rank ?? 0,
+                totalCount: 0,
+                sampleCards: []
+            };
+            stackGroups.set(key, grp);
+        }
+        grp.totalCount++;
+        if (grp.sampleCards.length < 2 || mergeSelectedCardUids.includes(c.uid)) {
+            if (!grp.sampleCards.some(sc => sc.uid === c.uid)) {
+                if (grp.sampleCards.length < 2) {
+                    grp.sampleCards.push(c);
+                } else {
+                    grp.sampleCards[1] = c;
+                }
+            }
+        }
+    }
+
+    const sortedGroups = Array.from(stackGroups.values()).sort((a, b) => {
+        if (b.rank !== a.rank) return b.rank - a.rank;
         return a.unitId.localeCompare(b.unitId);
     });
 
-    sortedInv.forEach(cardObj => {
-        const u = UNIT_BY_ID[cardObj.unitId];
-        const rCfg = RARITY_CONFIG[cardObj.rarity] || RARITY_CONFIG.common;
+    const fragment = document.createDocumentFragment();
+
+    sortedGroups.forEach(grp => {
+        const u = UNIT_BY_ID[grp.unitId];
+        const rCfg = RARITY_CONFIG[grp.rarity] || RARITY_CONFIG.common;
         if (!u) return;
 
-        const isSelected = mergeSelectedCardUids.includes(cardObj.uid);
-        const isMaxRarity = !rCfg.next; // Secret +5
+        const isMaxRarity = !rCfg.next;
         const permLv = metaState.armyPermanentLevels[u.id] || 1;
         const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
 
-        let isDimmed = false;
-        if (isMaxRarity) isDimmed = true;
-        else if (card1 && !isSelected) {
-            if (cardObj.unitId !== card1.unitId || cardObj.rarity !== card1.rarity) isDimmed = true;
-        }
-
-        const cardEl = document.createElement('div');
-        cardEl.className = `army-unit-card ${rCfg.cssClass}` +
-            (isSelected ? ' selected-for-merge' : '') +
-            (isDimmed ? ' dimmed-unmatch' : '');
-
-        cardEl.innerHTML = `
-            <div class="card-top-lv">
-                <span>LV.${permLv}</span>
-                ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : `<span class="text-[8px]">${rCfg.name}</span>`}
-            </div>
-            <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-            <div class="card-unit-title">${u.name}</div>
-        `;
-
-        cardEl.addEventListener('click', () => {
-            showcaseUnitId = u.id;
-            renderArmyShowcaseCanvas();
-
-            if (isSelected) {
-                mergeSelectedCardUids = mergeSelectedCardUids.filter(id => id !== cardObj.uid);
-                sfx.play('gas');
-                renderMergeWorkbenchAndInventory();
-                return;
+        grp.sampleCards.forEach((cardObj, idx) => {
+            const isSelected = mergeSelectedCardUids.includes(cardObj.uid);
+            let isDimmed = false;
+            if (isMaxRarity) isDimmed = true;
+            else if (card1 && !isSelected) {
+                if (cardObj.unitId !== card1.unitId || cardObj.rarity !== card1.rarity) isDimmed = true;
             }
 
-            if (isMaxRarity) {
-                sfx.play('cannon');
-                return;
-            }
+            const showStackBadge = idx === 0 && grp.totalCount > 2;
 
-            if (mergeSelectedCardUids.length === 0) {
-                mergeSelectedCardUids.push(cardObj.uid);
-                sfx.play('gas');
-            } else if (mergeSelectedCardUids.length === 1) {
-                const firstCard = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]);
-                if (firstCard && firstCard.unitId === cardObj.unitId && firstCard.rarity === cardObj.rarity) {
+            const cardEl = document.createElement('div');
+            cardEl.className = `army-unit-card ${rCfg.cssClass}` +
+                (isSelected ? ' selected-for-merge' : '') +
+                (isDimmed ? ' dimmed-unmatch' : '');
+
+            cardEl.innerHTML = `
+                <div class="card-top-lv">
+                    <span>LV.${permLv}</span>
+                    ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : `<span class="text-[8px]">${rCfg.name}</span>`}
+                </div>
+                <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+                ${showStackBadge ? `<span class="card-qty-badge">x${grp.totalCount.toLocaleString('en-US')}</span>` : ''}
+                <div class="card-unit-title">${u.name}</div>
+            `;
+
+            cardEl.addEventListener('click', () => {
+                showcaseUnitId = u.id;
+                renderArmyShowcaseCanvas();
+
+                if (isSelected) {
+                    mergeSelectedCardUids = mergeSelectedCardUids.filter(id => id !== cardObj.uid);
+                    sfx.play('gas');
+                    renderMergeWorkbenchAndInventory();
+                    return;
+                }
+
+                if (isMaxRarity) {
+                    sfx.play('cannon');
+                    return;
+                }
+
+                if (mergeSelectedCardUids.length === 0) {
                     mergeSelectedCardUids.push(cardObj.uid);
-                    sfx.play('spawn');
+                    sfx.play('gas');
+                } else if (mergeSelectedCardUids.length === 1) {
+                    const firstCard = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]);
+                    if (firstCard && firstCard.unitId === cardObj.unitId && firstCard.rarity === cardObj.rarity) {
+                        mergeSelectedCardUids.push(cardObj.uid);
+                        sfx.play('spawn');
+                    } else {
+                        mergeSelectedCardUids = [cardObj.uid];
+                        sfx.play('gas');
+                    }
                 } else {
                     mergeSelectedCardUids = [cardObj.uid];
                     sfx.play('gas');
                 }
-            } else {
-                mergeSelectedCardUids = [cardObj.uid];
-                sfx.play('gas');
-            }
-            renderMergeWorkbenchAndInventory();
-        });
+                renderMergeWorkbenchAndInventory();
+            });
 
-        invGrid.appendChild(cardEl);
+            fragment.appendChild(cardEl);
+        });
     });
+
+    invGrid.appendChild(fragment);
 }
 
 document.getElementById('merge-slot-1')?.addEventListener('click', () => {
@@ -3627,13 +4373,12 @@ document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
     metaState.inventory = metaState.inventory.filter(c => !removeSet.has(c.uid));
 
     const newCard = {
-        uid: 'merged_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        uid: nextCompactUid('m'),
         unitId: card1.unitId,
         rarity: nextRarity
     };
     metaState.inventory.push(newCard);
 
-    // Chỉ cộng tiến trình nhiệm vụ merge, KHÔNG tăng armyPermanentLevels
     metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + 1;
 
     mergeSelectedCardUids = [];
@@ -3652,51 +4397,53 @@ document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
     }
 });
 
-// ⚡ AUTO-MERGE DẠNG THÁC CUỘN (CASCADE / RECURSIVE AUTO MERGE - KHÔNG TĂNG LEVEL)
+// ⚡ AUTO-MERGE DẠNG THÁC CUỘN TOÁN HỌC (CASCADE AUTO MERGE - XỬ LÝ 100,000 THẺ TRONG < 5MS)
 document.getElementById('btn-auto-merge')?.addEventListener('click', () => {
-    let totalMergeOperations = 0;
-    const createdCardUids = new Set();
+    // Đếm tổng số thẻ theo từng (unitId, rarity)
+    const countsByUnit = {};
+    UNIT_CATALOG.forEach(u => {
+        countsByUnit[u.id] = {};
+        RARITY_ORDER.forEach(r => { countsByUnit[u.id][r] = 0; });
+    });
 
-    // Chạy vòng lặp while liên tục quét kho cho đến khi không còn bất kỳ 2 thẻ nào cùng loại + cùng độ hiếm có thể ghép
-    while (true) {
-        let mergedInPass = false;
-        const groupMap = new Map();
-
-        for (const card of metaState.inventory) {
-            const rCfg = RARITY_CONFIG[card.rarity];
-            if (!rCfg || !rCfg.next) continue; // Bỏ qua thẻ đã đạt bậc tối thượng (secret5)
-            const key = `${card.unitId}__${card.rarity}`;
-            if (!groupMap.has(key)) groupMap.set(key, []);
-            groupMap.get(key).push(card);
+    for (let i = 0; i < metaState.inventory.length; i++) {
+        const c = metaState.inventory[i];
+        if (countsByUnit[c.unitId] && countsByUnit[c.unitId][c.rarity] !== undefined) {
+            countsByUnit[c.unitId][c.rarity]++;
         }
+    }
 
-        for (const [, cardsArr] of groupMap.entries()) {
-            while (cardsArr.length >= 2) {
-                const c1 = cardsArr.shift();
-                const c2 = cardsArr.shift();
+    let totalMergeOperations = 0;
+    const newlyCreatedCounts = {};
+    UNIT_CATALOG.forEach(u => {
+        newlyCreatedCounts[u.id] = {};
+    });
 
-                const removeUids = new Set([c1.uid, c2.uid]);
-                metaState.inventory = metaState.inventory.filter(c => !removeUids.has(c.uid));
-                createdCardUids.delete(c1.uid);
-                createdCardUids.delete(c2.uid);
+    // Duyệt từ bậc Common lên tới Secret +4 để cộng dồn dây chuyền
+    UNIT_CATALOG.forEach(u => {
+        const uCounts = countsByUnit[u.id];
+        for (let rIdx = 0; rIdx < RARITY_ORDER.length - 1; rIdx++) {
+            const curR = RARITY_ORDER[rIdx];
+            const nextR = RARITY_CONFIG[curR]?.next;
+            if (!nextR) continue;
 
-                const nextRarity = RARITY_CONFIG[c1.rarity].next;
-                const newCard = {
-                    uid: 'automerge_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '_' + totalMergeOperations,
-                    unitId: c1.unitId,
-                    rarity: nextRarity
-                };
+            const currentTotal = uCounts[curR] || 0;
+            if (currentTotal >= 2) {
+                const pairs = Math.floor(currentTotal / 2);
+                const remainder = currentTotal % 2;
 
-                metaState.inventory.push(newCard);
-                createdCardUids.add(newCard.uid);
+                uCounts[curR] = remainder;
+                uCounts[nextR] = (uCounts[nextR] || 0) + pairs;
 
-                totalMergeOperations++;
-                mergedInPass = true;
+                // Ghi nhận số thẻ mới tạo ở bậc tiếp theo (nếu bậc tiếp theo tiếp tục bị gộp thì trừ đi phần đã gộp)
+                if (newlyCreatedCounts[u.id][curR]) {
+                    newlyCreatedCounts[u.id][curR] = Math.min(newlyCreatedCounts[u.id][curR], remainder);
+                }
+                newlyCreatedCounts[u.id][nextR] = (newlyCreatedCounts[u.id][nextR] || 0) + pairs;
+                totalMergeOperations += pairs;
             }
         }
-
-        if (!mergedInPass) break;
-    }
+    });
 
     if (totalMergeOperations === 0) {
         sfx.play('cannon');
@@ -3704,32 +4451,62 @@ document.getElementById('btn-auto-merge')?.addEventListener('click', () => {
         return;
     }
 
-    // Chỉ cập nhật thống kê nhiệm vụ Merge, tuyệt đối KHÔNG tăng armyPermanentLevels
+    // Dựng lại mảng inventory gọn nhẹ sau khi đã hợp nhất dây chuyền
+    const rebuiltInventory = [];
+    const summaryItems = [];
+
+    UNIT_CATALOG.forEach(u => {
+        const uCounts = countsByUnit[u.id];
+        RARITY_ORDER.forEach(r => {
+            const qty = uCounts[r] || 0;
+            for (let k = 0; k < qty; k++) {
+                rebuiltInventory.push({
+                    uid: nextCompactUid('am'),
+                    unitId: u.id,
+                    rarity: r
+                });
+            }
+            const createdStillRemaining = Math.min(qty, newlyCreatedCounts[u.id][r] || 0);
+            if (createdStillRemaining > 0) {
+                summaryItems.push({
+                    unitId: u.id,
+                    rarity: r,
+                    count: createdStillRemaining,
+                    rank: RARITY_CONFIG[r]?.rank ?? 0
+                });
+            }
+        });
+    });
+
+    metaState.inventory = rebuiltInventory;
     metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + totalMergeOperations;
 
-    const finalCreatedCards = metaState.inventory
-        .filter(c => createdCardUids.has(c.uid))
-        .sort((a, b) => (RARITY_CONFIG[b.rarity]?.rank ?? 0) - (RARITY_CONFIG[a.rarity]?.rank ?? 0));
+    summaryItems.sort((a, b) => {
+        if (b.rank !== a.rank) return b.rank - a.rank;
+        return b.count - a.count;
+    });
 
     saveProgress();
     sfx.play('upgrade');
     updateTopBarUI();
-    renderArmyTabUI();
     mergeSelectedCardUids = [];
+    renderArmyTabUI();
 
     const amModal = document.getElementById('auto-merge-modal');
     const textEl = document.getElementById('auto-merge-summary-text');
     const gridEl = document.getElementById('auto-merge-results-grid');
 
+    const totalNewCards = summaryItems.reduce((acc, it) => acc + it.count, 0);
     if (textEl) {
-        textEl.innerHTML = `⚡ Đã tự động ghép dây chuyền <b>${totalMergeOperations} lần</b>! Tạo ra <b>${finalCreatedCards.length} thẻ</b> bậc cao nhất:`;
+        textEl.innerHTML = `⚡ Đã tự động ghép dây chuyền <b>${totalMergeOperations.toLocaleString('en-US')} lần</b>! Tạo ra <b>${totalNewCards.toLocaleString('en-US')} thẻ</b> bậc cao nhất:`;
     }
 
     if (gridEl) {
         gridEl.innerHTML = '';
-        finalCreatedCards.forEach(c => {
-            const u = UNIT_BY_ID[c.unitId];
-            const rCfg = RARITY_CONFIG[c.rarity] || RARITY_CONFIG.common;
+        const fragment = document.createDocumentFragment();
+        summaryItems.forEach(item => {
+            const u = UNIT_BY_ID[item.unitId];
+            const rCfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
             const spriteUrl = atlas.ready ? atlas.toDataURL(u.spriteCol, 7) : '';
 
             const cardEl = document.createElement('div');
@@ -3740,10 +4517,12 @@ document.getElementById('btn-auto-merge')?.addEventListener('click', () => {
                     ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
                 </div>
                 <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+                ${item.count > 1 ? `<span class="card-qty-badge">x${item.count.toLocaleString('en-US')}</span>` : ''}
                 <div class="card-unit-title">${u.name}</div>
             `;
-            gridEl.appendChild(cardEl);
+            fragment.appendChild(cardEl);
         });
+        gridEl.appendChild(fragment);
     }
 
     if (amModal) amModal.classList.add('active');
@@ -4073,7 +4852,6 @@ function spawnWave(waveNum) {
     game.waveSpawnQueue = [];
 
     if (isBossWave) {
-        // Wave 5 và Wave 10: Boss khổng lồ (HP x3.5, DMG x2.2, kích thước lớn, di chuyển & bắn chậm hơn)
         const bossSpec = UNIT_BY_ID['battleship'] && cfg.hasWater && waveNum === 10 ? UNIT_BY_ID['battleship'] : UNIT_BY_ID['tank'];
         game.waveSpawnQueue.push({
             spec: bossSpec,
@@ -4140,14 +4918,13 @@ function updateWaveSystem(dt) {
         return;
     }
 
-    // Hình thức Sinh Tồn (10 Wave)
     if (game.waveState === 'spawning') {
         game.waveSpawnTimer -= dt;
         if (game.waveSpawnTimer <= 0 && game.waveSpawnQueue.length > 0) {
             const nextEnemy = game.waveSpawnQueue.shift();
             const gateSpread = 180;
             const rx = (LOGICAL_WIDTH / 2 - gateSpread / 2) + Math.random() * gateSpread;
-            spawnUnitBySpec('red', nextEnemy.spec, rx, 108, nextEnemy.hpMult, nextEnemy.dmgMult, nextEnemy.isBoss);
+            spawnUnitBySpec('red', nextEnemy.spec, rx, game.redOutpost.y + 42, nextEnemy.hpMult, nextEnemy.dmgMult, nextEnemy.isBoss);
 
             game.waveSpawnTimer = nextEnemy.isBoss ? 1.5 : Math.max(0.5, 1.4 - game.currentWave * 0.08);
         }
@@ -4268,10 +5045,15 @@ function startLevel(levelNum, difficultyId = currentSelectedDifficulty, battleMo
     game.pendingDraftCount = 0;
 
     const diffCfg = DIFFICULTY_CONFIG[game.currentDifficulty];
+    // Đồng bộ tọa độ Y căn cứ: Nhà chính XANH (mình) ở ĐÁY sân, Nhà chính ĐỎ (địch) ở ĐỈNH sân
+    game.blueBase.x = LOGICAL_WIDTH / 2;
+    game.blueBase.y = PLAYFIELD_HEIGHT - 54;
     game.blueBase.maxHp = cfg.playerBaseHp;
     game.blueBase.hp = cfg.playerBaseHp;
 
     const scaledRedHp = Math.round(cfg.enemyBaseHp * diffCfg.baseHpMult);
+    game.redOutpost.x = LOGICAL_WIDTH / 2;
+    game.redOutpost.y = 66;
     game.redOutpost.maxHp = scaledRedHp;
     game.redOutpost.hp = scaledRedHp;
 
@@ -4445,6 +5227,7 @@ function spawnUnitBySpec(team, spec, customX = null, customY = null, enemyHpMult
     const finalDmg = isBlue ? eff.damage : Math.max(1, Math.round(spec.damage * enemyDmgMult));
 
     let prefX = customX;
+    // Quân Xanh xuất phát phía trước Căn cứ Xanh (dưới đáy đi lên), Quân Đỏ xuất phát phía trước Căn cứ Đỏ (trên đỉnh đi xuống)
     let prefY = customY !== null ? customY : (isBlue ? base.y - 42 : base.y + 42);
 
     if (prefX === null) {
@@ -4525,6 +5308,7 @@ function attackPlane(team, spec = UNIT_BY_ID['airstrike']) {
     const permLv = isBlue ? (metaState.armyPermanentLevels[spec.id] || 1) : 1;
     const permLvMult = isBlue ? (1 + (permLv - 1) * 0.12) : 1;
 
+    // Máy bay Xanh xuất phát từ đáy bay lên đỉnh, Máy bay Đỏ xuất phát từ đỉnh bay xuống đáy
     game.planes.push({
         team: team,
         spriteRow: isBlue ? 7 : 8,
@@ -4571,7 +5355,7 @@ function findTargetForUnit(unit) {
 
     if (nearestTarget) return nearestTarget;
 
-    // Quân Xanh tấn công Nhà chính Đỏ (redOutpost) khi ở Hình thức Chiến Đấu (destroy)
+    // Quân Xanh tấn công Nhà chính Đỏ (redOutpost ở trên)
     if (unit.team === 'blue' && game.currentBattleMode === 'destroy') {
         const enemyBase = game.redOutpost;
         const halfW = enemyBase.width * 0.5;
@@ -4585,7 +5369,7 @@ function findTargetForUnit(unit) {
         }
     }
 
-    // Quân Đỏ tấn công Căn cứ Xanh (blueBase)
+    // Quân Đỏ tấn công Căn cứ Xanh (blueBase ở dưới)
     if (unit.team === 'red') {
         const enemyBase = game.blueBase;
         const halfW = enemyBase.width * 0.5;
@@ -4699,7 +5483,7 @@ function updateUnits(dt) {
         } else {
             u.shoot = false;
 
-            if (u.team === 'blue' && u.y <= 118) {
+            if (u.team === 'blue' && u.y <= game.redOutpost.y + 46) {
                 u.vx = 0;
                 u.vy = 0;
                 u.aimAngle = -Math.PI / 2;
@@ -4713,7 +5497,7 @@ function updateUnits(dt) {
 
             if (u.isAir) {
                 const goalX = LOGICAL_WIDTH / 2;
-                const goalY = u.team === 'blue' ? 115 : game.blueBase.y;
+                const goalY = u.team === 'blue' ? game.redOutpost.y + 36 : game.blueBase.y - 36;
                 const ang = Math.atan2(goalY - u.y, goalX - u.x);
                 moveDirX = Math.cos(ang) * 0.25;
                 moveDirY = Math.sin(ang);
@@ -4940,7 +5724,6 @@ function updatePlanes(dt) {
     }
 }
 
-// Sinh quân phòng thủ định kỳ khi chơi Hình thức Chiến Đấu (Phá Hủy Căn Cứ) ở cả Dễ & Khó
 function updateDestroyModeDefenderSpawner(dt) {
     if (game.currentBattleMode !== 'destroy' || game.gameOver || game.inMenu) return;
 
@@ -4966,7 +5749,7 @@ function updateDestroyModeDefenderSpawner(dt) {
             const gateSpread = 160;
             const rx = (LOGICAL_WIDTH / 2 - gateSpread / 2) + Math.random() * gateSpread;
             const statScale = (0.85 + (lv - 1) * 0.06) * diffMult;
-            spawnUnitBySpec('red', pick, rx, 108, statScale, statScale, false);
+            spawnUnitBySpec('red', pick, rx, game.redOutpost.y + 42, statScale, statScale, false);
         }
     }
 }
@@ -5070,7 +5853,6 @@ function triggerWinGame() {
     const entry = metaState.mapDifficultyProgress[mapLv];
     entry[`${diffId}_${modeId}`] = true;
 
-    // Quy tắc qua màn: Hoàn thành 1 trong 2 hình thức (Chiến Đấu HOẶC Sinh Tồn) đều được tính là vượt qua độ khó đó
     if (entry.easy_destroy || entry.easy_survival) entry.easy = true;
     if (entry.difficult_destroy || entry.difficult_survival) entry.difficult = true;
 
@@ -5161,70 +5943,98 @@ window.nextOrRestartLevel = function() {
 };
 
 // ============================================================================
-// HỆ THỐNG RENDER TRẬN ĐẤU TRÊN CANVAS 2D
+// HỆ THỐNG RENDER CĂN CỨ & THANH MÁU RÕ RÀNG TRÊN CANVAS 2D
 // ============================================================================
 function drawBaseBuilding(baseObj, isBlue) {
     const cx = baseObj.x;
     const cy = baseObj.y;
+    // Row 2 trong Preview.png là cụm tòa nhà Xanh (Blue), Row 3 là cụm tòa nhà Đỏ (Red)
     const bRow = isBlue ? 2 : 3;
     const offsets = [-78, 0, 78];
 
     ctx.save();
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.35)';
-    ctx.beginPath();
-    ctx.roundRect(cx - baseObj.width * 0.5, cy - baseObj.height * 0.45, baseObj.width, baseObj.height * 0.9, 12);
-    ctx.fill();
 
+    // Đổ bóng nền căn cứ
+    ctx.fillStyle = isBlue ? 'rgba(3, 105, 161, 0.32)' : 'rgba(153, 27, 27, 0.32)';
+    ctx.strokeStyle = isBlue ? 'rgba(56, 189, 248, 0.65)' : 'rgba(248, 113, 113, 0.65)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(cx - baseObj.width * 0.48, cy - baseObj.height * 0.44, baseObj.width * 0.96, baseObj.height * 0.88, 12);
+    ctx.fill();
+    ctx.stroke();
+
+    // Vẽ cụm 3 tòa nhà chính (Nhà máy trái - Trụ sở chính giữa - Nhà máy phải) chuẩn theo ảnh mẫu
     offsets.forEach((dx, idx) => {
         const bx = cx + dx;
         const bCol = idx === 1 ? 11 : 10;
         if (!atlas.ready || !atlas.draw(ctx, bCol, bRow, bx, cy, 52, 52)) {
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(bx - 24, cy - 24, 48, 48);
             ctx.fillStyle = isBlue ? '#0284c7' : '#dc2626';
-            ctx.fillRect(bx - 22, cy - 22, 44, 44);
+            ctx.fillRect(bx - 21, cy - 21, 42, 42);
         }
     });
 
     // =========================================================================
-    // 1. LUÔN VẼ THANH MÁU CĂN CỨ CHO CẢ 2 PHE Ở MỌI CHẾ ĐỘ
+    // THANH MÁU CĂN CỨ (ĐẶT Ở VỊ TRÍ THÔNG THOÁNG, KHÔNG BỊ HUD HAY DECK CHE)
+    // - Căn cứ Đỏ (ở đỉnh, cy = 66): đặt thanh máu ngay dưới cụm nhà Đỏ (cy + 31)
+    // - Căn cứ Xanh (ở đáy, cy = PLAYFIELD_HEIGHT - 54): đặt thanh máu phía trên cụm nhà Xanh (cy - 42)
     // =========================================================================
-    const barW = 196;
-    const barH = 11;
+    const barW = 212;
+    const barH = 14;
     const bx = cx - barW / 2;
-    // Chuyển thanh máu Đỏ xuống dưới (cy + 30) để không bị HUD trên che
-    const by = isBlue ? (cy + 28) : (cy + 30);
+    const by = isBlue ? (cy - 43) : (cy + 30);
     const ratio = Math.max(0, Math.min(1, baseObj.hp / baseObj.maxHp));
+    const pctText = Math.round(ratio * 100);
 
-    // Khung viền thanh máu
-    ctx.fillStyle = '#0f172a';
+    // Khung viền ngoài của thanh máu
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+    ctx.strokeStyle = isBlue ? '#38bdf8' : '#f87171';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(bx - 2, by - 2, barW + 4, barH + 4, 6);
+    ctx.roundRect(bx - 3, by - 3, barW + 6, barH + 6, 7);
+    ctx.fill();
+    ctx.stroke();
+
+    // Nền tối bên trong
+    ctx.fillStyle = '#020617';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, barW, barH, 5);
     ctx.fill();
 
-    // Ruột máu (Xanh lá cho Xanh, Đỏ tươi cho Địch)
-    ctx.fillStyle = isBlue ? '#22c55e' : '#ef4444';
-    ctx.beginPath();
-    ctx.roundRect(bx, by, barW * ratio, barH, 4);
-    ctx.fill();
+    // Thanh máu tỷ lệ phần trăm có hiệu ứng bóng sáng
+    if (ratio > 0) {
+        const grad = ctx.createLinearGradient(bx, by, bx, by + barH);
+        if (isBlue) {
+            grad.addColorStop(0, '#38bdf8');
+            grad.addColorStop(1, '#0284c7');
+        } else {
+            grad.addColorStop(0, '#fb7185');
+            grad.addColorStop(1, '#dc2626');
+        }
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.roundRect(bx, by, Math.max(6, barW * ratio), barH, 5);
+        ctx.fill();
+    }
 
-    // Chữ hiển thị số máu rõ ràng
-    ctx.font = 'bold 9.5px "Chakra Petch", sans-serif';
-    ctx.fillStyle = '#ffffff';
+    // Chữ hiển thị số máu HP / MaxHP kèm %
+    ctx.font = '900 9.5px "Chakra Petch", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(
-        `${isBlue ? 'CĂN CỨ XANH' : 'NHÀ CHÍNH ĐỎ'}: ${Math.ceil(baseObj.hp)} / ${baseObj.maxHp}`,
-        cx,
-        by + barH / 2 + 0.5
-    );
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#0f172a';
+    const hpLabel = `${isBlue ? '🛡️ CĂN CỨ XANH' : '🏰 CĂN CỨ ĐỎ'}: ${Math.ceil(baseObj.hp)} / ${baseObj.maxHp} (${pctText}%)`;
+    ctx.strokeText(hpLabel, cx, by + barH / 2 + 0.5);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(hpLabel, cx, by + barH / 2 + 0.5);
 
-    // =========================================================================
-    // 2. NẾU LÀ CHẾ ĐỘ SINH TỒN: VẼ THÊM THANH WAVE PHỤ PHÍA TRÊN CĂN CỨ ĐỎ
-    // =========================================================================
+    // Nếu là chế độ Sinh tồn 10 Wave: Hiển thị thêm thông tin Wave ngay dưới thanh máu Đỏ
     if (!isBlue && game.currentBattleMode === 'survival') {
-        const waveBarW = 210;
+        const waveBarW = 196;
         const waveBarH = 13;
         const waveBx = cx - waveBarW / 2;
-        const waveBy = cy - 38; // Nằm phía trên nóc nhà chính
+        const waveBy = by + barH + 6;
 
         ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
         ctx.strokeStyle = '#f59e0b';
@@ -5236,11 +6046,9 @@ function drawBaseBuilding(baseObj, isBlue) {
 
         ctx.font = '800 9px "Chakra Petch", sans-serif';
         ctx.fillStyle = '#fde047';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
         const aliveRed = getAliveRedUnitsCount() + game.waveSpawnQueue.length;
         ctx.fillText(
-            `🛡️ WAVE ${game.currentWave}/${game.maxWaves} • ĐỊCH CÒN: ${aliveRed}`,
+            `⚔️ WAVE ${game.currentWave}/${game.maxWaves} • ĐỊCH CÒN: ${aliveRed}`,
             cx,
             waveBy + waveBarH / 2 + 0.5
         );
@@ -5457,6 +6265,7 @@ function renderBattleScene() {
         ctx.restore();
     }
 
+    // Vẽ Nhà chính Đỏ (ở trên) và Nhà chính Xanh (ở dưới)
     drawBaseBuilding(game.redOutpost, false);
     drawBaseBuilding(game.blueBase, true);
 

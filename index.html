@@ -61,7 +61,7 @@
                         </div>
 
                         <div class="shop-discount-notice">
-                            🔥 <b>ƯU ĐÃI ĐẶC BIỆT:</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> khi mở số lượng tùy chỉnh! <br/>
+                            🔥 <b>ƯU ĐÃI ĐẶC BIỆT:</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> khi mở số lượng tùy chỉnh (Tối đa <b class="text-emerald-300">100,000 rương</b>/lần)! <br/>
                             <span class="text-[10px] text-rose-300 font-bold">✨ Các bậc từ <b>Legendary +1 ➔ Mythic ➔ Secret +5</b> chỉ có thể sở hữu thông qua <b>Merge (Ghép thẻ)</b>!</span>
                         </div>
 
@@ -102,17 +102,18 @@
                                     </button>
                                 </div>
 
-                                <!-- Khu vực nhập số lượng rương Legendary tùy chỉnh -->
+                                <!-- Khu vực nhập số lượng rương Legendary tùy chỉnh (Tối đa 100,000) -->
                                 <div class="crate-custom-row">
                                     <div class="custom-input-wrap">
-                                        <span class="custom-input-label">Số lượng:</span>
+                                        <span class="custom-input-label">Số lượng (≤1M):</span>
                                         <input
                                             id="input-custom-leg-count"
                                             type="number"
                                             min="1"
-                                            max="999"
+                                            max="1000000"
+                                            step="1"
                                             value="20"
-                                            placeholder="Nhập số rương..."
+                                            placeholder="1 - 1,000,000..."
                                             class="crate-custom-input"
                                         />
                                     </div>
@@ -160,17 +161,18 @@
                                     </button>
                                 </div>
 
-                                <!-- Khu vực nhập số lượng rương Epic tùy chỉnh -->
+                                <!-- Khu vực nhập số lượng rương Epic tùy chỉnh (Tối đa 1,000,000) -->
                                 <div class="crate-custom-row">
                                     <div class="custom-input-wrap">
-                                        <span class="custom-input-label">Số lượng:</span>
+                                        <span class="custom-input-label">Số lượng (≤1M):</span>
                                         <input
                                             id="input-custom-epic-count"
                                             type="number"
                                             min="1"
-                                            max="999"
+                                            max="1000000"
+                                            step="1"
                                             value="20"
-                                            placeholder="Nhập số rương..."
+                                            placeholder="1 - 1,000,000..."
                                             class="crate-custom-input"
                                         />
                                     </div>
@@ -608,7 +610,7 @@
             </div>
         </div>
 
-        <!-- 6. POPUP KẾT QUẢ MỞ RƯƠNG GACHA -->
+        <!-- 6. POPUP KẾT QUẢ MỞ RƯƠNG GACHA (HỖ TRỢ TỔNG HỢP LÊN TỚI 100,000 RƯƠNG) -->
         <div id="gacha-result-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header">
@@ -618,6 +620,9 @@
                     <div id="gacha-summary-banner" class="gacha-result-summary-strip">
                         Đã nhận <b id="gacha-total-pulled">1</b> thẻ tướng vào kho!
                     </div>
+                    <!-- Thanh thống kê nhanh theo bậc độ hiếm khi mở số lượng lớn -->
+                    <div id="gacha-rarity-breakdown" class="gacha-rarity-breakdown hidden"></div>
+                    <!-- Lưới hiển thị thẻ hoặc thẻ gộp số lượng (Aggregate Summary) -->
                     <div id="gacha-cards-grid" class="gacha-results-grid"></div>
                     <button id="btn-close-gacha" class="btn-3d btn-3d-amber w-full py-2.5 mt-4 text-sm">
                         THU NHẬN VÀO KHO
