@@ -1,21 +1,47 @@
+/* ============================================================================
+   TINY BATTLE - NÂNG CẤP TOÀN DIỆN (ĐỒNG BỘ 100% INDEX.HTML, LOBBY.JS, MAIN.JS)
+   Logical Resolution: 420x840px | Target: 60-120 FPS Mobile Web
+   ============================================================================ */
+
+/* PHẦN 2.1: NHẬP ĐỒNG BỘ 2 FONT CHỮ CHAKRA PETCH (UI) & VT323 (RETRO NUMBERS) */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700&family=VT323&display=swap');
+
+:root {
+    --font-ui: 'Chakra Petch', sans-serif;
+    --font-num: 'VT323', monospace;
+
+    /* Biến màu bổ trợ cho các tính năng nâng cấp */
+    --gold-ready: #facc15;
+    --gold-ready-glow: #fde047;
+    --emp-cyan: #06b6d4;
+    --napalm-orange: #f97316;
+    --airdrop-green: #22c55e;
+    --blitz-yellow: #eab308;
+    --roguelike-purple: #a855f7;
+    --boss-crimson: #ef4444;
+}
+
 * {
     box-sizing: border-box;
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     margin: 0;
     padding: 0;
     background: radial-gradient(circle at center, #0F172A 0%, #0A0D15 100%);
-    font-family: 'Chakra Petch', sans-serif;
+    font-family: var(--font-ui);
     overflow: hidden;
     height: 100dvh;
     width: 100vw;
     display: flex;
     align-items: center;
     justify-content: center;
+    touch-action: manipulation;
+    overscroll-behavior: none;
 }
 
 #game-wrapper {
@@ -66,7 +92,11 @@ canvas {
 .mission-scroll-list::-webkit-scrollbar,
 .gacha-results-grid::-webkit-scrollbar,
 .settings-modal-scroll::-webkit-scrollbar,
-.giftcode-tags-wrap::-webkit-scrollbar {
+.giftcode-tags-wrap::-webkit-scrollbar,
+.talents-scroll-list::-webkit-scrollbar,
+.talent-tree-container::-webkit-scrollbar,
+.chip-inventory-grid::-webkit-scrollbar,
+.chip-sockets-grid::-webkit-scrollbar {
     width: 5px;
     height: 5px;
 }
@@ -76,7 +106,11 @@ canvas {
 .mission-scroll-list::-webkit-scrollbar-track,
 .gacha-results-grid::-webkit-scrollbar-track,
 .settings-modal-scroll::-webkit-scrollbar-track,
-.giftcode-tags-wrap::-webkit-scrollbar-track {
+.giftcode-tags-wrap::-webkit-scrollbar-track,
+.talents-scroll-list::-webkit-scrollbar-track,
+.talent-tree-container::-webkit-scrollbar-track,
+.chip-inventory-grid::-webkit-scrollbar-track,
+.chip-sockets-grid::-webkit-scrollbar-track {
     background: rgba(15, 23, 42, 0.2);
     border-radius: 999px;
 }
@@ -86,7 +120,11 @@ canvas {
 .mission-scroll-list::-webkit-scrollbar-thumb,
 .gacha-results-grid::-webkit-scrollbar-thumb,
 .settings-modal-scroll::-webkit-scrollbar-thumb,
-.giftcode-tags-wrap::-webkit-scrollbar-thumb {
+.giftcode-tags-wrap::-webkit-scrollbar-thumb,
+.talents-scroll-list::-webkit-scrollbar-thumb,
+.talent-tree-container::-webkit-scrollbar-thumb,
+.chip-inventory-grid::-webkit-scrollbar-thumb,
+.chip-sockets-grid::-webkit-scrollbar-thumb {
     background: rgba(15, 23, 42, 0.55);
     border-radius: 999px;
 }
@@ -113,7 +151,7 @@ canvas {
     animation: popIn 0.2s ease-out;
 }
 
-/* 1. TOP BAR: AVATAR + TÊN + SETTING GEAR | GEMS + COINS */
+/* 1. TOP BAR: AVATAR + TÊN + SETTING GEAR | MEDALS + GEMS + COINS */
 .lobby-top-bar {
     height: 56px;
     background: #334155;
@@ -151,7 +189,7 @@ canvas {
 }
 
 .player-profile-pill:active {
-    transform: scale(0.96);
+    transform: scale(0.96) translateY(2px);
 }
 
 .avatar-box {
@@ -180,7 +218,7 @@ canvas {
     font-weight: 800;
     letter-spacing: 0.4px;
     text-shadow: 0 2px 0 #0f172a;
-    max-width: 92px;
+    max-width: 84px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -202,8 +240,8 @@ canvas {
 
 /* Nút Setting (Bánh răng) bên cạnh Profile */
 .btn-settings-gear {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 11px;
     border: 2.5px solid #0f172a;
     background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
@@ -221,7 +259,7 @@ canvas {
 }
 
 .btn-settings-gear:active {
-    transform: translateY(2px);
+    transform: scale(0.96) translateY(2px);
     box-shadow: 0 1px 0 #0f172a;
 }
 
@@ -232,7 +270,7 @@ canvas {
 }
 
 .gear-icon {
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1;
     filter: drop-shadow(0 1px 0 rgba(15, 23, 42, 0.4));
 }
@@ -240,20 +278,24 @@ canvas {
 .currency-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .currency-pill {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3.5px;
     background: #1e293b;
     border: 2.5px solid #0f172a;
     border-radius: 999px;
-    padding: 3px 9px 3px 6px;
-    min-width: 72px;
+    padding: 3px 7px 3px 5px;
+    min-width: 56px;
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.currency-pill.medal-pill {
+    background: linear-gradient(180deg, #4c0519 0%, #1e293b 100%);
 }
 
 .currency-pill.admin-infinite-pill {
@@ -263,20 +305,23 @@ canvas {
 }
 
 .currency-icon {
-    font-size: 13.5px;
+    font-size: 13px;
     filter: drop-shadow(0 1.5px 0 #0f172a);
 }
 
 .currency-val {
+    font-family: var(--font-num);
     color: #ffffff;
-    font-size: 12px;
-    font-weight: 800;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.4px;
+    line-height: 1;
     text-shadow: 0 1.5px 0 #0f172a;
 }
 
 .currency-pill.admin-infinite-pill .currency-val {
     color: #fde047;
-    font-size: 16px;
+    font-size: 18px;
     line-height: 0.9;
 }
 
@@ -302,24 +347,27 @@ canvas {
     animation: popIn 0.18s ease-out;
 }
 
-/* NÚT BẤM 3D CHUẨN MOBILE */
+/* NÚT BẤM 3D CHUẨN MOBILE (PHẦN 2.1: HAPTIC MICRO-ANIMATION) */
 .btn-3d {
     position: relative;
+    font-family: var(--font-ui);
     border: 3px solid #0f172a;
     border-radius: 14px;
     font-weight: 800;
     cursor: pointer;
     text-shadow: 0 1.5px 0 #0f172a;
-    transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.15s ease;
+    transition: transform 0.08s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.08s ease, filter 0.15s ease;
     box-shadow: 0 4px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.45);
+    will-change: transform;
 }
 
 .btn-3d:hover:not(:disabled) {
     filter: brightness(1.06);
 }
 
+/* Ràng buộc Phần 2.1: transform: scale(0.96) translateY(2px) */
 .btn-3d:active:not(:disabled) {
-    transform: translateY(3px);
+    transform: scale(0.96) translateY(2px);
     box-shadow: 0 1px 0 #0f172a, inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
@@ -357,6 +405,7 @@ canvas {
 }
 
 .btn-3d-danger:active:not(:disabled) {
+    transform: scale(0.96) translateY(2px);
     box-shadow: 0 1px 0 #450a0a, inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
@@ -365,8 +414,18 @@ canvas {
     color: #ffffff;
 }
 
+.btn-3d-purple {
+    background: linear-gradient(180deg, #c084fc 0%, #7e22ce 100%);
+    color: #ffffff;
+}
+
+.btn-3d-cyan {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    color: #ffffff;
+}
+
 /* ============================================================================
-   TAB BATTLE: CHỌN MAP & (2 ĐỘ KHÓ x 2 HÌNH THỨC CHIẾN ĐẤU)
+   TAB BATTLE: CHỌN MAP & (2 ĐỘ KHÓ x CÁC HÌNH THỨC CHIẾN ĐẤU)
    ============================================================================ */
 .battle-tab-layout {
     flex: 1;
@@ -411,7 +470,7 @@ canvas {
 
 .map-big-title {
     margin: 0;
-    font-size: 19px;
+    font-size: 18px;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: 0.8px;
@@ -422,15 +481,15 @@ canvas {
 
 .map-sub-progress {
     margin: 1px 0 0 0;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 800;
     color: #fef08a;
     text-shadow: 0 1.5px 0 #0f172a;
     letter-spacing: 0.6px;
 }
 
-/* Cụm 1: Chọn 2 Độ khó: Dễ (Easy) & Khó (Difficult) */
-.difficulty-selector-bar.two-modes {
+/* Cụm 1: Chọn Độ khó (Hỗ trợ cả .two-modes và .three-cols) */
+.difficulty-selector-bar {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 6px;
@@ -442,14 +501,18 @@ canvas {
     border: 2.5px solid #0f172a;
 }
 
+.difficulty-selector-bar.three-cols {
+    grid-template-columns: repeat(3, 1fr);
+}
+
 .diff-pill-btn {
     border: 2px solid #0f172a;
     border-radius: 9px;
-    padding: 4.5px 6px;
+    padding: 4px 6px;
     background: #334155;
     color: #cbd5e1;
     font-weight: 800;
-    font-size: 11px;
+    font-size: 10.5px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -461,6 +524,10 @@ canvas {
 
 .diff-pill-btn:hover:not(.locked) {
     filter: brightness(1.06);
+}
+
+.diff-pill-btn:active:not(.locked) {
+    transform: scale(0.96) translateY(2px);
 }
 
 .diff-pill-btn.active[data-diff="easy"] {
@@ -477,6 +544,12 @@ canvas {
     text-shadow: 0 1.5px 0 #0f172a;
     transform: translateY(-1px);
     box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(244, 63, 94, 0.5);
+}
+
+.diff-pill-btn.fog-toggle-btn.active {
+    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border-color: #93c5fd;
 }
 
 .diff-pill-btn.locked {
@@ -497,7 +570,7 @@ canvas {
     color: #fde047;
 }
 
-/* Cụm 2: Chọn Hình thức chơi dưới mỗi Độ khó: Chiến Đấu (Phá căn cứ) vs Sinh Tồn (10 Wave) */
+/* Cụm 2: Chọn Hình thức chơi chuẩn & mở rộng */
 .battle-mode-selector-bar {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -508,6 +581,11 @@ canvas {
     padding: 3.5px;
     border-radius: 12px;
     border: 2px solid #0f172a;
+}
+
+.battle-mode-selector-bar.multi-modes {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
 }
 
 .mode-pill-btn {
@@ -528,8 +606,16 @@ canvas {
     white-space: nowrap;
 }
 
+.mode-pill-btn.col-span-2 {
+    grid-column: span 2 / span 2;
+}
+
 .mode-pill-btn:hover {
     color: #e2e8f0;
+}
+
+.mode-pill-btn:active {
+    transform: scale(0.96) translateY(2px);
 }
 
 .mode-pill-btn.active[data-mode="destroy"] {
@@ -546,6 +632,25 @@ canvas {
     border-color: #fde047;
     text-shadow: 0 1px 0 #0f172a;
     box-shadow: 0 2px 0 #0f172a, 0 0 8px rgba(245, 158, 11, 0.45);
+}
+
+.mode-pill-btn.active[data-mode="endless"] {
+    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+    color: #ffffff;
+    border-color: #e9d5ff;
+}
+
+.mode-pill-btn.active[data-mode="autobattler"] {
+    background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+    color: #ffffff;
+    border-color: #a7f3d0;
+}
+
+.mode-pill-btn.active[data-mode="bossrush"],
+.mode-pill-btn.active[data-mode="raid_boss"] {
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+    color: #ffffff;
+    border-color: #fecaca;
 }
 
 .mode-icon {
@@ -603,7 +708,7 @@ canvas {
 .side-feature-btn {
     position: relative;
     width: 60px;
-    height: 64px;
+    height: 62px;
     background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
     border: 3px solid #0f172a;
     border-radius: 16px;
@@ -621,12 +726,12 @@ canvas {
 }
 
 .side-feature-btn:active {
-    transform: translateY(3px);
+    transform: scale(0.96) translateY(2px);
     box-shadow: 0 1px 0 #0f172a;
 }
 
 .side-btn-icon {
-    font-size: 23px;
+    font-size: 22px;
     line-height: 1;
 }
 
@@ -648,12 +753,17 @@ canvas {
     background: #ef4444;
     border: 2px solid #0f172a;
     color: #ffffff;
-    font-size: 11px;
+    font-family: var(--font-num);
+    font-size: 14px;
     font-weight: 900;
     display: flex;
     align-items: center;
     justify-content: center;
     animation: notifPulse 0.8s ease-in-out infinite alternate;
+}
+
+.notif-badge.amber-notif {
+    background: #f59e0b;
 }
 
 @keyframes notifPulse {
@@ -667,7 +777,7 @@ canvas {
     background: #1e293b;
     border: 4px solid #0f172a;
     border-radius: 20px;
-    padding: 7px;
+    padding: 6px;
     box-shadow: 0 8px 0 rgba(15, 23, 42, 0.45);
     display: flex;
     flex-direction: column;
@@ -676,8 +786,8 @@ canvas {
 
 .map-canvas-frame {
     position: relative;
-    width: 162px;
-    height: 202px;
+    width: 158px;
+    height: 194px;
     border-radius: 12px;
     border: 3px solid #0f172a;
     overflow: hidden;
@@ -712,6 +822,20 @@ canvas {
     color: #0f172a;
 }
 
+.map-endless-record-pill {
+    position: absolute;
+    top: 28px;
+    left: 10px;
+    right: 10px;
+    background: rgba(88, 28, 135, 0.92);
+    border: 1.5px solid #e9d5ff;
+    color: #fde047;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    text-align: center;
+}
+
 .map-cleared-ribbon {
     position: absolute;
     bottom: 6px;
@@ -729,13 +853,13 @@ canvas {
 }
 
 .map-demo-desc {
-    margin: 5px 0 1px 0;
-    font-size: 10px;
+    margin: 4px 0 1px 0;
+    font-size: 9.5px;
     font-weight: 700;
     color: #e2e8f0;
     text-align: center;
     line-height: 1.25;
-    min-height: 25px;
+    min-height: 24px;
 }
 
 .battle-footer-zone {
@@ -746,10 +870,10 @@ canvas {
 
 .btn-start-huge {
     width: 216px;
-    padding: 10px 24px;
+    padding: 9px 24px;
     background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
     color: #ffffff;
-    font-size: 24px;
+    font-size: 23px;
     font-weight: 900;
     letter-spacing: 2px;
     border-radius: 18px;
@@ -760,7 +884,7 @@ canvas {
 }
 
 /* ============================================================================
-   TAB SHOP (GACHA CRATES + CUSTOM INPUT TỐI ĐA 100,000 RƯƠNG)
+   TAB SHOP (GACHA CRATES + CUSTOM INPUT TỐI ĐA 1,000,000 RƯƠNG)
    ============================================================================ */
 #tab-shop {
     background:
@@ -840,8 +964,8 @@ canvas {
 .crate-price-unit-tag {
     background: rgba(15, 23, 42, 0.78);
     color: #fde047;
-    font-size: 9.5px;
-    font-weight: 800;
+    font-family: var(--font-num);
+    font-size: 14px;
     padding: 2px 7px;
     border-radius: 999px;
     border: 1.5px solid #0f172a;
@@ -962,8 +1086,8 @@ canvas {
 }
 
 .buy-price {
-    font-size: 11px;
-    font-weight: 800;
+    font-family: var(--font-num);
+    font-size: 16px;
     color: #fef08a;
 }
 
@@ -974,13 +1098,13 @@ canvas {
     background: #ef4444;
     border: 2px solid #0f172a;
     color: #ffffff;
-    font-size: 8.5px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 12px;
     padding: 1px 5px;
     border-radius: 999px;
 }
 
-/* Hàng nhập số lượng rương tùy chỉnh (tối đa 100,000 rương) */
+/* Hàng nhập số lượng rương tùy chỉnh */
 .crate-custom-row {
     display: flex;
     align-items: center;
@@ -1014,8 +1138,8 @@ canvas {
     border-radius: 8px;
     padding: 4px 6px;
     color: #fde047;
-    font-size: 13px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 18px;
     text-align: center;
     outline: none;
 }
@@ -1170,7 +1294,7 @@ canvas {
     cursor: pointer;
     min-height: 92px;
     box-shadow: 0 3px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.35);
-    transition: transform 0.1s ease, filter 0.12s ease;
+    transition: transform 0.08s ease, filter 0.12s ease;
 }
 
 .army-unit-card:hover {
@@ -1178,7 +1302,7 @@ canvas {
 }
 
 .army-unit-card:active {
-    transform: scale(0.95);
+    transform: scale(0.96) translateY(2px);
 }
 
 .army-unit-card.selected-for-merge {
@@ -1191,7 +1315,7 @@ canvas {
     filter: grayscale(75%);
 }
 
-/* Badge số lượng gộp khi mở số lượng lớn rương (Aggregate Summary Badge) */
+/* Badge số lượng gộp khi mở số lượng lớn rương */
 .card-qty-badge {
     position: absolute;
     bottom: 22px;
@@ -1201,9 +1325,9 @@ canvas {
     border: 1.5px solid #fde047;
     border-radius: 999px;
     padding: 0.5px 5px;
-    font-size: 9px;
-    font-weight: 900;
-    line-height: 1.15;
+    font-family: var(--font-num);
+    font-size: 13px;
+    line-height: 1.05;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.75);
     z-index: 4;
 }
@@ -1274,7 +1398,6 @@ canvas {
     box-shadow: 0 3px 0 #0f172a, 0 0 18px rgba(249, 115, 22, 1);
 }
 
-/* Hiệu ứng nhịp đập rực lửa cho các bậc Mythic (Đỏ rực chủ đạo) */
 @keyframes mythicCrimsonPulse {
     0% {
         box-shadow: 0 3px 0 #0f172a, 0 0 12px rgba(225, 29, 72, 0.85);
@@ -1358,11 +1481,6 @@ canvas {
     background: linear-gradient(135deg, #000000 0%, #090d16 35%, #1e1b4b 50%, #090d16 65%, #000000 100%);
     background-size: 240% 240%;
     border: 2.5px solid #000000;
-    box-shadow:
-        0 0 10px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(30, 30, 30, 0.8),
-        0 0 35px rgba(0, 0, 0, 0.95),
-        inset 0 0 12px rgba(255, 255, 255, 0.15);
     animation: secretBlackGlowPulse 2s ease-in-out infinite alternate;
 }
 
@@ -1371,11 +1489,6 @@ canvas {
     background: linear-gradient(135deg, #000000 0%, #0a0a0a 30%, #27272a 50%, #09090b 70%, #000000 100%);
     background-size: 240% 240%;
     border: 2.5px solid #000000;
-    box-shadow:
-        0 0 10px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(30, 30, 30, 0.8),
-        0 0 35px rgba(0, 0, 0, 0.95),
-        inset 0 0 12px rgba(255, 255, 255, 0.15);
     animation: secretBlackGlowPulse 1.85s ease-in-out infinite alternate;
 }
 
@@ -1384,11 +1497,6 @@ canvas {
     background: linear-gradient(135deg, #000000 0%, #020617 28%, #1e293b 50%, #020617 72%, #000000 100%);
     background-size: 240% 240%;
     border: 2.5px solid #000000;
-    box-shadow:
-        0 0 10px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(30, 30, 30, 0.8),
-        0 0 35px rgba(0, 0, 0, 0.95),
-        inset 0 0 12px rgba(255, 255, 255, 0.16);
     animation: secretBlackGlowPulse 1.7s ease-in-out infinite alternate;
 }
 
@@ -1397,11 +1505,6 @@ canvas {
     background: linear-gradient(135deg, #000000 0%, #111827 25%, #31102f 50%, #090d16 75%, #000000 100%);
     background-size: 240% 240%;
     border: 2.5px solid #000000;
-    box-shadow:
-        0 0 10px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(30, 30, 30, 0.8),
-        0 0 35px rgba(0, 0, 0, 0.95),
-        inset 0 0 12px rgba(255, 255, 255, 0.18);
     animation: secretBlackGlowPulse 1.55s ease-in-out infinite alternate;
 }
 
@@ -1410,11 +1513,6 @@ canvas {
     background: linear-gradient(135deg, #000000 0%, #09090b 22%, #2e1065 50%, #09090b 78%, #000000 100%);
     background-size: 240% 240%;
     border: 2.5px solid #000000;
-    box-shadow:
-        0 0 10px rgba(0, 0, 0, 0.9),
-        0 0 20px rgba(30, 30, 30, 0.8),
-        0 0 35px rgba(0, 0, 0, 0.95),
-        inset 0 0 14px rgba(255, 255, 255, 0.22);
     animation: secretBlackGlowPulse 1.4s ease-in-out infinite alternate;
 }
 
@@ -1423,11 +1521,6 @@ canvas {
     background: linear-gradient(135deg, #000000 0%, #050505 20%, #18181b 45%, #3f3f46 50%, #18181b 55%, #050505 80%, #000000 100%);
     background-size: 260% 260%;
     border: 2.5px solid #000000;
-    box-shadow:
-        0 0 12px rgba(0, 0, 0, 0.95),
-        0 0 24px rgba(30, 30, 30, 0.9),
-        0 0 40px rgba(0, 0, 0, 1),
-        inset 0 0 16px rgba(255, 255, 255, 0.28);
     animation: secretBlackGlowPulse 1.25s ease-in-out infinite alternate;
     outline: 1px solid rgba(255, 255, 255, 0.35);
 }
@@ -1464,11 +1557,6 @@ canvas {
     border: 2px solid #000000;
     color: #f8fafc;
     text-shadow: 0 0 6px rgba(255, 255, 255, 0.55), 0 1px 0 #000000;
-    box-shadow:
-        0 0 8px rgba(0, 0, 0, 0.95),
-        0 0 16px rgba(20, 20, 20, 0.85),
-        0 0 24px rgba(0, 0, 0, 0.95),
-        inset 0 0 8px rgba(255, 255, 255, 0.22);
     animation: secretBlackGlowPulse 2s ease-in-out infinite alternate;
 }
 
@@ -1477,8 +1565,8 @@ canvas {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 8.5px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 13px;
     color: #ffffff;
     text-shadow: 0 1px 0 #0f172a;
     gap: 2px;
@@ -1489,7 +1577,8 @@ canvas {
     color: #fde047;
     padding: 0 4px;
     border-radius: 4px;
-    font-size: 8px;
+    font-family: var(--font-num);
+    font-size: 12px;
     flex-shrink: 0;
     border: 1px solid rgba(254, 240, 138, 0.35);
 }
@@ -1536,6 +1625,10 @@ canvas {
 
 .merge-slot:hover {
     border-color: #94a3b8;
+}
+
+.merge-slot:active {
+    transform: scale(0.96) translateY(2px);
 }
 
 .merge-slot.result-slot {
@@ -1609,6 +1702,10 @@ canvas {
 
 .nav-tab-btn:last-child {
     border-right: none;
+}
+
+.nav-tab-btn:active {
+    transform: scale(0.96) translateY(2px);
 }
 
 .nav-tab-btn.active {
@@ -1692,6 +1789,11 @@ canvas {
     background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
 }
 
+.bright-modal-header.talents-header-grad,
+.bright-modal-header.talent-header-grad {
+    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+}
+
 .bright-modal-title {
     margin: 0;
     font-size: 15.5px;
@@ -1719,7 +1821,7 @@ canvas {
 }
 
 .bright-close-btn:active {
-    transform: translateY(1px);
+    transform: scale(0.96) translateY(2px);
     box-shadow: 0 1px 0 #0f172a;
 }
 
@@ -1872,8 +1974,8 @@ canvas {
 }
 
 .refund-lv-val {
-    font-size: 15px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 21px;
     margin-top: 1px;
 }
 
@@ -1891,8 +1993,8 @@ canvas {
     border-radius: 10px;
     background: #fffbeb;
     color: #0f172a;
-    font-size: 14px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 19px;
     text-align: center;
     outline: none;
 }
@@ -1918,8 +2020,8 @@ canvas {
     color: #fde047;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 13px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 18px;
 }
 
 /* Modal Xác nhận mở rương Gacha tùy chỉnh */
@@ -1959,8 +2061,8 @@ canvas {
     color: #fde047;
     padding: 3px 10px;
     border-radius: 999px;
-    font-size: 13.5px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 18px;
 }
 
 .gacha-result-summary-strip {
@@ -1974,7 +2076,6 @@ canvas {
     margin-bottom: 8px;
 }
 
-/* Thanh thống kê tổng hợp theo bậc độ hiếm khi mở rương số lượng lớn */
 .gacha-rarity-breakdown {
     display: flex;
     flex-wrap: wrap;
@@ -2087,8 +2188,8 @@ canvas {
 .upg-lv-pill {
     background: #0f172a;
     color: #fde047;
-    font-size: 10px;
-    font-weight: 900;
+    font-family: var(--font-num);
+    font-size: 15px;
     padding: 1.5px 7px;
     border-radius: 999px;
 }
@@ -2116,7 +2217,7 @@ canvas {
 }
 
 /* ============================================================================
-   BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN (WAVE 5 & WAVE 10 CHẾ ĐỘ SINH TỒN)
+   BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN
    ============================================================================ */
 .boss-alert-banner {
     position: absolute;
@@ -2259,7 +2360,7 @@ canvas {
 }
 
 .draft-card:active {
-    transform: translateY(1px);
+    transform: scale(0.96) translateY(2px);
 }
 
 .draft-card-tag {
@@ -2337,7 +2438,9 @@ canvas {
     box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.5);
 }
 
-.battle-deck-slots {
+.battle-deck-slots,
+#unitDeckContainer,
+#battle-deck-slots {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
@@ -2355,12 +2458,12 @@ canvas {
     align-items: center;
     cursor: pointer;
     position: relative;
-    transition: transform 0.1s ease, border-color 0.2s;
+    transition: transform 0.08s ease, border-color 0.2s;
     box-shadow: inset 0 2px 6px rgba(56, 189, 248, 0.2);
 }
 
 .gas-card:active {
-    transform: scale(0.95);
+    transform: scale(0.96) translateY(2px);
 }
 
 .gas-segments {
@@ -2386,23 +2489,29 @@ canvas {
     box-shadow: 0 0 6px #4ade80;
 }
 
-.unit-btn {
+/* HỖ TRỢ ĐỒNG THỜI .unit-btn VÀ .unit-card-btn (DO MAIN.JS SINH ĐỘNG) */
+.unit-btn,
+.unit-card-btn {
     position: relative;
     background: linear-gradient(180deg, #1e3a8a 0%, #172554 100%);
     border: 2px solid #60a5fa;
     border-radius: 10px;
-    padding: 3px 1.5px;
+    padding: 3px 2px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.1s, filter 0.15s, border-color 0.2s, box-shadow 0.2s;
+    color: #ffffff;
+    font-family: var(--font-ui);
+    transition: transform 0.08s ease, filter 0.15s, border-color 0.2s, box-shadow 0.2s;
     box-shadow: 0 4px 0 #0f172a, inset 0 1px 2px rgba(255, 255, 255, 0.25);
+    will-change: transform, box-shadow;
 }
 
-.unit-btn.naval-btn {
+.unit-btn.naval-btn,
+.unit-card-btn.naval-btn {
     background: linear-gradient(180deg, #0369a1 0%, #082f49 100%);
     border-color: #38bdf8;
 }
@@ -2420,14 +2529,61 @@ canvas {
     justify-content: center;
 }
 
-.unit-btn.ready:hover {
+.unit-btn.ready:hover,
+.unit-card-btn.card-ready-gold:hover {
     border-color: #fde047;
     box-shadow: 0 4px 0 #0f172a, 0 0 12px rgba(250, 204, 21, 0.45);
 }
 
-.unit-btn.ready:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #0f172a;
+.unit-btn.ready:active,
+.unit-btn:active:not(.empty-slot-btn),
+.unit-card-btn:active {
+    transform: scale(0.96) translateY(2px);
+    box-shadow: 0 1px 0 #0f172a;
+}
+
+/* Các phần tử con bên trong .unit-card-btn do renderBattleDeckButtons() tạo ra */
+.unit-card-art {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.unit-card-art canvas {
+    width: 40px;
+    height: 40px;
+}
+
+.unit-card-name {
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #f8fafc;
+    text-align: center;
+    line-height: 1.05;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 0 #020617;
+}
+
+.unit-card-cost {
+    background: #0f172a;
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+    font-family: var(--font-num);
+    font-size: 13px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    line-height: 1.05;
+    z-index: 5;
 }
 
 .hotkey-badge {
@@ -2436,11 +2592,12 @@ canvas {
     left: 2px;
     background: rgba(2, 6, 23, 0.78);
     color: #94a3b8;
-    font-size: 7.5px;
-    font-weight: 800;
+    font-family: var(--font-num);
+    font-size: 11px;
     padding: 0 3.5px;
     border-radius: 3px;
-    line-height: 1.2;
+    line-height: 1.1;
+    z-index: 6;
 }
 
 .lock-overlay {
@@ -2466,14 +2623,15 @@ canvas {
     background: #0f172a;
     border: 1px solid #f59e0b;
     color: #fbbf24;
-    font-size: 8.5px;
-    font-weight: 700;
-    padding: 0.5px 4px;
+    font-family: var(--font-num);
+    font-size: 13px;
+    padding: 0.5px 5px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     gap: 1.5px;
-    line-height: 1.1;
+    line-height: 1;
+    z-index: 5;
 }
 
 .cost-badge-upg {
@@ -2482,15 +2640,15 @@ canvas {
 }
 
 .dmg-mini-tag {
-    font-size: 7.5px;
-    font-weight: 700;
+    font-family: var(--font-num);
+    font-size: 11px;
     color: #fca5a5;
-    line-height: 1.05;
+    line-height: 1;
 }
 
 .rng-mini-tag {
-    font-size: 7px;
-    font-weight: 700;
+    font-family: var(--font-num);
+    font-size: 10.5px;
     color: #93c5fd;
     line-height: 1;
 }
@@ -2530,22 +2688,1066 @@ canvas {
     position: absolute;
     top: 2px;
     right: 2px;
-    background: rgba(234, 179, 8, 0.9);
+    background: rgba(234, 179, 8, 0.95);
     color: #020617;
-    font-size: 7px;
-    font-weight: 800;
-    padding: 0 3px;
+    font-family: var(--font-num);
+    font-size: 11px;
+    font-weight: 400;
+    padding: 0 3.5px;
     border-radius: 3px;
-    line-height: 1.2;
+    line-height: 1.1;
+    z-index: 6;
 }
 
+/* ============================================================================
+   PHẦN MỞ RỘNG NÂNG CẤP (TRỤ CỘT 2, 3, 4 - JUICY UI, COMMANDER & CHẾ ĐỘ MỚI)
+   ============================================================================ */
+
+/* ----------------------------------------------------------------------------
+   PHẦN 2.1: ĐỒNG BỘ FONT SỐ ĐẾM RETRO ARCADE (VT323 & .font-retro)
+   ---------------------------------------------------------------------------- */
+.font-retro,
+.vt323-num,
+.wave-counter-val,
+.match-timer-val,
+.gas-counter-val,
+.gas-rate-val,
+.unit-cd-timer,
+.tactic-cd-timer,
+.tactic-cd-text,
+.medal-currency-val,
+.endless-wave-record-val,
+.autobattler-fuel-val,
+.boss-hp-num-val {
+    font-family: var(--font-num) !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.4px;
+    line-height: 1;
+}
+
+/* Hiệu ứng nhấn xúc giác thống nhất */
+.tactic-skill-btn:active:not(:disabled),
+.talent-upgrade-btn:active:not(:disabled),
+.chip-slot-btn:active:not(:disabled),
+.chip-item-card:active:not(:disabled),
+.special-mode-card:active:not(:disabled),
+.autobattler-unit-token:active {
+    transform: scale(0.96) translateY(2px) !important;
+}
+
+/* ----------------------------------------------------------------------------
+   PHẦN 2.2: THANH GỌI QUÂN ĐỘNG (RADIAL SWEEP COOLDOWN & PULSING GOLD BORDER)
+   ---------------------------------------------------------------------------- */
+@keyframes unitReadyGoldPulse {
+    0%, 100% {
+        border-color: #facc15;
+        box-shadow:
+            0 4px 0 #0f172a,
+            0 0 8px rgba(250, 204, 21, 0.55),
+            inset 0 0 6px rgba(253, 224, 71, 0.35);
+    }
+    50% {
+        border-color: #fef08a;
+        box-shadow:
+            0 4px 0 #0f172a,
+            0 0 16px rgba(253, 224, 71, 0.98),
+            inset 0 0 12px rgba(254, 240, 138, 0.65);
+    }
+}
+
+.unit-btn.ready,
+.unit-btn.ready-to-spawn,
+.unit-card-btn.card-ready-gold {
+    border-color: #facc15 !important;
+    animation: unitReadyGoldPulse 1.15s ease-in-out infinite;
+}
+
+.gas-card.ready-to-upgrade {
+    border-color: #fde047 !important;
+    animation: unitReadyGoldPulse 1.15s ease-in-out infinite;
+}
+
+/* Khi chưa đủ xăng */
+.unit-btn.insufficient-fuel,
+.unit-card-btn.disabled {
+    filter: saturate(0.45) brightness(0.76);
+    border-color: #334155;
+}
+
+/* Lớp phủ hồi chiêu dạng Radial Sweep (Hỗ trợ cả .cooldown-radial-overlay & .tactic-radial-cd) */
+.cooldown-radial-overlay,
+.tactic-radial-cd {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: conic-gradient(
+        rgba(2, 6, 23, 0.84) var(--cd-deg, 0deg),
+        transparent 0deg
+    );
+    color: #fef08a;
+    font-family: var(--font-num);
+    font-size: 18px;
+    text-shadow: 0 2px 0 #000000, 0 0 6px rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    transition: opacity 0.08s linear;
+}
+
+.unit-card-btn .cooldown-radial-overlay {
+    opacity: 1;
+}
+
+.unit-btn.on-cooldown .cooldown-radial-overlay,
+.tactic-skill-btn.on-cooldown .cooldown-radial-overlay,
+.tactic-skill-btn.on-cooldown .tactic-radial-cd {
+    opacity: 1;
+}
+
+.unit-cd-timer,
+.tactic-cd-timer,
+.tactic-cd-text {
+    font-size: 19px;
+    color: #fef08a;
+    text-shadow: 0 2px 0 #000000, 0 0 6px rgba(0, 0, 0, 0.9);
+    z-index: 9;
+}
+
+/* Thanh nạp tiến độ hồi chiêu ngang dưới đáy ô thẻ quân */
+.cooldown-bar-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3.5px;
+    background: rgba(2, 6, 23, 0.8);
+    z-index: 9;
+    overflow: hidden;
+    opacity: 0;
+}
+
+.unit-btn.on-cooldown .cooldown-bar-track {
+    opacity: 1;
+}
+
+.cooldown-bar-fill {
+    height: 100%;
+    width: var(--cd-pct, 0%);
+    background: linear-gradient(90deg, #38bdf8 0%, #fde047 100%);
+    transition: width 0.05s linear;
+}
+
+/* Hiệu ứng nổi "+1 XĂNG" khi kích hoạt Hậu Cần Tối Ưu */
+.fuel-refund-float {
+    position: absolute;
+    bottom: 132px;
+    left: 24px;
+    z-index: 40;
+    pointer-events: none;
+    font-family: var(--font-num);
+    font-size: 24px;
+    color: #4ade80;
+    text-shadow: 0 2px 0 #020617, 0 0 10px rgba(74, 222, 128, 0.8);
+    animation: fuelRefundPop 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fuelRefundPop {
+    0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+    25% { opacity: 1; transform: translateY(0) scale(1.12); }
+    100% { opacity: 0; transform: translateY(-28px) scale(1); }
+}
+
+/* ----------------------------------------------------------------------------
+   PHẦN 3.1: BỘ KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG (ACTIVE TACTICS - Q, W, E, R)
+   Hỗ trợ đồng thời cả .commander-tactics-dock và .commander-tactics-bar
+   ---------------------------------------------------------------------------- */
+.commander-tactics-dock,
+.commander-tactics-bar {
+    position: absolute;
+    bottom: 130px;
+    left: 6px;
+    right: 6px;
+    z-index: 26;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.tactic-skill-btn {
+    pointer-events: auto;
+    position: relative;
+    flex: 1;
+    height: 44px;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+    border: 2.5px solid #475569;
+    border-radius: 11px;
+    padding: 3px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 4px 0 #020617, inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: transform 0.08s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Viền màu nhận diện 4 kỹ năng Q, W, E, R */
+.tactic-skill-btn[data-tactic="airdrop"] {
+    border-color: #22c55e;
+}
+.tactic-skill-btn[data-tactic="landmines"],
+.tactic-skill-btn[data-tactic="mines"] {
+    border-color: #f97316;
+}
+.tactic-skill-btn[data-tactic="emp"] {
+    border-color: #06b6d4;
+}
+.tactic-skill-btn[data-tactic="blitzkrieg"],
+.tactic-skill-btn[data-tactic="blitz"] {
+    border-color: #eab308;
+}
+
+.tactic-skill-btn:hover:not(.on-cooldown) {
+    filter: brightness(1.1);
+}
+
+.tactic-skill-btn.targeting-active {
+    background: linear-gradient(180deg, #0284c7 0%, #1e3a8a 100%);
+    border-color: #fde047 !important;
+    animation: tacticAimPulse 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes tacticAimPulse {
+    from {
+        transform: translateY(0);
+        box-shadow: 0 4px 0 #020617, 0 0 8px rgba(250, 204, 21, 0.6);
+    }
+    to {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 0 #020617, 0 0 18px rgba(56, 189, 248, 0.95);
+    }
+}
+
+.tactic-key-pill,
+.tactic-hotkey {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    background: #020617;
+    border: 1px solid #64748b;
+    color: #fde047;
+    font-family: var(--font-num);
+    font-size: 12px;
+    padding: 0 4px;
+    border-radius: 4px;
+    line-height: 1;
+    z-index: 5;
+}
+
+.tactic-icon-wrap,
+.tactic-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    background: rgba(2, 6, 23, 0.55);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+    margin-left: 6px;
+}
+
+.tactic-meta-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.tactic-title-short,
+.tactic-label {
+    font-size: 9px;
+    font-weight: 900;
+    color: #f8fafc;
+    text-transform: uppercase;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.tactic-sub-desc {
+    font-family: var(--font-num);
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1;
+}
+
+/* Banner nhắc chọn vị trí thả kỹ năng Q/W/E trên chiến trường */
+.tactical-aim-banner,
+.tactic-targeting-banner {
+    position: absolute;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 38;
+    background: linear-gradient(90deg, #0284c7 0%, #0369a1 100%);
+    border: 2.5px solid #fde047;
+    border-radius: 999px;
+    padding: 4px 14px;
+    color: #ffffff;
+    font-size: 10.5px;
+    font-weight: 900;
+    letter-spacing: 0.4px;
+    text-shadow: 0 1.5px 0 #0f172a;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65);
+    display: none;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+    white-space: nowrap;
+}
+
+.tactical-aim-banner.active,
+.tactic-targeting-banner:not(.hidden) {
+    display: inline-flex;
+    animation: aimBannerFloat 0.7s ease-in-out infinite alternate;
+}
+
+@keyframes aimBannerFloat {
+    from { transform: translateX(-50%) translateY(0); }
+    to { transform: translateX(-50%) translateY(4px); }
+}
+
+.aim-cancel-btn {
+    background: #ef4444;
+    border: 1.5px solid #0f172a;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+/* ----------------------------------------------------------------------------
+   PHẦN 3.2: CÂY KỸ NĂNG BỊ ĐỘNG (META-TALENTS) TRONG LOBBY
+   ---------------------------------------------------------------------------- */
+.talents-header-summary,
+.talent-top-summary-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1e293b;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    color: #ffffff;
+}
+
+.talents-medal-balance {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #fda4af;
+}
+
+.talent-medal-count-badge {
+    background: #0f172a;
+    color: #fde047;
+    padding: 2px 9px;
+    border-radius: 999px;
+    border: 1.5px solid #fde047;
+    font-family: var(--font-num);
+    font-size: 16px;
+}
+
+.talents-scroll-list,
+.talent-tree-container {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.talent-node-card {
+    background: #ffffff;
+    border: 3px solid #0f172a;
+    border-radius: 14px;
+    padding: 9px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 9px;
+    box-shadow: 0 4px 0 #cbd5e1;
+    transition: border-color 0.15s ease;
+}
+
+.talent-node-card.talent-maxed {
+    background: linear-gradient(180deg, #fef9c3 0%, #fef08a 100%);
+    border-color: #ca8a04;
+}
+
+.talent-node-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    border: 2.5px solid #0f172a;
+    background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.talent-node-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+}
+
+.talent-node-title {
+    font-size: 12.5px;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.talent-node-desc {
+    font-size: 10px;
+    font-weight: 700;
+    color: #475569;
+    line-height: 1.25;
+}
+
+.talent-node-stat-preview {
+    font-family: var(--font-num);
+    font-size: 14px;
+    color: #0284c7;
+    margin-top: 1px;
+}
+
+.talent-level-pips {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.talent-pip {
+    width: 16px;
+    height: 6px;
+    border-radius: 3px;
+    background: #cbd5e1;
+    border: 1.5px solid #0f172a;
+}
+
+.talent-pip.active {
+    background: linear-gradient(90deg, #facc15 0%, #f59e0b 100%);
+    box-shadow: 0 0 4px rgba(245, 158, 11, 0.8);
+}
+
+.talent-upgrade-btn {
+    padding: 6px 10px;
+    font-size: 10.5px;
+    min-width: 76px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.talent-cost-num {
+    font-family: var(--font-num);
+    font-size: 15px;
+    color: #fef08a;
+}
+
+/* ----------------------------------------------------------------------------
+   PHẦN 3.3: HỆ THỐNG CHIP / NGỌC BỔ TRỢ BINH CHỦNG (UNIT SOCKETS)
+   ---------------------------------------------------------------------------- */
+.card-socket-dots,
+.unit-btn-socket-dots {
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 3px;
+    z-index: 6;
+    pointer-events: none;
+}
+
+.socket-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 1px solid #0f172a;
+}
+
+.socket-dot.chip-napalm {
+    background: #f97316;
+    box-shadow: 0 0 5px #f97316;
+}
+
+.socket-dot.chip-radar {
+    background: #06b6d4;
+    box-shadow: 0 0 5px #06b6d4;
+}
+
+.socket-dot.chip-armor {
+    background: #a855f7;
+    box-shadow: 0 0 5px #a855f7;
+}
+
+.socket-dot.chip-overclock {
+    background: #22c55e;
+    box-shadow: 0 0 5px #22c55e;
+}
+
+/* Khung gắn Chip trong Modal Chi tiết / Nâng cấp Tướng */
+.unit-sockets-section,
+.unit-chip-sockets-panel {
+    margin-top: 10px;
+    background: #f1f5f9;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
+    padding: 8px 10px;
+}
+
+.unit-sockets-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+
+.unit-sockets-row,
+.chip-sockets-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.chip-slot-btn {
+    background: #ffffff;
+    border: 2px dashed #64748b;
+    border-radius: 10px;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: left;
+}
+
+.chip-slot-btn:hover {
+    border-color: #0284c7;
+    background: #f0f9ff;
+}
+
+.chip-slot-btn.equipped {
+    border-style: solid;
+    border-width: 2.5px;
+    border-color: #0f172a;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    color: #ffffff;
+    box-shadow: 0 3px 0 #020617;
+}
+
+.chip-slot-btn.equipped[data-chip="napalm_rocket"] {
+    border-color: #f97316;
+}
+
+.chip-slot-btn.equipped[data-chip="tactical_radar"] {
+    border-color: #06b6d4;
+}
+
+.chip-slot-btn.equipped[data-chip="reactive_armor"] {
+    border-color: #a855f7;
+}
+
+.chip-slot-btn.equipped[data-chip="overclock_core"] {
+    border-color: #22c55e;
+}
+
+.chip-slot-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: rgba(15, 23, 42, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.chip-slot-btn.equipped .chip-slot-icon {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.chip-slot-text-wrap {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chip-slot-name {
+    font-size: 10px;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chip-slot-effect {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #64748b;
+    line-height: 1.15;
+}
+
+.chip-slot-btn.equipped .chip-slot-effect {
+    color: #fde047;
+}
+
+/* Danh sách kho Chip để chọn lắp */
+.chip-inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 6px;
+    max-height: 180px;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.chip-item-card {
+    background: #ffffff;
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 0 #cbd5e1;
+}
+
+.chip-item-card.compatible {
+    border-color: #16a34a;
+}
+
+/* ----------------------------------------------------------------------------
+   PHẦN 4: CHẾ ĐỘ CHƠI MỚI & MINIGAME (ENDLESS, AUTO-BATTLER, FOG, RAID BOSS)
+   ---------------------------------------------------------------------------- */
+.special-modes-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    width: 100%;
+    max-width: 356px;
+    background: rgba(15, 23, 42, 0.72);
+    padding: 3.5px;
+    border-radius: 11px;
+    border: 2px solid #0f172a;
+    margin-top: 2px;
+}
+
+.special-mode-pill {
+    border: 1.5px solid #0f172a;
+    border-radius: 7px;
+    padding: 3.5px 2px;
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 8.5px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    transition: all 0.12s ease;
+    box-shadow: 0 2px 0 #0f172a;
+}
+
+.special-mode-pill:active {
+    transform: scale(0.96) translateY(2px);
+}
+
+.special-mode-pill.active[data-mode="endless"],
+.special-mode-pill.active[data-special="endless"] {
+    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+    color: #ffffff;
+    border-color: #e9d5ff;
+}
+
+.special-mode-pill.active[data-mode="autobattler"],
+.special-mode-pill.active[data-special="autobattler"] {
+    background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+    color: #ffffff;
+    border-color: #a7f3d0;
+}
+
+.special-mode-pill.active[data-mode="night_fog"],
+.special-mode-pill.active[data-special="night_fog"] {
+    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border-color: #bfdbfe;
+}
+
+.special-mode-pill.active[data-mode="raid_boss"],
+.special-mode-pill.active[data-special="raid_boss"] {
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+    color: #ffffff;
+    border-color: #fecaca;
+}
+
+/* 4.1. CHẾ ĐỘ THỦ THÀNH ROGUELIKE VÔ TẬN */
+.endless-record-strip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(90deg, #3b0764 0%, #581c87 100%);
+    border: 1.5px solid #e9d5ff;
+    color: #fde047;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.draft-card.mutation-roguelike-card {
+    background: linear-gradient(180deg, #2e1065 0%, #090d16 100%);
+    border: 2.5px solid #a855f7;
+    box-shadow: 0 6px 0 #020617, inset 0 0 12px rgba(168, 85, 247, 0.25);
+    padding: 8px 6px;
+}
+
+.draft-card.mutation-roguelike-card:hover {
+    border-color: #fde047;
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.55);
+}
+
+.mutation-buff-line {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #4ade80;
+    line-height: 1.2;
+    margin-top: 4px;
+}
+
+.mutation-debuff-line {
+    font-size: 9px;
+    font-weight: 700;
+    color: #fb7185;
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+/* 4.2. ĐẤU TRƯỜNG ĐẶT TRẬN TỰ ĐỘNG (AUTO-BATTLER DEPLOYMENT OVERLAY) */
+.autobattler-prep-overlay,
+.autobattler-setup-bar {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.autobattler-prep-overlay.active,
+.autobattler-setup-bar.active,
+.autobattler-setup-bar:not(.hidden) {
+    display: flex;
+}
+
+.autobattler-deploy-zone {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 182px;
+    height: 270px;
+    border: 2.5px dashed rgba(56, 189, 248, 0.8);
+    border-radius: 16px;
+    background:
+        linear-gradient(0deg, rgba(14, 165, 233, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(14, 165, 233, 0.12) 1px, transparent 1px);
+    background-size: 28px 28px;
+    box-shadow: inset 0 0 20px rgba(56, 189, 248, 0.22);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 6px;
+    pointer-events: none;
+}
+
+.autobattler-zone-tag {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1.5px solid #38bdf8;
+    color: #7dd3fc;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 10px;
+    border-radius: 999px;
+    letter-spacing: 0.4px;
+}
+
+.autobattler-control-dock {
+    position: absolute;
+    bottom: 132px;
+    left: 10px;
+    right: 10px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 3px solid #facc15;
+    border-radius: 14px;
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    pointer-events: auto;
+    box-shadow: 0 6px 0 #020617;
+}
+
+.autobattler-budget-box,
+.ab-setup-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #e2e8f0;
+}
+
+.ab-setup-title {
+    color: #fde047;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.ab-setup-desc {
+    color: #cbd5e1;
+    font-size: 9.5px;
+}
+
+.autobattler-fuel-val {
+    font-size: 22px;
+    color: #fde047;
+    text-shadow: 0 2px 0 #000000;
+}
+
+.autobattler-actions,
+.ab-setup-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.btn-autobattler-clear {
+    padding: 6px 10px;
+    font-size: 10px;
+}
+
+.btn-autobattler-fight {
+    padding: 6px 14px;
+    font-size: 12px;
+    letter-spacing: 0.6px;
+}
+
+/* 4.3. CHẾ ĐỘ CHIẾN DỊCH ĐÊM / SƯƠNG MÙ (FOG OF WAR HUD INDICATOR) */
+.fog-night-hud-pill,
+.hud-wave-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(2, 6, 23, 0.9);
+    border: 1.5px solid #38bdf8;
+    color: #7dd3fc;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+}
+
+/* 4.4. ĐẤU TRƯỜNG RAID BOSS RUSH (MULTI-PART SUPER BOSS HUD) */
+.raid-boss-hud-panel,
+.raid-boss-hud {
+    position: absolute;
+    top: 46px;
+    left: 8px;
+    right: 8px;
+    z-index: 28;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.96) 100%);
+    border: 2.5px solid #ef4444;
+    border-radius: 12px;
+    padding: 6px 8px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7), 0 0 12px rgba(239, 68, 68, 0.35);
+    display: none;
+    pointer-events: none;
+}
+
+.raid-boss-hud-panel.active,
+.raid-boss-hud.active,
+.raid-boss-hud:not(.hidden) {
+    display: block;
+    animation: popIn 0.25s ease-out;
+}
+
+.raid-boss-top-row,
+.raid-boss-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 3px;
+}
+
+.raid-boss-name-tag,
+.raid-boss-name {
+    font-size: 11px;
+    font-weight: 900;
+    color: #fca5a5;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1.5px 0 #020617;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.boss-hp-num-val,
+.raid-boss-hp-text {
+    font-family: var(--font-num);
+    font-size: 17px;
+    color: #fde047;
+    text-shadow: 0 1.5px 0 #020617;
+}
+
+.raid-boss-main-bar-track {
+    width: 100%;
+    height: 9px;
+    background: #020617;
+    border: 1.5px solid #7f1d1d;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 6px;
+}
+
+.raid-boss-main-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #dc2626 0%, #ef4444 60%, #fde047 100%);
+    transition: width 0.1s linear;
+}
+
+.raid-boss-parts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.raid-boss-part-card,
+.boss-part-pill {
+    background: rgba(2, 6, 23, 0.85);
+    border: 1.5px solid #475569;
+    border-radius: 7px;
+    padding: 3px 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.raid-boss-part-card.part-targeted {
+    border-color: #fde047;
+    box-shadow: 0 0 6px rgba(250, 204, 21, 0.5);
+}
+
+.raid-boss-part-card.part-destroyed {
+    opacity: 0.42;
+    border-color: #1e293b;
+    background: #020617;
+}
+
+.boss-part-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #e2e8f0;
+}
+
+.part-label {
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #e2e8f0;
+}
+
+.boss-part-status,
+.part-hp {
+    font-family: var(--font-num);
+    font-size: 11px;
+    color: #fbbf24;
+}
+
+.raid-boss-part-card.part-destroyed .boss-part-status {
+    color: #ef4444;
+}
+
+.boss-part-hp-track {
+    width: 100%;
+    height: 4.5px;
+    background: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.boss-part-hp-fill {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, #f97316 0%, #facc15 100%);
+    transition: width 0.1s linear;
+}
+
+.raid-boss-part-card.part-destroyed .boss-part-hp-fill {
+    width: 0% !important;
+}
+
+/* ============================================================================
+   RESPONSIVE TINH CHỈNH CHO MÀN HÌNH NHỎ (< 370PX)
+   ============================================================================ */
 @media (max-width: 370px) {
     .bottom-deck {
         grid-template-columns: 0.88fr 0.74fr 4.38fr;
         gap: 2.5px;
         padding: 5px 3px 6px 3px;
     }
-    .battle-deck-slots {
+    .battle-deck-slots,
+    #unitDeckContainer,
+    #battle-deck-slots {
         gap: 2.5px;
     }
     .draft-cards-grid {
@@ -2561,5 +3763,18 @@ canvas {
     .mode-pill-btn {
         font-size: 8.8px;
         padding: 4px 3px;
+    }
+    .commander-tactics-dock,
+    .commander-tactics-bar {
+        gap: 3.5px;
+        bottom: 128px;
+    }
+    .tactic-skill-btn {
+        height: 40px;
+        padding: 2px 4px;
+    }
+    .tactic-title-short,
+    .tactic-label {
+        font-size: 8px;
     }
 }
