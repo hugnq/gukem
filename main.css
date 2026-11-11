@@ -1,6 +1,7 @@
 /* ============================================================================
    TINY BATTLE - NÂNG CẤP TOÀN DIỆN (ĐỒNG BỘ 100% INDEX.HTML, LOBBY.JS, MAIN.JS)
    Logical Resolution: 420x840px | Target: 60-120 FPS Mobile Web
+   41 Rarity Tiers (Common -> Secret +5 -> Master +8 -> Demon +10)
    ============================================================================ */
 
 /* PHẦN 2.1: NHẬP ĐỒNG BỘ 2 FONT CHỮ CHAKRA PETCH (UI) & VT323 (RETRO NUMBERS) */
@@ -19,6 +20,10 @@
     --blitz-yellow: #eab308;
     --roguelike-purple: #a855f7;
     --boss-crimson: #ef4444;
+    --master-aqua: #00f2fe;
+    --master-deep: #0284c7;
+    --demon-purple: #a855f7;
+    --demon-magenta: #d946ef;
 }
 
 * {
@@ -687,7 +692,7 @@ canvas {
     text-align: center;
 }
 
-/* Khu vực giữa: 2 Sidebar + Demo Map */
+/* Khu vực giữa: 2 Sidebar (3 nút mỗi bên) + Demo Map */
 .battle-center-stage {
     display: flex;
     align-items: center;
@@ -700,7 +705,7 @@ canvas {
 .battle-side-column {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     width: 64px;
     align-items: center;
 }
@@ -708,10 +713,10 @@ canvas {
 .side-feature-btn {
     position: relative;
     width: 60px;
-    height: 62px;
+    height: 58px;
     background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
     border: 3px solid #0f172a;
-    border-radius: 16px;
+    border-radius: 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -719,6 +724,16 @@ canvas {
     cursor: pointer;
     box-shadow: 0 4px 0 #0f172a;
     transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.side-feature-btn.wheel-feature-btn {
+    background: linear-gradient(180deg, #fef08a 0%, #f59e0b 100%);
+    border-color: #0f172a;
+}
+
+.side-feature-btn.minigame-feature-btn {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 100%);
+    border-color: #0f172a;
 }
 
 .side-feature-btn:hover {
@@ -731,16 +746,17 @@ canvas {
 }
 
 .side-btn-icon {
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1;
 }
 
 .side-btn-text {
-    font-size: 9.5px;
-    font-weight: 800;
+    font-size: 8.8px;
+    font-weight: 900;
     color: #0f172a;
-    margin-top: 3px;
-    letter-spacing: 0.3px;
+    margin-top: 2px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
 }
 
 .notif-badge {
@@ -884,7 +900,7 @@ canvas {
 }
 
 /* ============================================================================
-   TAB SHOP (GACHA CRATES + CUSTOM INPUT TỐI ĐA 1,000,000 RƯƠNG)
+   TAB SHOP (GACHA CRATES + MỞ RƯƠNG SIÊU TỐC LÊN ĐẾN 1 TỶ RƯƠNG)
    ============================================================================ */
 #tab-shop {
     background:
@@ -1061,7 +1077,7 @@ canvas {
     padding: 8px 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
 }
 
 .crate-quick-btns {
@@ -1155,8 +1171,70 @@ canvas {
     white-space: nowrap;
 }
 
+/* Dãy nút chọn nhanh số lượng lớn: [1K], [1M], [100M], [1B (1 Tỷ)] */
+.crate-preset-qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1.5px solid #334155;
+    border-radius: 10px;
+    padding: 4px 6px;
+}
+
+.preset-row-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: #cbd5e1;
+    white-space: nowrap;
+}
+
+.crate-preset-qty-btn {
+    flex: 1;
+    padding: 3px 4px;
+    font-size: 13px;
+    border-radius: 8px;
+    border-width: 2px;
+    box-shadow: 0 2px 0 #0f172a;
+    text-align: center;
+}
+
+/* Bảng tra cứu 41 bậc độ hiếm trong Shop */
+.shop-rarity-encyclopedia-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 2.5px solid #0f172a;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.shop-encyclopedia-header {
+    background: linear-gradient(90deg, #0284c7 0%, #7e22ce 100%);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 5px 10px;
+    text-align: center;
+    border-bottom: 2px solid #0f172a;
+}
+
+.shop-encyclopedia-body {
+    padding: 7px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.rarity-tier-group-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+}
+
 /* ============================================================================
-   TAB ARMY (QUÂN ĐỘI, MERGE THỦ CÔNG & CASCADE AUTO MERGE)
+   TAB ARMY (QUÂN ĐỘI, DECK BUILDER, MERGE THỦ CÔNG & CASCADE AUTO MERGE O(1))
    ============================================================================ */
 .army-tab-layout {
     flex: 1;
@@ -1166,7 +1244,7 @@ canvas {
 }
 
 .army-Hero-stage {
-    height: 162px;
+    height: 154px;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -1177,7 +1255,7 @@ canvas {
 
 .army-pedestal-circle {
     position: absolute;
-    bottom: 20px;
+    bottom: 18px;
     width: 122px;
     height: 32px;
     background: rgba(15, 23, 42, 0.28);
@@ -1221,7 +1299,7 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 7px 10px;
+    padding: 6px 10px;
     background: #1e293b;
     border-bottom: 3px solid #0f172a;
     flex-shrink: 0;
@@ -1252,7 +1330,7 @@ canvas {
     display: none;
     flex-direction: column;
     overflow: hidden;
-    padding: 7px 8px;
+    padding: 6px 8px;
 }
 
 .army-subview.active {
@@ -1263,12 +1341,69 @@ canvas {
     background: rgba(15, 23, 42, 0.65);
     border: 1.5px solid #0f172a;
     color: #fef08a;
-    font-size: 10px;
+    font-size: 9.5px;
     padding: 3px 8px;
     border-radius: 8px;
     text-align: center;
+    margin-bottom: 5px;
+    flex-shrink: 0;
+}
+
+/* Thanh chọn đội hình chiến đấu 4 Ô Quân + 1 Không Kích ngay tại Tab ARMY */
+.army-deck-builder-strip {
+    background: #1e293b;
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 4px 6px;
     margin-bottom: 6px;
     flex-shrink: 0;
+}
+
+.army-deck-strip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 9px;
+    font-weight: 900;
+    color: #38bdf8;
+    margin-bottom: 3px;
+}
+
+.army-deck-slots-row {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+}
+
+.army-deck-slot-pill {
+    background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
+    border: 1.5px solid #60a5fa;
+    border-radius: 7px;
+    padding: 3px 2px;
+    color: #f8fafc;
+    font-size: 8.2px;
+    font-weight: 800;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: transform 0.08s ease, border-color 0.15s ease;
+}
+
+.army-deck-slot-pill:hover {
+    border-color: #fde047;
+}
+
+.army-deck-slot-pill:active {
+    transform: scale(0.95);
+}
+
+.army-deck-slot-pill.airstrike-fixed-pill {
+    background: linear-gradient(180deg, #7c2d12 0%, #431407 100%);
+    border-color: #f97316;
+    color: #fed7aa;
+    cursor: default;
 }
 
 .army-cards-grid {
@@ -1280,7 +1415,7 @@ canvas {
 }
 
 /* ============================================================================
-   HỆ THỐNG 21 BẬC ĐỘ HIẾM (RARITY SYSTEM: COMMON ➔ MYTHIC ➔ SECRET +5)
+   HỆ THỐNG 41 BẬC ĐỘ HIẾM (COMMON ➔ SECRET +5 ➔ MASTER +8 ➔ DEMON +10)
    ============================================================================ */
 .army-unit-card {
     position: relative;
@@ -1332,66 +1467,66 @@ canvas {
     z-index: 4;
 }
 
-/* 1. Common (1.0x) */
+/* 1. Common (Rank 0 - 1.0x) */
 .rarity-common {
     background: linear-gradient(180deg, #cbd5e1 0%, #64748b 100%);
     border-color: #0f172a;
 }
 
-/* 2. Uncommon (1.25x) */
+/* 2. Uncommon (Rank 1 - 1.25x) */
 .rarity-uncommon {
     background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
     border-color: #0f172a;
 }
 
-/* 3. Rare (1.55x) */
+/* 3. Rare (Rank 2 - 1.55x) */
 .rarity-rare {
     background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
     border-color: #0f172a;
 }
 
-/* 4. Epic (1.9x) */
+/* 4. Epic (Rank 3 - 1.9x) */
 .rarity-epic {
     background: linear-gradient(180deg, #c084fc 0%, #7e22ce 100%);
     border-color: #0f172a;
 }
 
-/* 5. Epic +1 (2.3x) */
+/* 5. Epic +1 (Rank 4 - 2.3x) */
 .rarity-epic1 {
     background: linear-gradient(180deg, #d8b4fe 0%, #9333ea 100%);
     border-color: #f0abfc;
     box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(192, 132, 252, 0.7);
 }
 
-/* 6. Epic +2 (2.75x) */
+/* 6. Epic +2 (Rank 5 - 2.75x) */
 .rarity-epic2 {
     background: linear-gradient(180deg, #f0abfc 0%, #a21caf 100%);
     border-color: #fde047;
     box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.75);
 }
 
-/* 7. Legendary (3.4x) */
+/* 7. Legendary (Rank 6 - 3.4x) */
 .rarity-legendary {
     background: linear-gradient(180deg, #fde047 0%, #ea580c 100%);
     border-color: #fef08a;
     box-shadow: 0 3px 0 #0f172a, 0 0 12px rgba(245, 158, 11, 0.85);
 }
 
-/* 8. Legendary +1 (4.2x) */
+/* 8. Legendary +1 (Rank 7 - 4.2x) */
 .rarity-legendary1 {
     background: linear-gradient(180deg, #fef08a 0%, #f59e0b 45%, #c2410c 100%);
     border-color: #fde047;
     box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(251, 191, 36, 0.9);
 }
 
-/* 9. Legendary +2 (5.2x) */
+/* 9. Legendary +2 (Rank 8 - 5.2x) */
 .rarity-legendary2 {
     background: linear-gradient(180deg, #fef9c3 0%, #fbbf24 40%, #b45309 100%);
     border-color: #ffffff;
     box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(250, 204, 21, 0.95);
 }
 
-/* 10. Legendary +3 (6.4x) */
+/* 10. Legendary +3 (Rank 9 - 6.4x) */
 .rarity-legendary3 {
     background: linear-gradient(180deg, #ffffff 0%, #facc15 35%, #ea580c 85%, #9a3412 100%);
     border-color: #fef08a;
@@ -1407,35 +1542,35 @@ canvas {
     }
 }
 
-/* 11. Mythic (8.0x) */
+/* 11. Mythic (Rank 10 - 8.0x) */
 .rarity-mythic {
     background: linear-gradient(180deg, #fb7185 0%, #e11d48 50%, #881337 100%);
     border-color: #fda4af;
     box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(225, 29, 72, 0.9);
 }
 
-/* 12. Mythic +1 (10.0x) */
+/* 12. Mythic +1 (Rank 11 - 10.0x) */
 .rarity-mythic1 {
     background: linear-gradient(180deg, #fda4af 0%, #f43f5e 45%, #9f1239 100%);
     border-color: #fecdd3;
     box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(244, 63, 94, 0.95);
 }
 
-/* 13. Mythic +2 (12.5x) */
+/* 13. Mythic +2 (Rank 12 - 12.5x) */
 .rarity-mythic2 {
     background: linear-gradient(180deg, #fecdd3 0%, #ef4444 45%, #991b1b 90%, #450a0a 100%);
     border-color: #fde047;
     box-shadow: 0 3px 0 #0f172a, 0 0 18px rgba(239, 68, 68, 1);
 }
 
-/* 14. Mythic +3 (15.5x) */
+/* 14. Mythic +3 (Rank 13 - 15.5x) */
 .rarity-mythic3 {
     background: linear-gradient(180deg, #fde047 0%, #ef4444 40%, #b91c1c 85%, #450a0a 100%);
     border-color: #fef08a;
     animation: mythicCrimsonPulse 1.6s ease-in-out infinite alternate;
 }
 
-/* 15. Mythic +4 (19.0x) */
+/* 15. Mythic +4 (Rank 14 - 19.0x) */
 .rarity-mythic4 {
     background: linear-gradient(135deg, #fef08a 0%, #f97316 25%, #dc2626 60%, #7f1d1d 100%);
     border-color: #ffffff;
@@ -1443,7 +1578,7 @@ canvas {
 }
 
 /* ============================================================================
-   HIỆU ỨNG VIỀN MÀU ĐEN TỎA SÁNG (DARK VOID GLOW) CHO BẬC SECRET (16 ➔ 21)
+   HIỆU ỨNG VIỀN MÀU ĐEN TỎA SÁNG (DARK VOID GLOW) CHO BẬC SECRET (RANK 15 ➔ 20)
    ============================================================================ */
 @keyframes secretBlackGlowPulse {
     0% {
@@ -1476,7 +1611,7 @@ canvas {
     }
 }
 
-/* 16. Secret (24.0x) */
+/* 16. Secret (Rank 15 - 24.0x) */
 .rarity-secret {
     background: linear-gradient(135deg, #000000 0%, #090d16 35%, #1e1b4b 50%, #090d16 65%, #000000 100%);
     background-size: 240% 240%;
@@ -1484,7 +1619,7 @@ canvas {
     animation: secretBlackGlowPulse 2s ease-in-out infinite alternate;
 }
 
-/* 17. Secret +1 (30.0x) */
+/* 17. Secret +1 (Rank 16 - 30.0x) */
 .rarity-secret1 {
     background: linear-gradient(135deg, #000000 0%, #0a0a0a 30%, #27272a 50%, #09090b 70%, #000000 100%);
     background-size: 240% 240%;
@@ -1492,7 +1627,7 @@ canvas {
     animation: secretBlackGlowPulse 1.85s ease-in-out infinite alternate;
 }
 
-/* 18. Secret +2 (38.0x) */
+/* 18. Secret +2 (Rank 17 - 38.0x) */
 .rarity-secret2 {
     background: linear-gradient(135deg, #000000 0%, #020617 28%, #1e293b 50%, #020617 72%, #000000 100%);
     background-size: 240% 240%;
@@ -1500,7 +1635,7 @@ canvas {
     animation: secretBlackGlowPulse 1.7s ease-in-out infinite alternate;
 }
 
-/* 19. Secret +3 (48.0x) */
+/* 19. Secret +3 (Rank 18 - 48.0x) */
 .rarity-secret3 {
     background: linear-gradient(135deg, #000000 0%, #111827 25%, #31102f 50%, #090d16 75%, #000000 100%);
     background-size: 240% 240%;
@@ -1508,7 +1643,7 @@ canvas {
     animation: secretBlackGlowPulse 1.55s ease-in-out infinite alternate;
 }
 
-/* 20. Secret +4 (60.0x) */
+/* 20. Secret +4 (Rank 19 - 60.0x) */
 .rarity-secret4 {
     background: linear-gradient(135deg, #000000 0%, #09090b 22%, #2e1065 50%, #09090b 78%, #000000 100%);
     background-size: 240% 240%;
@@ -1516,7 +1651,7 @@ canvas {
     animation: secretBlackGlowPulse 1.4s ease-in-out infinite alternate;
 }
 
-/* 21. Secret +5 - Bậc Tối Thượng (75.0x) */
+/* 21. Secret +5 (Rank 20 - 75.0x) */
 .rarity-secret5 {
     background: linear-gradient(135deg, #000000 0%, #050505 20%, #18181b 45%, #3f3f46 50%, #18181b 55%, #050505 80%, #000000 100%);
     background-size: 260% 260%;
@@ -1525,7 +1660,138 @@ canvas {
     outline: 1px solid rgba(255, 255, 255, 0.35);
 }
 
-/* Huy hiệu Rarity (Badge) chuyên biệt cho Mythic & Secret */
+/* ============================================================================
+   2.1. CHUỖI 9 BẬC MASTER (RANK 21 ➔ 29 | master ➔ master8)
+   Màu chủ đạo: Xanh nước biển đại dương rực lửa (Aqua Ocean Flame)
+   ============================================================================ */
+@keyframes masterAquaFlamePulse {
+    0% {
+        background-position: 0% 50%;
+        border-color: #38bdf8;
+        box-shadow:
+            0 0 14px #00f2fe,
+            0 0 28px #0284c7,
+            inset 0 0 14px rgba(224, 242, 254, 0.65);
+    }
+    50% {
+        background-position: 100% 50%;
+        border-color: #e0f2fe;
+        box-shadow:
+            0 0 20px #00f2fe,
+            0 0 38px #0284c7,
+            0 0 52px rgba(0, 242, 254, 0.75),
+            inset 0 0 20px rgba(255, 255, 255, 0.85);
+    }
+    100% {
+        background-position: 0% 50%;
+        border-color: #38bdf8;
+        box-shadow:
+            0 0 16px #00f2fe,
+            0 0 32px #0369a1,
+            inset 0 0 16px rgba(224, 242, 254, 0.72);
+    }
+}
+
+.rarity-master,
+.rarity-master1,
+.rarity-master2,
+.rarity-master3,
+.rarity-master4,
+.rarity-master5,
+.rarity-master6,
+.rarity-master7,
+.rarity-master8 {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 35%, #00f2fe 50%, #0369a1 70%, #001233 100%);
+    background-size: 260% 260%;
+    border: 2.5px solid #38bdf8;
+    box-shadow: 0 0 14px #00f2fe, 0 0 28px #0284c7, inset 0 0 14px rgba(224, 242, 254, 0.65);
+    animation: masterAquaFlamePulse 1.75s ease-in-out infinite alternate;
+    color: #ffffff;
+}
+
+.rarity-master3,
+.rarity-master4,
+.rarity-master5 {
+    animation-duration: 1.45s;
+    outline: 1px solid rgba(125, 211, 252, 0.65);
+}
+
+.rarity-master6,
+.rarity-master7,
+.rarity-master8 {
+    animation-duration: 1.15s;
+    outline: 1.5px solid rgba(224, 242, 254, 0.9);
+}
+
+/* ============================================================================
+   2.2. CHUỖI 11 BẬC DEMON (RANK 30 ➔ 40 | demon ➔ demon10)
+   Màu chủ đạo: Tím Hắc Ám Ma Giới (Abyssal Demon Purple Aura)
+   ============================================================================ */
+@keyframes demonPurpleAbyssPulse {
+    0% {
+        background-position: 0% 50%;
+        border-color: #d946ef;
+        box-shadow:
+            0 0 16px #a855f7,
+            0 0 34px #7e22ce,
+            0 0 50px #4c1d95,
+            inset 0 0 18px rgba(240, 171, 252, 0.7);
+    }
+    50% {
+        background-position: 100% 50%;
+        border-color: #f0abfc;
+        box-shadow:
+            0 0 22px #d946ef,
+            0 0 44px #9333ea,
+            0 0 64px #581c87,
+            inset 0 0 24px rgba(250, 232, 255, 0.92);
+    }
+    100% {
+        background-position: 0% 50%;
+        border-color: #a855f7;
+        box-shadow:
+            0 0 18px #c084fc,
+            0 0 38px #6b21a8,
+            0 0 56px #3b0764,
+            inset 0 0 20px rgba(240, 171, 252, 0.8);
+    }
+}
+
+.rarity-demon,
+.rarity-demon1,
+.rarity-demon2,
+.rarity-demon3,
+.rarity-demon4,
+.rarity-demon5,
+.rarity-demon6,
+.rarity-demon7,
+.rarity-demon8,
+.rarity-demon9,
+.rarity-demon10 {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 30%, #9333ea 48%, #f0abfc 50%, #6b21a8 72%, #090014 100%);
+    background-size: 280% 280%;
+    border: 2.5px solid #d946ef;
+    box-shadow: 0 0 16px #a855f7, 0 0 34px #7e22ce, 0 0 50px #4c1d95, inset 0 0 18px rgba(240, 171, 252, 0.7);
+    animation: demonPurpleAbyssPulse 1.6s ease-in-out infinite alternate;
+    color: #ffffff;
+}
+
+.rarity-demon4,
+.rarity-demon5,
+.rarity-demon6,
+.rarity-demon7 {
+    animation-duration: 1.3s;
+    outline: 1px solid rgba(232, 121, 249, 0.75);
+}
+
+.rarity-demon8,
+.rarity-demon9,
+.rarity-demon10 {
+    animation-duration: 1.0s;
+    outline: 2px solid #f0abfc;
+}
+
+/* Huy hiệu Rarity (Badge) chuyên biệt cho Mythic, Secret, Master & Demon */
 .rarity-badge {
     font-size: 9px;
     font-weight: 900;
@@ -1558,6 +1824,42 @@ canvas {
     color: #f8fafc;
     text-shadow: 0 0 6px rgba(255, 255, 255, 0.55), 0 1px 0 #000000;
     animation: secretBlackGlowPulse 2s ease-in-out infinite alternate;
+}
+
+.rarity-badge.rarity-master,
+.rarity-badge.rarity-master1,
+.rarity-badge.rarity-master2,
+.rarity-badge.rarity-master3,
+.rarity-badge.rarity-master4,
+.rarity-badge.rarity-master5,
+.rarity-badge.rarity-master6,
+.rarity-badge.rarity-master7,
+.rarity-badge.rarity-master8 {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 40%, #00f2fe 55%, #001233 100%);
+    background-size: 240% 240%;
+    border: 2px solid #38bdf8;
+    color: #ffffff;
+    text-shadow: 0 0 8px #00f2fe, 0 1px 0 #001233;
+    animation: masterAquaFlamePulse 1.8s ease-in-out infinite alternate;
+}
+
+.rarity-badge.rarity-demon,
+.rarity-badge.rarity-demon1,
+.rarity-badge.rarity-demon2,
+.rarity-badge.rarity-demon3,
+.rarity-badge.rarity-demon4,
+.rarity-badge.rarity-demon5,
+.rarity-badge.rarity-demon6,
+.rarity-badge.rarity-demon7,
+.rarity-badge.rarity-demon8,
+.rarity-badge.rarity-demon9,
+.rarity-badge.rarity-demon10 {
+    background: linear-gradient(135deg, #090014 0%, #6b21a8 45%, #d946ef 55%, #090014 100%);
+    background-size: 260% 260%;
+    border: 2px solid #f0abfc;
+    color: #ffffff;
+    text-shadow: 0 0 10px #d946ef, 0 1px 0 #090014;
+    animation: demonPurpleAbyssPulse 1.5s ease-in-out infinite alternate;
 }
 
 .card-top-lv {
@@ -1792,6 +2094,14 @@ canvas {
 .bright-modal-header.talents-header-grad,
 .bright-modal-header.talent-header-grad {
     background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+}
+
+.bright-modal-header.wheel-header-grad {
+    background: linear-gradient(90deg, #d97706 0%, #9333ea 50%, #0284c7 100%);
+}
+
+.bright-modal-header.arcade-header-grad {
+    background: linear-gradient(90deg, #059669 0%, #0284c7 50%, #7e22ce 100%);
 }
 
 .bright-modal-title {
@@ -2171,7 +2481,7 @@ canvas {
     border: 2.5px solid #0f172a;
     border-radius: 14px;
     padding: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .upg-unit-avatar-box {
@@ -2201,7 +2511,7 @@ canvas {
     padding: 8px 10px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .upg-stat-row {
@@ -2214,6 +2524,388 @@ canvas {
 .upg-stat-label {
     font-weight: 700;
     color: #475569;
+}
+
+/* ============================================================================
+   HỆ THỐNG CHỌN ĐỘI HÌNH CHIẾN ĐẤU (4 Ô QUÂN) & BULK LEVEL UP BAR TRONG MODAL
+   ============================================================================ */
+.upg-deck-assign-box {
+    margin-top: 8px;
+    background: #e0f2fe;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
+    padding: 7px 9px;
+}
+
+.upg-deck-assign-header {
+    font-size: 10.5px;
+    font-weight: 900;
+    color: #0369a1;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.upg-deck-btns-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+}
+
+.upg-deck-slot-btn {
+    padding: 5px 4px;
+    font-size: 9.5px;
+    border-radius: 9px;
+    border-width: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.upg-deck-slot-btn.active-deck-slot {
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    color: #ffffff;
+    border-color: #0f172a;
+    box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(245, 158, 11, 0.7);
+}
+
+/* Thanh chọn số cấp nâng hàng loạt (+1, +5, +10, MAX & Ô nhập số Level tùy ý) */
+.bulk-upgrade-control-box {
+    background: #1e293b;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
+    padding: 7px 8px;
+    color: #ffffff;
+}
+
+.bulk-upg-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.bulk-quick-btns-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.upg-quick-lv-btn {
+    padding: 5px 8px;
+    font-size: 11px;
+    border-radius: 9px;
+    border-width: 2px;
+    min-width: 38px;
+}
+
+.upg-quick-lv-btn.active {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    border-color: #bae6fd;
+    color: #ffffff;
+}
+
+.bulk-custom-input-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #0f172a;
+    border: 1.5px solid #475569;
+    border-radius: 9px;
+    padding: 3px 6px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.bulk-input-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #cbd5e1;
+    white-space: nowrap;
+}
+
+.bulk-add-lv-input {
+    width: 72px;
+    background: #1e293b;
+    border: 2px solid #f59e0b;
+    border-radius: 7px;
+    padding: 2px 5px;
+    color: #fde047;
+    font-family: var(--font-num);
+    font-size: 18px;
+    text-align: center;
+    outline: none;
+}
+
+.bulk-add-lv-input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4);
+}
+
+/* ============================================================================
+   VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal) & PITY BAR 0/100
+   ============================================================================ */
+.lucky-pity-box {
+    background: #f3e8ff;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
+    padding: 7px 10px;
+    margin-bottom: 8px;
+}
+
+.lucky-pity-track {
+    width: 100%;
+    height: 10px;
+    background: #0f172a;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1.5px solid #581c87;
+}
+
+.lucky-pity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00f2fe 0%, #a855f7 50%, #ec4899 100%);
+    transition: width 0.25s ease;
+}
+
+.lucky-wheel-stage {
+    position: relative;
+    width: 246px;
+    height: 246px;
+    margin: 4px auto 8px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lucky-wheel-pointer {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    font-size: 24px;
+    color: #ef4444;
+    -webkit-text-stroke: 1.5px #0f172a;
+    filter: drop-shadow(0 3px 0 #0f172a);
+}
+
+.lucky-wheel-canvas {
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    border: 5px solid #0f172a;
+    box-shadow: 0 6px 0 #0f172a, 0 0 20px rgba(168, 85, 247, 0.45);
+    background: #1e293b;
+}
+
+.lucky-wheel-center-cap {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #fde047 0%, #ea580c 100%);
+    border: 3.5px solid #0f172a;
+    color: #ffffff;
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.5);
+    z-index: 5;
+    text-shadow: 0 1.5px 0 #0f172a;
+}
+
+.lucky-wheel-center-cap:active {
+    transform: scale(0.93);
+}
+
+.lucky-wheel-result-strip {
+    background: #1e293b;
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 5px 8px;
+    color: #fde047;
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.lucky-wheel-odds-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3px 8px;
+    background: #f1f5f9;
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 6px 8px;
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #334155;
+    text-align: left;
+}
+
+/* ============================================================================
+   TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal)
+   ============================================================================ */
+.arcade-tabs-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    background: #1e293b;
+    padding: 4px;
+    border-radius: 12px;
+    border: 2.5px solid #0f172a;
+    margin-bottom: 8px;
+}
+
+.arcade-tab-btn {
+    background: #334155;
+    border: 2px solid #0f172a;
+    border-radius: 8px;
+    padding: 5px 4px;
+    color: #cbd5e1;
+    font-size: 10px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.arcade-tab-btn.active {
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    color: #0f172a;
+    text-shadow: none;
+}
+
+.arcade-game-pane {
+    display: none;
+    flex-direction: column;
+}
+
+.arcade-game-pane.active {
+    display: flex;
+    animation: popIn 0.15s ease-out;
+}
+
+.arcade-info-banner {
+    background: #e2e8f0;
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 6px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+/* Mini-Game 1: Bàn cờ Đập Mìn Công Binh 5x5 */
+.mg-mines-board {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    background: #0f172a;
+    border: 3px solid #0f172a;
+    border-radius: 12px;
+    padding: 6px;
+}
+
+.mg-mine-cell {
+    aspect-ratio: 1 / 1;
+    background: linear-gradient(180deg, #475569 0%, #1e293b 100%);
+    border: 2px solid #64748b;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #020617;
+    transition: transform 0.08s ease, background 0.12s ease;
+}
+
+.mg-mine-cell:hover:not(.revealed) {
+    border-color: #38bdf8;
+    filter: brightness(1.1);
+}
+
+.mg-mine-cell:active:not(.revealed) {
+    transform: scale(0.93) translateY(2px);
+}
+
+.mg-mine-cell.revealed.safe {
+    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+    border-color: #bbf7d0;
+}
+
+.mg-mine-cell.revealed.mine {
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+    border-color: #fecaca;
+    animation: bossPulse 0.35s ease-in-out 2;
+}
+
+/* Mini-Game 2: Hứng Tiếp Tế Dù (Airdrop Catcher 30s) */
+.mg-catcher-canvas-wrap {
+    width: 100%;
+    background: #0f172a;
+    border: 3px solid #0f172a;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+
+.mg-catcher-canvas {
+    width: 100%;
+    max-width: 340px;
+    height: 210px;
+    background: linear-gradient(180deg, #0284c7 0%, #38bdf8 65%, #15803d 65%, #166534 100%);
+}
+
+/* Mini-Game 3: Đoán Bài Chiến Thuật (High-Low Rarity Flip) */
+.mg-hl-cards-arena {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 2px;
+}
+
+.mg-hl-card-box {
+    flex: 1;
+    min-height: 124px;
+    border: 3px solid #0f172a;
+    border-radius: 14px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 0 #0f172a;
+}
+
+.mg-hl-card-box.mystery-card {
+    background: repeating-linear-gradient(
+        45deg,
+        #1e293b,
+        #1e293b 10px,
+        #0f172a 10px,
+        #0f172a 20px
+    );
+    border-color: #facc15;
+}
+
+.mg-hl-card-label {
+    font-size: 9px;
+    font-weight: 900;
+    color: #f8fafc;
+    background: rgba(15, 23, 42, 0.65);
+    padding: 1.5px 6px;
+    border-radius: 999px;
 }
 
 /* ============================================================================
@@ -2380,7 +3072,7 @@ canvas {
     border-color: rgba(192, 132, 252, 0.5);
 }
 
-/* HUD & THANH EXP TRONG TRẬN */
+/* HUD & THANH EXP TRONG TRẬN (KÈM NÚT SPEED X1/X2/X4 & AUTO-PLAY) */
 .hud-top {
     position: absolute;
     top: 6px;
@@ -2395,6 +3087,26 @@ canvas {
 
 .hud-top > * {
     pointer-events: auto;
+}
+
+#speed-mult-btn.speed-x2 {
+    background: linear-gradient(180deg, #0284c7 0%, #1e3a8a 100%);
+    border-color: #38bdf8;
+    color: #ffffff;
+}
+
+#speed-mult-btn.speed-x4 {
+    background: linear-gradient(180deg, #9333ea 0%, #4c1d95 100%);
+    border-color: #f0abfc;
+    color: #fde047;
+    box-shadow: 0 0 10px rgba(217, 70, 239, 0.7);
+}
+
+#auto-play-btn.auto-active {
+    background: linear-gradient(180deg, #16a34a 0%, #065f46 100%);
+    border-color: #4ade80;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(74, 222, 128, 0.65);
 }
 
 .exp-bar-wrapper {
@@ -3222,21 +3934,21 @@ canvas {
 /* Khung gắn Chip trong Modal Chi tiết / Nâng cấp Tướng */
 .unit-sockets-section,
 .unit-chip-sockets-panel {
-    margin-top: 10px;
+    margin-top: 8px;
     background: #f1f5f9;
     border: 2.5px solid #0f172a;
     border-radius: 12px;
-    padding: 8px 10px;
+    padding: 7px 9px;
 }
 
 .unit-sockets-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: 10.5px;
     font-weight: 900;
     color: #0f172a;
-    margin-bottom: 6px;
+    margin-bottom: 5px;
 }
 
 .unit-sockets-row,
@@ -3677,7 +4389,7 @@ canvas {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    transition: opacity 0.2s ease, border-color 0.2s ease;
+    transition: opacity 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
 }
 
 .raid-boss-part-card.part-targeted {
@@ -3737,9 +4449,269 @@ canvas {
 }
 
 /* ============================================================================
-   RESPONSIVE TINH CHỈNH CHO MÀN HÌNH NHỎ (< 370PX)
+   PHẦN 5: CHI TIẾT PHÂN CẤP HIỆU ỨNG ĐỘ HIẾM MASTER (RANK 21-29) & DEMON (RANK 30-40)
+   Tăng dần cường độ phát sáng, tia năng lượng & hiệu ứng viền theo từng bậc +
    ============================================================================ */
-@media (max-width: 370px) {
+
+/* --- 5.1. Tinh chỉnh riêng từng cấp MASTER (master ➔ master8) --- */
+.rarity-master {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 35%, #00f2fe 50%, #0369a1 70%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #38bdf8;
+    animation: masterAquaFlamePulse 1.95s ease-in-out infinite alternate;
+}
+
+.rarity-master1 {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 32%, #00f2fe 50%, #0284c7 68%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #38bdf8;
+    animation: masterAquaFlamePulse 1.85s ease-in-out infinite alternate;
+}
+
+.rarity-master2 {
+    background: linear-gradient(135deg, #001a42 0%, #0369a1 30%, #00f2fe 50%, #0284c7 70%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #7dd3fc;
+    animation: masterAquaFlamePulse 1.75s ease-in-out infinite alternate;
+}
+
+.rarity-master3 {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 28%, #38bdf8 45%, #00f2fe 50%, #0369a1 72%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #7dd3fc;
+    animation: masterAquaFlamePulse 1.65s ease-in-out infinite alternate;
+}
+
+.rarity-master4 {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 26%, #00f2fe 48%, #e0f2fe 50%, #0284c7 74%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #bae6fd;
+    animation: masterAquaFlamePulse 1.55s ease-in-out infinite alternate;
+}
+
+.rarity-master5 {
+    background: linear-gradient(135deg, #001233 0%, #0284c7 25%, #00f2fe 46%, #ffffff 50%, #00f2fe 54%, #0369a1 75%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #bae6fd;
+    animation: masterAquaFlamePulse 1.45s ease-in-out infinite alternate;
+}
+
+.rarity-master6 {
+    background: linear-gradient(135deg, #001e4d 0%, #0ea5e9 25%, #00f2fe 45%, #ffffff 50%, #00f2fe 55%, #0284c7 75%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #e0f2fe;
+    animation: masterAquaFlamePulse 1.32s ease-in-out infinite alternate;
+}
+
+.rarity-master7 {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 22%, #00f2fe 42%, #ffffff 50%, #38bdf8 58%, #0369a1 78%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #e0f2fe;
+    animation: masterAquaFlamePulse 1.2s ease-in-out infinite alternate;
+}
+
+.rarity-master8 {
+    background: linear-gradient(135deg, #001e4d 0%, #0284c7 20%, #00f2fe 40%, #ffffff 50%, #00f2fe 60%, #0284c7 80%, #001233 100%);
+    background-size: 260% 260%;
+    border-color: #ffffff;
+    animation: masterAquaFlamePulse 1.08s ease-in-out infinite alternate;
+    outline: 2px solid #00f2fe;
+}
+
+/* --- 5.2. Tinh chỉnh riêng từng cấp DEMON (demon ➔ demon10) --- */
+.rarity-demon {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 30%, #9333ea 48%, #f0abfc 50%, #6b21a8 72%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #a855f7;
+    animation: demonPurpleAbyssPulse 1.85s ease-in-out infinite alternate;
+}
+
+.rarity-demon1 {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 28%, #9333ea 47%, #f0abfc 50%, #6b21a8 72%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #c084fc;
+    animation: demonPurpleAbyssPulse 1.75s ease-in-out infinite alternate;
+}
+
+.rarity-demon2 {
+    background: linear-gradient(135deg, #090014 0%, #4c1d95 28%, #a855f7 47%, #f0abfc 50%, #7e22ce 72%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #c084fc;
+    animation: demonPurpleAbyssPulse 1.65s ease-in-out infinite alternate;
+}
+
+.rarity-demon3 {
+    background: linear-gradient(135deg, #090014 0%, #4c1d95 26%, #9333ea 46%, #f0abfc 50%, #6b21a8 74%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #d946ef;
+    animation: demonPurpleAbyssPulse 1.55s ease-in-out infinite alternate;
+}
+
+.rarity-demon4 {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 25%, #a855f7 45%, #fae8ff 50%, #7e22ce 75%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #d946ef;
+    animation: demonPurpleAbyssPulse 1.45s ease-in-out infinite alternate;
+}
+
+.rarity-demon5 {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 24%, #c084fc 45%, #ffffff 50%, #9333ea 75%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #e879f9;
+    animation: demonPurpleAbyssPulse 1.35s ease-in-out infinite alternate;
+}
+
+.rarity-demon6 {
+    background: linear-gradient(135deg, #090014 0%, #581c87 22%, #d946ef 44%, #ffffff 50%, #7e22ce 76%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #e879f9;
+    animation: demonPurpleAbyssPulse 1.25s ease-in-out infinite alternate;
+}
+
+.rarity-demon7 {
+    background: linear-gradient(135deg, #090014 0%, #4c1d95 20%, #d946ef 43%, #ffffff 50%, #9333ea 78%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #f0abfc;
+    animation: demonPurpleAbyssPulse 1.15s ease-in-out infinite alternate;
+}
+
+.rarity-demon8 {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 18%, #9333ea 38%, #f0abfc 48%, #ffffff 50%, #d946ef 58%, #581c87 82%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #f0abfc;
+    animation: demonPurpleAbyssPulse 1.05s ease-in-out infinite alternate;
+}
+
+.rarity-demon9 {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 16%, #a855f7 36%, #f0abfc 47%, #ffffff 50%, #e879f9 58%, #6b21a8 84%, #090014 100%);
+    background-size: 280% 280%;
+    border-color: #fae8ff;
+    animation: demonPurpleAbyssPulse 0.95s ease-in-out infinite alternate;
+}
+
+/* Demon +10: Bậc Tối Thượng 7777.0x */
+.rarity-demon10 {
+    background: linear-gradient(135deg, #090014 0%, #3b0764 15%, #9333ea 34%, #d946ef 45%, #ffffff 50%, #f0abfc 55%, #7e22ce 75%, #090014 100%);
+    background-size: 300% 300%;
+    border: 2.5px solid #ffffff;
+    box-shadow:
+        0 0 18px #d946ef,
+        0 0 38px #a855f7,
+        0 0 60px #6b21a8,
+        inset 0 0 22px rgba(250, 232, 255, 0.9);
+    animation: demonPurpleAbyssPulse 0.85s ease-in-out infinite alternate;
+    outline: 2px solid #d946ef;
+}
+
+/* Bệ đứng Hero ở Tab ARMY tự đổi hào quang theo bậc Master / Demon */
+.army-pedestal-circle.pedestal-master {
+    background: radial-gradient(circle, rgba(0, 242, 254, 0.55) 0%, rgba(2, 132, 199, 0.35) 65%, rgba(15, 23, 42, 0.5) 100%);
+    border-color: #00f2fe;
+    box-shadow: 0 0 18px #00f2fe, inset 0 0 12px #38bdf8;
+}
+
+.army-pedestal-circle.pedestal-demon {
+    background: radial-gradient(circle, rgba(217, 70, 239, 0.6) 0%, rgba(126, 34, 206, 0.4) 65%, rgba(9, 0, 20, 0.7) 100%);
+    border-color: #d946ef;
+    box-shadow: 0 0 22px #a855f7, 0 0 36px #7e22ce, inset 0 0 14px #f0abfc;
+}
+
+/* Tag + cấp độ trên thẻ Master & Demon nổi bật */
+.rarity-master .card-plus-tag,
+.rarity-master1 .card-plus-tag,
+.rarity-master2 .card-plus-tag,
+.rarity-master3 .card-plus-tag,
+.rarity-master4 .card-plus-tag,
+.rarity-master5 .card-plus-tag,
+.rarity-master6 .card-plus-tag,
+.rarity-master7 .card-plus-tag,
+.rarity-master8 .card-plus-tag {
+    background: #001233;
+    color: #00f2fe;
+    border-color: #38bdf8;
+    box-shadow: 0 0 6px rgba(0, 242, 254, 0.7);
+}
+
+.rarity-demon .card-plus-tag,
+.rarity-demon1 .card-plus-tag,
+.rarity-demon2 .card-plus-tag,
+.rarity-demon3 .card-plus-tag,
+.rarity-demon4 .card-plus-tag,
+.rarity-demon5 .card-plus-tag,
+.rarity-demon6 .card-plus-tag,
+.rarity-demon7 .card-plus-tag,
+.rarity-demon8 .card-plus-tag,
+.rarity-demon9 .card-plus-tag,
+.rarity-demon10 .card-plus-tag {
+    background: #090014;
+    color: #f0abfc;
+    border-color: #d946ef;
+    box-shadow: 0 0 8px rgba(217, 70, 239, 0.85);
+}
+
+/* ============================================================================
+   PHẦN 6: HIỆU ỨNG BỔ SUNG CHO VÒNG QUAY MAY MẮN & 3 MINI-GAMES
+   ============================================================================ */
+
+/* Khi Pity Vòng Quay đạt ngưỡng 90+ hoặc vừa nổ Jackpot */
+@keyframes jackpotBannerFlash {
+    0% {
+        background: linear-gradient(90deg, #001e4d 0%, #0284c7 50%, #00f2fe 100%);
+        border-color: #00f2fe;
+        box-shadow: 0 0 12px rgba(0, 242, 254, 0.8);
+    }
+    100% {
+        background: linear-gradient(90deg, #3b0764 0%, #9333ea 50%, #d946ef 100%);
+        border-color: #f0abfc;
+        box-shadow: 0 0 18px rgba(217, 70, 239, 0.95);
+    }
+}
+
+.lucky-wheel-result-strip.jackpot-hit {
+    color: #ffffff;
+    font-size: 12px;
+    animation: jackpotBannerFlash 0.6s ease-in-out infinite alternate;
+}
+
+.lucky-wheel-canvas.spinning {
+    box-shadow: 0 6px 0 #0f172a, 0 0 28px rgba(0, 242, 254, 0.75), 0 0 44px rgba(217, 70, 239, 0.65);
+}
+
+/* Hiệu ứng lật thẻ trong Mini-Game 3: High-Low Rarity Flip */
+@keyframes cardFlipReveal {
+    0% {
+        transform: rotateY(90deg) scale(0.92);
+        opacity: 0.4;
+    }
+    100% {
+        transform: rotateY(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+.mg-hl-card-box.card-revealed {
+    animation: cardFlipReveal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Nút điều khiển Trái/Phải trong Mini-Game 2: Airdrop Catcher */
+#btn-mg-catcher-left:active,
+#btn-mg-catcher-right:active {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    color: #ffffff;
+}
+
+/* Badge hiển thị số lượng lớn hàng triệu/hàng tỷ thẻ (15M, 1.2B) không bị tràn */
+.card-qty-badge {
+    max-width: 92%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ============================================================================
+   PHẦN 7: RESPONSIVE TINH CHỈNH CHO MÀN HÌNH NHỎ (< 380PX & < 350PX)
+   ============================================================================ */
+@media (max-width: 380px) {
     .bottom-deck {
         grid-template-columns: 0.88fr 0.74fr 4.38fr;
         gap: 2.5px;
@@ -3776,5 +4748,56 @@ canvas {
     .tactic-title-short,
     .tactic-label {
         font-size: 8px;
+    }
+    .side-feature-btn {
+        width: 54px;
+        height: 52px;
+    }
+    .side-btn-icon {
+        font-size: 18px;
+    }
+    .side-btn-text {
+        font-size: 8px;
+    }
+    .bulk-upg-top-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .bulk-quick-btns-group {
+        justify-content: space-between;
+    }
+    .upg-quick-lv-btn {
+        flex: 1;
+    }
+    .bulk-custom-input-group {
+        justify-content: space-between;
+    }
+    .upg-deck-btns-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .lucky-wheel-stage {
+        width: 216px;
+        height: 216px;
+    }
+    .lucky-wheel-canvas {
+        width: 210px;
+        height: 210px;
+    }
+}
+
+@media (max-height: 720px) {
+    .army-Hero-stage {
+        height: 126px;
+    }
+    .army-showcase-canvas {
+        width: 88px;
+        height: 88px;
+    }
+    .map-canvas-frame {
+        width: 142px;
+        height: 168px;
+    }
+    .side-feature-btn {
+        height: 50px;
     }
 }

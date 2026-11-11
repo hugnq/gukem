@@ -1,7 +1,7 @@
 // ============================================================================
-// MAIN.JS - ĐỘNG CƠ CANVAS 2D, JUICY FX, OBJECT POOLING, COMMANDER TACTICS
-// & 4 CHẾ ĐỘ CHƠI MỚI (ENDLESS SIEGE, AUTO-BATTLER, FOG OF WAR, RAID BOSS)
-// Đã fix đồng bộ 100% DOM ID, 15 Maps chuẩn ảnh, Meta-Talents, Chip & HUD.
+// MAIN.JS (PHẦN 1/2) - ĐỘNG CƠ CANVAS 2D, JUICY FX, OBJECT POOLING, FLOW-FIELD,
+// 30 MAPS, ĐỒNG BỘ 100% 4 CHIP & 41 BẬC ĐỘ HIẾM (MASTER +8 & DEMON +10)
+// Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100%)
 // ============================================================================
 
 import * as DataModule from './data.js';
@@ -16,6 +16,8 @@ import {
     formatCurrency,
     normalizeMapProgressEntry,
     normalizeUnitId,
+    normalizeSelectedDeck,
+    drawCanvasRarityAura,
     syncLegacyEngineBridges,
     switchLobbyTab,
     initLobby
@@ -41,6 +43,9 @@ const T_BRIDGE = DataModule.T_BRIDGE ?? 3;
 const T_OBSTACLE = DataModule.T_OBSTACLE ?? 4;
 
 const RARITY_CONFIG = DataModule.RARITY_CONFIG || {};
+const isMasterRarity = DataModule.isMasterRarity || ((r) => !!(RARITY_CONFIG[r]?.rank >= 21 && RARITY_CONFIG[r]?.rank <= 29));
+const isDemonRarity = DataModule.isDemonRarity || ((r) => !!(RARITY_CONFIG[r]?.rank >= 30 && RARITY_CONFIG[r]?.rank <= 40));
+
 const DIFFICULTY_CONFIG = DataModule.DIFFICULTY_CONFIG || {
     easy: { id: 'easy', name: 'Dễ', shortLabel: 'DỄ', statMult: 1.0, baseHpMult: 1.0 },
     difficult: { id: 'difficult', name: 'Khó', shortLabel: 'KHÓ', statMult: 1.45, baseHpMult: 1.6 }
@@ -54,6 +59,8 @@ const GAS_UPGRADE_LEVELS = DataModule.GAS_UPGRADE_LEVELS || [
     { interval: 1.1, cost: 0, label: 'MAX' }
 ];
 
+const COMMANDER_TACTICS = DataModule.COMMANDER_TACTICS || {};
+const UNIT_CHIPS = DataModule.UNIT_CHIPS || {};
 const ROGUELIKE_MUTATIONS = DataModule.ROGUELIKE_MUTATIONS || [];
 const RAID_BOSS_CONFIG = DataModule.RAID_BOSS_CONFIG || {};
 
@@ -254,7 +261,7 @@ class SoundFX {
 export const sfx = new SoundFX();
 
 // ============================================================================
-// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO & CHỚP LỬA
+// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO (CÓ CẢ ĐẠN MASTER AQUA & DEMON PURPLE)
 // ============================================================================
 class ProjectileSpriteCache {
     constructor() {
@@ -263,6 +270,8 @@ class ProjectileSpriteCache {
         this.shellRed = [];
         this.rocketBlue = [];
         this.rocketRed = [];
+        this.rocketMaster = [];
+        this.rocketDemon = [];
         this.muzzleStarCanvas = null;
         this.buildCache();
     }
@@ -274,6 +283,8 @@ class ProjectileSpriteCache {
             this.shellRed.push(this.createRotatedProjectile(angle, '#fb7185', '#991b1b', false));
             this.rocketBlue.push(this.createRotatedProjectile(angle, '#38bdf8', '#fde047', true));
             this.rocketRed.push(this.createRotatedProjectile(angle, '#f97316', '#dc2626', true));
+            this.rocketMaster.push(this.createRotatedProjectile(angle, '#00f2fe', '#0284c7', true));
+            this.rocketDemon.push(this.createRotatedProjectile(angle, '#f0abfc', '#7e22ce', true));
         }
         this.muzzleStarCanvas = this.createMuzzleStarSprite();
     }
@@ -350,10 +361,12 @@ class ProjectileSpriteCache {
         return c;
     }
 
-    getProjectileSprite(angle, isBlue, isRocket) {
+    getProjectileSprite(angle, isBlue, isRocket, auraType = 'none') {
         let norm = angle % (Math.PI * 2);
         if (norm < 0) norm += Math.PI * 2;
         const idx = Math.floor((norm / (Math.PI * 2)) * this.angleSteps) % this.angleSteps;
+        if (isBlue && auraType === 'demon_abyss') return this.rocketDemon[idx];
+        if (isBlue && auraType === 'master_aqua') return this.rocketMaster[idx];
         if (isRocket) return isBlue ? this.rocketBlue[idx] : this.rocketRed[idx];
         return isBlue ? this.shellBlue[idx] : this.shellRed[idx];
     }
@@ -362,10 +375,10 @@ class ProjectileSpriteCache {
 const projCache = new ProjectileSpriteCache();
 
 // ============================================================================
-// 3. OBJECT POOLING 200 HẠT CỐ ĐỊNH
+// 3. OBJECT POOLING 240 HẠT CỐ ĐỊNH
 // ============================================================================
 class ParticlePool {
-    constructor(size = 200) {
+    constructor(size = 240) {
         this.size = size;
         this.pool = Array.from({ length: size }, () => ({
             active: false,
@@ -472,7 +485,7 @@ class ParticlePool {
     }
 }
 
-const particlePool = new ParticlePool(200);
+const particlePool = new ParticlePool(240);
 
 // ============================================================================
 // 4. ATLAS BÓC TÁCH SPRITE SHEET ("Preview.png")
@@ -743,7 +756,9 @@ class SpriteAtlas {
         buildStaticMapCanvas(game.currentLevel);
         renderStageScreenUI();
         renderArmyTabUI();
-        renderBattleDeckButtons();
+        if (typeof window.renderBattleDeckButtons === 'function') {
+            window.renderBattleDeckButtons();
+        }
     }
 
     get(col, row) {
@@ -1583,10 +1598,8 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
         targetCtx.restore();
     };
 
-    // --- 15 BẢN ĐỒ CHUẨN THEO ẢNH 15 MAPS.PNG ---
     switch (baseTemplateId) {
         case 1: {
-            // Map 1: Sông cắt ngang giữa + 1 Cầu đá trung tâm
             fillGrassBg('#7bc64d');
             drawWaterBox(0, H / 2 - 54, W, 108, 0);
             drawRoadPath([[105, 85], [315, 85]], 30, false);
@@ -1598,7 +1611,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 2: {
-            // Map 2: Đường nhựa chữ S xuyên rừng và vách núi đá
             fillGrassBg('#6cb83b');
             drawRoadPath([
                 [210, 65],
@@ -1619,7 +1631,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 3: {
-            // Map 3: Đô thị bàn cờ (3 đại lộ dọc x 3 đại lộ ngang)
             fillGrassBg('#64748b');
             drawRoadPath([[88, 55], [88, H - 55]], 32, true);
             drawRoadPath([[210, 55], [210, H - 55]], 34, true);
@@ -1634,10 +1645,8 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 4: {
-            // Map 4: Pháo đài trên đảo giữa hồ lớn nối bằng 2 cầu Bắc - Nam
             fillGrassBg('#7bc64d');
             drawWaterBox(34, 155, W - 68, H - 310, 28);
-            // Đảo trung tâm
             if (registerNav) nav.markRect(142, H / 2 - 58, 136, 116, T_ROAD, true);
             targetCtx.fillStyle = '#7bc64d';
             targetCtx.beginPath();
@@ -1651,7 +1660,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 5: {
-            // Map 5: Mê cung đường rừng nhiều nhánh rẽ
             fillGrassBg('#5ea332');
             drawRoadPath([[210, 65], [105, 175], [105, 355], [210, 445], [105, 545], [210, H - 65]], 34, true);
             drawRoadPath([[210, 65], [315, 175], [315, 355], [210, 445], [315, 545], [210, H - 65]], 34, true);
@@ -1662,7 +1670,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 6: {
-            // Map 6: Khu công nghiệp nhà máy
             fillBrownEarthBg('#64748b');
             drawRoadPath([[95, 65], [95, H - 65]], 34, true);
             drawRoadPath([[325, 65], [325, H - 65]], 34, true);
@@ -1676,7 +1683,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 7: {
-            // Map 7: Hẻm núi Song Hồ (2 hồ nước đối xứng + đường đèo uốn giữa)
             fillGrassBg('#74c043');
             drawWaterBox(64, 155, 175, 150, 20);
             drawWaterBox(180, 410, 175, 150, 20);
@@ -1695,7 +1701,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 8: {
-            // Map 8: Đèo Đá Hiểm Trở (Dãy núi chắn ngang giữa bản đồ + khe đèo hẹp)
             fillGrassBg('#6cb83b');
             drawRoadPath([[210, 65], [210, H - 65]], 38, true);
             drawRoadPath([[105, 65], [105, 220], [210, 260]], 30, true);
@@ -1707,7 +1712,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 9: {
-            // Map 9: Vòng Xoay Thị Trấn (2 bùng binh Bắc - Nam + đường vành đai)
             fillGrassBg('#7bc64d');
             drawRingRoad(210, 205, 54, 30, true);
             drawRingRoad(210, H - 205, 54, 30, true);
@@ -1722,7 +1726,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 10: {
-            // Map 10: Bãi Biển Đổ Bộ (Biển bên trái + Bãi cát vàng giữa + Đường mòn & Núi đá bên phải)
             targetCtx.fillStyle = '#fde68a';
             targetCtx.fillRect(0, 0, W, H);
             targetCtx.fillStyle = '#7bc64d';
@@ -1737,7 +1740,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 11: {
-            // Map 11: Căn Cứ Tên Lửa (Đại lộ chữ thập + Hầm phóng tên lửa 4 góc)
             fillGrassBg('#65a30d');
             drawRoadPath([[210, 60], [210, H - 60]], 38, true);
             drawRoadPath([[45, 245], [W - 45, 245]], 32, true);
@@ -1751,7 +1753,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 12: {
-            // Map 12: Thành Cổ Bao Vây (Đường vành đai vuông bao quanh Pháo đài đá trung tâm)
             fillGrassBg('#74c043');
             drawRoadPath([[95, 165], [325, 165], [325, H - 165], [95, H - 165], [95, 165]], 34, true);
             drawRoadPath([[210, 65], [210, 165]], 36, true);
@@ -1761,7 +1762,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 13: {
-            // Map 13: Quần Đảo Đa Cầu (Kênh nước chữ thập + 4 đảo nối bằng cầu gỗ)
             fillGrassBg('#7bc64d');
             drawWaterBox(0, 210, W, 62, 0);
             drawWaterBox(0, H - 272, W, 62, 0);
@@ -1779,7 +1779,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
         case 14: {
-            // Map 14: Bùng Binh Đầm Lầy (Vòng xoay lớn bao quanh hồ nước vuông ở giữa)
             fillGrassBg('#6cb83b');
             drawRingRoad(210, H / 2, 132, 36, true);
             drawRoadPath([[210, 65], [210, H / 2 - 132]], 36, true);
@@ -1792,13 +1791,11 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
         }
         case 15:
         default: {
-            // Map 15: Phòng Tuyến Trường Thành (2 dải tường thành đá chắn ngang + 3 lộ mở)
             fillGrassBg('#7bc64d');
             drawRoadPath([[95, 65], [95, H - 65]], 34, true);
             drawRoadPath([[210, 65], [210, H - 65]], 36, true);
             drawRoadPath([[325, 65], [325, H - 65]], 34, true);
 
-            // Tường thành Bắc & Nam (Chừa 3 cổng ở x=95, 210, 325)
             drawStoneWallBox(12, 215, 52, 28);
             drawStoneWallBox(126, 215, 52, 28);
             drawStoneWallBox(242, 215, 52, 28);
@@ -1847,7 +1844,8 @@ export function buildStaticMapCanvas(levelNum) {
 }
 
 // ============================================================================
-// 8. TÍNH TOÁN CHỈ SỐ ĐƠN VỊ (RARITY + LEVEL + META-TALENTS + 2 KHE CHIP + ROGUELIKE)
+// 8. TÍNH TOÁN CHỈ SỐ ĐƠN VỊ (41 RARITY TIERS + LEVEL + META-TALENTS + 4 CHIPS)
+// FIX MỤC 1.5: ĐỒNG BỘ 100% THÔNG SỐ CỦA 4 CHIP GIỮA DATA.JS VÀ MAIN.JS!
 // ============================================================================
 export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId = null) {
     const unitId = normalizeUnitId(rawUnitId);
@@ -1890,6 +1888,7 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
             atkSpeed: base.fireRate,
             rarityId: 'common',
             rarityColor: '#ef4444',
+            auraType: 'none',
             equippedSockets: []
         };
     }
@@ -1898,7 +1897,7 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
     const lvMult = 1 + (permLv - 1) * 0.12;
 
     const rarityId = customRarityId || getHighestRarityForUnit(base.id) || 'common';
-    const rarityObj = RARITY_CONFIG[rarityId] || { mult: 1.0, color: '#94a3b8' };
+    const rarityObj = RARITY_CONFIG[rarityId] || { mult: 1.0, color: '#94a3b8', auraType: 'none' };
     const rarityMult = rarityObj.mult ?? 1.0;
 
     let hpBonusPct = 0;
@@ -1911,6 +1910,7 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
     let armorReductionPct = 0;
     let lifestealPct = 0;
     let burnDps = 0;
+    let burnDuration = 3.0;
     let stunChance = 0;
 
     // 1. Cây Bị Động (META_TALENTS: high_grade_steel & optimal_logistics)
@@ -1919,15 +1919,13 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
 
     if (steelLv > 0) {
         hpBonusPct += steelLv * 0.04;
-        if (!base.isWalker) {
-            armorReductionPct += steelLv * 0.02; // Giảm sát thương nhận vào cho cơ giới (tối đa -10%)
-        }
+        armorReductionPct += steelLv * 0.04; // Giáp & Máu cộng thêm +4% mỗi cấp (tối đa +20%)
     }
     if (logiLv > 0) {
         cdReductionPct += logiLv * 0.03;
     }
 
-    // 2. Hệ thống 2 Khe Chip Bổ Trợ (metaState.unitSockets[base.id])
+    // 2. Hệ thống 2 Khe Chip Bổ Trợ (Khớp 100% mô tả trong data.js!)
     const sockets = Array.isArray(metaState?.unitSockets?.[base.id])
         ? metaState.unitSockets[base.id]
         : (metaState?.equippedChips?.[base.id] ? [metaState.equippedChips[base.id]] : []);
@@ -1935,17 +1933,21 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
     sockets.forEach(chipId => {
         if (!chipId) return;
         if (chipId === 'napalm_rocket') {
-            burnDps += 18;
-            splashBonusFlat += 14;
+            // Đạn nổ đốt cháy mục tiêu trong 3s (18 DPS) và +14 bán kính nổ
+            burnDps += UNIT_CHIPS.napalm_rocket?.burnDps ?? 18;
+            burnDuration = UNIT_CHIPS.napalm_rocket?.burnDuration ?? 3.0;
+            splashBonusFlat += UNIT_CHIPS.napalm_rocket?.splashBonus ?? 14;
         } else if (chipId === 'tactical_radar') {
-            rangeBonusFlat += Math.round(base.range * 0.20);
+            // +28 tầm bắn xa và mở rộng tầm nhìn ban đêm (+65px)
+            rangeBonusFlat += UNIT_CHIPS.tactical_radar?.rangeBonusFlat ?? 28;
         } else if (chipId === 'reactive_armor') {
-            hpBonusPct += 0.18;
-            armorReductionPct += 0.12;
+            // Tăng 18% HP tối đa và giảm 15% sát thương nhận vào
+            hpBonusPct += UNIT_CHIPS.reactive_armor?.hpBonusPct ?? 0.18;
+            armorReductionPct += UNIT_CHIPS.reactive_armor?.damageReductionPct ?? 0.15;
         } else if (chipId === 'overclock_core' || chipId === 'overclock_servo') {
-            fireRateBonusPct += 0.22;
-            speedBonusPct += 0.15;
-            cdReductionPct += 0.12;
+            // Tăng 20% tốc độ hành quân và giảm 15% thời gian hồi gọi quân
+            speedBonusPct += UNIT_CHIPS.overclock_core?.speedBonusPct ?? 0.20;
+            cdReductionPct += UNIT_CHIPS.overclock_core?.cooldownReductionPct ?? 0.15;
         }
     });
 
@@ -1965,19 +1967,21 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
         }
     }
 
-    const finalHp = Math.round(base.hp * lvMult * rarityMult * (1 + hpBonusPct));
-    const finalDmg = Math.round(base.damage * lvMult * rarityMult * (1 + dmgBonusPct));
+    const finalHp = Math.max(1, Math.round(base.hp * lvMult * rarityMult * (1 + hpBonusPct)));
+    const finalDmg = Math.max(1, Math.round(base.damage * lvMult * rarityMult * (1 + dmgBonusPct)));
     const finalSpeed = Math.round(base.speed * (1 + speedBonusPct));
     const finalRange = Math.round(base.range + rangeBonusFlat);
     const finalFireRate = +(base.fireRate * (1 + fireRateBonusPct)).toFixed(2);
-    const finalCooldown = Math.max(0.45, base.cooldown * (1 - Math.min(0.6, cdReductionPct)));
-    const hasRadar = sockets.includes('tactical_radar');
+    const finalCooldown = Math.max(0.4, base.cooldown * (1 - Math.min(0.65, cdReductionPct)));
+    const radarCount = sockets.filter(id => id === 'tactical_radar').length;
 
     return {
         ...base,
         level: permLv,
         rarityId,
+        rarityRank: rarityObj.rank ?? 0,
         rarityColor: rarityObj.color || '#38bdf8',
+        auraType: rarityObj.auraType || 'none',
         hp: finalHp,
         maxHp: finalHp,
         damage: finalDmg,
@@ -1986,20 +1990,22 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
         range: finalRange,
         fireRate: finalFireRate,
         atkSpeed: finalFireRate,
-        visionCone: (base.visionCone || base.range + 35) + (hasRadar ? 65 : 0),
+        visionCone: (base.visionCone || base.range + 35) + radarCount * (UNIT_CHIPS.tactical_radar?.nightVisionBonus ?? 65),
         splash: (base.splash || 0) + splashBonusFlat,
         cooldown: finalCooldown,
         equippedSockets: sockets,
-        hasRadarAura: hasRadar,
-        armorReductionPct: Math.min(0.55, armorReductionPct),
+        hasRadarAura: radarCount > 0,
+        armorReductionPct: Math.min(0.65, armorReductionPct),
         lifestealPct,
         burnDps,
+        burnDuration,
         stunChance
     };
 }
 
 // ============================================================================
 // 9. TRẠNG THÁI TRẬN ĐẤU TRUNG TÂM & CÁC HỆ THỐNG HIỆU ỨNG CHIẾN TRƯỜNG
+// ĐỒNG BỘ COOLDOWN Q/W/E/R: 16s / 18s / 22s / 24s + TỐC ĐỘ X1/X2/X4 & AUTO-PLAY
 // ============================================================================
 export const game = {
     running: false,
@@ -2010,6 +2016,11 @@ export const game = {
     difficulty: 'easy',
     battleMode: 'destroy', // 'destroy' | 'survival' | 'endless_siege' | 'auto_battler' | 'fog_of_war' | 'raid_boss'
     timeSec: 0,
+
+    // Tiện ích Tốc độ trận đấu (x1, x2, x4) & Tự động chiến đấu (Auto-Play)
+    speedMult: 1,
+    autoPlay: false,
+    autoPlayTimer: 0,
 
     // Thống kê trong trận
     matchKills: 0,
@@ -2052,9 +2063,14 @@ export const game = {
     deckCooldowns: [0, 0, 0, 0, 0],
     deckMaxCooldowns: [1.5, 2.2, 3.0, 4.5, 5.5],
 
-    // Kỹ năng Chỉ Huy (Commander Active Skills Q/W/E/R)
+    // Kỹ năng Chỉ Huy (Đồng bộ 100% với COMMANDER_TACTICS trong data.js: 16s / 18s / 22s / 24s)
     tacticCooldowns: { airdrop: 0, minefield: 0, emp_blast: 0, blitzkrieg: 0 },
-    tacticMaxCooldowns: { airdrop: 18, minefield: 22, emp_blast: 24, blitzkrieg: 26 },
+    tacticMaxCooldowns: {
+        airdrop: COMMANDER_TACTICS.airdrop?.cooldown ?? 16.0,
+        minefield: COMMANDER_TACTICS.landmines?.cooldown ?? 18.0,
+        emp_blast: COMMANDER_TACTICS.emp?.cooldown ?? 22.0,
+        blitzkrieg: COMMANDER_TACTICS.blitzkrieg?.cooldown ?? 24.0
+    },
     blitzkriegTimer: 0,
 
     // Chế độ 1: Endless Siege Roguelike
@@ -2149,9 +2165,9 @@ function spawnExplosionFX(x, y, radius = 28, isNapalm = false, isEmp = false) {
         );
     }
 }
-
 // ============================================================================
 // 10. LỚP ĐƠN VỊ CHIẾN ĐẤU (UNIT) & ĐẠN PHÁO (PROJECTILE)
+// TÍCH HỢP HÀO QUANG CANVAS BẬC MASTER (AQUA VORTEX) & DEMON (ABYSSAL MATRIX)
 // ============================================================================
 let NEXT_UNIT_UID = 1;
 
@@ -2179,11 +2195,13 @@ class Unit {
         this.hitFlash = 0;
         this.attackTimer = Math.random() * 0.35;
         this.trailTimer = 0;
+        this.auraPhase = Math.random() * Math.PI * 2;
 
         this.stunTimer = 0;
         this.burnTimer = 0;
         this.burnDps = 0;
         this.airdropBuffTimer = 0;
+        this.isBossUnit = false;
         this.dead = false;
     }
 
@@ -2206,7 +2224,15 @@ class Unit {
             this.hp = 0;
             this.dead = true;
             sfx.play('boom');
-            spawnExplosionFX(this.x, this.y, this.radius * 1.8);
+            const isMaster = isMasterRarity(this.spec.rarityId);
+            const isDemon = isDemonRarity(this.spec.rarityId);
+            spawnExplosionFX(
+                this.x,
+                this.y,
+                this.radius * (this.isBossUnit ? 2.6 : 1.8),
+                isDemon,
+                isMaster
+            );
 
             if (this.team === 'red') {
                 game.matchKills++;
@@ -2222,6 +2248,7 @@ class Unit {
 
     update(dt) {
         if (this.dead) return;
+        this.auraPhase += dt;
 
         // Trong pha xếp đội hình Auto-Battler, các đơn vị đứng yên chờ lệnh xuất kích
         if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') {
@@ -2234,10 +2261,11 @@ class Unit {
         if (this.airdropBuffTimer > 0) this.airdropBuffTimer = Math.max(0, this.airdropBuffTimer - dt);
         if (this.isAir) this.rotorAngle += dt * 24;
 
+        // Xử lý sát thương đốt cháy từ Chip Đầu Đạn Napalm (18 DPS trong 3s)
         if (this.burnTimer > 0) {
             this.burnTimer -= dt;
             this.hp -= this.burnDps * dt;
-            if (Math.random() < 0.3) {
+            if (Math.random() < 0.35) {
                 particlePool.spawn(
                     this.x + (Math.random() - 0.5) * 10,
                     this.y + (Math.random() - 0.5) * 10,
@@ -2260,9 +2288,15 @@ class Unit {
             return;
         }
 
+        // FIX MỤC 1.5: Đồng bộ Blitzkrieg [R] khớp 100% với COMMANDER_TACTICS trong data.js:
+        // +55% tốc bắn (1.55x) và +42% tốc độ di chuyển (1.42x) trong 6 giây
         const isBlitz = this.team === 'blue' && game.blitzkriegTimer > 0;
-        const speedMult = isBlitz ? 1.80 : 1.0; // Khớp +80% tốc chạy của Blitzkrieg trong data.js
-        const fireRateMult = (isBlitz ? 1.35 : 1.0) * (this.airdropBuffTimer > 0 ? 1.30 : 1.0);
+        const blitzSpeedMult = COMMANDER_TACTICS.blitzkrieg?.speedMult ?? 1.42;
+        const blitzFireMult = COMMANDER_TACTICS.blitzkrieg?.fireRateMult ?? 1.55;
+        const airdropFireMult = 1 + (COMMANDER_TACTICS.airdrop?.atkSpeedBuff ?? 0.30);
+
+        const speedMult = isBlitz ? blitzSpeedMult : 1.0;
+        const fireRateMult = (isBlitz ? blitzFireMult : 1.0) * (this.airdropBuffTimer > 0 ? airdropFireMult : 1.0);
 
         const target = this.findBestTarget();
         this.attackTimer -= dt * fireRateMult;
@@ -2340,6 +2374,25 @@ class Unit {
     }
 
     spawnMovementTrail() {
+        const auraType = this.spec.auraType || 'none';
+
+        // Hạt năng lượng đặc trưng dưới chân tướng bậc Master & Demon khi di chuyển
+        if (this.team === 'blue' && (auraType === 'master_aqua' || auraType === 'demon_abyss')) {
+            const col = auraType === 'demon_abyss'
+                ? (Math.random() < 0.5 ? '#d946ef' : '#a855f7')
+                : (Math.random() < 0.5 ? '#00f2fe' : '#38bdf8');
+            particlePool.spawn(
+                this.x + (Math.random() - 0.5) * 12,
+                this.y + (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 14,
+                -12 - Math.random() * 14,
+                2.6,
+                col,
+                2.3,
+                'circle'
+            );
+        }
+
         if (this.isAir) return;
 
         if (this.isNaval) {
@@ -2420,15 +2473,23 @@ class Unit {
         this.recoilOffset = 4.2;
         spawnMuzzleFlash(mx, my, this.turretAngle, this.spec.splash >= 30 ? 1.25 : 0.9);
 
+        const auraType = this.spec.auraType || 'none';
+
         if (this.spec.attackType === 'beam') {
             sfx.play('beam');
+            let beamColor = this.team === 'blue' ? '#fde047' : '#fb7185';
+            if (this.team === 'blue') {
+                if (auraType === 'demon_abyss') beamColor = '#f0abfc';
+                else if (auraType === 'master_aqua') beamColor = '#00f2fe';
+            }
             game.beamEffects.push({
                 x1: mx,
                 y1: my,
                 x2: target.x,
                 y2: target.y - (target.altitude || 0),
-                color: this.team === 'blue' ? '#fde047' : '#fb7185',
-                ttl: 0.075
+                color: beamColor,
+                width: auraType === 'demon_abyss' ? 3.8 : (auraType === 'master_aqua' ? 3.2 : 2.5),
+                ttl: 0.08
             });
             applyDamageToTargetObject(target, this.spec.damage, this);
         } else {
@@ -2445,6 +2506,7 @@ class Unit {
                     damage: this.spec.damage,
                     splash: this.spec.splash || 0,
                     arcHeight: this.spec.arcHeight || 0,
+                    auraType,
                     isRocket:
                         this.spec.projType === 'rocket_short' ||
                         this.spec.projType === 'air_missile' ||
@@ -2456,6 +2518,19 @@ class Unit {
     }
 
     drawShadow(ctx) {
+        // MỤC 2.1 & 2.2: Vẽ vòng hào quang xoáy nước năng lượng xanh biển (#00f2fe) cho bậc MASTER
+        // hoặc vòng ma trận lửa tím hắc ám kèm tia sét tím (#c084fc & #7e22ce) cho bậc DEMON trên chiến trường!
+        if (this.team === 'blue' && (isMasterRarity(this.spec.rarityId) || isDemonRarity(this.spec.rarityId))) {
+            drawCanvasRarityAura(
+                ctx,
+                this.x,
+                this.y + 3,
+                this.radius * 1.18,
+                this.spec.rarityId,
+                game.timeSec + this.auraPhase
+            );
+        }
+
         ctx.save();
         if (this.isAir) {
             const sx = this.x + 18;
@@ -2515,6 +2590,18 @@ class Unit {
             ctx.beginPath();
             ctx.arc(drawX, drawY, this.radius + 4, 0, Math.PI * 2);
             ctx.stroke();
+        }
+
+        // Vòng aura trên thân máy bay bậc Master / Demon
+        if (this.isAir && this.team === 'blue' && (isMasterRarity(this.spec.rarityId) || isDemonRarity(this.spec.rarityId))) {
+            drawCanvasRarityAura(
+                ctx,
+                drawX,
+                drawY + 4,
+                this.radius * 1.1,
+                this.spec.rarityId,
+                game.timeSec + this.auraPhase
+            );
         }
 
         const row = this.team === 'blue' ? 7 : 8;
@@ -2578,14 +2665,17 @@ class Unit {
             ctx.restore();
         }
 
-        if (this.hp < this.maxHp) {
+        // Thanh máu hoặc vương miện nhỏ cho tướng bậc Master / Demon
+        if (this.hp < this.maxHp || this.isBossUnit) {
             const bw = Math.max(20, this.radius * 1.7);
-            const bh = 4;
+            const bh = this.isBossUnit ? 5.5 : 4;
             const bx = drawX - bw / 2;
             const by = drawY - this.radius - 10;
             ctx.fillStyle = '#0f172a';
             ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-            ctx.fillStyle = this.team === 'blue' ? '#22c55e' : '#ef4444';
+            ctx.fillStyle = this.team === 'blue'
+                ? (isDemonRarity(this.spec.rarityId) ? '#d946ef' : (isMasterRarity(this.spec.rarityId) ? '#00f2fe' : '#22c55e'))
+                : '#ef4444';
             ctx.fillRect(bx, by, bw * Math.max(0, this.hp / this.maxHp), bh);
         }
     }
@@ -2605,6 +2695,7 @@ class Projectile {
         this.damage = opts.damage || 25;
         this.splash = opts.splash || 0;
         this.arcHeight = opts.arcHeight || 0;
+        this.auraType = opts.auraType || 'none';
         this.isRocket = !!opts.isRocket;
         this.owner = opts.owner || null;
 
@@ -2638,16 +2729,19 @@ class Projectile {
         this.y = baseY - parabola;
         this.angle = Math.atan2(this.y - prevY, this.x - prevX);
 
-        if (this.isRocket) {
+        if (this.isRocket || this.auraType === 'master_aqua' || this.auraType === 'demon_abyss') {
             this.smokeTimer -= dt;
             if (this.smokeTimer <= 0) {
+                const trailCol = this.auraType === 'demon_abyss'
+                    ? '#d946ef'
+                    : (this.auraType === 'master_aqua' ? '#00f2fe' : 'rgba(226, 232, 240, 0.75)');
                 particlePool.spawn(
                     this.x - Math.cos(this.angle) * 6,
                     this.y - Math.sin(this.angle) * 6,
                     (Math.random() - 0.5) * 12,
                     (Math.random() - 0.5) * 12,
                     3.2,
-                    'rgba(226, 232, 240, 0.75)',
+                    trailCol,
                     2.6,
                     'circle'
                 );
@@ -2664,11 +2758,18 @@ class Projectile {
         this.done = true;
         const ownerSpec = this.owner?.spec || {};
         const hasNapalm = (ownerSpec.burnDps || 0) > 0;
+        const burnDuration = ownerSpec.burnDuration || 3.0;
         const hasEmp = (ownerSpec.stunChance || 0) > 0 && Math.random() < ownerSpec.stunChance;
 
         if (this.splash > 0) {
             sfx.play('boom');
-            spawnExplosionFX(this.targetX, this.targetY, this.splash, hasNapalm, hasEmp);
+            spawnExplosionFX(
+                this.targetX,
+                this.targetY,
+                this.splash,
+                hasNapalm || this.auraType === 'demon_abyss',
+                hasEmp || this.auraType === 'master_aqua'
+            );
             if (this.splash >= 38) addScreenShake(3.5, 0.14);
 
             for (const u of game.units) {
@@ -2678,7 +2779,7 @@ class Projectile {
                     const falloff = 1 - (d / this.splash) * 0.35;
                     u.takeDamage(this.damage * falloff, this.owner);
                     if (hasNapalm) {
-                        u.burnTimer = 3.0;
+                        u.burnTimer = burnDuration;
                         u.burnDps = ownerSpec.burnDps;
                     }
                     if (hasEmp) {
@@ -2700,7 +2801,8 @@ class Projectile {
                 damageRaidBoss(this.damage, this.targetX);
             }
         } else {
-            particlePool.spawn(this.targetX, this.targetY, 0, 0, 5, '#fde047', 3.5, 'circle');
+            const hitCol = this.auraType === 'demon_abyss' ? '#f0abfc' : (this.auraType === 'master_aqua' ? '#00f2fe' : '#fde047');
+            particlePool.spawn(this.targetX, this.targetY, 0, 0, 5, hitCol, 3.5, 'circle');
             if (this.targetRef) {
                 applyDamageToTargetObject(this.targetRef, this.damage, this.owner);
             }
@@ -2709,7 +2811,12 @@ class Projectile {
 
     draw(ctx) {
         if (this.done) return;
-        const sprite = projCache.getProjectileSprite(this.angle, this.team === 'blue', this.isRocket);
+        const sprite = projCache.getProjectileSprite(
+            this.angle,
+            this.team === 'blue',
+            this.isRocket,
+            this.auraType
+        );
         if (sprite) {
             ctx.drawImage(sprite, this.x - 10, this.y - 10);
         }
@@ -2726,7 +2833,7 @@ function applyDamageToTargetObject(target, dmg, attacker = null) {
     } else if (typeof target.takeDamage === 'function') {
         target.takeDamage(dmg, attacker);
         if (ownerSpec.burnDps > 0) {
-            target.burnTimer = 3.0;
+            target.burnTimer = ownerSpec.burnDuration || 3.0;
             target.burnDps = ownerSpec.burnDps;
         }
         if (ownerSpec.stunChance > 0 && Math.random() < ownerSpec.stunChance) {
@@ -2751,7 +2858,7 @@ function damageBase(baseObj, rawDmg) {
 }
 
 // ============================================================================
-// 11. HỆ THỐNG KỸ NĂNG CHỈ HUY (COMMANDER ACTIVE SKILLS Q / W / E / R)
+// 11. HỆ THỐNG KỸ NĂNG CHỈ HUY (Q/W/E/R: 16s / 18s / 22s / 24s)
 // ============================================================================
 const SKILL_ALIAS_MAP = {
     airdrop: 'airdrop',
@@ -2766,30 +2873,34 @@ const SKILL_ALIAS_MAP = {
 
 export function triggerCommanderSkill(rawSkillKey, targetX = null, targetY = null) {
     if (!game.running || game.paused || game.gameOver) return;
+    if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') return;
+
     const skillKey = SKILL_ALIAS_MAP[rawSkillKey] || rawSkillKey;
     if (!skillKey || game.tacticCooldowns[skillKey] > 0) return;
 
     const logiLv = Number(metaState?.metaTalents?.optimal_logistics) || 0;
     const cdReduction = logiLv * 0.04;
-    const baseCd = game.tacticMaxCooldowns[skillKey] || 18;
-    game.tacticCooldowns[skillKey] = Math.max(6, baseCd * (1 - cdReduction));
+    const baseCd = game.tacticMaxCooldowns[skillKey] || 16;
+    game.tacticCooldowns[skillKey] = Math.max(5, baseCd * (1 - cdReduction));
 
     triggerHaptic(25);
 
     if (skillKey === 'airdrop') {
-        // [Q] Chi Viện Dù: Hồi 40% HP & +30% tốc đánh cho đồng minh + Thả 3 lính nhảy dù
+        // [Q - 16s] Chi Viện Dù: Thả 3 lính nhảy dù xuống giữa sân & hồi 40% HP toàn quân
         sfx.play('spawn');
         const dropX = targetX ?? LOGICAL_WIDTH / 2;
         const dropY = targetY ?? Math.max(190, PLAYFIELD_HEIGHT * 0.52);
+        const healRatio = COMMANDER_TACTICS.airdrop?.healRatio ?? 0.40;
+        const buffDur = COMMANDER_TACTICS.airdrop?.buffDuration ?? 6.0;
 
         for (const u of game.units) {
             if (u.team === 'blue' && !u.dead) {
-                u.hp = Math.min(u.maxHp, Math.round(u.hp + u.maxHp * 0.40));
-                u.airdropBuffTimer = 6.0;
+                u.hp = Math.min(u.maxHp, Math.round(u.hp + u.maxHp * healRatio));
+                u.airdropBuffTimer = buffDur;
             }
         }
 
-        const specs = ['infantry', 'bazooka', 'infantry'];
+        const specs = COMMANDER_TACTICS.airdrop?.paratroopUnits || ['infantry', 'bazooka', 'infantry'];
         specs.forEach((uId, idx) => {
             const dx = Math.max(48, Math.min(LOGICAL_WIDTH - 48, dropX + (idx - 1) * 42));
             game.paratroops.push({
@@ -2800,50 +2911,58 @@ export function triggerCommanderSkill(rawSkillKey, targetX = null, targetY = nul
                 done: false
             });
         });
-        spawnFloatingText(dropX, dropY - 28, '🪂 CHI VIỆN DÙ & HỒI 40% HP!', '#4ade80', 14);
+        spawnFloatingText(dropX, dropY - 28, '🪂 CHI VIỆN DÙ [Q] & HỒI 40% HP!', '#4ade80', 14);
     } else if (skillKey === 'minefield') {
-        // [W] Rải Mìn Chống Tăng
+        // [W - 18s] Mìn Chống Tăng: Đặt 5 quả mìn chống tăng dọc chiến tuyến
         sfx.play('upgrade');
         const rowY = targetY ?? PLAYFIELD_HEIGHT * 0.62;
-        for (let i = 0; i < 5; i++) {
+        const mineCount = COMMANDER_TACTICS.landmines?.mineCount ?? 5;
+        const mineDmg = COMMANDER_TACTICS.landmines?.mineDamage ?? 240;
+        const mineSplash = COMMANDER_TACTICS.landmines?.mineSplash ?? 54;
+
+        for (let i = 0; i < mineCount; i++) {
             const mx = 70 + i * 70;
             const validPt = nav.findValidSpawnPoint('blue', UNIT_BY_ID.infantry, mx, rowY);
             game.landmines.push({
                 x: validPt.x,
                 y: validPt.y,
                 radius: 11,
-                splash: 54,
-                damage: 240,
+                splash: mineSplash,
+                damage: mineDmg,
                 blinkTimer: Math.random(),
                 exploded: false
             });
         }
         spawnFloatingText(LOGICAL_WIDTH / 2, rowY - 20, '💣 BÃI MÌN CHỐNG TĂNG [W]!', '#f97316', 14);
     } else if (skillKey === 'emp_blast') {
-        // [E] Xung Điện EMP: Tê liệt cơ giới & tàu chiến địch 3.5s - 4.0s
+        // [E - 22s] Xung Điện EMP: Làm tê liệt toàn bộ quân địch trong 4.0 giây & gây sát thương điện từ
         sfx.play('emp');
         addScreenShake(6, 0.28);
         const empX = targetX ?? LOGICAL_WIDTH / 2;
         const empY = targetY ?? PLAYFIELD_HEIGHT * 0.42;
+        const stunDur = COMMANDER_TACTICS.emp?.stunDuration ?? 4.0;
+        const empDmg = COMMANDER_TACTICS.emp?.empDamage ?? 48;
+        const bossEmpDmg = COMMANDER_TACTICS.emp?.bossEmpDamage ?? 180;
+
         spawnShockwave(empX, empY, 240, '#38bdf8', 5);
 
         for (const u of game.units) {
             if (u.team === 'red' && !u.dead) {
-                u.stunTimer = Math.max(u.stunTimer, 3.8);
-                u.takeDamage(48);
+                u.stunTimer = Math.max(u.stunTimer, stunDur);
+                u.takeDamage(empDmg);
             }
         }
         if (game.raidBoss && game.raidBoss.hp > 0) {
             game.raidBoss.stunTimer = 3.0;
-            damageRaidBoss(180, empX);
+            damageRaidBoss(bossEmpDmg, empX);
         }
-        spawnFloatingText(empX, empY, '⚡ XUNG ĐIỆN EMP [E]!', '#38bdf8', 15);
+        spawnFloatingText(empX, empY, '⚡ XUNG ĐIỆN EMP [E] (TÊ LIỆT 4S)!', '#38bdf8', 15);
     } else if (skillKey === 'blitzkrieg') {
-        // [R] Tăng Tốc Cơ Động Blitzkrieg (+80% tốc chạy trong 5s)
+        // [R - 24s] Tăng Tốc Cơ Động Blitzkrieg: +55% tốc bắn & +42% tốc chạy trong 6.0 giây
         sfx.play('blitz');
-        game.blitzkriegTimer = 5.0;
+        game.blitzkriegTimer = COMMANDER_TACTICS.blitzkrieg?.duration ?? 6.0;
         spawnShockwave(game.playerBase.x, game.playerBase.y, 180, '#fde047', 4.5);
-        spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT * 0.68, '🚀 BLITZKRIEG THẦN TỐC [R]!', '#fde047', 15);
+        spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT * 0.68, '🚀 BLITZKRIEG THẦN TỐC [R] (6S)!', '#fde047', 15);
     }
 
     updateCommanderSkillsUI();
@@ -2852,6 +2971,19 @@ export function triggerCommanderSkill(rawSkillKey, targetX = null, targetY = nul
 // ============================================================================
 // 12. 4 CHẾ ĐỘ CHƠI MỚI (RAID BOSS, FOG OF WAR, ENDLESS SIEGE, AUTO-BATTLER)
 // ============================================================================
+function showBossWarningBanner(titleText, subText) {
+    const banner = document.getElementById('boss-warning-banner');
+    if (!banner) return;
+    const tEl = document.getElementById('boss-alert-title');
+    const sEl = document.getElementById('boss-alert-sub');
+    if (tEl && titleText) tEl.textContent = titleText;
+    if (sEl && subText) sEl.textContent = subText;
+    banner.classList.remove('hidden');
+    setTimeout(() => {
+        banner.classList.add('hidden');
+    }, 3200);
+}
+
 function initRaidBoss() {
     const diffMult = DIFFICULTY_CONFIG[game.difficulty]?.statMult || 1.0;
     const maxHp = Math.round((5400 + game.currentLevel * 380) * diffMult);
@@ -2880,6 +3012,7 @@ function initRaidBoss() {
     game.enemyBase.hp = maxHp;
     game.enemyBase.maxHp = maxHp;
     updateRaidBossHUD();
+    showBossWarningBanner('PHÁO ĐÀI LEVIATHAN MK-IX!', 'Hủy diệt 3 bộ phận Pháo Chính, Phòng Không & Động Cơ!');
 }
 
 function updateRaidBossHUD() {
@@ -2925,7 +3058,6 @@ function damageRaidBoss(rawDmg, hitX = null) {
     boss.hitFlash = 0.12;
     game.enemyBase.hp = boss.hp;
 
-    // Phân bổ sát thương vào 3 bộ phận (Pháo Chính, Phòng Không, Động Cơ)
     let partKey = 'engine';
     if (hitX !== null) {
         if (hitX < boss.x - 15) partKey = 'cannon';
@@ -2980,7 +3112,6 @@ function updateRaidBoss(dt) {
         return;
     }
 
-    // Nếu Động Cơ bị phá hủy, tốc độ di chuyển của Boss giảm 65%
     const engineMult = boss.parts.engine.destroyed ? 0.35 : 1.0;
     boss.x += boss.vx * (boss.phase === 3 ? 1.45 : 1.0) * engineMult * dt;
     if (boss.x > LOGICAL_WIDTH - 85) {
@@ -2991,7 +3122,6 @@ function updateRaidBoss(dt) {
         boss.vx = Math.abs(boss.vx);
     }
 
-    // Nếu Pháo Chính chưa hỏng, bắn pháo kép liên tục
     const cannonMult = boss.parts.cannon.destroyed ? 0.45 : 1.0;
     boss.turretTimer -= dt * (boss.phase >= 2 ? 1.35 : 1.0) * cannonMult;
     if (boss.turretTimer <= 0) {
@@ -3179,6 +3309,15 @@ function triggerRoguelikeMutationDraft() {
     const shuffled = [...ROGUELIKE_MUTATIONS].sort(() => Math.random() - 0.5).slice(0, 3);
     if (shuffled.length === 0) return;
 
+    // Nếu đang bật chế độ 🤖 AUTO: Tự động chọn thẻ đột biến đầu tiên để trận đấu không bị dừng!
+    if (game.autoPlay) {
+        const picked = shuffled[0];
+        game.activeMutations.push(picked.id);
+        sfx.play('upgrade');
+        spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, `🤖 AUTO ĐỘT BIẾN: ${picked.name}!`, '#fde047', 15);
+        return;
+    }
+
     game.paused = true;
     game.awaitingMutationChoice = true;
 
@@ -3224,7 +3363,7 @@ function triggerRoguelikeMutationDraft() {
 }
 
 // ============================================================================
-// 13. TRIỂN KHAI QUÂN ĐỘI, KHÔNG KÍCH & AI ĐỐI PHƯƠNG
+// 13. TRIỂN KHAI QUÂN ĐỘI, KHÔNG KÍCH, AI ĐỊCH & AI TỰ ĐỘNG ĐÁNH (AUTO-PLAY)
 // ============================================================================
 export function spawnUnit(team, unitId, prefX, prefY, customRarityId = null) {
     const spec = getEffectiveUnitStats(unitId, team, customRarityId);
@@ -3260,30 +3399,29 @@ function launchAirstrike(team, targetY) {
 }
 
 export function deployDeckSlot(slotIdx) {
-    if (!game.running || game.paused || game.gameOver) return;
+    if (!game.running || game.paused || game.gameOver) return false;
 
     const unitId = game.deckIds[slotIdx];
-    if (!unitId) return;
+    if (!unitId) return false;
 
     // Nếu đang ở pha dàn trận Auto-Battler: Chọn binh chủng để chấm lên sân
     if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') {
         game.autoSelectedUnitId = unitId;
         sfx.play('gas');
         renderBattleDeckButtons();
-        return;
+        return true;
     }
 
     const spec = getEffectiveUnitStats(unitId, 'blue');
     const cost = spec.cost || 2;
 
-    if (game.gas < cost || game.deckCooldowns[slotIdx] > 0) return;
+    if (game.gas < cost || game.deckCooldowns[slotIdx] > 0) return false;
 
     game.gas -= cost;
     game.deckCooldowns[slotIdx] = spec.cooldown || 2.0;
     game.deckMaxCooldowns[slotIdx] = spec.cooldown || 2.0;
     triggerHaptic(15);
 
-    // Kiểm tra Cây Bị Động Hậu Cần Tối Ưu (optimal_logistics): Xác suất hoàn lại +1 Xăng ngay lập tức
     const logiLv = Number(metaState?.metaTalents?.optimal_logistics) || 0;
     if (logiLv > 0 && Math.random() < logiLv * 0.03) {
         game.gas = Math.min(game.maxGas, game.gas + 1);
@@ -3307,12 +3445,13 @@ export function deployDeckSlot(slotIdx) {
 
     updateGasUI();
     renderBattleDeckButtons();
+    return true;
 }
 
 export function upgradeGasGenerator() {
-    if (!game.running || game.paused || game.gameOver) return;
+    if (!game.running || game.paused || game.gameOver) return false;
     const nextLv = GAS_UPGRADE_LEVELS[game.gasGenLevel];
-    if (!nextLv || nextLv.cost <= 0 || game.gas < nextLv.cost) return;
+    if (!nextLv || nextLv.cost <= 0 || game.gas < nextLv.cost) return false;
 
     game.gas -= nextLv.cost;
     game.gasGenLevel = Math.min(GAS_UPGRADE_LEVELS.length - 1, game.gasGenLevel + 1);
@@ -3321,6 +3460,7 @@ export function upgradeGasGenerator() {
     spawnFloatingText(game.playerBase.x, game.playerBase.y - 30, '⛽ NÂNG CẤP MÁY PHÁT XĂNG!', '#fde047', 14);
     updateGasUI();
     renderBattleDeckButtons();
+    return true;
 }
 
 function spawnEnemyWaveUnit() {
@@ -3341,6 +3481,99 @@ function spawnEnemyWaveUnit() {
     const sx = Math.max(65, Math.min(LOGICAL_WIDTH - 65, LOGICAL_WIDTH / 2 + (Math.random() - 0.5) * 160));
     const sy = 102;
     spawnUnit('red', pickId, sx, sy);
+}
+
+/**
+ * MỤC 5.2: HỆ THỐNG AI TỰ ĐỘNG CHIẾN ĐẤU (🤖 AUTO-PLAY COMMANDER)
+ * - Tự động nâng máy phát xăng khi đủ điều kiện
+ * - Tự động gọi quân trong 4 Ô Deck & gọi Không Kích (Ô 5) khi có đông địch
+ * - Tự động tung kỹ năng Q / W / E / R khi hồi chiêu xong
+ */
+function updateAutoPlayCommander(dt) {
+    if (!game.autoPlay || !game.running || game.paused || game.gameOver) return;
+    if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') return;
+
+    game.autoPlayTimer -= dt;
+    if (game.autoPlayTimer > 0) return;
+    game.autoPlayTimer = 0.22; // Kiểm tra quyết định mỗi 0.22s
+
+    const redUnits = game.units.filter(u => u.team === 'red' && !u.dead);
+    const blueUnits = game.units.filter(u => u.team === 'blue' && !u.dead);
+    const hasWater = nav.waterBoxes.length > 0;
+
+    // 1. Tự động tung Kỹ năng Chỉ Huy Q / W / E / R
+    if (game.tacticCooldowns.airdrop <= 0 && (redUnits.length >= 1 || blueUnits.length >= 1)) {
+        triggerCommanderSkill('airdrop');
+    }
+    if (game.tacticCooldowns.minefield <= 0 && redUnits.length >= 1) {
+        triggerCommanderSkill('minefield');
+    }
+    if (game.tacticCooldowns.emp_blast <= 0 && (redUnits.length >= 2 || (game.battleMode === 'raid_boss' && game.raidBoss))) {
+        triggerCommanderSkill('emp_blast');
+    }
+    if (game.tacticCooldowns.blitzkrieg <= 0 && blueUnits.length >= 2) {
+        triggerCommanderSkill('blitzkrieg');
+    }
+
+    // 2. Tự động nâng cấp Máy phát Xăng nếu an toàn hoặc đủ xăng
+    const nextGasCfg = GAS_UPGRADE_LEVELS[game.gasGenLevel];
+    const dangerClose = redUnits.some(e => e.y > PLAYFIELD_HEIGHT * 0.65);
+    if (nextGasCfg && nextGasCfg.cost > 0 && game.gas >= nextGasCfg.cost) {
+        if (!dangerClose || blueUnits.length >= 3 || game.gas >= nextGasCfg.cost + 3) {
+            if (upgradeGasGenerator()) return;
+        }
+    }
+
+    // 3. Tự động gọi Không Kích (Ô 5 - index 4) nếu trên sân có từ 4 địch trở lên và xăng dư dả
+    if (redUnits.length >= 4 && game.deckCooldowns[4] <= 0 && game.gas >= 8) {
+        if (deployDeckSlot(4)) return;
+    }
+
+    // 4. Tự động gọi các binh chủng trong 4 Ô Quân (index 0..3)
+    const candidateSlots = [0, 1, 2, 3].filter(idx => {
+        const uId = game.deckIds[idx];
+        if (!uId || uId === 'airstrike') return false;
+        const spec = UNIT_BY_ID[uId];
+        if (spec?.isNaval && !hasWater) return false; // Không gọi tàu chiến trên bản đồ khô
+        return game.deckCooldowns[idx] <= 0;
+    });
+
+    if (candidateSlots.length > 0) {
+        // Ưu tiên chọn ngẫu nhiên có trọng số giữa quân giá rẻ & quân chủ lực
+        const pickSlot = candidateSlots[(Math.random() * candidateSlots.length) | 0];
+        const uId = game.deckIds[pickSlot];
+        const spec = getEffectiveUnitStats(uId, 'blue');
+        if (game.gas >= (spec.cost || 2)) {
+            deployDeckSlot(pickSlot);
+        }
+    }
+}
+
+export function toggleBattleSpeedMultiplier() {
+    const speeds = DataModule.BATTLE_SPEED_MULTIPLIERS || [1, 2, 4];
+    const curIdx = speeds.indexOf(game.speedMult);
+    const nextIdx = (curIdx + 1) % speeds.length;
+    game.speedMult = speeds[nextIdx];
+
+    const btn = document.getElementById('speed-mult-btn');
+    if (btn) {
+        btn.textContent = `⚡x${game.speedMult}`;
+        btn.classList.toggle('speed-x2', game.speedMult === 2);
+        btn.classList.toggle('speed-x4', game.speedMult === 4);
+    }
+    sfx.play('gas');
+    triggerHaptic(15);
+}
+
+export function toggleAutoPlayMode() {
+    game.autoPlay = !game.autoPlay;
+    const btn = document.getElementById('auto-play-btn');
+    if (btn) {
+        btn.textContent = game.autoPlay ? '🤖 AUTO: BẬT' : '🤖 AUTO: TẮT';
+        btn.classList.toggle('auto-active', game.autoPlay);
+    }
+    sfx.play(game.autoPlay ? 'upgrade' : 'gas');
+    triggerHaptic(20);
 }
 
 // ============================================================================
@@ -3392,11 +3625,11 @@ export function renderBattleDeckButtons() {
         if (costEl) costEl.textContent = `${spec.cost || 2}`;
 
         const c = btn.querySelector('canvas');
-        if (c && atlas.ready && c.dataset.drawnId !== uId) {
+        if (c && atlas.ready && c.dataset.drawnId !== `${uId}_${spec.rarityId}`) {
             const cCtx = c.getContext('2d');
             cCtx.clearRect(0, 0, c.width, c.height);
             atlas.draw(cCtx, spec.spriteCol ?? 16, 7, 21, 21, 34, 34);
-            c.dataset.drawnId = uId;
+            c.dataset.drawnId = `${uId}_${spec.rarityId}`;
         }
 
         const overlay = btn.querySelector('.cooldown-radial-overlay');
@@ -3419,7 +3652,6 @@ export function renderBattleDeckButtons() {
 function getEffectiveGasInterval() {
     const gasCfg = GAS_UPGRADE_LEVELS[game.gasGenLevel] || GAS_UPGRADE_LEVELS[0];
     const oilLv = Number(metaState?.metaTalents?.oil_refining) || 0;
-    // Mỗi cấp Công Nghệ Lọc Dầu giảm 0.08s chu kỳ nạp xăng
     return Math.max(0.55, gasCfg.interval - oilLv * 0.08);
 }
 
@@ -3435,7 +3667,7 @@ function updateCommanderSkillsUI() {
         const btn = document.getElementById(btnId);
         const cdOverlay = document.getElementById(cdId);
         const cd = game.tacticCooldowns[key] || 0;
-        const maxCd = game.tacticMaxCooldowns[key] || 20;
+        const maxCd = game.tacticMaxCooldowns[key] || 16;
 
         if (!btn || !cdOverlay) return;
         if (cd > 0.05) {
@@ -3468,13 +3700,11 @@ function updateGasUI() {
     const speedInd = document.getElementById('speed-indicator');
     if (speedInd) speedInd.textContent = `${effInterval.toFixed(1)}s`;
 
-    // Cập nhật 5 vạch tiến trình nạp xăng (#L1..#L5)
     const filledSegs = Math.min(5, Math.floor(((game.gasTimer || 0) / effInterval) * 5));
     for (let i = 1; i <= 5; i++) {
         document.getElementById(`L${i}`)?.classList.toggle('active', i <= filledSegs);
     }
 
-    // Cập nhật nút Nâng Xăng & lớp khóa #blockUpgrade
     const cfg = GAS_UPGRADE_LEVELS[game.gasGenLevel] || GAS_UPGRADE_LEVELS[GAS_UPGRADE_LEVELS.length - 1];
     const nextSpeedEl = document.getElementById('upgrade-next-speed');
     if (nextSpeedEl) nextSpeedEl.textContent = cfg.label || 'MAX';
@@ -3532,7 +3762,7 @@ function updateTopBattleHUD() {
 function updateBattle(dt) {
     if (!game.running || game.paused || game.gameOver) return;
 
-    // Nếu đang ở pha xếp đội hình Auto-Battler, chỉ cập nhật hạt hiệu ứng và chờ bấm "BẮT ĐẦU GIAO CHIẾN"
+    // Nếu đang ở pha xếp đội hình Auto-Battler, chỉ cập nhật hạt hiệu ứng và chờ bấm "⚔️ XUẤT KÍCH!"
     if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') {
         for (const u of game.units) u.update(dt);
         particlePool.update(dt);
@@ -3578,6 +3808,9 @@ function updateBattle(dt) {
     if (deckChanged) {
         renderBattleDeckButtons();
     }
+
+    // Chạy AI Chỉ Huy Tự Động Chiến Đấu nếu người chơi bật nút 🤖 AUTO
+    updateAutoPlayCommander(dt);
 
     // Lính nhảy dù (Kỹ năng Q)
     for (let i = game.paratroops.length - 1; i >= 0; i--) {
@@ -3660,6 +3893,18 @@ function updateBattle(dt) {
             }
             game.wave++;
             spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT * 0.35, `WAVE ${game.wave}!`, '#fde047', 18);
+
+            // Mỗi 5 Wave sinh thêm 1 Siêu Tăng Chỉ Huy Địch kèm cảnh báo Boss
+            if (game.wave % 5 === 0) {
+                const bossTank = spawnUnit('red', 'heavy_tank', LOGICAL_WIDTH / 2, 104);
+                if (bossTank) {
+                    bossTank.hp = Math.round(bossTank.hp * 2.2);
+                    bossTank.maxHp = bossTank.hp;
+                    bossTank.radius = 20;
+                    bossTank.isBossUnit = true;
+                }
+                showBossWarningBanner(`SIÊU TĂNG ĐỊCH WAVE ${game.wave}!`, 'Thiết giáp hạng nặng chỉ huy đã xuất trận!');
+            }
 
             if (game.battleMode === 'endless_siege') {
                 metaState.endlessBestWave = Math.max(metaState.endlessBestWave || 0, game.wave);
@@ -3844,7 +4089,7 @@ function drawBattleScene(ctx) {
     for (const b of game.beamEffects) {
         ctx.save();
         ctx.strokeStyle = b.color;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = b.width || 2.5;
         ctx.beginPath();
         ctx.moveTo(b.x1, b.y1);
         ctx.lineTo(b.x2, b.y2);
@@ -3918,7 +4163,7 @@ function drawBattleScene(ctx) {
 }
 
 // ============================================================================
-// 16. KHỞI ĐỘNG & KẾT THÚC TRẬN ĐẤU (ĐỒNG BỘ #lobby-wrapper, #win-panel, #lose-panel)
+// 16. KHỞI ĐỘNG & KẾT THÚC TRẬN ĐẤU (FIX ĐỒNG BỘ #win-panel, #lose-panel & DECK)
 // ============================================================================
 const ENGINE_MODE_NORMALIZE = {
     destroy: 'destroy',
@@ -3962,6 +4207,7 @@ export function startBattleFromLobby(levelNum, difficultyId = 'easy', modeId = '
     document.getElementById('win-panel')?.classList.remove('active');
     document.getElementById('lose-panel')?.classList.remove('active');
     document.getElementById('draft-modal')?.classList.remove('active');
+    document.getElementById('boss-warning-banner')?.classList.add('hidden');
     const pauseBtn = document.getElementById('pause-btn');
     if (pauseBtn) pauseBtn.textContent = '⏸';
 
@@ -3971,7 +4217,7 @@ export function startBattleFromLobby(levelNum, difficultyId = 'easy', modeId = '
         game.gas = 28;
         game.maxGas = 28;
         game.autoBattlerPhase = 'prep';
-        game.autoSelectedUnitId = 'infantry';
+        game.autoSelectedUnitId = metaState?.selectedDeck?.[0] || 'infantry';
     } else {
         game.maxGas = 20;
         game.gas = Math.min(game.maxGas, (lvCfg.startingGas ?? 6) + logiLv);
@@ -4007,20 +4253,21 @@ export function startBattleFromLobby(levelNum, difficultyId = 'easy', modeId = '
     game.floatingTexts = [];
     particlePool.clear();
 
-    // Tự động đưa đơn vị Thủy quân vào bộ bài nếu bản đồ có sông/biển và người chơi đã sở hữu
-    const baseDeck = ['infantry', 'bazooka', 'humvee', 'tank', 'airstrike'];
-    if (lvCfg.hasWater) {
-        const navalOwned = ['battleship', 'destroyer', 'patrol_boat'].find(id =>
-            metaState.inventory?.some(c => c.unitId === id)
-        );
-        if (navalOwned) baseDeck[2] = navalOwned;
-    }
-    game.deckIds = baseDeck;
+    // MỤC 5.1: Nạp Đội Hình Chiến Đấu 4 Ô Quân + 1 Không Kích do người chơi tự chọn trong `metaState.selectedDeck`
+    const customDeck = normalizeSelectedDeck(metaState?.selectedDeck);
+    game.deckIds = [...customDeck];
     game.deckCooldowns = game.deckIds.map(() => 0);
+
+    // MỤC 1.5: Đồng bộ Cooldown Q/W/E/R chuẩn 16s / 18s / 22s / 24s
     game.tacticCooldowns = { airdrop: 0, minefield: 0, emp_blast: 0, blitzkrieg: 0 };
+    game.tacticMaxCooldowns = {
+        airdrop: COMMANDER_TACTICS.airdrop?.cooldown ?? 16.0,
+        minefield: COMMANDER_TACTICS.landmines?.cooldown ?? 18.0,
+        emp_blast: COMMANDER_TACTICS.emp?.cooldown ?? 22.0,
+        blitzkrieg: COMMANDER_TACTICS.blitzkrieg?.cooldown ?? 24.0
+    };
     game.blitzkriegTimer = 0;
 
-    // Bật/tắt thanh Auto-Battler & Raid Boss HUD
     const abBar = document.getElementById('autobattler-setup-bar');
     if (abBar) {
         abBar.classList.toggle('hidden', resolvedMode !== 'auto_battler');
@@ -4049,6 +4296,7 @@ function endBattle(victory) {
 
     document.getElementById('autobattler-setup-bar')?.classList.add('hidden');
     document.getElementById('autobattler-setup-bar')?.classList.remove('active');
+    document.getElementById('boss-warning-banner')?.classList.add('hidden');
 
     let rewardCoins = 0;
     let rewardGems = 0;
@@ -4072,6 +4320,7 @@ function endBattle(victory) {
             }
         }
 
+        // FIX MỤC 1.2: Vì `game.battleMode` giữ nguyên `'auto_battler'`, `autobattlerWins` được cộng chính xác 100%!
         if (game.battleMode === 'auto_battler') {
             metaState.autobattlerWins = (metaState.autobattlerWins || 0) + 1;
         } else if (game.battleMode === 'raid_boss') {
@@ -4100,9 +4349,17 @@ function endBattle(victory) {
     showBattleResultOverlay(victory, rewardCoins, rewardGems, rewardMedals);
 }
 
+/**
+ * FIX MỤC 1.3: Gán đúng thông số vào từng ID trên `#win-panel` và `#lose-panel`:
+ * - `#win-spawned`: hiển thị Wave đạt được (`"WAVE " + game.wave`)
+ * - `#win-kills`: hiển thị Độ khó & Số địch diệt (`"DỄ • 25"` hoặc `"KHÓ • 42"`)
+ * - `#lose-spawned`: hiển thị số quân đã triển khai (`game.matchSpawns`)
+ * - `#lose-kills`: hiển thị tên Map & số địch hạ gục (`"MAP " + game.currentLevel + " • " + game.matchKills`)
+ */
 function showBattleResultOverlay(victory, coins, gems, medals) {
     const totalSec = Math.floor(game.timeSec || 0);
     const timeStr = `${String(Math.floor(totalSec / 60)).padStart(2, '0')}:${String(totalSec % 60).padStart(2, '0')}`;
+    const diffShort = DIFFICULTY_CONFIG[game.difficulty]?.shortLabel || (game.difficulty === 'difficult' ? 'KHÓ' : 'DỄ');
 
     const winPanel = document.getElementById('win-panel');
     const losePanel = document.getElementById('lose-panel');
@@ -4117,10 +4374,14 @@ function showBattleResultOverlay(victory, coins, gems, medals) {
         if (timeEl) timeEl.textContent = timeStr;
         const hpEl = document.getElementById('win-hp');
         if (hpEl) hpEl.textContent = `${Math.ceil(game.playerBase.hp)} / ${game.playerBase.maxHp}`;
+
+        // #win-spawned: Wave đạt được
         const spawnedEl = document.getElementById('win-spawned');
-        if (spawnedEl) spawnedEl.textContent = `${game.matchSpawns}`;
+        if (spawnedEl) spawnedEl.textContent = `WAVE ${game.wave}`;
+
+        // #win-kills: Độ khó & Số địch diệt
         const killsEl = document.getElementById('win-kills');
-        if (killsEl) killsEl.textContent = `${game.matchKills}`;
+        if (killsEl) killsEl.textContent = `${diffShort} • ${game.matchKills} DIỆT`;
 
         winPanel.classList.add('active');
         return;
@@ -4134,17 +4395,21 @@ function showBattleResultOverlay(victory, coins, gems, medals) {
             waveEl.textContent =
                 game.battleMode === 'endless_siege' ? `Wave ${game.wave}` : `Wave ${game.wave} / ${game.maxWaves}`;
         }
+
+        // #lose-spawned: Số quân đã triển khai (game.matchSpawns)
         const spawnedEl = document.getElementById('lose-spawned');
         if (spawnedEl) spawnedEl.textContent = `${game.matchSpawns}`;
+
+        // #lose-kills: Tên Map & Số địch hạ gục
         const killsEl = document.getElementById('lose-kills');
-        if (killsEl) killsEl.textContent = `${game.matchKills}`;
+        if (killsEl) killsEl.textContent = `MAP ${game.currentLevel} • ${game.matchKills} DIỆT`;
 
         losePanel.classList.add('active');
     }
 }
 
 // ============================================================================
-// 17. CÁC HÀM TOÀN CỤC CHO INDEX.HTML & KHỞI TẠO HỆ THỐNG
+// 17. CÁC HÀM TOÀN CỤC CHO INDEX.HTML & KHỞI TẠO HỆ THỐNG (INIT MAIN ENGINE)
 // ============================================================================
 export function openLobbyScreen(tab = 'battle') {
     game.running = false;
@@ -4152,6 +4417,7 @@ export function openLobbyScreen(tab = 'battle') {
     document.getElementById('win-panel')?.classList.remove('active');
     document.getElementById('lose-panel')?.classList.remove('active');
     document.getElementById('draft-modal')?.classList.remove('active');
+    document.getElementById('boss-warning-banner')?.classList.add('hidden');
     document.getElementById('autobattler-setup-bar')?.classList.add('hidden');
     document.getElementById('autobattler-setup-bar')?.classList.remove('active');
     document.getElementById('raid-boss-hud')?.classList.add('hidden');
@@ -4218,7 +4484,7 @@ function initMainEngine() {
         });
     }
 
-    // Nút Nâng Xăng & Chạm bình Xăng nạp nhanh
+    // Nút Nâng Xăng & Chạm bình Xăng nạp nhanh (Chỉ gắn 1 lần duy nhất tại đây)
     document.getElementById('btnUpgradeGas')?.addEventListener('click', upgradeGasGenerator);
     document.getElementById('gas-generator-btn')?.addEventListener('click', () => {
         if (!game.running || game.paused || game.gameOver) return;
@@ -4260,6 +4526,10 @@ function initMainEngine() {
         e.currentTarget.textContent = game.paused ? '▶' : '⏸';
     });
 
+    // Nút chỉnh tốc độ trận đấu (⚡x1 ➔ ⚡x2 ➔ ⚡x4) & Nút tự động chiến đấu (🤖 AUTO)
+    document.getElementById('speed-mult-btn')?.addEventListener('click', toggleBattleSpeedMultiplier);
+    document.getElementById('auto-play-btn')?.addEventListener('click', toggleAutoPlayMode);
+
     // Nút điều khiển chế độ Đặt Trận Tự Động (Auto-Battler)
     document.getElementById('btn-ab-clear')?.addEventListener('click', () => {
         if (!game.running || game.battleMode !== 'auto_battler' || game.autoBattlerPhase !== 'prep') return;
@@ -4270,6 +4540,7 @@ function initMainEngine() {
         renderBattleDeckButtons();
     });
 
+    // FIX MỤC 1.2: Giữ nguyên `game.battleMode = 'auto_battler'` và chỉ chuyển `game.autoBattlerPhase = 'combat'`
     document.getElementById('btn-ab-fight')?.addEventListener('click', () => {
         if (!game.running || game.battleMode !== 'auto_battler') return;
         game.autoBattlerPhase = 'combat';
@@ -4281,7 +4552,7 @@ function initMainEngine() {
         renderBattleDeckButtons();
     });
 
-    // Phím tắt Bàn phím (1-5, Space, Q/W/E/R)
+    // Phím tắt Bàn phím (1-5, Space, Q/W/E/R, Tab đổi tốc độ, A bật/tắt Auto)
     window.addEventListener('keydown', e => {
         if (!game.running || game.paused || game.gameOver) return;
         if (e.code === 'Digit1') deployDeckSlot(0);
@@ -4296,6 +4567,7 @@ function initMainEngine() {
         else if (e.code === 'KeyW') triggerCommanderSkill('minefield');
         else if (e.code === 'KeyE') triggerCommanderSkill('emp_blast');
         else if (e.code === 'KeyR') triggerCommanderSkill('blitzkrieg');
+        else if (e.code === 'KeyA') toggleAutoPlayMode();
     });
 
     // Khởi chạy Sảnh Lobby với đầy đủ callback
@@ -4316,14 +4588,15 @@ function initMainEngine() {
         });
     }
 
-    // Vòng lặp requestAnimationFrame 60-120 FPS
+    // Vòng lặp requestAnimationFrame 60-120 FPS duy nhất (Nhân `dt` với `game.speedMult`)
     let lastTime = performance.now();
     function frame(now) {
-        const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+        const rawDt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
         lastTime = now;
 
         if (game.running && !game.paused && !game.gameOver) {
-            updateBattle(dt);
+            const scaledDt = rawDt * (game.speedMult || 1);
+            updateBattle(scaledDt);
         }
         if (ctx && game.running) {
             drawBattleScene(ctx);
@@ -4341,8 +4614,11 @@ Object.assign(window, {
     game,
     renderMap,
     getEffectiveUnitStats,
+    renderBattleDeckButtons,
     startBattleFromLobby,
     triggerCommanderSkill,
+    toggleBattleSpeedMultiplier,
+    toggleAutoPlayMode,
     upgradeGasRate: upgradeGasGenerator,
     openLobbyScreen,
     restartGame,
