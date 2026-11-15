@@ -1,0 +1,1159 @@
+/* ============================================================================
+   TINY BATTLE - LOBBY STYLES (TOP BAR, TAB BATTLE, TAB SHOP, BOTTOM NAV)
+   ============================================================================ */
+
+/* ============================================================================
+   PHONG CÁCH BRIGHT MOBILE UI - SẢNH CHÍNH (LOBBY WRAPPER)
+   ============================================================================ */
+.lobby-wrapper {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    background:
+        radial-gradient(circle at 20% 25%, rgba(255, 255, 255, 0.16) 0%, transparent 28%),
+        radial-gradient(circle at 80% 65%, rgba(255, 255, 255, 0.14) 0%, transparent 32%),
+        linear-gradient(180deg, #26b5ff 0%, #38bdf8 55%, #0ea5e9 100%);
+    overflow: hidden;
+}
+
+.lobby-wrapper.active {
+    display: flex;
+    animation: popIn 0.2s ease-out;
+}
+
+/* 1. TOP BAR: AVATAR + TÊN + SETTING GEAR | MEDALS + GEMS + COINS */
+.lobby-top-bar {
+    height: 56px;
+    background: #334155;
+    border-bottom: 3.5px solid #0f172a;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 0 rgba(15, 23, 42, 0.35);
+    flex-shrink: 0;
+    z-index: 5;
+}
+
+.profile-settings-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.player-profile-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #1e293b;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
+    padding: 3px 8px 3px 4px;
+    cursor: pointer;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.12);
+    transition: transform 0.1s ease, border-color 0.15s ease;
+}
+
+.player-profile-pill:hover {
+    border-color: #38bdf8;
+}
+
+.player-profile-pill:active {
+    transform: scale(0.96) translateY(2px);
+}
+
+.avatar-box {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    border: 2px solid #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.player-name-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.player-name-text {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-shadow: 0 2px 0 #0f172a;
+    max-width: 84px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.1;
+}
+
+.admin-status-mini-badge {
+    background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
+    color: #ffffff;
+    font-size: 8.5px;
+    font-weight: 900;
+    padding: 0.5px 5px;
+    border-radius: 999px;
+    border: 1.5px solid #0f172a;
+    line-height: 1.1;
+    margin-top: 1px;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+}
+
+/* Nút Setting (Bánh răng) bên cạnh Profile */
+.btn-settings-gear {
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    border: 2.5px solid #0f172a;
+    background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.65);
+    transition: transform 0.1s ease, filter 0.15s ease;
+    flex-shrink: 0;
+}
+
+.btn-settings-gear:hover {
+    filter: brightness(1.06);
+}
+
+.btn-settings-gear:active {
+    transform: scale(0.96) translateY(2px);
+    box-shadow: 0 1px 0 #0f172a;
+}
+
+.btn-settings-gear.admin-active-gear {
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    border-color: #0f172a;
+    box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.85);
+}
+
+.gear-icon {
+    font-size: 17px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 0 rgba(15, 23, 42, 0.4));
+}
+
+.currency-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.currency-pill {
+    display: flex;
+    align-items: center;
+    gap: 3.5px;
+    background: #1e293b;
+    border: 2.5px solid #0f172a;
+    border-radius: 999px;
+    padding: 3px 7px 3px 5px;
+    min-width: 56px;
+    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.currency-pill.medal-pill {
+    background: linear-gradient(180deg, #4c0519 0%, #1e293b 100%);
+}
+
+.currency-pill.admin-infinite-pill {
+    border-color: #fde047;
+    background: linear-gradient(180deg, #422006 0%, #1e293b 100%);
+    box-shadow: 0 0 10px rgba(250, 204, 21, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.currency-icon {
+    font-size: 13px;
+    filter: drop-shadow(0 1.5px 0 #0f172a);
+}
+
+.currency-val {
+    font-family: var(--font-num);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.4px;
+    line-height: 1;
+    text-shadow: 0 1.5px 0 #0f172a;
+}
+
+.currency-pill.admin-infinite-pill .currency-val {
+    color: #fde047;
+    font-size: 18px;
+    line-height: 0.9;
+}
+
+/* 2. MAIN CONTENT VIEW */
+.lobby-main-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.lobby-tab-pane {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.lobby-tab-pane.active {
+    display: flex;
+    animation: popIn 0.18s ease-out;
+}
+
+/* ============================================================================
+   TAB BATTLE: CHỌN MAP & (2 ĐỘ KHÓ x CÁC HÌNH THỨC CHIẾN ĐẤU)
+   ============================================================================ */
+.battle-tab-layout {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 6px 10px 10px 10px;
+}
+
+.battle-header-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.map-selector-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.btn-nav-arrow {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+    color: #0f172a;
+    text-shadow: none;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.map-title-block {
+    text-align: center;
+    flex: 1;
+}
+
+.map-big-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.8px;
+    -webkit-text-stroke: 1.5px #0f172a;
+    text-shadow: 0 3px 0 #0f172a;
+    line-height: 1.1;
+}
+
+.map-sub-progress {
+    margin: 1px 0 0 0;
+    font-size: 12px;
+    font-weight: 800;
+    color: #fef08a;
+    text-shadow: 0 1.5px 0 #0f172a;
+    letter-spacing: 0.6px;
+}
+
+/* Cụm 1: Chọn Độ khó */
+.difficulty-selector-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    width: 100%;
+    max-width: 356px;
+    background: rgba(15, 23, 42, 0.42);
+    padding: 3.5px;
+    border-radius: 13px;
+    border: 2.5px solid #0f172a;
+}
+
+.difficulty-selector-bar.three-cols {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.diff-pill-btn {
+    border: 2px solid #0f172a;
+    border-radius: 9px;
+    padding: 4px 6px;
+    background: #334155;
+    color: #cbd5e1;
+    font-weight: 800;
+    font-size: 10.5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.12s ease;
+    box-shadow: 0 2px 0 #0f172a;
+}
+
+.diff-pill-btn:hover:not(.locked) {
+    filter: brightness(1.06);
+}
+
+.diff-pill-btn:active:not(.locked) {
+    transform: scale(0.96) translateY(2px);
+}
+
+.diff-pill-btn.active[data-diff="easy"] {
+    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+    color: #ffffff;
+    text-shadow: 0 1.5px 0 #0f172a;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(74, 222, 128, 0.45);
+}
+
+.diff-pill-btn.active[data-diff="difficult"] {
+    background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
+    color: #ffffff;
+    text-shadow: 0 1.5px 0 #0f172a;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(244, 63, 94, 0.5);
+}
+
+.diff-pill-btn.fog-toggle-btn.active {
+    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border-color: #93c5fd;
+}
+
+.diff-pill-btn.locked {
+    opacity: 0.52;
+    cursor: not-allowed;
+}
+
+.diff-icon {
+    font-size: 12px;
+}
+
+.diff-name {
+    letter-spacing: 0.2px;
+}
+
+.diff-status {
+    font-size: 10.5px;
+    color: #fde047;
+}
+
+/* Cụm 2: Chọn Hình thức chơi chuẩn & mở rộng */
+.battle-mode-selector-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    width: 100%;
+    max-width: 356px;
+    background: rgba(15, 23, 42, 0.62);
+    padding: 3.5px;
+    border-radius: 12px;
+    border: 2px solid #0f172a;
+}
+
+.battle-mode-selector-bar.multi-modes {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+}
+
+.mode-pill-btn {
+    border: 2px solid #0f172a;
+    border-radius: 8px;
+    padding: 4px 5px;
+    background: #1e293b;
+    color: #94a3b8;
+    font-weight: 800;
+    font-size: 9.8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3.5px;
+    transition: all 0.12s ease;
+    box-shadow: 0 2px 0 #0f172a;
+    white-space: nowrap;
+}
+
+.mode-pill-btn.col-span-2 {
+    grid-column: span 2 / span 2;
+}
+
+.mode-pill-btn:hover {
+    color: #e2e8f0;
+}
+
+.mode-pill-btn:active {
+    transform: scale(0.96) translateY(2px);
+}
+
+.mode-pill-btn.active[data-mode="destroy"] {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    color: #ffffff;
+    border-color: #bae6fd;
+    text-shadow: 0 1px 0 #0f172a;
+    box-shadow: 0 2px 0 #0f172a, 0 0 8px rgba(56, 189, 248, 0.45);
+}
+
+.mode-pill-btn.active[data-mode="survival"] {
+    background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+    color: #ffffff;
+    border-color: #fde047;
+    text-shadow: 0 1px 0 #0f172a;
+    box-shadow: 0 2px 0 #0f172a, 0 0 8px rgba(245, 158, 11, 0.45);
+}
+
+.mode-pill-btn.active[data-mode="endless"] {
+    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+    color: #ffffff;
+    border-color: #e9d5ff;
+}
+
+.mode-pill-btn.active[data-mode="autobattler"] {
+    background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+    color: #ffffff;
+    border-color: #a7f3d0;
+}
+
+.mode-pill-btn.active[data-mode="bossrush"],
+.mode-pill-btn.active[data-mode="raid_boss"] {
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+    color: #ffffff;
+    border-color: #fecaca;
+}
+
+.mode-icon {
+    font-size: 11px;
+}
+
+.mode-name {
+    letter-spacing: 0.15px;
+}
+
+.mode-status {
+    font-size: 10px;
+    color: #fde047;
+}
+
+/* Cụm 3: Thanh chọn 4 chế độ chơi đặc biệt */
+.special-modes-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    width: 100%;
+    max-width: 356px;
+    background: rgba(15, 23, 42, 0.72);
+    padding: 3.5px;
+    border-radius: 11px;
+    border: 2px solid #0f172a;
+    margin-top: 2px;
+}
+
+.special-mode-pill {
+    border: 1.5px solid #0f172a;
+    border-radius: 7px;
+    padding: 3.5px 2px;
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 8.5px;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    transition: all 0.12s ease;
+    box-shadow: 0 2px 0 #0f172a;
+}
+
+.special-mode-pill:active {
+    transform: scale(0.96) translateY(2px);
+}
+
+.special-mode-pill.active[data-mode="endless"],
+.special-mode-pill.active[data-special="endless"] {
+    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+    color: #ffffff;
+    border-color: #e9d5ff;
+}
+
+.special-mode-pill.active[data-mode="autobattler"],
+.special-mode-pill.active[data-special="autobattler"] {
+    background: linear-gradient(180deg, #10b981 0%, #047857 100%);
+    color: #ffffff;
+    border-color: #a7f3d0;
+}
+
+.special-mode-pill.active[data-mode="night_fog"],
+.special-mode-pill.active[data-special="night_fog"] {
+    background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border-color: #bfdbfe;
+}
+
+.special-mode-pill.active[data-mode="raid_boss"],
+.special-mode-pill.active[data-special="raid_boss"] {
+    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
+    color: #ffffff;
+    border-color: #fecaca;
+}
+
+.endless-record-strip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(90deg, #3b0764 0%, #581c87 100%);
+    border: 1.5px solid #e9d5ff;
+    color: #fde047;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.diff-info-strip {
+    background: rgba(15, 23, 42, 0.85);
+    border: 2px solid #0f172a;
+    color: #f8fafc;
+    font-size: 10px;
+    padding: 2.5px 10px;
+    border-radius: 999px;
+    text-align: center;
+}
+
+.diff-mechanic-substrip {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #0f172a;
+    background: rgba(254, 240, 138, 0.92);
+    border: 1.5px solid #0f172a;
+    padding: 1.5px 9px;
+    border-radius: 999px;
+    text-align: center;
+}
+
+/* Khu vực giữa: 2 Sidebar (3 nút mỗi bên) + Demo Map */
+.battle-center-stage {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.battle-side-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 64px;
+    align-items: center;
+}
+
+.side-feature-btn {
+    position: relative;
+    width: 60px;
+    height: 58px;
+    background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
+    border: 3px solid #0f172a;
+    border-radius: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #0f172a;
+    transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.side-feature-btn.wheel-feature-btn {
+    background: linear-gradient(180deg, #fef08a 0%, #f59e0b 100%);
+    border-color: #0f172a;
+}
+
+.side-feature-btn.minigame-feature-btn {
+    background: linear-gradient(180deg, #e9d5ff 0%, #c084fc 100%);
+    border-color: #0f172a;
+}
+
+.side-feature-btn:hover {
+    filter: brightness(1.05);
+}
+
+.side-feature-btn:active {
+    transform: scale(0.96) translateY(2px);
+    box-shadow: 0 1px 0 #0f172a;
+}
+
+.side-btn-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.side-btn-text {
+    font-size: 8.8px;
+    font-weight: 900;
+    color: #0f172a;
+    margin-top: 2px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+}
+
+.notif-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #ef4444;
+    border: 2px solid #0f172a;
+    color: #ffffff;
+    font-family: var(--font-num);
+    font-size: 14px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: notifPulse 0.8s ease-in-out infinite alternate;
+}
+
+.notif-badge.amber-notif {
+    background: #f59e0b;
+}
+
+@keyframes notifPulse {
+    from { transform: scale(0.95); }
+    to { transform: scale(1.12); }
+}
+
+.map-demo-card {
+    flex: 1;
+    max-width: 224px;
+    background: #1e293b;
+    border: 4px solid #0f172a;
+    border-radius: 20px;
+    padding: 6px;
+    box-shadow: 0 8px 0 rgba(15, 23, 42, 0.45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.map-canvas-frame {
+    position: relative;
+    width: 158px;
+    height: 194px;
+    border-radius: 12px;
+    border: 3px solid #0f172a;
+    overflow: hidden;
+    background: #166534;
+}
+
+.map-preview-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.map-water-pill {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 999px;
+    text-align: center;
+    border: 1.5px solid #0f172a;
+}
+
+.map-water-pill.has-water {
+    background: #38bdf8;
+    color: #0f172a;
+}
+
+.map-water-pill.no-water {
+    background: #fbbf24;
+    color: #0f172a;
+}
+
+.map-endless-record-pill {
+    position: absolute;
+    top: 28px;
+    left: 10px;
+    right: 10px;
+    background: rgba(88, 28, 135, 0.92);
+    border: 1.5px solid #e9d5ff;
+    color: #fde047;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    text-align: center;
+}
+
+.map-cleared-ribbon {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    right: 6px;
+    background: #22c55e;
+    border: 2px solid #0f172a;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 4px;
+    border-radius: 8px;
+    text-align: center;
+    text-shadow: 0 1px 0 #0f172a;
+}
+
+.map-demo-desc {
+    margin: 4px 0 1px 0;
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #e2e8f0;
+    text-align: center;
+    line-height: 1.25;
+    min-height: 24px;
+}
+
+.battle-footer-zone {
+    display: flex;
+    justify-content: center;
+    padding-top: 2px;
+}
+
+.btn-start-huge {
+    width: 216px;
+    padding: 9px 24px;
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    color: #ffffff;
+    font-size: 23px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    border-radius: 18px;
+    border: 3.5px solid #0f172a;
+    -webkit-text-stroke: 1.2px #0f172a;
+    text-shadow: 0 3px 0 #0f172a;
+    box-shadow: 0 6px 0 #0f172a, inset 0 3px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* ============================================================================
+   TAB SHOP (GACHA CRATES + MỞ RƯƠNG SIÊU TỐC LÊN ĐẾN 1 TỶ RƯƠNG)
+   ============================================================================ */
+#tab-shop {
+    background:
+        radial-gradient(circle at 50% 20%, rgba(192, 132, 252, 0.25) 0%, transparent 50%),
+        linear-gradient(180deg, #6d28d9 0%, #4c1d95 100%);
+}
+
+.shop-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 12px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shop-banner-ribbon {
+    background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
+    border: 3px solid #0f172a;
+    border-radius: 12px;
+    padding: 5px 12px;
+    text-align: center;
+    font-size: 13.5px;
+    font-weight: 900;
+    color: #ffffff;
+    -webkit-text-stroke: 1px #0f172a;
+    text-shadow: 0 2px 0 #0f172a;
+    box-shadow: 0 4px 0 #0f172a;
+}
+
+.shop-discount-notice {
+    background: rgba(15, 23, 42, 0.72);
+    border: 2px solid #0f172a;
+    border-radius: 10px;
+    padding: 5px 10px;
+    font-size: 10.5px;
+    color: #e2e8f0;
+    text-align: center;
+    line-height: 1.35;
+}
+
+.crate-card {
+    border: 3.5px solid #0f172a;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 6px 0 rgba(15, 23, 42, 0.65);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.crate-legendary {
+    background: linear-gradient(180deg, #fb923c 0%, #facc15 54%, #1e293b 54%, #1e293b 100%);
+}
+
+.crate-epic {
+    background: linear-gradient(180deg, #c084fc 0%, #9333ea 54%, #1e293b 54%, #1e293b 100%);
+}
+
+.crate-card-header {
+    padding: 6px 12px;
+    border-bottom: 2.5px solid rgba(15, 23, 42, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.crate-title {
+    font-size: 16px;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: 0.8px;
+    -webkit-text-stroke: 1.1px #0f172a;
+    text-shadow: 0 2px 0 #0f172a;
+}
+
+.crate-price-unit-tag {
+    background: rgba(15, 23, 42, 0.78);
+    color: #fde047;
+    font-family: var(--font-num);
+    font-size: 14px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1.5px solid #0f172a;
+}
+
+.crate-card-body {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    gap: 10px;
+}
+
+.crate-visual-box {
+    position: relative;
+    width: 84px;
+    height: 84px;
+    background: rgba(15, 23, 42, 0.28);
+    border: 2.5px solid #0f172a;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.crate-glow-ring {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(254, 240, 138, 0.55) 0%, transparent 70%);
+    pointer-events: none;
+    animation: crateGlowPulse 2.2s ease-in-out infinite alternate;
+}
+
+.crate-glow-ring.purple-glow {
+    background: radial-gradient(circle, rgba(216, 180, 254, 0.55) 0%, transparent 70%);
+}
+
+@keyframes crateGlowPulse {
+    from { transform: scale(0.9); opacity: 0.7; }
+    to { transform: scale(1.18); opacity: 1; }
+}
+
+.crate-art-icon {
+    position: relative;
+    z-index: 2;
+    font-size: 38px;
+    filter: drop-shadow(0 4px 0 #0f172a);
+}
+
+.crate-rate-tag {
+    position: relative;
+    z-index: 2;
+    font-size: 8px;
+    font-weight: 800;
+    color: #fef08a;
+    background: #0f172a;
+    padding: 1.5px 5px;
+    border-radius: 999px;
+    margin-top: 2px;
+}
+
+.crate-info-box {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.78);
+    border: 2px solid #0f172a;
+    border-radius: 12px;
+    padding: 7px 8px;
+    color: #ffffff;
+}
+
+.crate-desc-main {
+    margin: 0 0 4px 0;
+    font-size: 10.5px;
+    line-height: 1.25;
+}
+
+.crate-odds-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2px 6px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #cbd5e1;
+}
+
+.crate-card-footer {
+    background: #1e293b;
+    border-top: 3px solid #0f172a;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.crate-quick-btns {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.crate-buy-btn {
+    position: relative;
+    flex: 1;
+    padding: 5px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.buy-label {
+    font-size: 11.5px;
+    font-weight: 900;
+}
+
+.buy-price {
+    font-family: var(--font-num);
+    font-size: 16px;
+    color: #fef08a;
+}
+
+.discount-pill {
+    position: absolute;
+    top: -8px;
+    right: -6px;
+    background: #ef4444;
+    border: 2px solid #0f172a;
+    color: #ffffff;
+    font-family: var(--font-num);
+    font-size: 12px;
+    padding: 1px 5px;
+    border-radius: 999px;
+}
+
+/* Hàng nhập số lượng rương tùy chỉnh */
+.crate-custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0f172a;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 5px 6px;
+}
+
+.custom-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+}
+
+.custom-input-label {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #94a3b8;
+    white-space: nowrap;
+    padding-left: 3px;
+}
+
+.crate-custom-input {
+    width: 100%;
+    min-width: 78px;
+    background: #1e293b;
+    border: 2px solid #475569;
+    border-radius: 8px;
+    padding: 4px 6px;
+    color: #fde047;
+    font-family: var(--font-num);
+    font-size: 18px;
+    text-align: center;
+    outline: none;
+}
+
+.crate-custom-input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+}
+
+.crate-custom-buy-btn {
+    padding: 6px 10px;
+    font-size: 10.5px;
+    white-space: nowrap;
+}
+
+/* Dãy nút chọn nhanh số lượng lớn: [1K], [1M], [100M], [1B (1 Tỷ)] */
+.crate-preset-qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1.5px solid #334155;
+    border-radius: 10px;
+    padding: 4px 6px;
+}
+
+.preset-row-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: #cbd5e1;
+    white-space: nowrap;
+}
+
+.crate-preset-qty-btn {
+    flex: 1;
+    padding: 3px 4px;
+    font-size: 13px;
+    border-radius: 8px;
+    border-width: 2px;
+    box-shadow: 0 2px 0 #0f172a;
+    text-align: center;
+}
+
+/* Bảng tra cứu 41 bậc độ hiếm trong Shop */
+.shop-rarity-encyclopedia-card {
+    background: rgba(15, 23, 42, 0.85);
+    border: 2.5px solid #0f172a;
+    border-radius: 14px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.shop-encyclopedia-header {
+    background: linear-gradient(90deg, #0284c7 0%, #7e22ce 100%);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 5px 10px;
+    text-align: center;
+    border-bottom: 2px solid #0f172a;
+}
+
+.shop-encyclopedia-body {
+    padding: 7px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.rarity-tier-group-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+}
+
+/* ============================================================================
+   3. BOTTOM NAVIGATION BAR: 3 TAB (SHOP - BATTLE - ARMY)
+   ============================================================================ */
+.lobby-bottom-nav {
+    height: 62px;
+    background: #1e293b;
+    border-top: 4px solid #0f172a;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    flex-shrink: 0;
+    z-index: 5;
+}
+
+.nav-tab-btn {
+    background: #334155;
+    border: none;
+    border-right: 3px solid #0f172a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #cbd5e1;
+    transition: all 0.15s ease;
+}
+
+.nav-tab-btn:last-child {
+    border-right: none;
+}
+
+.nav-tab-btn:active {
+    transform: scale(0.96) translateY(2px);
+}
+
+.nav-tab-btn.active {
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    color: #ffffff;
+    transform: translateY(-4px);
+    border-top: 3px solid #0f172a;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 12px rgba(245, 158, 11, 0.35);
+}
+
+.nav-tab-icon {
+    font-size: 21px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 0 #0f172a);
+}
+
+.nav-tab-label {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    margin-top: 2px;
+    text-shadow: 0 1.5px 0 #0f172a;
+}

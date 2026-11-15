@@ -1,0 +1,95 @@
+/* ============================================================================
+   TINY BATTLE - RESPONSIVE STYLES
+   Tinh chỉnh giao diện cho màn hình điện thoại nhỏ (< 380px & < 720px height)
+   ============================================================================ */
+
+@media (max-width: 380px) {
+    .bottom-deck {
+        grid-template-columns: 0.88fr 0.74fr 4.38fr;
+        gap: 2.5px;
+        padding: 5px 3px 6px 3px;
+    }
+    .battle-deck-slots,
+    #unitDeckContainer,
+    #battle-deck-slots {
+        gap: 2.5px;
+    }
+    .draft-cards-grid {
+        gap: 4px;
+    }
+    .draft-card {
+        min-height: 168px;
+        padding: 6px 3px;
+    }
+    .army-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .mode-pill-btn {
+        font-size: 8.8px;
+        padding: 4px 3px;
+    }
+    .commander-tactics-dock,
+    .commander-tactics-bar {
+        gap: 3.5px;
+        bottom: 128px;
+    }
+    .tactic-skill-btn {
+        height: 40px;
+        padding: 2px 4px;
+    }
+    .tactic-title-short,
+    .tactic-label {
+        font-size: 8px;
+    }
+    .side-feature-btn {
+        width: 54px;
+        height: 52px;
+    }
+    .side-btn-icon {
+        font-size: 18px;
+    }
+    .side-btn-text {
+        font-size: 8px;
+    }
+    .bulk-upg-top-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .bulk-quick-btns-group {
+        justify-content: space-between;
+    }
+    .upg-quick-lv-btn {
+        flex: 1;
+    }
+    .bulk-custom-input-group {
+        justify-content: space-between;
+    }
+    .upg-deck-btns-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .lucky-wheel-stage {
+        width: 216px;
+        height: 216px;
+    }
+    .lucky-wheel-canvas {
+        width: 210px;
+        height: 210px;
+    }
+}
+
+@media (max-height: 720px) {
+    .army-Hero-stage {
+        height: 126px;
+    }
+    .army-showcase-canvas {
+        width: 88px;
+        height: 88px;
+    }
+    .map-canvas-frame {
+        width: 142px;
+        height: 168px;
+    }
+    .side-feature-btn {
+        height: 50px;
+    }
+}
