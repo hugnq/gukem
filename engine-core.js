@@ -1,6 +1,7 @@
 /* ============================================================================
    TINY BATTLE - ENGINE CORE (js/engine-core.js)
-   Web Audio SoundFX, Offscreen Projectile Cache, ParticlePool & SpriteAtlas
+   Web Audio SoundFX, Offscreen Projectile Cache, ParticlePool, SpriteAtlas
+   & Procedural 2D Pixel-Vector Art Renderer cho 6 Binh Chủng Mới + Ụ Pháo
    ============================================================================ */
 
 // ============================================================================
@@ -57,7 +58,7 @@ export class SoundFX {
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.35);
                 osc.start(now);
                 osc.stop(now + 0.35);
-            } else if (type === 'emp') {
+            } else if (type === 'emp' || type === 'tesla') {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(880, now);
                 osc.frequency.exponentialRampToValueAtTime(95, now + 0.42);
@@ -73,7 +74,7 @@ export class SoundFX {
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.28);
                 osc.start(now);
                 osc.stop(now + 0.28);
-            } else if (type === 'spawn') {
+            } else if (type === 'spawn' || type === 'summon') {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(340, now);
                 osc.frequency.exponentialRampToValueAtTime(620, now + 0.1);
@@ -105,6 +106,30 @@ export class SoundFX {
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.22);
                 osc.start(now);
                 osc.stop(now + 0.22);
+            } else if (type === 'heal') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(540, now);
+                osc.frequency.exponentialRampToValueAtTime(980, now + 0.16);
+                gain.gain.setValueAtTime(0.07, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.16);
+                osc.start(now);
+                osc.stop(now + 0.16);
+            } else if (type === 'freeze') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(760, now);
+                osc.frequency.exponentialRampToValueAtTime(320, now + 0.14);
+                gain.gain.setValueAtTime(0.07, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.14);
+                osc.start(now);
+                osc.stop(now + 0.14);
+            } else if (type === 'railgun') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(940, now);
+                osc.frequency.exponentialRampToValueAtTime(120, now + 0.24);
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.24);
+                osc.start(now);
+                osc.stop(now + 0.24);
             }
         } catch (e) {}
     }
@@ -113,7 +138,7 @@ export class SoundFX {
 export const sfx = new SoundFX();
 
 // ============================================================================
-// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO (CÓ CẢ ĐẠN MASTER AQUA & DEMON PURPLE)
+// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO (KÈM FIREBALL, ICE SHARD, DARK ORB)
 // ============================================================================
 export class ProjectileSpriteCache {
     constructor() {
@@ -124,6 +149,9 @@ export class ProjectileSpriteCache {
         this.rocketRed = [];
         this.rocketMaster = [];
         this.rocketDemon = [];
+        this.fireballCache = [];
+        this.iceShardCache = [];
+        this.darkOrbCache = [];
         this.muzzleStarCanvas = null;
         this.buildCache();
     }
@@ -137,6 +165,9 @@ export class ProjectileSpriteCache {
             this.rocketRed.push(this.createRotatedProjectile(angle, '#f97316', '#dc2626', true));
             this.rocketMaster.push(this.createRotatedProjectile(angle, '#00f2fe', '#0284c7', true));
             this.rocketDemon.push(this.createRotatedProjectile(angle, '#f0abfc', '#7e22ce', true));
+            this.fireballCache.push(this.createMagicProjectile(angle, 'fireball'));
+            this.iceShardCache.push(this.createMagicProjectile(angle, 'ice_shard'));
+            this.darkOrbCache.push(this.createMagicProjectile(angle, 'dark_orb'));
         }
         this.muzzleStarCanvas = this.createMuzzleStarSprite();
     }
@@ -179,6 +210,71 @@ export class ProjectileSpriteCache {
         return c;
     }
 
+    createMagicProjectile(angle, projType) {
+        const size = 22;
+        const c = document.createElement('canvas');
+        c.width = size;
+        c.height = size;
+        const cx = c.getContext('2d');
+        cx.translate(size / 2, size / 2);
+        cx.rotate(angle);
+
+        if (projType === 'fireball') {
+            cx.fillStyle = '#ea580c';
+            cx.beginPath();
+            cx.moveTo(-9, 0);
+            cx.lineTo(-2, -5.5);
+            cx.lineTo(6, 0);
+            cx.lineTo(-2, 5.5);
+            cx.closePath();
+            cx.fill();
+
+            cx.fillStyle = '#fde047';
+            cx.beginPath();
+            cx.arc(2, 0, 4.8, 0, Math.PI * 2);
+            cx.fill();
+            cx.strokeStyle = '#7c2d12';
+            cx.lineWidth = 1.2;
+            cx.stroke();
+        } else if (projType === 'ice_shard') {
+            cx.fillStyle = '#38bdf8';
+            cx.beginPath();
+            cx.moveTo(8, 0);
+            cx.lineTo(-2, -4.5);
+            cx.lineTo(-8, 0);
+            cx.lineTo(-2, 4.5);
+            cx.closePath();
+            cx.fill();
+            cx.strokeStyle = '#0284c7';
+            cx.lineWidth = 1.3;
+            cx.stroke();
+
+            cx.fillStyle = '#e0f2fe';
+            cx.beginPath();
+            cx.moveTo(5, 0);
+            cx.lineTo(-1, -2);
+            cx.lineTo(-4, 0);
+            cx.lineTo(-1, 2);
+            cx.closePath();
+            cx.fill();
+        } else {
+            // dark_orb (Necromancer)
+            cx.fillStyle = '#7e22ce';
+            cx.beginPath();
+            cx.arc(0, 0, 6, 0, Math.PI * 2);
+            cx.fill();
+            cx.strokeStyle = '#090014';
+            cx.lineWidth = 1.5;
+            cx.stroke();
+
+            cx.fillStyle = '#f0abfc';
+            cx.beginPath();
+            cx.arc(1.5, -1, 2.5, 0, Math.PI * 2);
+            cx.fill();
+        }
+        return c;
+    }
+
     createMuzzleStarSprite() {
         const size = 28;
         const c = document.createElement('canvas');
@@ -213,10 +309,13 @@ export class ProjectileSpriteCache {
         return c;
     }
 
-    getProjectileSprite(angle, isBlue, isRocket, auraType = 'none') {
+    getProjectileSprite(angle, isBlue, isRocket, auraType = 'none', projType = 'shell') {
         let norm = angle % (Math.PI * 2);
         if (norm < 0) norm += Math.PI * 2;
         const idx = Math.floor((norm / (Math.PI * 2)) * this.angleSteps) % this.angleSteps;
+        if (projType === 'fireball') return this.fireballCache[idx];
+        if (projType === 'ice_shard') return this.iceShardCache[idx];
+        if (projType === 'dark_orb') return this.darkOrbCache[idx];
         if (isBlue && auraType === 'demon_abyss') return this.rocketDemon[idx];
         if (isBlue && auraType === 'master_aqua') return this.rocketMaster[idx];
         if (isRocket) return isBlue ? this.rocketBlue[idx] : this.rocketRed[idx];
@@ -340,7 +439,533 @@ export class ParticlePool {
 export const particlePool = new ParticlePool(240);
 
 // ============================================================================
-// 4. ATLAS BÓC TÁCH SPRITE SHEET ("Preview.png")
+// 4. BỘ VẼ CANVAS PIXEL-VECTOR ART ĐA LỚP CHO 6 NHÂN VẬT MỚI + XƯƠNG + Ụ PHÁO
+// ============================================================================
+export const CUSTOM_ART_UNIT_IDS = new Set([
+    'pyromancer',
+    'cryomancer',
+    'cleric',
+    'necromancer',
+    'mecha_paladin',
+    'railgun_walker',
+    'skeleton'
+]);
+
+export function isCustomArtUnit(unitId) {
+    return CUSTOM_ART_UNIT_IDS.has(unitId);
+}
+
+/**
+ * Vẽ nhân vật sáng tạo đa lớp bằng Canvas 2D (Dùng cho cả Chiến trường, Showcase & Icon Thẻ bài)
+ */
+export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team = 'blue', animPhase = 0, rotation = 0) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    if (rotation) {
+        ctx.rotate(rotation);
+    }
+    const scale = size / 32;
+    ctx.scale(scale, scale);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    const isBlue = team !== 'red';
+
+    if (unitId === 'pyromancer') {
+        // 1. Phù Thủy Lửa: Áo choàng đỏ viền vàng, mũ chóp nhọn, trượng ngọc lửa xoay tròn
+        ctx.fillStyle = isBlue ? '#b91c1c' : '#7f1d1d';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-10, 11);
+        ctx.lineTo(-7, -4);
+        ctx.lineTo(7, -4);
+        ctx.lineTo(10, 11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Viền vàng áo choàng
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-8, 9);
+        ctx.lineTo(8, 9);
+        ctx.moveTo(0, -3);
+        ctx.lineTo(0, 10);
+        ctx.stroke();
+
+        // Khuôn mặt & mắt sáng
+        ctx.fillStyle = '#fde68a';
+        ctx.beginPath();
+        ctx.arc(0, -5, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mũ phù thủy chóp nhọn
+        ctx.fillStyle = isBlue ? '#dc2626' : '#991b1b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.ellipse(0, -7.5, 9.5, 3.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-6, -8);
+        ctx.lineTo(1, -15.5);
+        ctx.lineTo(6, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Đai mũ vàng
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-5, -8.2);
+        ctx.lineTo(5, -8.2);
+        ctx.stroke();
+
+        // Trượng lửa bên phải + Ngọc lửa xoay
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(9, 10);
+        ctx.lineTo(11, -9);
+        ctx.stroke();
+
+        const orbPulse = 3.8 + Math.sin(animPhase * 6) * 0.9;
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.arc(11, -11, orbPulse + 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(11, -11, orbPulse * 0.65, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (unitId === 'cryomancer') {
+        // 2. Pháp Sư Băng Giá: Áo choàng xanh băng #38bdf8, vương miện pha lê, mảnh băng xoay quanh
+        ctx.fillStyle = isBlue ? '#0284c7' : '#be123c';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-10, 11);
+        ctx.lineTo(-6.5, -4);
+        ctx.lineTo(6.5, -4);
+        ctx.lineTo(10, 11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Áo choàng trong màu băng sáng
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.moveTo(-5, 10);
+        ctx.lineTo(-3, -3);
+        ctx.lineTo(3, -3);
+        ctx.lineTo(5, 10);
+        ctx.closePath();
+        ctx.fill();
+
+        // Đầu & Vương miện pha lê 3 đỉnh
+        ctx.fillStyle = '#e0f2fe';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, -6, 4.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#00f2fe';
+        ctx.beginPath();
+        ctx.moveTo(-5.5, -9);
+        ctx.lineTo(-4, -14);
+        ctx.lineTo(-1.5, -10.5);
+        ctx.lineTo(0, -15.5);
+        ctx.lineTo(1.5, -10.5);
+        ctx.lineTo(4, -14);
+        ctx.lineTo(5.5, -9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 3 mảnh tinh thể băng bay xoay quanh người
+        for (let i = 0; i < 3; i++) {
+            const a = animPhase * 3.5 + (i * Math.PI * 2) / 3;
+            const sx = Math.cos(a) * 12;
+            const sy = Math.sin(a) * 7;
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.rotate(a);
+            ctx.fillStyle = '#bae6fd';
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(0, -3.8);
+            ctx.lineTo(2.4, 0);
+            ctx.lineTo(0, 3.8);
+            ctx.lineTo(-2.4, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+    } else if (unitId === 'cleric') {
+        // 3. Mục Sư Thánh Quang: Áo giáp trắng viền vàng, quyền trượng chữ thập phát hào quang xanh ngọc
+        ctx.strokeStyle = 'rgba(52, 211, 153, 0.75)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 12.5 + Math.sin(animPhase * 4) * 1.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-8.5, -3, 17, 13, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // Chữ thập vàng trước ngực
+        ctx.strokeStyle = '#eab308';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(0, -1);
+        ctx.lineTo(0, 8);
+        ctx.moveTo(-4, 3);
+        ctx.lineTo(4, 3);
+        ctx.stroke();
+
+        // Đầu & Mũ trùm trắng viền vàng
+        ctx.fillStyle = '#fef3c7';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, -6.5, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Quyền trượng chữ thập phát sáng xanh ngọc
+        ctx.strokeStyle = '#ca8a04';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(9.5, 10);
+        ctx.lineTo(9.5, -11);
+        ctx.moveTo(6, -8);
+        ctx.lineTo(13, -8);
+        ctx.stroke();
+
+        ctx.fillStyle = '#34d399';
+        ctx.beginPath();
+        ctx.arc(9.5, -8, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (unitId === 'necromancer') {
+        // 4. Pháp Sư Chiêu Hồn: Áo choàng tím đen hắc ám, trượng đầu lâu phát sáng tím, làn khói ma thuật
+        ctx.fillStyle = 'rgba(147, 51, 234, 0.45)';
+        ctx.beginPath();
+        ctx.ellipse(0, 10, 11 + Math.sin(animPhase * 5) * 1.5, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#1e1b4b';
+        ctx.strokeStyle = '#090014';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-10.5, 11);
+        ctx.lineTo(-7, -5);
+        ctx.lineTo(7, -5);
+        ctx.lineTo(10.5, 11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Viền áo tím ma giới
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-5, -4);
+        ctx.lineTo(-7, 10);
+        ctx.moveTo(5, -4);
+        ctx.lineTo(7, 10);
+        ctx.stroke();
+
+        // Mũ trùm đầu tối & 2 mắt tím phát sáng
+        ctx.fillStyle = '#3b0764';
+        ctx.beginPath();
+        ctx.arc(0, -7, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#f0abfc';
+        ctx.fillRect(-2.8, -8, 2, 2);
+        ctx.fillRect(0.8, -8, 2, 2);
+
+        // Trượng đầu lâu phát sáng
+        ctx.strokeStyle = '#4c1d95';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(10, 10);
+        ctx.lineTo(10, -9);
+        ctx.stroke();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(10, -10.5, 3.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#d946ef';
+        ctx.beginPath();
+        ctx.arc(10, -10.5, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (unitId === 'mecha_paladin') {
+        // 5. Robot Hộ Vệ Titan: Giáp bạc xanh lớn, tay trái cầm khiên lục giác #00f2fe, tay phải kiếm plasma
+        ctx.fillStyle = isBlue ? '#1e3a8a' : '#7f1d1d';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.roundRect(-11, -8, 22, 18, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        // Giáp ngực bạc & Lõi năng lượng
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(-8, -5, 16, 11);
+        ctx.fillStyle = '#00f2fe';
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Đầu Mecha & kính Visor phát sáng
+        ctx.fillStyle = '#64748b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.roundRect(-5.5, -12.5, 11, 6.5, 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(-4, -10.5, 8, 2.2);
+
+        // Tay phải: Kiếm Plasma phát sáng
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(11, 2);
+        ctx.lineTo(13, -13);
+        ctx.stroke();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(11, 2);
+        ctx.lineTo(13, -13);
+        ctx.stroke();
+
+        // Tay trái: Khiên Năng Lượng Lục Giác (#00f2fe)
+        ctx.save();
+        ctx.translate(-10.5, -1);
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.42)';
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const hexR = 7.5;
+        for (let i = 0; i < 6; i++) {
+            const a = (i * Math.PI) / 3;
+            const hx = Math.cos(a) * hexR;
+            const hy = Math.sin(a) * hexR;
+            if (i === 0) ctx.moveTo(hx, hy);
+            else ctx.lineTo(hx, hy);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+    } else if (unitId === 'railgun_walker') {
+        // 6. Pháo Điện Từ Railgun: Khung cơ giới 4 chân + nòng pháo đôi dài phát tia sét xanh cyan
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 3.2;
+        [
+            [-11, -9], [11, -9],
+            [-11, 9],  [11, 9]
+        ].forEach(([lx, ly]) => {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(lx, ly);
+            ctx.stroke();
+            ctx.fillStyle = '#475569';
+            ctx.beginPath();
+            ctx.arc(lx, ly, 2.8, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        // Thân tháp pháo bọc thép
+        ctx.fillStyle = isBlue ? '#0f172a' : '#450a0a';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-8.5, -6.5, 17, 14, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // Nòng pháo điện từ đôi hướng lên trên (Mặc định hướng Bắc như sprite chuẩn)
+        ctx.fillStyle = '#94a3b8';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.4;
+        ctx.fillRect(-5, -15.5, 3.5, 11);
+        ctx.strokeRect(-5, -15.5, 3.5, 11);
+        ctx.fillRect(1.5, -15.5, 3.5, 11);
+        ctx.strokeRect(1.5, -15.5, 3.5, 11);
+
+        // Tia hồ quang điện Cyan giữa 2 thanh ray
+        ctx.strokeStyle = '#00f2fe';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-1.5, -14);
+        ctx.lineTo(1.5, -11 + Math.sin(animPhase * 12) * 1.5);
+        ctx.lineTo(-1.5, -8);
+        ctx.stroke();
+    } else if (unitId === 'skeleton') {
+        // 7. Chiến Binh Xương (Triệu hồi bởi Necromancer)
+        ctx.fillStyle = '#e2e8f0';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.8;
+
+        // Lồng ngực xương
+        ctx.beginPath();
+        ctx.roundRect(-5.5, -2, 11, 9, 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Hộp sọ trắng & mắt tím ma giới
+        ctx.beginPath();
+        ctx.arc(0, -6.5, 4.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#a855f7';
+        ctx.fillRect(-2.5, -7.5, 1.8, 1.8);
+        ctx.fillRect(0.8, -7.5, 1.8, 1.8);
+
+        // Kiếm xương & Khiên nhỏ
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(7, 4);
+        ctx.lineTo(10, -10);
+        ctx.stroke();
+
+        ctx.fillStyle = '#6b21a8';
+        ctx.strokeStyle = '#d946ef';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(-7.5, 1, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    }
+
+    ctx.restore();
+}
+
+/**
+ * Vẽ Ụ Pháo Phòng Thủ gắn trên Căn Cứ Xanh (`gatling` | `sam_missile` | `tesla_coil`)
+ */
+export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI / 2, timeSec = 0) {
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Đế ụ pháo xoay
+    ctx.fillStyle = '#0f172a';
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.rotate(angleRad + Math.PI / 2);
+
+    if (turretType === 'sam_missile') {
+        // Bệ phóng tên lửa SAM 4 ống
+        ctx.fillStyle = '#ea580c';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.roundRect(-8, -9, 16, 15, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fde047';
+        [-4.5, 1.5].forEach(ox => {
+            ctx.fillRect(ox, -12, 3, 4);
+        });
+    } else if (turretType === 'tesla_coil') {
+        // Tháp sét từ trường Tesla
+        ctx.fillStyle = '#6b21a8';
+        ctx.strokeStyle = '#f0abfc';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        const pulseR = 4.2 + Math.sin(timeSec * 10) * 1.2;
+        ctx.fillStyle = '#00f2fe';
+        ctx.beginPath();
+        ctx.arc(0, -4, pulseR, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        // Pháo Gatling nhiều nòng
+        ctx.fillStyle = '#0284c7';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.roundRect(-6.5, -6, 13, 12, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(-4, -15, 2.4, 10);
+        ctx.fillRect(-0.8, -16, 2.4, 11);
+        ctx.fillRect(2.2, -15, 2.4, 10);
+    }
+
+    ctx.restore();
+}
+
+const customUnitIconCache = new Map();
+
+/**
+ * Lấy ảnh DataURL cho mọi đơn vị (Tự động kết hợp Sprite `Preview.png` cho 11 đơn vị cũ & Canvas Art cho 6 đơn vị mới)
+ */
+export function getUnitSpriteDataURL(unitOrId, fallbackRow = 7) {
+    const unitId = typeof unitOrId === 'string' ? unitOrId : (unitOrId?.id || 'infantry');
+    const spriteCol = typeof unitOrId === 'object' && unitOrId !== null ? (unitOrId.spriteCol ?? 16) : 16;
+
+    if (isCustomArtUnit(unitId)) {
+        const team = fallbackRow === 8 ? 'red' : 'blue';
+        const cacheKey = `${unitId}__${team}`;
+        if (customUnitIconCache.has(cacheKey)) {
+            return customUnitIconCache.get(cacheKey);
+        }
+        const c = document.createElement('canvas');
+        c.width = 48;
+        c.height = 48;
+        const cCtx = c.getContext('2d');
+        drawCustomUnitArt(cCtx, unitId, 24, 25, 38, team, 0.5, 0);
+        const url = c.toDataURL();
+        customUnitIconCache.set(cacheKey, url);
+        return url;
+    }
+
+    if (atlas && atlas.ready) {
+        return atlas.toDataURL(spriteCol, fallbackRow);
+    }
+    return '';
+}
+
+// ============================================================================
+// 5. ATLAS BÓC TÁCH SPRITE SHEET ("Preview.png")
 // ============================================================================
 export class SpriteAtlas {
     constructor() {

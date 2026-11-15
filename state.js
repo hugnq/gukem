@@ -1,6 +1,7 @@
 /* ============================================================================
    TINY BATTLE - META-GAME STATE & PERSISTENCE (js/state.js)
    Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100%)
+   Hỗ trợ: 45 Map • 17 Binh Chủng • Ụ Pháo Căn Cứ • Sổ Tay Codex • Lịch Sử Jackpot
    ============================================================================ */
 
 import {
@@ -10,7 +11,9 @@ import {
     RARITY_CONFIG,
     LEVELS,
     UNIT_CATALOG,
-    UNIT_BY_ID
+    UNIT_BY_ID,
+    BASE_TURRET_CONFIG,
+    CODEX_MILESTONES
 } from './config.js';
 import { getUnitUpgradeCost, calcTotalRefundCoinsFast } from './math.js';
 
@@ -56,7 +59,22 @@ export let metaState = {
     endlessBestWave: 0,
     autobattlerWins: 0,
     raidBossClears: 0,
-    wheelPity: 0
+
+    // Vòng quay may mắn & Lịch sử nổ Jackpot
+    wheelPity: 0,
+    wheelSkipAnim: false,
+    wheelJackpotTotal: 0,
+    wheelJackpotHistory: [],
+
+    // Ụ pháo phòng thủ Căn Cứ Xanh
+    baseTurret: {
+        type: 'gatling',
+        level: 1
+    },
+
+    // Sổ tay Bách khoa (Codex) & Mốc độ hiếm cao nhất từng đạt
+    highestRarityEverOwned: {},
+    codexClaimed: {}
 };
 
 let uidCounter = 1;
@@ -83,6 +101,34 @@ export function createDefaultInventory() {
         unitId: normalizeUnitId(unitId),
         rarity: 'common'
     }));
+}
+
+export function recordHighestRarityForUnit(rawUnitId, rarityId) {
+    const unitId = normalizeUnitId(rawUnitId);
+    if (!UNIT_BY_ID[unitId] || !RARITY_CONFIG[rarityId]) return;
+    if (!metaState.highestRarityEverOwned || typeof metaState.highestRarityEverOwned !== 'object') {
+        metaState.highestRarityEverOwned = {};
+    }
+    const curBest = metaState.highestRarityEverOwned[unitId];
+    const curRank = curBest && RARITY_CONFIG[curBest] ? RARITY_CONFIG[curBest].rank : -1;
+    const newRank = RARITY_CONFIG[rarityId].rank ?? 0;
+    if (newRank > curRank) {
+        metaState.highestRarityEverOwned[unitId] = rarityId;
+    }
+}
+
+export function syncHighestRarityEverOwnedFromStacks() {
+    if (!metaState.highestRarityEverOwned || typeof metaState.highestRarityEverOwned !== 'object') {
+        metaState.highestRarityEverOwned = {};
+    }
+    if (metaState.inventoryStacks && typeof metaState.inventoryStacks === 'object') {
+        for (const [key, rawCount] of Object.entries(metaState.inventoryStacks)) {
+            const count = Math.floor(Number(rawCount) || 0);
+            if (count <= 0) continue;
+            const [rawUnitId, rarity] = key.split('__');
+            recordHighestRarityForUnit(rawUnitId, rarity);
+        }
+    }
 }
 
 export function syncRepresentativeInventoryFromStacks() {
@@ -123,6 +169,8 @@ export function syncRepresentativeInventoryFromStacks() {
             continue;
         }
 
+        recordHighestRarityForUnit(unitId, rarity);
+
         const repCount = Math.min(2, count);
         const existingCards = existingMap.get(`${unitId}__${rarity}`) || [];
         for (let i = 0; i < repCount; i++) {
@@ -146,9 +194,13 @@ export function addCardToStacks(rawUnitId, rarity, deltaCount = 1) {
     if (!UNIT_BY_ID[unitId] || !RARITY_CONFIG[rarity]) return;
     const key = `${unitId}__${rarity}`;
     const cur = Math.floor(Number(metaState.inventoryStacks[key]) || 0);
-    const nextVal = Math.max(0, cur + Math.floor(Number(deltaCount) || 0));
+    const delta = Math.floor(Number(deltaCount) || 0);
+    const nextVal = Math.max(0, cur + delta);
     if (nextVal > 0) {
         metaState.inventoryStacks[key] = nextVal;
+        if (delta > 0) {
+            recordHighestRarityForUnit(unitId, rarity);
+        }
     } else {
         delete metaState.inventoryStacks[key];
     }
@@ -256,6 +308,15 @@ export function syncLegacyEngineBridges() {
     metaState.armyPermanentLevels.infantry = infLv;
     metaState.armyPermanentLevels.rifleman = infLv;
 
+    UNIT_CATALOG.forEach(u => {
+        if (!metaState.armyPermanentLevels[u.id] || metaState.armyPermanentLevels[u.id] < 1) {
+            metaState.armyPermanentLevels[u.id] = 1;
+        }
+        if (!Array.isArray(metaState.unitSockets[u.id])) {
+            metaState.unitSockets[u.id] = [u.defaultChips?.[0] || null, u.defaultChips?.[1] || null];
+        }
+    });
+
     const infSockets =
         metaState.unitSockets?.[PRIMARY_INFANTRY_ID] ||
         metaState.unitSockets?.infantry ||
@@ -288,7 +349,16 @@ export function syncLegacyEngineBridges() {
         gold_rush: logiLv
     };
 
+    if (!metaState.baseTurret || typeof metaState.baseTurret !== 'object') {
+        metaState.baseTurret = { type: 'gatling', level: 1 };
+    }
+    if (!BASE_TURRET_CONFIG[metaState.baseTurret.type]) {
+        metaState.baseTurret.type = 'gatling';
+    }
+    metaState.baseTurret.level = Math.max(1, Math.floor(Number(metaState.baseTurret.level) || 1));
+
     metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
+    syncHighestRarityEverOwnedFromStacks();
 }
 
 export function loadProgress() {
@@ -309,7 +379,28 @@ export function loadProgress() {
             metaState.endlessBestWave = Number(parsed.endlessBestWave) || 0;
             metaState.autobattlerWins = Number(parsed.autobattlerWins) || 0;
             metaState.raidBossClears = Number(parsed.raidBossClears) || 0;
+
             metaState.wheelPity = Math.max(0, Math.min(100, Number(parsed.wheelPity) || 0));
+            metaState.wheelSkipAnim = !!parsed.wheelSkipAnim;
+            metaState.wheelJackpotTotal = Math.max(0, Math.floor(Number(parsed.wheelJackpotTotal) || 0));
+            metaState.wheelJackpotHistory = Array.isArray(parsed.wheelJackpotHistory)
+                ? parsed.wheelJackpotHistory.slice(0, 15)
+                : [];
+
+            metaState.baseTurret = {
+                type: BASE_TURRET_CONFIG[parsed.baseTurret?.type] ? parsed.baseTurret.type : 'gatling',
+                level: Math.max(1, Math.floor(Number(parsed.baseTurret?.level) || 1))
+            };
+
+            metaState.highestRarityEverOwned =
+                parsed.highestRarityEverOwned && typeof parsed.highestRarityEverOwned === 'object'
+                    ? { ...parsed.highestRarityEverOwned }
+                    : {};
+
+            metaState.codexClaimed =
+                parsed.codexClaimed && typeof parsed.codexClaimed === 'object'
+                    ? { ...parsed.codexClaimed }
+                    : {};
 
             metaState.mapDifficultyProgress = defaultMapProg;
             if (parsed.mapDifficultyProgress && typeof parsed.mapDifficultyProgress === 'object') {
@@ -389,6 +480,12 @@ export function loadProgress() {
             metaState.unitSockets = defaultSockets;
             metaState.selectedDeck = normalizeSelectedDeck(null);
             metaState.wheelPity = 0;
+            metaState.wheelSkipAnim = false;
+            metaState.wheelJackpotTotal = 0;
+            metaState.wheelJackpotHistory = [];
+            metaState.baseTurret = { type: 'gatling', level: 1 };
+            metaState.highestRarityEverOwned = {};
+            metaState.codexClaimed = {};
         }
     } catch (e) {
         metaState.mapDifficultyProgress = defaultMapProg;
@@ -397,6 +494,9 @@ export function loadProgress() {
         metaState.armyPermanentLevels = defaultLevels;
         metaState.unitSockets = defaultSockets;
         metaState.selectedDeck = normalizeSelectedDeck(null);
+        metaState.baseTurret = { type: 'gatling', level: 1 };
+        metaState.highestRarityEverOwned = {};
+        metaState.codexClaimed = {};
     }
 
     syncLegacyEngineBridges();
@@ -496,6 +596,30 @@ export function getHighestRarityForUnit(unitId) {
     return bestRarity;
 }
 
+export function getHighestEverRarityRankForUnit(unitId) {
+    const targetId = normalizeUnitId(unitId);
+    const currentBest = getHighestRarityForUnit(targetId);
+    const curRank = hasUnitInInventory(targetId)
+        ? (RARITY_CONFIG[currentBest]?.rank ?? 0)
+        : -1;
+    const histRarity = metaState.highestRarityEverOwned?.[targetId];
+    const histRank = histRarity && RARITY_CONFIG[histRarity] ? RARITY_CONFIG[histRarity].rank : -1;
+    return Math.max(curRank, histRank);
+}
+
+export function hasClaimableCodexMilestones() {
+    for (const u of UNIT_CATALOG) {
+        const maxRank = getHighestEverRarityRankForUnit(u.id);
+        for (const ms of CODEX_MILESTONES) {
+            const claimKey = `${u.id}__${ms.id}`;
+            if (maxRank >= ms.minRank && !metaState.codexClaimed?.[claimKey]) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 export function hasUnitInInventory(unitId) {
     const targetId = normalizeUnitId(unitId);
     if (metaState.inventoryStacks && typeof metaState.inventoryStacks === 'object') {
@@ -509,7 +633,11 @@ export function hasUnitInInventory(unitId) {
 }
 
 export function calcTotalRefundCoins(targetLv, currentLv) {
-    return calcTotalRefundCoinsFast(targetLv, currentLv);
+    return calcTotalRefundCoinsFast(targetLv, curLvOrNumber(currentLv));
+}
+
+function curLvOrNumber(val) {
+    return Math.max(1, Math.floor(Number(val) || 1));
 }
 
 export function getUpgradeTierBracketText(currentLv) {

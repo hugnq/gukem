@@ -1,6 +1,7 @@
 /* ============================================================================
    TINY BATTLE - MAIN GAME CONTROLLER & RENDER LOOP (js/main.js)
    Logical Resolution: 420x840px | Target: 60-120 FPS Mobile Web
+   Hỗ trợ: 45 Map • 17 Binh Chủng • Cộng Hưởng Synergy • Ụ Pháo Căn Cứ • Auto-Battler
    ============================================================================ */
 
 import {
@@ -14,6 +15,7 @@ import {
     BATTLE_MODE_CONFIG,
     calcStageRewardCoins,
     UNIT_CHIPS,
+    UNIT_BY_ID,
     LEVELS,
     AIRSTRIKE_SPEC
 } from './config.js';
@@ -39,7 +41,9 @@ import {
     sfx,
     projCache,
     particlePool,
-    atlas
+    atlas,
+    drawBaseTurretArt,
+    getUnitSpriteDataURL
 } from './engine-core.js';
 
 import {
@@ -52,10 +56,14 @@ import {
 import {
     game,
     setOnEndBattleHandler,
+    getActiveMapConfig,
     addScreenShake,
     spawnFloatingText,
     spawnExplosionFX,
+    updateActiveSynergies,
+    renderSynergyHUD,
     getEffectiveUnitStats,
+    updateBaseTurret,
     damageBase,
     spawnUnit,
     launchAirstrike,
@@ -82,6 +90,14 @@ if (canvas) {
 }
 if (ctx) {
     ctx.imageSmoothingEnabled = false;
+}
+
+function getEffectiveGasInterval() {
+    const oilLv = Number(metaState?.metaTalents?.oil_refining) || 0;
+    const baseInterval = GAS_UPGRADE_LEVELS[game.gasGenLevel]?.interval || 3.0;
+    const mapCfg = getActiveMapConfig();
+    const gasRateMult = mapCfg?.gasRateMult || 1.0;
+    return Math.max(0.50, (baseInterval - oilLv * 0.08) / gasRateMult);
 }
 
 // ============================================================================
@@ -227,7 +243,9 @@ export function renderBattleDeckButtons() {
                 })
                 .join('');
 
-            const spriteUrl = atlas.ready ? atlas.toDataURL(spec.spriteCol ?? 16, 7) : '';
+            const spriteUrl = isAirSlot
+                ? (atlas.ready ? atlas.toDataURL(spec.spriteCol ?? 10, 7) : '')
+                : getUnitSpriteDataURL(spec, 7);
 
             const btn = document.createElement('button');
             btn.type = 'button';
@@ -261,15 +279,17 @@ export function renderBattleDeckButtons() {
 }
 
 export function updateDeckButtonsUI() {
+    const isAbPrep = game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep';
+
     for (let i = 0; i < 5; i++) {
         const btn = document.getElementById(`deck-slot-${i}`);
         if (!btn) continue;
 
         const uId = game.deckIds[i];
         const spec = i === 4 ? AIRSTRIKE_SPEC : getEffectiveUnitStats(uId, 'blue');
-        const cd = game.deckCooldowns[i] || 0;
+        const cd = isAbPrep ? 0 : (game.deckCooldowns[i] || 0);
         const maxCd = Math.max(0.1, game.deckMaxCooldowns[i] || spec.cooldown || 2.0);
-        const canAfford = game.gas >= spec.cost;
+        const canAfford = game.gas >= spec.cost && !(isAbPrep && i === 4);
 
         const cdOverlay = btn.querySelector('.cooldown-radial-overlay');
         const cdTimer = btn.querySelector('.unit-cd-timer');
@@ -293,13 +313,14 @@ export function updateDeckButtonsUI() {
         }
 
         btn.classList.toggle('insufficient-fuel', !canAfford);
+        btn.classList.toggle('ab-selected-slot', isAbPrep && i < 4 && game.autoSelectedSlotIdx === i);
     }
 
     const upgBtn = document.getElementById('btnUpgradeGas');
     const blockOverlay = document.getElementById('blockUpgrade');
     const isMax = game.gasGenLevel >= GAS_UPGRADE_LEVELS.length - 1;
     const upgCost = isMax ? Infinity : GAS_UPGRADE_LEVELS[game.gasGenLevel].cost;
-    const canUpgrade = !isMax && game.gas >= upgCost;
+    const canUpgrade = !isMax && !isAbPrep && game.gas >= upgCost;
 
     if (upgBtn) {
         upgBtn.classList.toggle('ready', canUpgrade);
@@ -312,6 +333,23 @@ export function updateDeckButtonsUI() {
 export function triggerDeckSlot(slotIdx) {
     if (!game.running || game.paused || game.gameOver) return;
     if (slotIdx < 0 || slotIdx >= 5) return;
+
+    // Sửa lỗi #3: Khi ở pha chuẩn bị Auto-Battler, bấm ô 1–4 để chọn loại quân đặt lên sân
+    if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') {
+        if (slotIdx >= 4) {
+            sfx.play('cannon');
+            spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT - 155, '⚠️ HÃY CHỌN Ô QUÂN 1–4 ĐỂ ĐẶT TRẬN!', '#fb7185', 12);
+            return;
+        }
+        game.autoSelectedSlotIdx = slotIdx;
+        game.autoSelectedUnitId = game.deckIds[slotIdx] || 'infantry';
+        sfx.play('gas');
+        triggerHaptic(15);
+        setupAutoBattlerPrepUI();
+        updateDeckButtonsUI();
+        return;
+    }
+
     if (game.deckCooldowns[slotIdx] > 0) return;
 
     const uId = game.deckIds[slotIdx];
@@ -340,6 +378,7 @@ export function triggerDeckSlot(slotIdx) {
         const prefX = LOGICAL_WIDTH / 2 + laneOffsets[slotIdx % 4] + (Math.random() - 0.5) * 18;
         const prefY = PLAYFIELD_HEIGHT - 118;
         spawnUnit('blue', uId, prefX, prefY);
+        updateActiveSynergies();
     }
 
     updateDeckButtonsUI();
@@ -348,6 +387,7 @@ export function triggerDeckSlot(slotIdx) {
 
 export function upgradeGasGenerator() {
     if (!game.running || game.paused || game.gameOver) return;
+    if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') return;
     if (game.gasGenLevel >= GAS_UPGRADE_LEVELS.length - 1) return;
 
     const cfg = GAS_UPGRADE_LEVELS[game.gasGenLevel];
@@ -369,9 +409,7 @@ export function manualPumpGas() {
     if (!game.running || game.paused || game.gameOver) return;
     if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') return;
 
-    const oilLv = Number(metaState?.metaTalents?.oil_refining) || 0;
-    const baseInterval = GAS_UPGRADE_LEVELS[game.gasGenLevel]?.interval || 3.0;
-    const effInterval = Math.max(0.65, baseInterval - oilLv * 0.08);
+    const effInterval = getEffectiveGasInterval();
 
     if (game.gas >= game.maxGas) {
         sfx.play('cannon');
@@ -394,7 +432,7 @@ export function manualPumpGas() {
 }
 
 // ============================================================================
-// 4. ĐẤU TRƯỜNG AUTO-BATTLER (ĐẶT TRẬN TỰ ĐỘNG - #autobattler-setup-bar)
+// 4. ĐẤU TRƯỜNG AUTO-BATTLER (ĐẶT TRẬN TỰ ĐỘNG - CHỌN Ô 1-4 & CHẠM THU HỒI)
 // ============================================================================
 export function setupAutoBattlerPrepUI() {
     const overlay = document.getElementById('autobattler-setup-bar');
@@ -412,6 +450,14 @@ export function setupAutoBattlerPrepUI() {
 
     const fuelEl = document.getElementById('autobattler-fuel-display');
     if (fuelEl) fuelEl.textContent = String(Math.floor(game.gas));
+
+    const hintEl = document.getElementById('autobattler-zone-hint');
+    if (hintEl && isPrep) {
+        const slotIdx = Math.max(0, Math.min(3, Number(game.autoSelectedSlotIdx) || 0));
+        const selectedId = game.deckIds?.[slotIdx] || game.autoSelectedUnitId || 'infantry';
+        const sp = getEffectiveUnitStats(selectedId, 'blue');
+        hintEl.innerHTML = `♟️ ĐANG CẦM <b>[Ô ${slotIdx + 1}: ${sp.name.toUpperCase()} - ${sp.cost}⛽]</b> • CHẠM SÂN ĐỂ ĐẶT / CHẠM LÍNH ĐỂ THU HỒI`;
+    }
 }
 
 export function startAutoBattlerCombat() {
@@ -419,6 +465,7 @@ export function startAutoBattlerCombat() {
     game.autoBattlerPhase = 'combat';
     sfx.play('blitz');
     setupAutoBattlerPrepUI();
+    updateDeckButtonsUI();
     spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '⚔️ BẮT ĐẦU GIAO CHIẾN!', '#fde047', 18);
 }
 
@@ -434,12 +481,17 @@ export function clearAutoBattlerFormation() {
     });
     game.gas = Math.min(game.maxGas, game.gas + refunded);
     sfx.play('gas');
+    updateActiveSynergies();
     setupAutoBattlerPrepUI();
+    updateDeckButtonsUI();
     updateHUD();
 }
 
 function spawnEnemyAutoBattlerFormation() {
-    const pool = ['infantry', 'bazooka', 'humvee', 'apc', 'tank', 'heavy_tank'];
+    const pool = [
+        'infantry', 'bazooka', 'humvee', 'apc', 'tank', 'heavy_tank',
+        'pyromancer', 'cryomancer', 'cleric', 'mecha_paladin', 'railgun_walker'
+    ];
     const budget = 16 + game.currentLevel * 2;
     let spent = 0;
     while (spent < budget) {
@@ -489,7 +541,15 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
     const pHp = Math.round((mapCfg.playerBaseHp || 250) * (1 + steelLv * 0.08));
     const eHp = Math.round((mapCfg.enemyBaseHp || 255) * diffCfg.baseHpMult);
 
-    game.playerBase = { x: LOGICAL_WIDTH / 2, y: PLAYFIELD_HEIGHT - 55, hp: pHp, maxHp: pHp, hitFlash: 0 };
+    game.playerBase = {
+        x: LOGICAL_WIDTH / 2,
+        y: PLAYFIELD_HEIGHT - 55,
+        hp: pHp,
+        maxHp: pHp,
+        hitFlash: 0,
+        turretAngle: -Math.PI / 2,
+        turretTimer: 0.4
+    };
     game.enemyBase = { x: LOGICAL_WIDTH / 2, y: 55, hp: eHp, maxHp: eHp, hitFlash: 0 };
 
     game.units = [];
@@ -505,12 +565,17 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
     game.floatingTexts = [];
     particlePool.clear();
 
+    metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
+    game.deckIds = [...metaState.selectedDeck];
     game.deckCooldowns = [0, 0, 0, 0, 0];
     game.tacticCooldowns = { airdrop: 0, minefield: 0, emp_blast: 0, blitzkrieg: 0 };
     game.blitzkriegTimer = 0;
     game.activeMutations = [];
     game.awaitingMutationChoice = false;
     game.raidBoss = null;
+
+    game.autoSelectedSlotIdx = 0;
+    game.autoSelectedUnitId = game.deckIds[0] || 'infantry';
 
     document.getElementById('win-panel')?.classList.remove('active');
     document.getElementById('lose-panel')?.classList.remove('active');
@@ -528,6 +593,8 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
         spawnUnit('red', 'infantry', LOGICAL_WIDTH / 2 + 40, 128);
     }
 
+    updateActiveSynergies();
+    renderSynergyHUD();
     updateRaidBossHUD();
     setupAutoBattlerPrepUI();
     renderBattleDeckButtons();
@@ -633,9 +700,7 @@ export function updateHUD() {
         timerEl.textContent = formatMatchTime(game.timeSec);
     }
 
-    const oilLv = Number(metaState?.metaTalents?.oil_refining) || 0;
-    const baseInterval = GAS_UPGRADE_LEVELS[game.gasGenLevel]?.interval || 3.0;
-    const effInterval = Math.max(0.65, baseInterval - oilLv * 0.08);
+    const effInterval = getEffectiveGasInterval();
 
     const speedIndEl = document.getElementById('speed-indicator');
     if (speedIndEl) speedIndEl.textContent = `${effInterval.toFixed(1)}s`;
@@ -686,9 +751,19 @@ export function updateHUD() {
 
 function spawnEnemyWaveSquad() {
     const mapCfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
-    const landPool = ['infantry', 'bazooka', 'sniper', 'humvee', 'apc', 'tank'];
-    if (game.wave >= 4 || game.currentLevel >= 5) landPool.push('heavy_tank');
-    if (game.wave >= 3 || game.currentLevel >= 3) landPool.push('heli');
+    const landPool = ['infantry', 'bazooka', 'sniper', 'humvee', 'apc', 'tank', 'cleric'];
+    if (game.wave >= 2 || game.currentLevel >= 4) {
+        landPool.push('pyromancer', 'cryomancer');
+    }
+    if (game.wave >= 4 || game.currentLevel >= 5) {
+        landPool.push('heavy_tank', 'necromancer', 'mecha_paladin');
+    }
+    if (game.wave >= 5 || game.currentLevel >= 8) {
+        landPool.push('railgun_walker');
+    }
+    if (game.wave >= 3 || game.currentLevel >= 3) {
+        landPool.push('heli');
+    }
 
     const navalPool = ['patrol_boat', 'destroyer'];
     if (game.wave >= 5) navalPool.push('battleship');
@@ -703,14 +778,15 @@ function spawnEnemyWaveSquad() {
     }
 
     if (game.wave % 5 === 0 && game.battleMode !== 'raid_boss') {
-        const bossUnit = spawnUnit('red', 'heavy_tank', LOGICAL_WIDTH / 2, 134);
+        const bossType = game.wave % 10 === 0 ? 'mecha_paladin' : 'heavy_tank';
+        const bossUnit = spawnUnit('red', bossType, LOGICAL_WIDTH / 2, 134);
         if (bossUnit) {
             bossUnit.isBossUnit = true;
             bossUnit.radius = 23;
             bossUnit.hp = Math.round(bossUnit.hp * 2.8);
             bossUnit.maxHp = bossUnit.hp;
             bossUnit.spec.damage = Math.round(bossUnit.spec.damage * 1.45);
-            showBossWarningBanner(`BOSS WAVE ${game.wave}!`, 'Siêu Tăng Hạng Nặng chỉ huy đã xuất kích!');
+            showBossWarningBanner(`BOSS WAVE ${game.wave}!`, `${bossUnit.spec.name} chỉ huy đã xuất kích!`);
         }
     }
 }
@@ -738,13 +814,12 @@ export function update(dt) {
 
     if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') {
         for (const u of game.units) u.update(dt);
+        updateActiveSynergies();
         runAutoPlayCommanderAI(dt);
         return;
     }
 
-    const oilLv = Number(metaState?.metaTalents?.oil_refining) || 0;
-    const baseInterval = GAS_UPGRADE_LEVELS[game.gasGenLevel]?.interval || 3.0;
-    const effInterval = Math.max(0.65, baseInterval - oilLv * 0.08);
+    const effInterval = getEffectiveGasInterval();
 
     if (game.gas < game.maxGas) {
         game.gasTimer += dt;
@@ -755,6 +830,10 @@ export function update(dt) {
     } else {
         game.gasTimer = 0;
     }
+
+    // 2 Phe giao tranh: Nếu ở Map 45 (Abyss Gate) thì tốc độ sinh quân địch cũng hưởng +15% nhịp độ
+    const mapCfg = getActiveMapConfig();
+    const enemyGasMult = mapCfg?.gasRateMult ? (1 + (mapCfg.gasRateMult - 1) * 0.5) : 1.0;
 
     if (game.battleMode !== 'auto_battler' && game.battleMode !== 'raid_boss') {
         game.waveTimer += dt;
@@ -774,7 +853,7 @@ export function update(dt) {
             }
         }
 
-        game.enemySpawnTimer -= dt;
+        game.enemySpawnTimer -= dt * enemyGasMult;
         if (game.enemySpawnTimer <= 0) {
             spawnEnemyWaveSquad();
             const diffSpeed = game.difficulty === 'difficult' ? 0.78 : 1.0;
@@ -785,6 +864,9 @@ export function update(dt) {
     if (game.battleMode === 'raid_boss') {
         updateRaidBoss(dt);
     }
+
+    updateActiveSynergies();
+    updateBaseTurret(dt);
 
     for (const u of game.units) u.update(dt);
     game.units = game.units.filter(u => !u.dead);
@@ -816,7 +898,7 @@ export function update(dt) {
                 spawnExplosionFX(dx, strike.y, 46, true, false);
                 for (const u of game.units) {
                     if (!u.dead && u.team !== strike.team && Math.hypot(u.x - dx, u.y - strike.y) <= 52) {
-                        u.takeDamage(strike.damage);
+                        u.takeDamage(strike.damage, null, true, false);
                     }
                 }
                 if (strike.team === 'blue') {
@@ -844,7 +926,7 @@ export function update(dt) {
                 spawnExplosionFX(m.x, m.y, m.splash, true, false);
                 for (const targetU of game.units) {
                     if (targetU.team === 'red' && !targetU.dead && Math.hypot(targetU.x - m.x, targetU.y - m.y) <= m.splash) {
-                        targetU.takeDamage(m.damage);
+                        targetU.takeDamage(m.damage, null, true, false);
                     }
                 }
                 break;
@@ -860,6 +942,7 @@ export function update(dt) {
             pt.done = true;
             const spawned = spawnUnit('blue', pt.unitId, pt.x, pt.targetY);
             if (spawned) spawned.airdropBuffTimer = 6.0;
+            updateActiveSynergies();
         }
     }
     game.paratroops = game.paratroops.filter(p => !p.done);
@@ -868,7 +951,7 @@ export function update(dt) {
     for (const tr of game.tireTracks) tr.alpha -= dt * 0.08;
     game.tireTracks = game.tireTracks.filter(tr => tr.alpha > 0.02);
 
-    for (const sc of game.scorchMarks) sc.alpha -= dt * 0.03;
+    for (const sc of game.scorchMarks) sc.alpha -= dt * (sc.decayRate || 0.03);
     game.scorchMarks = game.scorchMarks.filter(sc => sc.alpha > 0.03);
 
     for (const sw of game.shockwaves) {
@@ -896,7 +979,7 @@ export function update(dt) {
 }
 
 // ============================================================================
-// 7. VẼ CHIẾN TRƯỜNG (DRAW) KÈM THANH HP TRÊN CĂN CỨ
+// 7. VẼ CHIẾN TRƯỜNG (DRAW) KÈM Ụ PHÁO PHÒNG THỦ & THANH HP CĂN CỨ
 // ============================================================================
 function drawBaseBuilding(ctx, baseObj, isBlue) {
     ctx.save();
@@ -931,6 +1014,12 @@ function drawBaseBuilding(ctx, baseObj, isBlue) {
         ctx.beginPath();
         ctx.roundRect(-42, -22, 84, 44, 10);
         ctx.fill();
+    }
+
+    // Vẽ Ụ Pháo Phòng Thủ tự động trên nóc Căn Cứ Xanh
+    if (isBlue) {
+        const turretType = metaState?.baseTurret?.type || 'gatling';
+        drawBaseTurretArt(ctx, turretType, 0, -4, baseObj.turretAngle ?? -Math.PI / 2, game.timeSec);
     }
 
     // Thanh máu căn cứ hiển thị trực tiếp trên bản đồ
@@ -1223,6 +1312,7 @@ function bindInGameDOMEvents() {
     document.getElementById('btn-ab-fight')?.addEventListener('click', startAutoBattlerCombat);
     document.getElementById('btn-ab-clear')?.addEventListener('click', clearAutoBattlerFormation);
 
+    // Sửa lỗi #3: Chạm vào quân Xanh đã đặt để thu hồi 100% Xăng hoặc đặt đúng loại quân đang chọn ở Ô 1–4
     if (canvas) {
         canvas.addEventListener('pointerdown', (e) => {
             if (!game.running || game.paused || game.gameOver) return;
@@ -1232,22 +1322,48 @@ function bindInGameDOMEvents() {
             const lx = ((e.clientX - rect.left) / Math.max(1, rect.width)) * LOGICAL_WIDTH;
             const ly = ((e.clientY - rect.top) / Math.max(1, rect.height)) * LOGICAL_HEIGHT;
 
+            // 1. Kiểm tra nếu người chơi chạm trực tiếp vào 1 đơn vị Xanh đã đặt trên sân -> Thu hồi & hoàn 100% Xăng
+            for (let i = game.units.length - 1; i >= 0; i--) {
+                const u = game.units[i];
+                if (u.team === 'blue' && !u.dead) {
+                    const dist = Math.hypot(u.x - lx, u.y - ly);
+                    if (dist <= (u.radius || 12) + 14) {
+                        const refundCost = u.spec?.cost || UNIT_BY_ID[u.id]?.cost || 2;
+                        game.units.splice(i, 1);
+                        game.gas = Math.min(game.maxGas, game.gas + refundCost);
+                        sfx.play('gas');
+                        triggerHaptic(15);
+                        spawnFloatingText(u.x, u.y - 10, `+${refundCost} ⛽ THU HỒI`, '#4ade80', 13);
+                        updateActiveSynergies();
+                        setupAutoBattlerPrepUI();
+                        updateDeckButtonsUI();
+                        updateHUD();
+                        return;
+                    }
+                }
+            }
+
+            // 2. Nếu không chạm trúng lính cũ -> Kiểm tra vùng đặt quân hợp lệ ở nửa sân dưới
             if (ly < PLAYFIELD_HEIGHT * 0.45 || ly > PLAYFIELD_HEIGHT - 95) {
                 sfx.play('cannon');
                 spawnFloatingText(lx, ly, '⚠️ CHỈ ĐẶT QUÂN Ở NỬA SÂN DƯỚI!', '#fb7185', 12);
                 return;
             }
 
-            const uId = game.deckIds[0] || 'infantry';
+            const slotIdx = Math.max(0, Math.min(3, Number(game.autoSelectedSlotIdx) || 0));
+            const uId = game.deckIds[slotIdx] || game.autoSelectedUnitId || 'infantry';
             const spec = getEffectiveUnitStats(uId, 'blue');
             if (game.gas < spec.cost) {
                 sfx.play('cannon');
+                spawnFloatingText(lx, ly, `⚠️ CẦN ${spec.cost} ⛽ ĐỂ ĐẶT ${spec.name.toUpperCase()}!`, '#fb7185', 12);
                 return;
             }
             game.gas -= spec.cost;
             sfx.play('spawn');
             spawnUnit('blue', uId, lx, ly);
+            updateActiveSynergies();
             setupAutoBattlerPrepUI();
+            updateDeckButtonsUI();
             updateHUD();
         });
     }
