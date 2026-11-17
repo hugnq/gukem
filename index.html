@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Battle - Tactical RTS, Zombie TD & Meta-Game (45 Maps, 17 Units & 41 Rarity Tiers)</title>
+    <title>Tiny Battle - Tactical RTS, Zombie TD & Meta-Game (45 Maps, 18 Units & 41 Rarity Tiers)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700&family=VT323&display=swap" rel="stylesheet">
 
-    <!-- HỆ THỐNG NẠP CSS THÔNG MINH: TỰ ĐỘNG FALLBACK NẾU ĐẶT FILE CSS Ở THƯ MỤC GỐC HOẶC TRONG css/ -->
+    <!-- HỆ THỐNG NẠP CSS ĐA MODULE -->
     <link rel="stylesheet" href="css/base.css" onerror="this.onerror=null;this.href='base.css';">
     <link rel="stylesheet" href="css/lobby.css" onerror="this.onerror=null;this.href='lobby.css';">
     <link rel="stylesheet" href="css/army.css" onerror="this.onerror=null;this.href='army.css';">
@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="css/battle.css" onerror="this.onerror=null;this.href='battle.css';">
     <link rel="stylesheet" href="css/responsive.css" onerror="this.onerror=null;this.href='responsive.css';">
 
-    <!-- STYLE ĐỒNG BỘ CHO TOÀN BỘ TÍNH NĂNG MỚI (5 TABS, WHITE PEARL, CHALLENGE, SKILL TREE, SANDBOX & BASE HP HUD) -->
+    <!-- STYLE ĐỒNG BỘ CHO HỆ THỐNG MỚI (5 TABS, LEVEL UP BUTTON, 4-BRANCH SKILL TREE, SANDBOX & BASE HP HUD) -->
     <style>
         /* Top Bar 4 loại tiền tệ gọn gàng trên màn hình dọc 420px */
         .lobby-top-bar {
@@ -213,6 +213,76 @@
             animation: bossPulse 0.35s ease-in-out infinite alternate;
         }
 
+        /* Nút LEVEL UP (+N) nổi bên trái trong trận đấu */
+        @keyframes levelUpGlowPulse {
+            0% {
+                transform: scale(0.97);
+                box-shadow: 0 4px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.75);
+            }
+            100% {
+                transform: scale(1.04);
+                box-shadow: 0 4px 0 #0f172a, 0 0 22px rgba(253, 224, 71, 1), 0 0 32px rgba(245, 158, 11, 0.8);
+            }
+        }
+        .battle-levelup-float-btn {
+            position: absolute;
+            left: 8px;
+            top: 148px;
+            z-index: 32;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 10px 6px 7px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #d97706 100%);
+            border: 2.5px solid #ffffff;
+            outline: 2px solid #0f172a;
+            color: #0f172a;
+            cursor: pointer;
+            animation: levelUpGlowPulse 0.65s ease-in-out infinite alternate;
+            pointer-events: auto;
+        }
+        .battle-levelup-float-btn:active {
+            transform: scale(0.93) translateY(2px);
+        }
+        .lvup-icon {
+            font-size: 18px;
+            line-height: 1;
+            filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
+        }
+        .lvup-text-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.05;
+        }
+        .lvup-title {
+            font-size: 9.5px;
+            font-weight: 900;
+            letter-spacing: 0.3px;
+            color: #422006;
+        }
+        .lvup-count-pill {
+            font-size: 16px;
+            font-weight: 900;
+            color: #ffffff;
+            background: #0f172a;
+            padding: 0 6px;
+            border-radius: 999px;
+            margin-top: 1px;
+        }
+        .draft-queue-badge {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(16, 185, 129, 0.22);
+            border: 1.5px solid #34d399;
+            color: #6ee7b7;
+            font-size: 10px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+
         /* Deck 6 Ô trong chế độ CHALLENGE Tower Defense */
         .battle-deck-slots.challenge-6-slots {
             grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
@@ -370,12 +440,12 @@
         }
 
         /* ====================================================================
-           TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ - DÙNG NGỌC TRAI TRẮNG)
+           TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY - 40 KỸ NĂNG)
            ==================================================================== */
         #tab-skilltree {
             background:
-                radial-gradient(circle at 50% 25%, rgba(56, 189, 248, 0.22) 0%, transparent 55%),
-                linear-gradient(180deg, #064e3b 0%, #022c22 55%, #090d16 100%);
+                radial-gradient(circle at 50% 75%, rgba(16, 185, 129, 0.25) 0%, transparent 60%),
+                linear-gradient(180deg, #042f2e 0%, #022c22 50%, #090d16 100%);
         }
         .skilltree-top-banner {
             background: linear-gradient(90deg, #065f46 0%, #047857 50%, #065f46 100%);
@@ -386,15 +456,47 @@
             justify-content: space-between;
             flex-shrink: 0;
         }
-        .skilltree-canvas-stage {
+        .skilltree-branch-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            padding: 5px 8px;
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 2px solid #0f172a;
+            flex-shrink: 0;
+        }
+        .st-branch-jump-btn {
+            padding: 3px 2px;
+            border-radius: 8px;
+            border: 1.5px solid #334155;
+            background: #1e293b;
+            color: #cbd5e1;
+            font-size: 8.5px;
+            font-weight: 900;
+            text-align: center;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .st-branch-jump-btn.active {
+            border-color: #fde047;
+            background: #065f46;
+            color: #ffffff;
+        }
+        .skilltree-scroll-viewport {
             flex: 1;
+            overflow: auto;
             position: relative;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 10px 8px 10px;
+            cursor: grab;
+            touch-action: pan-x pan-y;
+        }
+        .skilltree-scroll-viewport:active {
+            cursor: grabbing;
+        }
+        .skilltree-canopy-world {
+            position: relative;
+            width: 720px;
+            height: 760px;
+            margin: 0 auto;
         }
         .skilltree-svg-bg {
             position: absolute;
@@ -404,56 +506,73 @@
             pointer-events: none;
             z-index: 1;
         }
-        .skilltree-tier-row {
-            position: relative;
+        .skilltree-nodes-layer {
+            position: absolute;
+            inset: 0;
             z-index: 2;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-around;
-            gap: 8px;
         }
-        .st-node-btn {
-            position: relative;
-            width: 82px;
-            padding: 6px 4px;
+        .st-tree-node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
             border: 3px solid #475569;
-            border-radius: 14px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            justify-content: center;
             cursor: pointer;
             box-shadow: 0 4px 0 #020617;
             transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+            padding: 2px;
         }
-        .st-node-btn:active {
-            transform: scale(0.95) translateY(2px);
+        .st-tree-node:active {
+            transform: translate(-50%, -50%) scale(0.92);
         }
-        .st-node-btn.unlocked {
+        .st-tree-node.unlocked {
             border-color: #38bdf8;
         }
-        .st-node-btn.leveled {
+        .st-tree-node.leveled {
             border-color: #4ade80;
             background: linear-gradient(180deg, #065f46 0%, #0f172a 100%);
-            box-shadow: 0 4px 0 #020617, 0 0 12px rgba(74, 222, 128, 0.45);
+            box-shadow: 0 4px 0 #020617, 0 0 12px rgba(74, 222, 128, 0.55);
         }
-        .st-node-btn.selected-node {
+        .st-tree-node.selected-node {
             outline: 3px solid #fde047;
-            transform: translateY(-2px);
+            z-index: 5;
         }
-        .st-node-btn.locked {
+        .st-tree-node.locked {
             opacity: 0.55;
-            filter: grayscale(70%);
+            filter: grayscale(75%);
         }
-        .st-crown-node {
-            width: 104px;
+        .st-tree-node.special-keystone {
+            width: 68px;
+            height: 68px;
+            border-width: 3.5px;
             border-color: #facc15;
+            background: radial-gradient(circle, #78350f 0%, #1e1b4b 75%, #090d16 100%);
+            box-shadow: 0 5px 0 #020617, 0 0 18px rgba(250, 204, 21, 0.65);
+        }
+        .st-tree-node.special-keystone.leveled {
+            border-color: #00f2fe;
+            background: radial-gradient(circle, #065f46 0%, #0284c7 65%, #090d16 100%);
+            box-shadow: 0 5px 0 #020617, 0 0 24px rgba(0, 242, 254, 0.9);
+        }
+        .st-node-lv-tag {
+            font-family: var(--font-pixel, monospace);
+            font-size: 11px;
+            line-height: 1;
+            color: #fde047;
+            background: rgba(2, 6, 23, 0.85);
+            padding: 0 4px;
+            border-radius: 999px;
+            margin-top: 1px;
         }
         .skilltree-inspector-dock {
             position: relative;
-            z-index: 3;
+            z-index: 4;
             background: #0f172a;
             border-top: 3px solid #38bdf8;
             padding: 8px 10px;
@@ -644,7 +763,7 @@
                         </div>
 
                         <div class="shop-discount-notice">
-                            🔥 <b>MỞ RƯƠNG SIÊU TỐC O(1):</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> (Tối đa <b class="text-emerald-300">1,000,000,000 (1 Tỷ) rương</b>/lần trong <b class="text-sky-300">< 0.05s</b>)! <br/>
+                            🔥 <b>MỞ RƯƠNG SIÊU TỐC O(1):</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> (Tối đa <b class="text-emerald-300">1,000,000,000 (1 Tỷ) rương</b>/lần trong <b class="text-sky-300">&lt; 0.05s</b>)! <br/>
                             <span class="text-[10px] text-rose-300 font-bold">✨ Đầy đủ <b>17 Binh Chủng</b> & <b>41 Bậc Độ Hiếm</b> lên tới <b>Master +8 (120x) & Demon +10 (777x)</b>!</span>
                         </div>
 
@@ -789,7 +908,7 @@
                             <div id="shop-chips-list" class="shop-chips-list"></div>
                         </div>
 
-                        <!-- BẢNG TRA CỨU 41 BẬC ĐỘ HIẾM ĐÃ CÂN BẰNG -->
+                        <!-- BẢNG TRA CỨU 41 BẬC ĐỘ HIẾM -->
                         <div class="shop-rarity-encyclopedia-card">
                             <div class="shop-encyclopedia-header">
                                 <span>🌌 BẢNG HỆ SỐ SỨC MẠNH 41 BẬC ĐỘ HIẾM (RANK 0 ➔ 40)</span>
@@ -846,7 +965,7 @@
                             <!-- Chế độ 1: ARMY -->
                             <div id="army-list-view" class="army-subview active">
                                 <div class="army-cost-rule-banner">
-                                    🎲 <b>Chiến Dịch Roguelike:</b> Trong trận <b>BATTLE</b>, lên cấp sẽ <b>Roll ngẫu nhiên 3 Binh Chủng</b> từ kho của bạn (kèm 1 lượt <b>Reroll</b>)!
+                                    🎲 <b>Chiến Dịch Roguelike:</b> Trong trận bấm nút <b>⬆️ LEVEL UP</b> bên trái để <b>Roll 3 Binh Chủng</b> (kèm <b>Reroll</b>) & kéo thả hoặc cắm cờ đặt quân!
                                 </div>
                                 <div id="army-units-grid" class="army-cards-grid"></div>
                             </div>
@@ -900,7 +1019,7 @@
                             <div class="map-selector-row">
                                 <button id="btn-prev-stage" class="btn-3d btn-nav-arrow" title="Map trước">◀</button>
                                 <div class="map-title-block">
-                                    <h2 id="stage-map-title" class="map-big-title">1. CHIẾN TRƯỜNG #1</h2>
+                                    <h2 id="stage-map-title" class="map-big-title">1. CẦU QUA SÔNG</h2>
                                     <p id="stage-progress-text" class="map-sub-progress vt323-num">MỞ KHÓA: MAP 1 / 45</p>
                                 </div>
                                 <button id="btn-next-stage" class="btn-3d btn-nav-arrow" title="Map tiếp theo">▶</button>
@@ -963,10 +1082,10 @@
                             </div>
 
                             <div id="diff-info-banner" class="diff-info-strip">
-                                Mục tiêu: <b>Phá hủy Căn cứ Đỏ</b> • Thưởng: <b class="text-amber-300 vt323-num">🪙 200 Coins</b>
+                                Mục tiêu: <b>Phá hủy Căn cứ Đỏ</b> • Thưởng: <b class="text-amber-300 vt323-num">🪙 265 Coins</b>
                             </div>
                             <div id="diff-mode-mechanic-badge" class="diff-mechanic-substrip">
-                                💡 Thắng chế độ <b>KHÓ</b> nhận thêm <b class="text-amber-700">🎖️ Huy Chương</b> nâng cấp 6 nhánh <b>TALENTS</b>!
+                                🎯 Kéo thả thẻ bài hoặc chạm sân cắm <b>🚩 Cờ Tập Kết</b> để chọn điểm xuất quân chính xác!
                             </div>
                         </div>
 
@@ -1001,7 +1120,7 @@
                                     <div id="stage-cleared-stamp" class="map-cleared-ribbon hidden">✓ ĐÃ HOÀN THÀNH</div>
                                 </div>
                                 <p id="select-map-desc" class="map-demo-desc">
-                                    Sông lớn cắt ngang chiến trường. Quân bộ phải lên cầu đá ở giữa để qua sông.
+                                    Sông lớn cắt ngang chiến trường. Quân bộ phải qua cầu đá chiến lược ở chính giữa.
                                 </p>
                             </div>
 
@@ -1047,7 +1166,7 @@
                             ☠️ THỦ THÀNH ZOMBIE 20 WAVE (HARDCORE TD)
                         </div>
                         <div class="text-[10px] font-bold text-rose-200 mt-0.5">
-                            Lưới 7 cột • Nhân vật đứng cố định làm Tower • Vượt 20 Wave nhận <b class="text-white">⚪ Ngọc Trai Trắng</b>!
+                            Lưới 7x11 Full Map • Giữ <b>3.0s</b> lên Tower để đổi vị trí • Vượt 20 Wave nhận <b class="text-white">⚪ Ngọc Trai Trắng</b>!
                         </div>
                     </div>
                     <div id="challenge-roadmap-scroll" class="challenge-roadmap-scroll">
@@ -1055,84 +1174,37 @@
                     </div>
                 </div>
 
-                <!-- ==================== TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ - NGỌC TRAI TRẮNG) ==================== -->
+                <!-- ==================== TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY - 40 KỸ NĂNG) ==================== -->
                 <div id="tab-skilltree" class="lobby-tab-pane">
                     <div class="skilltree-top-banner">
-                        <span class="text-xs font-black text-emerald-200 tracking-wide">🌳 CÂY KỸ NĂNG CỔ THỤ</span>
+                        <span class="text-xs font-black text-emerald-200 tracking-wide">🌳 CÂY CỔ THỤ (40 KỸ NĂNG)</span>
                         <span class="text-[11px] font-black text-white bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-slate-400">
                             Hiện có: <b id="skilltree-pearls-balance" class="text-sky-300 vt323-num text-base">⚪ 0</b>
                         </span>
                     </div>
 
-                    <div id="skilltree-canvas-stage" class="skilltree-canvas-stage">
-                        <!-- Đường nhánh nối SVG phát sáng từ Rễ -> Thân -> Cành -> Ngọn -->
-                        <svg id="skilltree-branches-svg" class="skilltree-svg-bg" viewBox="0 0 380 430" preserveAspectRatio="none"></svg>
+                    <!-- Thanh chọn nhanh 4 nhánh tán cây -->
+                    <div class="skilltree-branch-bar">
+                        <button type="button" data-st-branch="firepower" class="st-branch-jump-btn active">🔥 HỎA LỰC</button>
+                        <button type="button" data-st-branch="fortress" class="st-branch-jump-btn">🛡️ PHÁO ĐÀI</button>
+                        <button type="button" data-st-branch="summon" class="st-branch-jump-btn">💀 TRIỆU HỒI</button>
+                        <button type="button" data-st-branch="economy" class="st-branch-jump-btn">⛽ KINH TẾ</button>
+                    </div>
 
-                        <!-- Tầng 4: Ngọn Cây Tối Thượng -->
-                        <div class="skilltree-tier-row" data-tier="4">
-                            <button type="button" id="st-node-ancient_heart" data-st-id="ancient_heart" class="st-node-btn st-crown-node">
-                                <span class="text-[8px] font-black text-amber-300">👑 NGỌN CÂY</span>
-                                <span class="text-xl">💖</span>
-                                <span class="text-[9.5px] font-black text-white text-center leading-tight">Trái Tim Cổ Thụ</span>
-                                <span id="st-lv-ancient_heart" class="text-[10px] font-extrabold text-amber-300 vt323-num">LV.0/3</span>
-                            </button>
-                        </div>
-
-                        <!-- Tầng 3: Các Cành Nhánh -->
-                        <div class="skilltree-tier-row" data-tier="3">
-                            <button type="button" id="st-node-undead_slayer" data-st-id="undead_slayer" class="st-node-btn">
-                                <span class="text-[8px] font-black text-rose-300">🌿 CÀNH TRÁI</span>
-                                <span class="text-lg">🗡️</span>
-                                <span class="text-[9px] font-black text-white text-center leading-tight">Săn Xác Sống</span>
-                                <span id="st-lv-undead_slayer" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
-                            </button>
-                            <button type="button" id="st-node-elite_lineage" data-st-id="elite_lineage" class="st-node-btn">
-                                <span class="text-[8px] font-black text-amber-300">🌿 CÀNH PHẢI</span>
-                                <span class="text-lg">⚡</span>
-                                <span class="text-[9px] font-black text-white text-center leading-tight">Cành Tinh Anh</span>
-                                <span id="st-lv-elite_lineage" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
-                            </button>
-                        </div>
-
-                        <!-- Tầng 2: Phần Thân Cây -->
-                        <div class="skilltree-tier-row" data-tier="2">
-                            <button type="button" id="st-node-iron_trunk" data-st-id="iron_trunk" class="st-node-btn">
-                                <span class="text-[8px] font-black text-sky-300">🪵 THÂN TRÁI</span>
-                                <span class="text-lg">⚙️</span>
-                                <span class="text-[9px] font-black text-white text-center leading-tight">Thân Cương Thiết</span>
-                                <span id="st-lv-iron_trunk" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
-                            </button>
-                            <button type="button" id="st-node-arcane_trunk" data-st-id="arcane_trunk" class="st-node-btn">
-                                <span class="text-[8px] font-black text-purple-300">🪵 THÂN PHẢI</span>
-                                <span class="text-lg">🔮</span>
-                                <span class="text-[9px] font-black text-white text-center leading-tight">Thân Ma Thuật</span>
-                                <span id="st-lv-arcane_trunk" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
-                            </button>
-                        </div>
-
-                        <!-- Tầng 1: Phần Rễ Cây (Mở khóa đầu tiên) -->
-                        <div class="skilltree-tier-row" data-tier="1">
-                            <button type="button" id="st-node-vital_roots" data-st-id="vital_roots" class="st-node-btn selected-node unlocked">
-                                <span class="text-[8px] font-black text-emerald-300">🌱 RỄ TRÁI</span>
-                                <span class="text-lg">💚</span>
-                                <span class="text-[9px] font-black text-white text-center leading-tight">Rễ Sinh Mệnh</span>
-                                <span id="st-lv-vital_roots" class="text-[10px] font-extrabold text-emerald-300 vt323-num">LV.0/5</span>
-                            </button>
-                            <button type="button" id="st-node-supply_roots" data-st-id="supply_roots" class="st-node-btn unlocked">
-                                <span class="text-[8px] font-black text-emerald-300">🌱 RỄ PHẢI</span>
-                                <span class="text-lg">⛽</span>
-                                <span class="text-[9px] font-black text-white text-center leading-tight">Rễ Tiếp Tế</span>
-                                <span id="st-lv-supply_roots" class="text-[10px] font-extrabold text-emerald-300 vt323-num">LV.0/5</span>
-                            </button>
+                    <!-- Sân khấu Tán Cây Cổ Thụ 4 Nhánh Độc Lập -->
+                    <div id="skilltree-scroll-viewport" class="skilltree-scroll-viewport">
+                        <div id="skilltree-canopy-world" class="skilltree-canopy-world">
+                            <svg id="skilltree-branches-svg" class="skilltree-svg-bg" viewBox="0 0 720 760" preserveAspectRatio="none"></svg>
+                            <div id="skilltree-nodes-layer" class="skilltree-nodes-layer"></div>
                         </div>
                     </div>
 
-                    <!-- Bảng chi tiết & Nâng cấp nhánh đang chọn -->
+                    <!-- Bảng chi tiết & Nâng cấp nút đang chọn -->
                     <div class="skilltree-inspector-dock">
                         <div class="flex-1 text-left">
-                            <div id="st-inspector-title" class="text-xs font-black text-emerald-300">🌱 Rễ Sinh Mệnh (LV.0/5)</div>
+                            <div id="st-inspector-title" class="text-xs font-black text-emerald-300">🔥 Cường Hóa Đạn Đạo (LV.0/5)</div>
                             <div id="st-inspector-desc" class="text-[9.5px] font-bold text-slate-300 leading-tight mt-0.5">
-                                +12%/cấp HP tối đa cho toàn bộ đơn vị và Tower.
+                                +8%/cấp Sát thương vật lý toàn quân & Tower.
                             </div>
                             <div id="st-inspector-req" class="text-[9px] font-extrabold text-amber-300 mt-0.5">
                                 Trạng thái: Sẵn sàng nâng cấp
@@ -1464,7 +1536,7 @@
                                 <span id="upg-modal-rarity-badge" class="rarity-badge rarity-common">COMMON</span>
                                 <span id="upg-modal-level-badge" class="upg-lv-pill vt323-num">LV.1 ➔ LV.2 (+1)</span>
                             </div>
-                            <p id="upg-modal-role" class="text-[11px] font-bold text-slate-600 mt-1">Đi bộ • Tầm gần</p>
+                            <p id="upg-modal-role" class="text-[11px] font-bold text-slate-600 mt-1">Lính Xung Kích</p>
                             <p id="upg-modal-mult-info" class="text-[10px] font-extrabold text-sky-700 mt-0.5">
                                 Hệ số Độ hiếm: 1.0x HP & DMG
                             </p>
@@ -1964,6 +2036,15 @@
         <!-- GIAO DIỆN CHIẾN ĐẤU TRONG TRẬN (IN-GAME BATTLE UI)             -->
         <!-- ============================================================== -->
 
+        <!-- NÚT NỔI BÊN TRÁI MÀN HÌNH KHI TÍCH LŨY CẤP ĐỘ: LEVEL UP (+N) -->
+        <button type="button" id="btn-battle-levelup-notify" class="battle-levelup-float-btn hidden" title="Bấm để mở chuỗi nâng cấp chiến trường">
+            <span class="lvup-icon">⬆️</span>
+            <div class="lvup-text-col">
+                <span class="lvup-title">LEVEL UP</span>
+                <span id="battle-levelup-badge" class="lvup-count-pill vt323-num">+1</span>
+            </div>
+        </button>
+
         <!-- BANNER CẢNH BÁO BOSS KHỔNG LỒ -->
         <div id="boss-warning-banner" class="boss-alert-banner hidden">
             <div class="boss-alert-inner">
@@ -2039,11 +2120,12 @@
             </div>
         </div>
 
-        <!-- POPUP ROLL CHỌN THẺ BÀI KHI LÊN CẤP TRONG TRẬN (KÈM NÚT 🎲 REROLL 1/1) -->
+        <!-- POPUP ROLL CHỌN THẺ BÀI KHI LÊN CẤP TRONG TRẬN (HỖ TRỢ CHUỖI NHIỀU CẤP + REROLL) -->
         <div id="draft-modal" class="draft-overlay">
             <div class="draft-board">
-                <div class="flex items-center justify-between px-1 mb-1">
+                <div class="flex items-center justify-between px-1 mb-1 gap-1">
                     <div class="draft-badge mb-0" id="draft-badge-text">LÊN CẤP CHIẾN TRƯỜNG</div>
+                    <span id="draft-queue-pill" class="draft-queue-badge hidden">Còn 1 lượt nâng cấp</span>
                     <button type="button" id="btn-draft-reroll" class="btn-3d btn-3d-cyan px-2.5 py-1 text-[10px]">
                         🎲 REROLL (1/1)
                     </button>
@@ -2071,7 +2153,7 @@
                     <div class="exp-bar-wrapper">
                         <div class="flex justify-between items-center text-[10px] font-extrabold px-1">
                             <span id="battle-lv-label" class="text-amber-300 vt323-num text-sm leading-none">BATTLE LV.1</span>
-                            <span id="battle-exp-label" class="text-sky-200 vt323-num text-sm leading-none">0/40 EXP</span>
+                            <span id="battle-exp-label" class="text-sky-200 vt323-num text-sm leading-none">0/35 EXP</span>
                         </div>
                         <div class="exp-bar-track">
                             <div id="battle-exp-fill" class="exp-bar-fill" style="width: 0%"></div>

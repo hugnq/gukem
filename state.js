@@ -1,7 +1,8 @@
 /* ============================================================================
    TINY BATTLE - META-GAME STATE & PERSISTENCE (js/state.js)
    Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100% với save cũ)
-   Hỗ trợ: 45 Map • 17 Binh Chủng • Ngọc Trai Trắng • Kho Chip • Challenge • Skill Tree
+   Hỗ trợ: 45 Map • 18 Binh Chủng • Ngọc Trai Trắng • Kho Chip • Challenge •
+           Cây Kỹ Năng Cổ Thụ 4 Nhánh (40 Kỹ Năng & 4 Kỹ Năng Đặc Biệt Mốc 10)
    ============================================================================ */
 
 import {
@@ -42,15 +43,11 @@ export function createDefaultChipInventory() {
 }
 
 export function createDefaultAncientSkillTree() {
-    return {
-        vital_roots: 0,
-        supply_roots: 0,
-        iron_trunk: 0,
-        arcane_trunk: 0,
-        undead_slayer: 0,
-        elite_lineage: 0,
-        ancient_heart: 0
-    };
+    const tree = {};
+    Object.keys(ANCIENT_SKILL_TREE).forEach(nodeId => {
+        tree[nodeId] = 0;
+    });
+    return tree;
 }
 
 export let metaState = {
@@ -58,7 +55,7 @@ export let metaState = {
     coins: 350,
     gems: 400,
     medals: 5,
-    pearls: 0, // Tiền tệ mới: ⚪ Ngọc Trai Trắng
+    pearls: 0, // ⚪ Ngọc Trai Trắng
     isAdminMode: false,
     usedCodes: [],
     mapDifficultyProgress: {},
@@ -75,7 +72,7 @@ export let metaState = {
         upgrades: 0,
         claimed: {}
     },
-    // 6 Nhánh Cây Bị Động Chỉ Huy (Max Lv.10)
+    // 6 Nhánh Cây Bị Động Chỉ Huy (Max Lv.10 - dùng 🎖️ Huy Chương)
     metaTalents: {
         oil_refining: 0,
         high_grade_steel: 0,
@@ -99,7 +96,7 @@ export let metaState = {
     challengeClearedMaps: {},
     challengeBestWave: {},
 
-    // Cây Kỹ Năng Cổ Thụ (Dùng ⚪ Ngọc Trai Trắng)
+    // Cây Kỹ Năng Cổ Thụ 4 Nhánh (40 Kỹ Năng - dùng ⚪ Ngọc Trai Trắng)
     ancientSkillTree: createDefaultAncientSkillTree(),
 
     // Vòng quay may mắn & Lịch sử nổ Jackpot
@@ -342,6 +339,39 @@ export function normalizeSelectedDeck(rawDeck) {
     return [chosen[0], chosen[1], chosen[2], chosen[3], 'airstrike'];
 }
 
+/**
+ * Chuyển đổi tương thích ngược từ sơ đồ Skill Tree 7 nút cũ sang sơ đồ 4 nhánh 40 nút mới
+ */
+function migrateLegacySkillTree(rawTree) {
+    const normalized = createDefaultAncientSkillTree();
+    if (!rawTree || typeof rawTree !== 'object') return normalized;
+
+    const legacyMap = {
+        vital_roots: 'ft_1',
+        supply_roots: 'ec_1',
+        iron_trunk: 'fp_1',
+        arcane_trunk: 'fp_3',
+        undead_slayer: 'sm_1',
+        elite_lineage: 'sm_3',
+        ancient_heart: 'ft_4'
+    };
+
+    for (const [key, val] of Object.entries(rawTree)) {
+        const lv = Math.max(0, Math.floor(Number(val) || 0));
+        if (lv <= 0) continue;
+        if (ANCIENT_SKILL_TREE[key]) {
+            normalized[key] = Math.min(ANCIENT_SKILL_TREE[key].maxLevel, lv);
+        } else if (legacyMap[key] && ANCIENT_SKILL_TREE[legacyMap[key]]) {
+            const targetId = legacyMap[key];
+            normalized[targetId] = Math.min(
+                ANCIENT_SKILL_TREE[targetId].maxLevel,
+                Math.max(normalized[targetId], lv)
+            );
+        }
+    }
+    return normalized;
+}
+
 export function syncLegacyEngineBridges() {
     const infLv = Math.max(
         metaState.armyPermanentLevels?.infantry || 1,
@@ -361,7 +391,6 @@ export function syncLegacyEngineBridges() {
         if (!Array.isArray(metaState.unitSockets[u.id])) {
             metaState.unitSockets[u.id] = [null, null];
         }
-        // Tương thích ngược: nếu save cũ đã gắn chip vào Khe 2 thì tự động mở khóa Khe 2
         if (metaState.unitSockets[u.id][1]) {
             metaState.unitSocket2Unlocked[u.id] = true;
         }
@@ -411,13 +440,7 @@ export function syncLegacyEngineBridges() {
         gold_rush: logiLv
     };
 
-    if (!metaState.ancientSkillTree || typeof metaState.ancientSkillTree !== 'object') {
-        metaState.ancientSkillTree = createDefaultAncientSkillTree();
-    }
-    Object.keys(ANCIENT_SKILL_TREE).forEach(nodeId => {
-        const maxLv = ANCIENT_SKILL_TREE[nodeId].maxLevel;
-        metaState.ancientSkillTree[nodeId] = Math.max(0, Math.min(maxLv, Math.floor(Number(metaState.ancientSkillTree[nodeId]) || 0)));
-    });
+    metaState.ancientSkillTree = migrateLegacySkillTree(metaState.ancientSkillTree);
 
     if (!metaState.challengeClearedMaps || typeof metaState.challengeClearedMaps !== 'object') {
         metaState.challengeClearedMaps = {};
@@ -467,10 +490,7 @@ export function loadProgress() {
                     ? { ...parsed.challengeBestWave }
                     : {};
 
-            metaState.ancientSkillTree = {
-                ...createDefaultAncientSkillTree(),
-                ...(parsed.ancientSkillTree && typeof parsed.ancientSkillTree === 'object' ? parsed.ancientSkillTree : {})
-            };
+            metaState.ancientSkillTree = migrateLegacySkillTree(parsed.ancientSkillTree);
 
             metaState.chipInventory =
                 parsed.chipInventory && typeof parsed.chipInventory === 'object'
@@ -716,12 +736,10 @@ export function equipChipToUnitSlot(rawUnitId, slotIdx, chipId) {
         return { ok: false, reason: 'no_stock' };
     }
 
-    // Hoàn trả 1 viên Chip cũ về kho nếu ô đang có gắn Chip khác
     if (prevChipId && UNIT_CHIPS[prevChipId]) {
         metaState.chipInventory[prevChipId] = getChipOwnedCount(prevChipId) + 1;
     }
 
-    // Trừ 1 viên Chip mới từ kho
     if (!metaState.isAdminMode) {
         metaState.chipInventory[chipId] = Math.max(0, owned - 1);
     }
@@ -749,7 +767,7 @@ export function unequipChipFromUnitSlot(rawUnitId, slotIdx) {
 }
 
 // ============================================================================
-// CÁC HÀM TIẾN TRÌNH BATTLE, CHALLENGE & CÂY KỸ NĂNG CỔ THỤ
+// CÁC HÀM TIẾN TRÌNH BATTLE, CHALLENGE & CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH (40 SKILL)
 // ============================================================================
 export function isDifficultyCleared(mapLv, diffId) {
     const prog = metaState.mapDifficultyProgress[mapLv];
@@ -854,6 +872,67 @@ export function upgradeSkillTreeNode(nodeId) {
 
 export function hasAnyUpgradableSkillTreeNode() {
     return Object.keys(ANCIENT_SKILL_TREE).some(nodeId => canUpgradeSkillTreeNode(nodeId));
+}
+
+/**
+ * Tổng hợp toàn bộ chỉ số cộng thêm & 4 Kỹ Năng Đặc Biệt từ Cây Kỹ Năng Cổ Thụ 4 Nhánh
+ */
+export function getAncientSkillTreeBonuses() {
+    const bonuses = {
+        physDmgPct: 0,
+        elemDmgPct: 0,
+        allDmgPct: 0,
+        critChance: 0,
+        fireRatePct: 0,
+        splashBonus: 0,
+        burnBonusPct: 0,
+        rangeBonus: 0,
+
+        hpPct: 0,
+        armorPct: 0,
+        baseHpPct: 0,
+        hpRegenPct: 0,
+        turretDmgPct: 0,
+        lifestealPct: 0,
+        healBonusPct: 0,
+        ccResistPct: 0,
+
+        zombieDmgPct: 0,
+        ccDurationPct: 0,
+        cdReductionPct: 0,
+        stunChanceBonus: 0,
+        skeletonStatPct: 0,
+        tacticCdPct: 0,
+        extraSkeletonCap: 0,
+        moveSpeedPct: 0,
+
+        startGasFlat: 0,
+        gasRegenPct: 0,
+        goldBonusPct: 0,
+        expGainPct: 0,
+        pearlBonusPct: 0,
+        deathGasRefundPct: 0,
+        maxGasFlat: 0,
+        killGasChance: 0,
+
+        // 4 Kỹ Năng Đặc Biệt Mốc 10
+        meteor_storm: false,
+        eternal_shield: false,
+        void_lord: false,
+        infinite_reactor: false
+    };
+
+    for (const node of Object.values(ANCIENT_SKILL_TREE)) {
+        const lv = getSkillTreeNodeLevel(node.id);
+        if (lv <= 0) continue;
+        if (node.specialKey) {
+            bonuses[node.specialKey] = true;
+        } else if (node.statType && Object.prototype.hasOwnProperty.call(bonuses, node.statType)) {
+            bonuses[node.statType] += lv * (node.perLevel || 0);
+        }
+    }
+
+    return bonuses;
 }
 
 export function getHighestRarityForUnit(unitId) {

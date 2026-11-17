@@ -1,7 +1,7 @@
 /* ============================================================================
    TINY BATTLE - RESPONSIVE STYLES (css/responsive.css)
    Tinh chỉnh giao diện cho màn hình điện thoại nhỏ (< 380px & < 720px height)
-   Hỗ trợ: Top Bar 4 tiền tệ, 5 Tabs, Deck 6 ô Challenge, Base HP HUD & Skill Tree
+   Hỗ trợ: Top Bar 4 tiền tệ, 5 Tabs, Nút LEVEL UP (+N), Deck 6 ô Challenge & Skill Tree
    ============================================================================ */
 
 @media (max-width: 380px) {
@@ -53,13 +53,29 @@
         letter-spacing: 0;
     }
 
-    /* 3. Thanh HUD máu 2 căn cứ Xanh & Đỏ không đè lên cụm nút góc phải */
+    /* 3. Thanh HUD máu 2 căn cứ Xanh & Đỏ & Nút LEVEL UP (+N) */
     .base-hp-hud-strip {
         width: min(216px, calc(100vw - 144px)) !important;
         gap: 3px;
     }
     .base-hp-label-row {
         font-size: 8px;
+    }
+    .battle-levelup-float-btn {
+        left: 6px;
+        top: 136px;
+        padding: 5px 8px 5px 6px;
+        gap: 4px;
+    }
+    .lvup-icon {
+        font-size: 15px;
+    }
+    .lvup-title {
+        font-size: 8.5px;
+    }
+    .lvup-count-pill {
+        font-size: 14px;
+        padding: 0 5px;
     }
 
     /* 4. Thanh Deck đáy (5 ô Battle & 6 ô Challenge) */
@@ -146,13 +162,18 @@
         font-size: 7.5px;
     }
 
-    /* 7. Cây Kỹ Năng Cổ Thụ (Skill Tree) */
-    .st-node-btn {
-        width: 74px;
-        padding: 5px 3px;
+    /* 7. Cây Kỹ Năng Cổ Thụ (Skill Tree 4 Nhánh Tán Cây) */
+    .st-branch-jump-btn {
+        font-size: 7.5px;
+        padding: 3px 1px;
     }
-    .st-crown-node {
-        width: 94px;
+    .st-tree-node {
+        width: 48px;
+        height: 48px;
+    }
+    .st-tree-node.special-keystone {
+        width: 62px;
+        height: 62px;
     }
 
     /* 8. Modal Nâng cấp & Vòng quay */
@@ -200,7 +221,7 @@
     .battle-side-column.four-btns .side-feature-btn {
         height: 41px;
     }
-    .skilltree-canvas-stage {
-        min-height: 390px;
+    .battle-levelup-float-btn {
+        top: 132px;
     }
 }

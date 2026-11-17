@@ -1,64 +1,82 @@
 /* ============================================================================
-   TINY BATTLE - LOBBY UI & INTERACTION CONTROLLER (js/lobby-ui.js)
-   TopBar (4 Currencies + White Pearl), 5 Navigation Tabs (SHOP, ARMY, BATTLE,
-   CHALLENGE 20W Zombie TD, SKILL TREE Ancient Tree), INDEX, Sandbox Review & Chip Store
+   TINY BATTLE - LOBBY UI, GACHA O(1), REVIEW SANDBOX, 4-BRANCH SKILL TREE (js/lobby-ui.js)
+   100% Procedural Canvas 2D (Zero External Images) • 45 Maps • 18 Units (41 Rarities)
+   4-Branch Ancient Skill Tree (40 Skills & 4 Keystones) • Challenge 45-Map Roadmap
    ============================================================================ */
 
 import {
     ADMIN_PASSWORD,
     RARITY_ORDER,
+    MAX_RARITY_RANK,
     RARITY_CONFIG,
     isMasterRarity,
     isDemonRarity,
-    DIFFICULTY_ORDER,
-    BATTLE_MODE_ORDER,
-    DIFFICULTY_CONFIG,
-    BATTLE_MODE_CONFIG,
-    calcStageRewardCoins,
-    calcChallengeEntryCostCoins,
-    calcChallengeRewards,
-    MAX_CRATE_OPEN_QTY,
-    OFFICIAL_GIFTCODES,
-    GIFTCODE_REWARD_GEMS,
-    GIFTCODE_REWARD_COINS,
-    GIFTCODE_REWARD_PEARLS,
-    GIFT_CODES,
-    MISSIONS_CATALOG,
     LEVELS,
     UNIT_CATALOG,
     UNIT_BY_ID,
+    CRATE_CONFIG,
+    MAX_CRATE_OPEN_QTY,
     META_TALENTS,
     UNIT_CHIPS,
     CHIP_SOCKET_2_UNLOCK_GEMS,
     CHIP_BUY_COST_COINS,
     CHIP_BUY_COST_GEMS,
-    ANCIENT_SKILL_TREE,
-    getSkillTreeNodeCost,
+    LUCKY_WHEEL_CONFIG,
+    MINIGAME_CONFIG,
     BASE_TURRET_CONFIG,
     getBaseTurretUpgradeCost,
     CODEX_MILESTONES,
-    LUCKY_WHEEL_CONFIG,
-    MINIGAME_CONFIG
+    SKILL_TREE_BRANCHES,
+    ANCIENT_SKILL_TREE,
+    ANCIENT_TREE_BRANCH_LINES,
+    getSkillTreeNodeCost,
+    calcStageRewardCoins,
+    calcChallengeEntryCostCoins,
+    calcChallengeRewards,
+    MISSIONS_CATALOG,
+    GIFT_CODES,
+    OFFICIAL_GIFTCODES,
+    GIFTCODE_REWARD_GEMS,
+    GIFTCODE_REWARD_COINS,
+    GIFTCODE_REWARD_MEDALS,
+    GIFTCODE_REWARD_PEARLS
 } from './config.js';
 
 import {
     triggerHaptic,
     formatCompactNumber,
-    simulateBulkCrateOpeningO1,
-    calcBulkUpgradeCost,
+    calcCrateBatchPrice,
+    simulateMassiveCrateOpening,
+    calcBulkUpgradeTotalCost,
     calcMaxAffordableLevels
 } from './math.js';
 
 import {
+    metaState,
     PRIMARY_INFANTRY_ID,
     normalizeUnitId,
-    metaState,
-    recordHighestRarityForUnit,
-    syncRepresentativeInventoryFromStacks,
     addCardToStacks,
+    syncRepresentativeInventoryFromStacks,
     getTotalCardsInInventory,
-    syncLegacyEngineBridges,
-    loadProgress,
+    getMaxUnlockedMapLevel,
+    isDifficultyCleared,
+    isDifficultyModeCleared,
+    isDifficultyUnlocked,
+    getDefaultDifficultyForMap,
+    isChallengeMapCleared,
+    isChallengeMapUnlocked,
+    getSkillTreeNodeLevel,
+    isSkillTreeNodeUnlocked,
+    canUpgradeSkillTreeNode,
+    upgradeSkillTreeNode,
+    getAncientSkillTreeBonuses,
+    getHighestRarityForUnit,
+    getHighestEverRarityRankForUnit,
+    hasClaimableCodexMilestones,
+    hasUnitInInventory,
+    calcTotalRefundCoins,
+    getUpgradeTierBracketText,
+    formatCurrency,
     saveProgress,
     resetAllAccountData,
     isUnitSocket2Unlocked,
@@ -66,891 +84,67 @@ import {
     getChipOwnedCount,
     buyChipItem,
     equipChipToUnitSlot,
-    unequipChipFromUnitSlot,
-    isDifficultyCleared,
-    isDifficultyModeCleared,
-    getMaxUnlockedMapLevel,
-    isDifficultyUnlocked,
-    getDefaultDifficultyForMap,
-    isChallengeMapCleared,
-    getMaxUnlockedChallengeMapLevel,
-    isChallengeMapUnlocked,
-    getSkillTreeNodeLevel,
-    isSkillTreeNodeUnlocked,
-    canUpgradeSkillTreeNode,
-    upgradeSkillTreeNode,
-    getHighestRarityForUnit,
-    getHighestEverRarityRankForUnit,
-    hasClaimableCodexMilestones,
-    hasUnitInInventory,
-    calcTotalRefundCoins,
-    getUpgradeTierBracketText,
-    formatCurrency
+    unequipChipFromUnitSlot
 } from './state.js';
 
 import {
-    isCustomArtUnit,
-    drawCustomUnitArt,
+    sfx,
+    getUnitSpriteDataURL,
+    drawUnitArt,
     drawBaseTurretArt,
-    getUnitSpriteDataURL
+    populateProceduralUIIcons
 } from './engine-core.js';
 
-import { getEffectiveUnitStats } from './entities.js';
+import { renderMap } from './map-nav.js';
 
-let sfxRef = null;
-let atlasRef = null;
-let onStartBattleCallback = null;
-let onRenderMapPreviewCallback = null;
+export const lobbyState = {
+    activeTab: 'battle',
+    armyMode: 'army', // 'army' | 'review' | 'merge'
+    selectedMapLevel: 1,
+    selectedDifficulty: 'easy',
+    selectedMode: 'destroy',
+    selectedShowcaseUnitId: PRIMARY_INFANTRY_ID,
+    selectedUpgradeUnitId: PRIMARY_INFANTRY_ID,
+    pendingUpgradeAddLevels: 1,
+    activeChipSocketIdx: null,
+    mergeSlot1Uid: null,
+    pendingCustomGacha: null,
+    activeSkillTreeNodeId: 'fp_1',
+    activeSkillTreeBranch: 'firepower',
 
-const SPECIAL_TO_ENGINE_MODE = {
-    endless: 'endless_siege',
-    endless_siege: 'endless_siege',
-    autobattler: 'auto_battler',
-    auto_battler: 'auto_battler',
-    night_fog: 'fog_of_war',
-    fog_of_war: 'fog_of_war',
-    raid_boss: 'raid_boss',
-    bossrush: 'raid_boss'
+    // Phòng tập bắn thử Sandbox (#sandbox-review-modal)
+    sandbox: {
+        active: false,
+        unitId: PRIMARY_INFANTRY_ID,
+        rarityId: 'common',
+        rafId: null,
+        lastTs: 0,
+        timeSec: 0,
+        fireTimer: 0,
+        recoil: 0,
+        totalDamageDealt: 0,
+        elapsedTestSec: 0,
+        projectiles: [],
+        beams: [],
+        particles: [],
+        floatingDmg: [],
+        dummyHitFlash: 0
+    }
 };
 
-export let currentLobbyTab = 'battle';
-export let currentStageViewLevel = 1;
-export let currentSelectedDifficulty = 'easy';
-export let currentSelectedBattleMode = 'destroy';
-export let currentSelectedSpecialMode = 'standard';
-export let currentArmyMode = 'army'; // 'army' | 'review' | 'merge'
-export let showcaseUnitId = PRIMARY_INFANTRY_ID;
-export let inspectingUnitId = PRIMARY_INFANTRY_ID;
-export let currentBulkAddLevels = 1;
-export let mergeSelectedCardUids = [];
-export let activeChipSocketIndex = 0;
-export let selectedSkillTreeNodeId = 'vital_roots';
-
 // ============================================================================
-// 1. GIAO DIỆN SẢNH (TOP BAR 4 TIỀN TỆ & 5 NAVIGATION TABS)
+// 1. HIỆU ỨNG HÀO QUANG MASTER & DEMON (2 VÒNG ELIP + TIA SÉT TÍM HẮC ÁM)
 // ============================================================================
-export function updateTopBarUI() {
-    const nameEl = document.getElementById('player-name-display');
-    if (nameEl) nameEl.textContent = metaState.playerName || 'COMMANDER';
-
-    const pearlsEl = document.getElementById('pearls-count-display');
-    if (pearlsEl) pearlsEl.textContent = formatCurrency(metaState.pearls || 0);
-
-    const medalsEl1 = document.getElementById('medals-count-display');
-    const medalsEl2 = document.getElementById('lobby-medals-val');
-    if (medalsEl1) medalsEl1.textContent = formatCurrency(metaState.medals || 0);
-    if (medalsEl2) medalsEl2.textContent = formatCurrency(metaState.medals || 0);
-
-    const gemsEl = document.getElementById('gems-count-display');
-    if (gemsEl) gemsEl.textContent = formatCurrency(metaState.gems);
-
-    const coinsEl = document.getElementById('coins-count-display');
-    if (coinsEl) coinsEl.textContent = formatCurrency(metaState.coins);
-
-    const pearlsPill = document.getElementById('pearls-pill-box');
-    const medalsPill = document.getElementById('medals-pill-box');
-    const gemsPill = document.getElementById('gems-pill-box');
-    const coinsPill = document.getElementById('coins-pill-box');
-    const gearBtn = document.getElementById('btn-open-settings');
-    const adminTag = document.getElementById('admin-active-tag');
-
-    if (metaState.isAdminMode) {
-        if (pearlsPill) pearlsPill.className = 'currency-pill pearl-pill admin-infinite-pill';
-        if (medalsPill) medalsPill.className = 'currency-pill medal-pill admin-infinite-pill';
-        if (gemsPill) gemsPill.className = 'currency-pill admin-infinite-pill';
-        if (coinsPill) coinsPill.className = 'currency-pill admin-infinite-pill';
-        if (gearBtn) gearBtn.className = 'btn-settings-gear admin-active-gear';
-        if (adminTag) adminTag.classList.remove('hidden');
-    } else {
-        if (pearlsPill) pearlsPill.className = 'currency-pill pearl-pill';
-        if (medalsPill) medalsPill.className = 'currency-pill medal-pill';
-        if (gemsPill) gemsPill.className = 'currency-pill';
-        if (coinsPill) coinsPill.className = 'currency-pill';
-        if (gearBtn) gearBtn.className = 'btn-settings-gear';
-        if (adminTag) adminTag.classList.add('hidden');
-    }
-
-    updateMissionNotificationDot();
-    updateTalentNotificationDot();
-    updateCodexNotificationDot();
-    updateLobbyTurretShortLabel();
-}
-
-export function switchLobbyTab(tabName) {
-    currentLobbyTab = tabName;
-    if (sfxRef) sfxRef.play('gas');
-    triggerHaptic(15);
-
-    document.querySelectorAll('.lobby-tab-pane').forEach(pane => {
-        pane.classList.remove('active');
-    });
-    const targetPane = document.getElementById(`tab-${tabName}`);
-    if (targetPane) targetPane.classList.add('active');
-
-    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
-        if (btn.getAttribute('data-tab') === tabName) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-
-    if (tabName === 'shop') renderShopChipStoreUI();
-    else if (tabName === 'army') renderArmyTabUI();
-    else if (tabName === 'battle') renderStageScreenUI();
-    else if (tabName === 'challenge') renderChallengeRoadmapUI();
-    else if (tabName === 'skilltree') renderSkillTreeTabUI();
-
-    updateTopBarUI();
-}
-
-// ============================================================================
-// 2. POPUP ĐẶT TÊN & SETTINGS (ADMIN MODE & RESET ACCOUNT)
-// ============================================================================
-export function checkAndPromptPlayerName(forceOpen = false) {
-    const modal = document.getElementById('name-modal');
-    const input = document.getElementById('player-name-input');
-    const errEl = document.getElementById('name-error-msg');
-    if (!modal || !input) return;
-
-    if (forceOpen || !metaState.playerName || metaState.playerName.trim() === '') {
-        input.value = metaState.playerName || '';
-        if (errEl) errEl.classList.add('hidden');
-        modal.classList.add('active');
-        setTimeout(() => input.focus(), 80);
-    }
-}
-
-export function renderSettingsModalUI() {
-    const modeBadge = document.getElementById('settings-mode-badge');
-    const modeDesc = document.getElementById('settings-mode-desc');
-    const loginSection = document.getElementById('admin-login-section');
-    const activeSection = document.getElementById('admin-active-section');
-    const passInput = document.getElementById('admin-password-input');
-    const fb = document.getElementById('admin-auth-feedback');
-    const passForm = document.getElementById('admin-password-form');
-
-    if (passInput) passInput.value = '';
-    if (fb) fb.classList.add('hidden');
-    if (passForm) passForm.classList.add('hidden');
-
-    if (metaState.isAdminMode) {
-        if (modeBadge) {
-            modeBadge.className = 'mode-pill-admin';
-            modeBadge.textContent = '👑 CHẾ ĐỘ ADMIN ĐANG BẬT';
-        }
-        if (modeDesc) {
-            modeDesc.textContent = `Bạn đang bật quyền Admin: Tài nguyên vô hạn, mở 1 Tỷ rương miễn phí, mở khóa toàn bộ ${LEVELS.length} map Battle & Challenge.`;
-        }
-        if (loginSection) loginSection.classList.add('hidden');
-        if (activeSection) activeSection.classList.remove('hidden');
-    } else {
-        if (modeBadge) {
-            modeBadge.className = 'mode-pill-normal';
-            modeBadge.textContent = 'NGƯỜI CHƠI THƯỜNG';
-        }
-        if (modeDesc) {
-            modeDesc.textContent = 'Tài nguyên và tiến trình khóa map đang áp dụng theo dữ liệu lưu thực tế.';
-        }
-        if (loginSection) loginSection.classList.remove('hidden');
-        if (activeSection) activeSection.classList.add('hidden');
-    }
-}
-
-// ============================================================================
-// 3. TAB BATTLE: CHỌN MAP (1-45), ĐỘ KHÓ, 2 HÌNH THỨC & 4 CHẾ ĐỘ ĐẶC BIỆT
-// ============================================================================
-export function drawLobbyMapPreviewCanvas(levelNum) {
-    if (typeof onRenderMapPreviewCallback === 'function') {
-        onRenderMapPreviewCallback(levelNum);
-        return;
-    }
-    const previewCanvas = document.getElementById('selected-map-preview');
-    if (previewCanvas && typeof window !== 'undefined' && typeof window.renderMap === 'function') {
-        const pCtx = previewCanvas.getContext('2d');
-        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-        window.renderMap(pCtx, previewCanvas.width, previewCanvas.height, levelNum, true);
-    }
-}
-
-export function renderStageScreenUI() {
-    const maxUnlocked = getMaxUnlockedMapLevel();
-    currentStageViewLevel = Math.max(1, Math.min(maxUnlocked, currentStageViewLevel));
-    const cfg = LEVELS[currentStageViewLevel - 1] || LEVELS[0];
-
-    if (!isDifficultyUnlocked(cfg.level, currentSelectedDifficulty)) {
-        currentSelectedDifficulty = getDefaultDifficultyForMap(cfg.level);
-    }
-
-    const titleEl = document.getElementById('stage-map-title');
-    if (titleEl) titleEl.textContent = `${cfg.level}. ${cfg.name.toUpperCase()}`;
-
-    const progressTextEl = document.getElementById('stage-progress-text');
-    if (progressTextEl) {
-        progressTextEl.textContent = metaState.isAdminMode
-            ? `👑 ADMIN MODE: ĐÃ MỞ KHÓA TOÀN BỘ ${LEVELS.length} MAP`
-            : `ĐÃ MỞ KHÓA: MAP ${maxUnlocked} / ${LEVELS.length} | KỶ LỤC VÔ TẬN: WAVE ${metaState.endlessBestWave || 0}`;
-    }
-
-    const prevBtn = document.getElementById('btn-prev-stage');
-    if (prevBtn) prevBtn.disabled = currentStageViewLevel <= 1;
-
-    const nextBtn = document.getElementById('btn-next-stage');
-    if (nextBtn) nextBtn.disabled = currentStageViewLevel >= maxUnlocked;
-
-    DIFFICULTY_ORDER.forEach(diffKey => {
-        const btn = document.getElementById(`diff-btn-${diffKey}`);
-        const statusEl = document.getElementById(`diff-status-${diffKey}`);
-        const unlocked = isDifficultyUnlocked(cfg.level, diffKey);
-        const cleared = isDifficultyCleared(cfg.level, diffKey);
-
-        if (btn) {
-            btn.classList.toggle('active', currentSelectedDifficulty === diffKey);
-            btn.classList.toggle('locked', !unlocked);
-        }
-        if (statusEl) {
-            if (!unlocked) statusEl.textContent = '🔒';
-            else if (cleared) statusEl.textContent = '✓';
-            else statusEl.textContent = '★';
-        }
-    });
-
-    BATTLE_MODE_ORDER.forEach(modeKey => {
-        const mBtn = document.getElementById(`mode-btn-${modeKey}`);
-        const mStatus = document.getElementById(`mode-status-${modeKey}`);
-        const modeCleared = isDifficultyModeCleared(cfg.level, currentSelectedDifficulty, modeKey);
-
-        if (mBtn) {
-            mBtn.classList.toggle('active', currentSelectedSpecialMode === 'standard' && currentSelectedBattleMode === modeKey);
-        }
-        if (mStatus) {
-            mStatus.textContent = modeCleared ? '✓' : '★';
-        }
-    });
-
-    document.querySelectorAll('.special-mode-pill').forEach(btn => {
-        const sp = btn.getAttribute('data-special') || btn.getAttribute('data-mode');
-        btn.classList.toggle('active', currentSelectedSpecialMode === sp);
-    });
-
-    const specialBtnMap = {
-        'mode-btn-endless': 'endless',
-        'mode-btn-autobattler': 'autobattler',
-        'btn-toggle-fog-mode': 'night_fog',
-        'mode-btn-bossrush': 'raid_boss'
-    };
-    Object.entries(specialBtnMap).forEach(([btnId, spKey]) => {
-        const el = document.getElementById(btnId);
-        if (el) el.classList.toggle('active', currentSelectedSpecialMode === spKey);
-    });
-
-    const fogStatusEl = document.getElementById('fog-mode-status');
-    if (fogStatusEl) {
-        fogStatusEl.textContent = currentSelectedSpecialMode === 'night_fog' ? 'BẬT' : 'FOG';
-    }
-
-    const endlessBestMini = document.getElementById('endless-best-mini');
-    if (endlessBestMini) endlessBestMini.textContent = `W:${metaState.endlessBestWave || 0}`;
-
-    const diffCfg = DIFFICULTY_CONFIG[currentSelectedDifficulty] || DIFFICULTY_CONFIG.easy;
-    const rewardCoins = calcStageRewardCoins(cfg.level, currentSelectedDifficulty, currentSelectedBattleMode);
-    const scaledEnemyBaseHp = Math.round(cfg.enemyBaseHp * diffCfg.baseHpMult);
-
-    const diffBannerEl = document.getElementById('diff-info-banner');
-    if (diffBannerEl) {
-        const sp = currentSelectedSpecialMode;
-        if (sp === 'endless') {
-            diffBannerEl.innerHTML = `Chế độ: <b>Thủ Thành Roguelike Vô Tận</b> • Kỷ lục: <b class="text-purple-300">Wave ${metaState.endlessBestWave || 0}</b> • Qua mỗi Wave chọn Thẻ Đột Biến!`;
-        } else if (sp === 'autobattler') {
-            diffBannerEl.innerHTML = `Chế độ: <b>Đấu Trường Đặt Trận Tự Động</b> • Đã thắng: <b class="text-emerald-300">${metaState.autobattlerWins || 0} trận</b> • Chọn ô & chạm sân đặt quân!`;
-        } else if (sp === 'night_fog') {
-            diffBannerEl.innerHTML = `Chế độ: <b>Chiến Dịch Đêm Mù (Fog of War)</b> • Màn đêm bao phủ, đơn vị chiếu đèn mở tầm nhìn!`;
-        } else if (sp === 'raid_boss') {
-            diffBannerEl.innerHTML = `Chế độ: <b>Đấu Trường Siêu Boss</b> • Hủy diệt Pháo Đài Hạm Leviathan MK-IX qua 3 giai đoạn!`;
-        } else if (currentSelectedBattleMode === 'destroy') {
-            diffBannerEl.innerHTML = `Mục tiêu: <b>Phá hủy Căn cứ Đỏ (HP: ${scaledEnemyBaseHp})</b> • Thưởng: <b class="text-amber-300">🪙 ${formatCurrency(rewardCoins)} Coins</b>`;
-        } else {
-            diffBannerEl.innerHTML = `Mục tiêu: <b>Sinh tồn 10 Wave liên tiếp</b> • Thưởng: <b class="text-amber-300">🪙 ${formatCurrency(rewardCoins)} Coins</b>`;
-        }
-    }
-
-    const mechanicSubEl = document.getElementById('diff-mode-mechanic-badge');
-    if (mechanicSubEl) {
-        if (cfg.mechanicTag) {
-            mechanicSubEl.innerHTML = `<b>${cfg.mechanicTag}</b>`;
-        } else {
-            mechanicSubEl.innerHTML = `🎲 Trong trận lên cấp sẽ <b>Roll ngẫu nhiên 3 Binh Chủng</b> (kèm 1 lượt <b>Reroll</b>) & kéo thả đặt quanh nhà!`;
-        }
-    }
-
-    const waterBadge = document.getElementById('select-map-water-badge');
-    if (waterBadge) {
-        if (cfg.hasWater) {
-            waterBadge.className = 'map-water-pill has-water';
-            waterBadge.textContent = cfg.hasCoastFoam ? '🌊 BỜ BIỂN SÓNG VỖ: CÓ THỦY QUÂN' : '🌊 CÓ NƯỚC: CÓ THỦY QUÂN';
-        } else if (cfg.hasLava) {
-            waterBadge.className = 'map-water-pill no-water';
-            waterBadge.textContent = cfg.id === 45 ? '😈 HƯ KHÔNG MA GIỚI: CẤM THỦY QUÂN' : '🌋 HỒ DUNG NHAM: CẤM THỦY QUÂN';
-        } else if (cfg.hasToxicSwamp) {
-            waterBadge.className = 'map-water-pill no-water';
-            waterBadge.textContent = '☣️ ĐẦM LẦY ĐỘC TỐ: LỤC & KHÔNG QUÂN';
-        } else {
-            waterBadge.className = 'map-water-pill no-water';
-            waterBadge.textContent = cfg.theme === 'brown_earth' ? '🏜️ ĐẤT NÂU HẺM NÚI: LỤC & KHÔNG QUÂN' : '⛰️ ĐẤT LIỀN: LỤC & KHÔNG QUÂN';
-        }
-    }
-
-    const clearedStampEl = document.getElementById('stage-cleared-stamp');
-    if (clearedStampEl) {
-        const curModeCleared = isDifficultyModeCleared(cfg.level, currentSelectedDifficulty, currentSelectedBattleMode);
-        const anyDiffCleared = isDifficultyCleared(cfg.level, currentSelectedDifficulty);
-        if (curModeCleared || anyDiffCleared) {
-            clearedStampEl.classList.remove('hidden');
-            const mLabel = BATTLE_MODE_CONFIG[currentSelectedBattleMode]?.shortLabel || 'PHÁ CĂN CỨ';
-            clearedStampEl.textContent = curModeCleared
-                ? `✓ ĐÃ QUA: ${diffCfg.shortLabel} - ${mLabel}`
-                : `✓ ĐÃ MỞ KHÓA (${diffCfg.shortLabel})`;
-        } else {
-            clearedStampEl.classList.add('hidden');
-        }
-    }
-
-    const descEl = document.getElementById('select-map-desc');
-    if (descEl) descEl.textContent = cfg.desc;
-
-    drawLobbyMapPreviewCanvas(cfg.level);
-    updateTopBarUI();
-}
-
-// ============================================================================
-// 4. CÂY KỸ NĂNG CHỈ HUY BỊ ĐỘNG (6 NHÁNH META-TALENTS - MAX LV.10)
-// ============================================================================
-export function updateTalentNotificationDot() {
-    const canAffordAny = Object.values(META_TALENTS).some(t => {
-        const lv = (metaState.metaTalents && metaState.metaTalents[t.id]) || 0;
-        const cost = t.baseCost + lv * t.costStep;
-        return lv < t.maxLevel && (metaState.isAdminMode || (metaState.medals || 0) >= cost);
-    });
-
-    const dot1 = document.getElementById('talents-notif-badge');
-    const dot2 = document.getElementById('talent-notif-dot');
-    if (dot1) {
-        dot1.style.display = canAffordAny ? 'flex' : 'none';
-        dot1.classList.toggle('hidden', !canAffordAny);
-    }
-    if (dot2) {
-        dot2.classList.toggle('hidden', !canAffordAny);
-    }
-}
-
-export function renderMetaTalentsModalUI() {
-    const formattedMedals = formatCurrency(metaState.medals || 0);
-    const modalMedals1 = document.getElementById('modal-medals-count');
-    const modalMedals2 = document.getElementById('talent-medals-count');
-    if (modalMedals1) modalMedals1.textContent = formattedMedals;
-    if (modalMedals2) modalMedals2.textContent = `${formattedMedals} 🎖️`;
-
-    const container =
-        document.getElementById('talents-list-container') ||
-        document.getElementById('talent-tree-list');
-    if (!container) return;
-    container.innerHTML = '';
-
-    Object.values(META_TALENTS).forEach(talent => {
-        const curLv = (metaState.metaTalents && metaState.metaTalents[talent.id]) || 0;
-        const isMax = curLv >= talent.maxLevel;
-        const cost = talent.baseCost + curLv * talent.costStep;
-        const canAfford = metaState.isAdminMode || (metaState.medals || 0) >= cost;
-
-        let pipsHtml = '';
-        for (let i = 1; i <= talent.maxLevel; i++) {
-            pipsHtml += `<span class="talent-pip ${i <= curLv ? 'active' : ''}" style="width:10px;"></span>`;
-        }
-
-        const card = document.createElement('div');
-        card.className = `talent-node-card ${isMax ? 'talent-maxed' : ''}`;
-        card.innerHTML = `
-            <div class="talent-node-icon">${talent.icon}</div>
-            <div class="talent-node-info">
-                <div class="talent-node-title">${talent.name} (Cấp ${curLv}/${talent.maxLevel})</div>
-                <div class="talent-node-desc">${talent.desc}</div>
-                <div class="talent-node-stat-preview">${talent.getEffectText(curLv)}</div>
-                <div class="talent-level-pips">${pipsHtml}</div>
-            </div>
-            <button type="button" class="btn-3d ${isMax ? 'btn-3d-amber' : 'btn-3d-green'} talent-upgrade-btn" ${(!isMax && !canAfford) ? 'disabled' : ''}>
-                ${isMax ? '<span>TỐI ĐA</span>' : `<span>NÂNG CẤP</span><span class="talent-cost-num">🎖️ ${metaState.isAdminMode ? 0 : cost}</span>`}
-            </button>
-        `;
-
-        const upgBtn = card.querySelector('.talent-upgrade-btn');
-        if (upgBtn && !isMax) {
-            upgBtn.addEventListener('click', () => {
-                if (!metaState.isAdminMode && (metaState.medals || 0) < cost) {
-                    if (sfxRef) sfxRef.play('cannon');
-                    return;
-                }
-                if (!metaState.isAdminMode) metaState.medals -= cost;
-                metaState.metaTalents[talent.id] = curLv + 1;
-                triggerHaptic(25);
-                if (sfxRef) sfxRef.play('upgrade');
-                saveProgress();
-                renderMetaTalentsModalUI();
-                updateTopBarUI();
-            });
-        }
-        container.appendChild(card);
-    });
-}
-
-export function resetAllMetaTalents() {
-    if (!metaState.metaTalents) return;
-    let refunded = 0;
-    Object.values(META_TALENTS).forEach(talent => {
-        const curLv = Number(metaState.metaTalents[talent.id]) || 0;
-        for (let i = 0; i < curLv; i++) {
-            refunded += talent.baseCost + i * talent.costStep;
-        }
-        metaState.metaTalents[talent.id] = 0;
-    });
-
-    if (refunded > 0) {
-        if (!metaState.isAdminMode) {
-            metaState.medals = (metaState.medals || 0) + refunded;
-        }
-        triggerHaptic(25);
-        if (sfxRef) sfxRef.play('upgrade');
-        saveProgress();
-        renderMetaTalentsModalUI();
-        updateTopBarUI();
-    } else if (sfxRef) {
-        sfxRef.play('cannon');
-    }
-}
-
-// ============================================================================
-// 4B. Ụ PHÁO PHÒNG THỦ CĂN CỨ XANH (#base-turret-modal)
-// ============================================================================
-export function updateLobbyTurretShortLabel() {
-    const labelEl = document.getElementById('lobby-turret-short-label');
-    if (!labelEl) return;
-    const tState = metaState.baseTurret || { type: 'gatling', level: 1 };
-    const cfg = BASE_TURRET_CONFIG[tState.type] || BASE_TURRET_CONFIG.gatling;
-    labelEl.textContent = `${cfg.shortName} LV.${tState.level || 1}`;
-}
-
-export function renderBaseTurretModalUI() {
-    if (!metaState.baseTurret) {
-        metaState.baseTurret = { type: 'gatling', level: 1 };
-    }
-    const curType = metaState.baseTurret.type || 'gatling';
-    const curLv = Math.max(1, Number(metaState.baseTurret.level) || 1);
-    const lvMult = 1 + (curLv - 1) * 0.15;
-    const bastionLv = Number(metaState.metaTalents?.immortal_bastion) || 0;
-    const bastionMult = 1 + bastionLv * 0.08;
-    const activeCfg = BASE_TURRET_CONFIG[curType] || BASE_TURRET_CONFIG.gatling;
-
-    const lvValEl = document.getElementById('turret-modal-level-val');
-    if (lvValEl) lvValEl.textContent = `LV.${curLv}`;
-
-    const statsBadgeEl = document.getElementById('turret-modal-stats-badge');
-    if (statsBadgeEl) {
-        const effDmg = Math.round(activeCfg.baseDamage * lvMult * bastionMult);
-        statsBadgeEl.textContent = `DMG: ${effDmg} • Tầm: ${activeCfg.range} • Tốc: ${activeCfg.fireRate}/s`;
-    }
-
-    const container = document.getElementById('turret-options-container');
-    if (container) {
-        container.innerHTML = '';
-        Object.values(BASE_TURRET_CONFIG).forEach(turret => {
-            const isSelected = turret.id === curType;
-            const effDmg = Math.round(turret.baseDamage * lvMult * bastionMult);
-
-            const previewCanvas = document.createElement('canvas');
-            previewCanvas.width = 44;
-            previewCanvas.height = 44;
-            const pCtx = previewCanvas.getContext('2d');
-            drawBaseTurretArt(pCtx, turret.id, 22, 24, -Math.PI / 2, 0.5);
-            const previewUrl = previewCanvas.toDataURL();
-
-            const card = document.createElement('div');
-            card.className = `turret-option-card ${isSelected ? 'active-turret' : ''}`;
-            card.innerHTML = `
-                <img src="${previewUrl}" class="w-11 h-11 pixel-art flex-shrink-0" alt="${turret.name}" />
-                <div class="flex-1 text-left">
-                    <div class="text-xs font-black text-slate-900">${turret.icon} ${turret.name}</div>
-                    <div class="text-[10px] font-bold text-slate-600 leading-snug mt-0.5">${turret.desc}</div>
-                    <div class="text-[10px] font-extrabold text-sky-700 mt-1 vt323-num">
-                        ⚔️ DMG Cấp ${curLv}: ${effDmg} • 🎯 Tầm bắn: ${turret.range}px
-                    </div>
-                </div>
-                <button type="button" class="btn-3d ${isSelected ? 'btn-3d-amber' : 'btn-3d-cyan'} px-3 py-2 text-[10.5px]">
-                    ${isSelected ? '✓ ĐANG LẮP' : 'CHỌN LẮP'}
-                </button>
-            `;
-
-            card.querySelector('button')?.addEventListener('click', () => {
-                metaState.baseTurret.type = turret.id;
-                saveProgress();
-                triggerHaptic(20);
-                if (sfxRef) sfxRef.play('upgrade');
-                renderBaseTurretModalUI();
-                updateLobbyTurretShortLabel();
-            });
-
-            container.appendChild(card);
-        });
-    }
-
-    const upgCost = getBaseTurretUpgradeCost(curLv);
-    const costLabelEl = document.getElementById('turret-upgrade-cost-label');
-    if (costLabelEl) {
-        costLabelEl.textContent = metaState.isAdminMode ? '🪙 0 (ADMIN ∞)' : `🪙 ${upgCost.toLocaleString('en-US')}`;
-    }
-
-    const btnUpg = document.getElementById('btn-upgrade-base-turret');
-    if (btnUpg) {
-        btnUpg.disabled = !metaState.isAdminMode && metaState.coins < upgCost;
-    }
-}
-
-// ============================================================================
-// 4C. SỔ TAY INDEX 17 BINH CHỦNG & THƯỞNG MỐC SƯU TẦM (#codex-modal)
-// ============================================================================
-export function updateCodexNotificationDot() {
-    const dotEl = document.getElementById('codex-notif-dot');
-    if (!dotEl) return;
-    dotEl.classList.toggle('hidden', !hasClaimableCodexMilestones());
-}
-
-export function renderCodexModalUI() {
-    const listEl = document.getElementById('codex-units-list');
-    const summaryEl = document.getElementById('codex-claimed-summary');
-    const claimAllBtn = document.getElementById('btn-codex-claim-all');
-    if (!listEl) return;
-
-    listEl.innerHTML = '';
-    const totalMilestones = UNIT_CATALOG.length * CODEX_MILESTONES.length;
-    let totalClaimed = 0;
-    let anyClaimable = false;
-
-    UNIT_CATALOG.forEach(u => {
-        const maxRankEver = getHighestEverRarityRankForUnit(u.id);
-        const curRarityId = maxRankEver >= 0 ? (RARITY_ORDER[maxRankEver] || 'common') : 'common';
-        const rCfg = RARITY_CONFIG[curRarityId] || RARITY_CONFIG.common;
-        const spriteUrl = getUnitSpriteDataURL(u, 7);
-
-        let msButtonsHtml = '';
-        CODEX_MILESTONES.forEach(ms => {
-            const claimKey = `${u.id}__${ms.id}`;
-            const isClaimed = !!metaState.codexClaimed?.[claimKey];
-            const isUnlocked = maxRankEver >= ms.minRank;
-            if (isClaimed) totalClaimed++;
-            if (isUnlocked && !isClaimed) anyClaimable = true;
-
-            const stateClass = isClaimed ? 'ms-claimed' : (isUnlocked ? 'ms-claimable' : 'ms-locked');
-            const statusLabel = isClaimed
-                ? `✓ ${ms.label}`
-                : (isUnlocked ? `🎁 NHẬN +${ms.rewardGems}💎` : `🔒 ${ms.label}`);
-
-            msButtonsHtml += `
-                <button type="button" data-unit-id="${u.id}" data-ms-id="${ms.id}" class="codex-ms-btn ${stateClass}" ${(!isUnlocked || isClaimed) ? 'disabled' : ''}>
-                    <div>${statusLabel}</div>
-                    <div class="text-[7.5px] opacity-90">+${ms.rewardGems}💎 +${ms.rewardMedals}🎖️</div>
-                </button>
-            `;
-        });
-
-        const row = document.createElement('div');
-        row.className = 'codex-unit-row';
-        row.innerHTML = `
-            <div class="flex items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <img src="${spriteUrl}" class="w-9 h-9 pixel-art bg-slate-800 rounded-lg p-1 border border-slate-900" alt="${u.name}" />
-                    <div class="text-left">
-                        <div class="text-xs font-black text-slate-900">${u.name}</div>
-                        <div class="text-[9.5px] font-bold text-slate-500">${u.role}</div>
-                    </div>
-                </div>
-                <span class="rarity-badge ${rCfg.cssClass}">
-                    ${maxRankEver >= 0 ? `Đạt: ${rCfg.name}` : 'Chưa sở hữu'}
-                </span>
-            </div>
-            <div class="codex-milestones-grid">${msButtonsHtml}</div>
-        `;
-
-        row.querySelectorAll('.codex-ms-btn.ms-claimable').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const uId = btn.getAttribute('data-unit-id');
-                const mId = btn.getAttribute('data-ms-id');
-                claimSingleCodexMilestone(uId, mId);
-            });
-        });
-
-        listEl.appendChild(row);
-    });
-
-    if (summaryEl) {
-        summaryEl.textContent = `${totalClaimed} / ${totalMilestones}`;
-    }
-    if (claimAllBtn) {
-        claimAllBtn.disabled = !anyClaimable;
-    }
-}
-
-export function claimSingleCodexMilestone(unitId, msId) {
-    const ms = CODEX_MILESTONES.find(m => m.id === msId);
-    if (!ms) return;
-    const maxRank = getHighestEverRarityRankForUnit(unitId);
-    const claimKey = `${unitId}__${ms.id}`;
-    if (maxRank < ms.minRank || metaState.codexClaimed?.[claimKey]) return;
-
-    if (!metaState.codexClaimed) metaState.codexClaimed = {};
-    metaState.codexClaimed[claimKey] = true;
-    metaState.gems += ms.rewardGems;
-    metaState.medals = (metaState.medals || 0) + ms.rewardMedals;
-
-    saveProgress();
-    triggerHaptic(25);
-    if (sfxRef) sfxRef.play('upgrade');
-    renderCodexModalUI();
-    updateTopBarUI();
-}
-
-export function claimAllCodexMilestones() {
-    let gainedGems = 0;
-    let gainedMedals = 0;
-    if (!metaState.codexClaimed) metaState.codexClaimed = {};
-
-    UNIT_CATALOG.forEach(u => {
-        const maxRank = getHighestEverRarityRankForUnit(u.id);
-        CODEX_MILESTONES.forEach(ms => {
-            const claimKey = `${u.id}__${ms.id}`;
-            if (maxRank >= ms.minRank && !metaState.codexClaimed[claimKey]) {
-                metaState.codexClaimed[claimKey] = true;
-                gainedGems += ms.rewardGems;
-                gainedMedals += ms.rewardMedals;
-            }
-        });
-    });
-
-    if (gainedGems > 0 || gainedMedals > 0) {
-        metaState.gems += gainedGems;
-        metaState.medals = (metaState.medals || 0) + gainedMedals;
-        saveProgress();
-        triggerHaptic(35);
-        if (sfxRef) sfxRef.play('upgrade');
-        renderCodexModalUI();
-        updateTopBarUI();
-    }
-}
-
-// ============================================================================
-// 5. NHIỆM VỤ CHIẾN DỊCH & GIFTCODE
-// ============================================================================
-export function updateMissionNotificationDot() {
-    const dotEl = document.getElementById('mission-notif-dot');
-    if (!dotEl) return;
-    const mp = metaState.missionsProgress;
-    const hasClaimable = MISSIONS_CATALOG.some(m => {
-        const cur = Number(mp[m.statKey]) || 0;
-        return cur >= m.target && !mp.claimed[m.id];
-    });
-    dotEl.classList.toggle('hidden', !hasClaimable);
-}
-
-export function renderMissionsList() {
-    const container = document.getElementById('mission-list-container');
-    if (!container) return;
-    container.innerHTML = '';
-    const mp = metaState.missionsProgress;
-
-    MISSIONS_CATALOG.forEach(m => {
-        const cur = Math.min(m.target, Number(mp[m.statKey]) || 0);
-        const pct = Math.max(0, Math.min(100, Math.round((cur / m.target) * 100)));
-        const isClaimed = !!mp.claimed[m.id];
-        const canClaim = cur >= m.target && !isClaimed;
-        const coinBonusText = m.rewardCoins ? ` • 🪙 +${m.rewardCoins.toLocaleString('en-US')}` : '';
-
-        const item = document.createElement('div');
-        item.className = 'mission-item-card';
-        item.innerHTML = `
-            <div class="flex-1 text-left">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-extrabold text-slate-900">${m.title}</span>
-                    <span class="text-[10.5px] font-black text-emerald-600">💎 +${m.rewardGems.toLocaleString('en-US')}${coinBonusText}</span>
-                </div>
-                <div class="mission-progress-track">
-                    <div class="mission-progress-fill" style="width: ${pct}%"></div>
-                </div>
-                <div class="text-[10px] font-bold text-slate-500 mt-0.5">Tiến độ: ${cur.toLocaleString('en-US')} / ${m.target.toLocaleString('en-US')}</div>
-            </div>
-            <div>
-                <button class="btn-3d ${canClaim ? 'btn-3d-green' : 'btn-3d-yellow'} px-3 py-1.5 text-[11px]" ${canClaim ? '' : 'disabled'}>
-                    ${isClaimed ? 'ĐÃ NHẬN' : (canClaim ? 'NHẬN' : 'CHƯA ĐẠT')}
-                </button>
-            </div>
-        `;
-
-        const btn = item.querySelector('button');
-        if (btn && canClaim) {
-            btn.addEventListener('click', () => {
-                metaState.missionsProgress.claimed[m.id] = true;
-                metaState.gems += m.rewardGems || 0;
-                metaState.coins += m.rewardCoins || 0;
-                saveProgress();
-                triggerHaptic(20);
-                if (sfxRef) sfxRef.play('upgrade');
-                renderMissionsList();
-                updateTopBarUI();
-            });
-        }
-        container.appendChild(item);
-    });
-}
-
-export function renderGiftcodeModalUI() {
-    const input = document.getElementById('giftcode-input');
-    const fb = document.getElementById('giftcode-feedback');
-    const usedCountEl = document.getElementById('giftcode-used-count');
-    const tagsWrap = document.getElementById('giftcode-used-tags');
-
-    if (input) input.value = '';
-    if (fb) fb.classList.add('hidden');
-
-    const usedList = Array.isArray(metaState.usedCodes) ? metaState.usedCodes : [];
-    if (usedCountEl) usedCountEl.textContent = `${usedList.length} / ${OFFICIAL_GIFTCODES.length} mã`;
-
-    if (tagsWrap) {
-        tagsWrap.innerHTML = '';
-        if (usedList.length === 0) {
-            tagsWrap.innerHTML = `<span class="text-[10px] text-slate-400 italic">Chưa có mã nào được nhập</span>`;
-        } else {
-            usedList.forEach(code => {
-                const pill = document.createElement('span');
-                pill.className = 'used-code-pill';
-                pill.textContent = `✓ ${code}`;
-                tagsWrap.appendChild(pill);
-            });
-        }
-    }
-}
-
-// ============================================================================
-// 6. TAB SHOP: MỞ RƯƠNG SIÊU TỐC O(1) & CỬA HÀNG CHIP BỔ TRỢ
-// ============================================================================
-let pendingGachaData = null;
-
-export function renderShopChipStoreUI() {
-    const listEl = document.getElementById('shop-chips-list');
-    if (!listEl) return;
-    listEl.innerHTML = '';
-
-    Object.values(UNIT_CHIPS).forEach(chip => {
-        const ownedCount = getChipOwnedCount(chip.id);
-        const coinCost = chip.buyCoins || CHIP_BUY_COST_COINS;
-        const gemCost = chip.buyGems || CHIP_BUY_COST_GEMS;
-        const canBuyCoins = metaState.isAdminMode || metaState.coins >= coinCost;
-        const canBuyGems = metaState.isAdminMode || metaState.gems >= gemCost;
-
-        const row = document.createElement('div');
-        row.className = 'shop-chip-item-row';
-        row.innerHTML = `
-            <div class="flex items-center gap-2 flex-1 text-left">
-                <div class="w-9 h-9 rounded-lg bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-xl flex-shrink-0">
-                    ${chip.icon}
-                </div>
-                <div>
-                    <div class="text-xs font-black text-white">
-                        ${chip.name} <span class="text-amber-300 vt323-num text-sm">(Kho: ${ownedCount})</span>
-                    </div>
-                    <div class="text-[9.5px] font-bold text-slate-300 leading-tight mt-0.5">${chip.desc}</div>
-                </div>
-            </div>
-            <div class="flex flex-col gap-1 flex-shrink-0">
-                <button type="button" data-buy-chip="${chip.id}" data-curr="coins" class="btn-3d btn-3d-amber px-2.5 py-1 text-[10px] vt323-num" ${!canBuyCoins ? 'disabled' : ''}>
-                    🪙 ${coinCost.toLocaleString('en-US')}
-                </button>
-                <button type="button" data-buy-chip="${chip.id}" data-curr="gems" class="btn-3d btn-3d-cyan px-2.5 py-1 text-[10px] vt323-num" ${!canBuyGems ? 'disabled' : ''}>
-                    💎 ${gemCost.toLocaleString('en-US')}
-                </button>
-            </div>
-        `;
-
-        row.querySelectorAll('button[data-buy-chip]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const cId = btn.getAttribute('data-buy-chip');
-                const curr = btn.getAttribute('data-curr');
-                if (buyChipItem(cId, curr)) {
-                    triggerHaptic(20);
-                    if (sfxRef) sfxRef.play('upgrade');
-                    renderShopChipStoreUI();
-                    updateTopBarUI();
-                } else if (sfxRef) {
-                    sfxRef.play('cannon');
-                }
-            });
-        });
-
-        listEl.appendChild(row);
-    });
-}
-
-export function requestOpenGachaCrate(crateType, count) {
-    const qty = Math.max(1, Math.min(MAX_CRATE_OPEN_QTY, Math.floor(Number(count) || 1)));
-    const isLegendary = crateType === 'legendary';
-    const unitPrice = isLegendary ? 300 : 150;
-
-    const blocksOf10 = Math.floor(qty / 10);
-    const rawCost = qty * unitPrice;
-    const discountAmount = Math.round(blocksOf10 * 10 * unitPrice * 0.1);
-    const finalCost = metaState.isAdminMode ? 0 : Math.max(0, rawCost - discountAmount);
-
-    pendingGachaData = {
-        crateType,
-        qty,
-        unitPrice,
-        rawCost,
-        blocksOf10,
-        discountAmount,
-        finalCost,
-        isLegendary
-    };
-
-    const modal = document.getElementById('gacha-confirm-modal');
-    const titleEl = document.getElementById('gacha-conf-crate-title');
-    const qtyEl = document.getElementById('gacha-conf-qty');
-    const rawCostEl = document.getElementById('gacha-conf-raw-cost');
-    const discEl = document.getElementById('gacha-conf-discount-tag');
-    const savedEl = document.getElementById('gacha-conf-saved');
-    const finalCostEl = document.getElementById('gacha-conf-final-cost');
-    const errEl = document.getElementById('gacha-conf-error');
-    const confirmBtn = document.getElementById('btn-confirm-custom-gacha');
-
-    if (titleEl) titleEl.textContent = isLegendary ? '👑 LEGENDARY CRATE' : '🧰 EPIC CRATE';
-    if (qtyEl) qtyEl.textContent = `${qty.toLocaleString('en-US')} rương (${formatCompactNumber(qty)})`;
-    if (rawCostEl) rawCostEl.textContent = `💎 ${rawCost.toLocaleString('en-US')}`;
-    if (discEl) discEl.textContent = blocksOf10 > 0 ? `-10% (${formatCompactNumber(blocksOf10)} cụm 10)` : 'Không đủ 10 rương để giảm giá';
-    if (savedEl) savedEl.textContent = `💎 ${discountAmount.toLocaleString('en-US')}`;
-    if (finalCostEl) finalCostEl.textContent = metaState.isAdminMode ? '💎 0 (ADMIN ∞)' : `💎 ${finalCost.toLocaleString('en-US')}`;
-
-    const hasEnough = metaState.isAdminMode || metaState.gems >= finalCost;
-    if (errEl) errEl.classList.toggle('hidden', hasEnough);
-    if (confirmBtn) confirmBtn.disabled = !hasEnough;
-
-    if (modal) modal.classList.add('active');
-}
-
-// ============================================================================
-// 7. TAB ARMY: SHOWCASE CANVAS, REVIEW SANDBOX, CHIP SOCKETS (KHE 2 = 500 💎) & MERGE
-// ============================================================================
-export function drawCanvasRarityAura(ctx, cx, cy, baseRadius, rarityId, timeSec) {
-    const rCfg = RARITY_CONFIG[rarityId];
-    if (!rCfg) return;
-
-    if (isMasterRarity(rarityId)) {
-        ctx.save();
-        ctx.translate(cx, cy);
-
+export function drawCanvasRarityAura(ctx, cx, cy, baseRadius, rarityId, timeSec = 0) {
+    if (!rarityId) return;
+    const isMaster = isMasterRarity(rarityId);
+    const isDemon = isDemonRarity(rarityId);
+    if (!isMaster && !isDemon) return;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    if (isMaster) {
         const grad = ctx.createRadialGradient(0, 0, baseRadius * 0.2, 0, 0, baseRadius * 1.45);
         grad.addColorStop(0, 'rgba(0, 242, 254, 0.58)');
         grad.addColorStop(0.55, 'rgba(2, 132, 199, 0.35)');
@@ -973,22 +167,16 @@ export function drawCanvasRarityAura(ctx, cx, cy, baseRadius, rarityId, timeSec)
             ctx.restore();
         }
 
-        const orbCount = 6;
-        for (let i = 0; i < orbCount; i++) {
-            const a = timeSec * 3.8 + (i * Math.PI * 2) / orbCount;
+        for (let i = 0; i < 6; i++) {
+            const a = timeSec * 3.8 + (i * Math.PI * 2) / 6;
             const ox = Math.cos(a) * (baseRadius * 1.15);
             const oy = Math.sin(a) * (baseRadius * 0.55) - Math.abs(Math.sin(timeSec * 5 + i)) * 5;
             ctx.fillStyle = i % 2 === 0 ? '#e0f2fe' : '#00f2fe';
             ctx.beginPath();
-            ctx.arc(ox, oy, 3.2, 0, Math.PI * 2);
+            ctx.arc(ox, oy, 3.0, 0, Math.PI * 2);
             ctx.fill();
         }
-
-        ctx.restore();
-    } else if (isDemonRarity(rarityId)) {
-        ctx.save();
-        ctx.translate(cx, cy);
-
+    } else if (isDemon) {
         const grad = ctx.createRadialGradient(0, 0, baseRadius * 0.15, 0, 0, baseRadius * 1.6);
         grad.addColorStop(0, 'rgba(240, 171, 252, 0.68)');
         grad.addColorStop(0.5, 'rgba(147, 51, 234, 0.45)');
@@ -1022,6 +210,7 @@ export function drawCanvasRarityAura(ctx, cx, cy, baseRadius, rarityId, timeSec)
         ctx.stroke();
         ctx.restore();
 
+        // 3 Tia sét tím giật quanh bệ đứng Demon
         ctx.strokeStyle = '#f0abfc';
         ctx.lineWidth = 1.6;
         for (let b = 0; b < 3; b++) {
@@ -1035,76 +224,583 @@ export function drawCanvasRarityAura(ctx, cx, cy, baseRadius, rarityId, timeSec)
             ctx.lineTo(sx + (((seed + 2) % 5) - 2) * 3, sy - 24);
             ctx.stroke();
         }
+    }
 
-        ctx.restore();
+    ctx.restore();
+}
+
+// ============================================================================
+// 2. MỞ / ĐÓNG SẢNH & CẬP NHẬT TOP BAR 4 LOẠI TIỀN TỆ
+// ============================================================================
+let showcaseAnimStarted = false;
+
+export function openLobbyScreen(defaultTab = null) {
+    const lobby = document.getElementById('lobby-wrapper');
+    if (lobby) lobby.classList.add('active');
+    document.getElementById('win-panel')?.classList.remove('active');
+    document.getElementById('lose-panel')?.classList.remove('active');
+    document.getElementById('draft-modal')?.classList.remove('active');
+
+    populateProceduralUIIcons();
+    updateLobbyTopBar();
+    renderMissionNotifDot();
+    renderBattleStageView();
+    renderArmyTab();
+    renderShopChipsSection();
+    renderChallengeRoadmap();
+    renderSkillTreeTab();
+
+    if (!showcaseAnimStarted) {
+        showcaseAnimStarted = true;
+        const showcaseLoop = () => {
+            const isLobbyActive = document.getElementById('lobby-wrapper')?.classList.contains('active');
+            if (isLobbyActive && lobbyState.activeTab === 'army') {
+                renderArmyShowcase();
+            }
+            requestAnimationFrame(showcaseLoop);
+        };
+        requestAnimationFrame(showcaseLoop);
+    }
+
+    if (defaultTab) switchLobbyTab(defaultTab);
+}
+
+export function switchLobbyTab(tabName) {
+    lobbyState.activeTab = tabName;
+    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    document.querySelectorAll('.lobby-tab-pane').forEach(pane => {
+        pane.classList.toggle('active', pane.id === `tab-${tabName}`);
+    });
+
+    if (tabName === 'army') renderArmyTab();
+    if (tabName === 'shop') renderShopChipsSection();
+    if (tabName === 'battle') renderBattleStageView();
+    if (tabName === 'challenge') renderChallengeRoadmap();
+    if (tabName === 'skilltree') renderSkillTreeTab();
+}
+
+export function updateLobbyTopBar() {
+    const nameEl = document.getElementById('player-name-display');
+    const coinsEl = document.getElementById('coins-count-display');
+    const gemsEl = document.getElementById('gems-count-display');
+    const medalsEl = document.getElementById('medals-count-display');
+    const pearlsEl = document.getElementById('pearls-count-display');
+    const stPearlsEl = document.getElementById('skilltree-pearls-balance');
+    const adminTag = document.getElementById('admin-active-tag');
+    const gearBtn = document.getElementById('btn-open-settings');
+    const coinsPill = document.getElementById('coins-pill-box');
+    const gemsPill = document.getElementById('gems-pill-box');
+    const medalsPill = document.getElementById('medals-pill-box');
+    const pearlsPill = document.getElementById('pearls-pill-box');
+
+    if (nameEl) nameEl.textContent = metaState.playerName || 'COMMANDER';
+    if (coinsEl) coinsEl.textContent = formatCurrency(metaState.coins);
+    if (gemsEl) gemsEl.textContent = formatCurrency(metaState.gems);
+    if (medalsEl) medalsEl.textContent = formatCurrency(metaState.medals);
+    if (pearlsEl) pearlsEl.textContent = formatCurrency(metaState.pearls || 0);
+    if (stPearlsEl) stPearlsEl.textContent = `⚪ ${formatCurrency(metaState.pearls || 0)}`;
+
+    const turretShortEl = document.getElementById('lobby-turret-short-label');
+    if (turretShortEl) {
+        const tType = metaState.baseTurret?.type || 'gatling';
+        const tLv = metaState.baseTurret?.level || 1;
+        const tCfg = BASE_TURRET_CONFIG[tType] || BASE_TURRET_CONFIG.gatling;
+        turretShortEl.textContent = `${tCfg.shortName} LV.${tLv}`;
+    }
+
+    if (metaState.isAdminMode) {
+        adminTag?.classList.remove('hidden');
+        gearBtn?.classList.add('admin-active-gear');
+        coinsPill?.classList.add('admin-infinite-pill');
+        gemsPill?.classList.add('admin-infinite-pill');
+        medalsPill?.classList.add('admin-infinite-pill');
+        pearlsPill?.classList.add('admin-infinite-pill');
+    } else {
+        adminTag?.classList.add('hidden');
+        gearBtn?.classList.remove('admin-active-gear');
+        coinsPill?.classList.remove('admin-infinite-pill');
+        gemsPill?.classList.remove('admin-infinite-pill');
+        medalsPill?.classList.remove('admin-infinite-pill');
+        pearlsPill?.classList.remove('admin-infinite-pill');
+    }
+
+    const codexDot = document.getElementById('codex-notif-dot');
+    if (codexDot) {
+        codexDot.classList.toggle('hidden', !hasClaimableCodexMilestones());
+    }
+
+    const talentDot = document.getElementById('talents-notif-badge');
+    if (talentDot) {
+        const canUpgTalent = Object.values(META_TALENTS).some(t => {
+            const lv = Number(metaState.metaTalents?.[t.id]) || 0;
+            const cost = t.baseCost + lv * t.costStep;
+            return lv < t.maxLevel && (metaState.isAdminMode || (metaState.medals || 0) >= cost);
+        });
+        talentDot.classList.toggle('hidden', !canUpgTalent);
     }
 }
 
-export function renderArmyShowcaseCanvas() {
-    const sCanvas = document.getElementById('army-hero-showcase');
-    if (!sCanvas) return;
-    const sCtx = sCanvas.getContext('2d');
-    sCtx.imageSmoothingEnabled = false;
-    sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+export function renderMissionNotifDot() {
+    const dot = document.getElementById('mission-notif-dot');
+    if (!dot) return;
+    const hasClaimable = MISSIONS_CATALOG.some(m => {
+        const cur = metaState.missionsProgress[m.statKey] || 0;
+        const claimed = !!metaState.missionsProgress.claimed[m.id];
+        return cur >= m.target && !claimed;
+    });
+    dot.classList.toggle('hidden', !hasClaimable);
+}
 
-    const normId = normalizeUnitId(showcaseUnitId);
-    const u = UNIT_BY_ID[normId] || UNIT_CATALOG[0];
-    const highestRarity = getHighestRarityForUnit(u.id);
-    const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
-    const timeSec = performance.now() * 0.001;
+// ============================================================================
+// 3. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 45 MAP THỦ THÀNH ZOMBIE 20 WAVE)
+// ============================================================================
+export function renderChallengeRoadmap() {
+    const listEl = document.getElementById('challenge-roadmap-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
 
-    const pedestalEl = document.querySelector('.army-pedestal-circle');
-    if (pedestalEl) {
-        pedestalEl.classList.toggle('pedestal-master', isMasterRarity(highestRarity));
-        pedestalEl.classList.toggle('pedestal-demon', isDemonRarity(highestRarity));
+    const treeB = getAncientSkillTreeBonuses();
+
+    LEVELS.forEach(mapObj => {
+        const lv = mapObj.id;
+        const unlocked = isChallengeMapUnlocked(lv);
+        const cleared = isChallengeMapCleared(lv);
+        const bestWave = metaState.challengeBestWave?.[lv] || 0;
+        const entryCost = calcChallengeEntryCostCoins(lv);
+        const rewards = calcChallengeRewards(lv, treeB.pearlBonusPct);
+
+        const node = document.createElement('div');
+        node.className = `challenge-stage-node ${cleared ? 'cleared' : (unlocked ? 'unlocked' : 'locked')}`;
+
+        const costLabel = metaState.isAdminMode ? 'MIỄN PHÍ' : `🪙 ${entryCost.toLocaleString('en-US')}`;
+        const btnHtml = !unlocked
+            ? `<button type="button" class="btn-3d btn-3d-slate px-2.5 py-2 text-[10px]" disabled>🔒 KHÓA</button>`
+            : `<button type="button" data-ch-map="${lv}" class="btn-3d ${cleared ? 'btn-3d-cyan' : 'btn-3d-rose'} px-2.5 py-2 text-[10px] flex flex-col items-center">
+                    <span>${cleared ? '⚔️ ĐÁNH LẠI' : '☠️ KHIÊU CHIẾN'}</span>
+                    <span class="vt323-num text-xs text-amber-200">${costLabel}</span>
+               </button>`;
+
+        node.innerHTML = `
+            <div class="flex-1 text-left">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs font-black text-white">Ải ${lv}: ${mapObj.name}</span>
+                    ${cleared ? '<span class="text-[9px] font-black bg-emerald-500 text-slate-950 px-1.5 rounded-full">✓ ĐÃ VƯỢT</span>' : ''}
+                    ${!cleared && bestWave > 0 ? `<span class="text-[9px] font-black bg-amber-400/20 text-amber-300 border border-amber-400 px-1.5 rounded-full vt323-num">Best: W.${bestWave}/20</span>` : ''}
+                </div>
+                <div class="text-[9.5px] font-bold text-slate-300 mt-0.5 leading-tight">
+                    20 Wave Zombie • Boss Wave 7, 14, 20 • ${mapObj.hasWater ? '🌊 Có Thủy Quân' : '🌲 Lục Quân'}
+                </div>
+                <div class="text-[10px] font-black text-sky-300 mt-1 vt323-num">
+                    Thưởng: <b class="text-white">⚪ +${rewards.pearls} Ngọc Trai</b> • 💎 +${rewards.gems} • 🪙 +${rewards.coins.toLocaleString('en-US')}
+                </div>
+            </div>
+            <div>${btnHtml}</div>
+        `;
+
+        const startBtn = node.querySelector('[data-ch-map]');
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                if (!metaState.isAdminMode && metaState.coins < entryCost) {
+                    sfx.play('cannon');
+                    alert(`Không đủ Vàng! Cần 🪙 ${entryCost.toLocaleString('en-US')} để vào Ải Challenge ${lv}.`);
+                    return;
+                }
+                if (!metaState.isAdminMode) {
+                    metaState.coins -= entryCost;
+                    saveProgress();
+                    updateLobbyTopBar();
+                }
+                sfx.play('upgrade');
+                triggerHaptic(25);
+                if (typeof window.startChallengeLevel === 'function') {
+                    window.startChallengeLevel(lv);
+                }
+            });
+        }
+
+        listEl.appendChild(node);
+    });
+}
+
+// ============================================================================
+// 4. TAB 5: CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY (40 KỸ NĂNG & 4 KỸ NĂNG ĐẶC BIỆT)
+// ============================================================================
+export function renderSkillTreeTab() {
+    const svgEl = document.getElementById('skilltree-branches-svg');
+    const nodesLayer = document.getElementById('skilltree-nodes-layer');
+    const viewport = document.getElementById('skilltree-scroll-viewport');
+    if (!svgEl || !nodesLayer) return;
+
+    updateLobbyTopBar();
+
+    let svgHtml = `
+        <ellipse cx="110" cy="395" rx="82" ry="215" fill="rgba(249, 115, 22, 0.08)" />
+        <ellipse cx="275" cy="395" rx="82" ry="215" fill="rgba(56, 189, 248, 0.08)" />
+        <ellipse cx="445" cy="395" rx="82" ry="215" fill="rgba(192, 132, 252, 0.08)" />
+        <ellipse cx="610" cy="395" rx="82" ry="215" fill="rgba(74, 222, 128, 0.08)" />
+
+        <path d="M 360 715 Q 290 735 235 750" stroke="#451a03" stroke-width="14" fill="none" stroke-linecap="round"/>
+        <path d="M 360 715 Q 430 735 485 750" stroke="#451a03" stroke-width="14" fill="none" stroke-linecap="round"/>
+        <path d="M 360 710 L 360 752" stroke="#451a03" stroke-width="18" fill="none" stroke-linecap="round"/>
+    `;
+
+    ANCIENT_TREE_BRANCH_LINES.forEach(line => {
+        const p1 = typeof line.from === 'string' ? ANCIENT_SKILL_TREE[line.from] : line.from;
+        const p2 = typeof line.to === 'string' ? ANCIENT_SKILL_TREE[line.to] : line.to;
+        if (!p1 || !p2) return;
+
+        const targetNodeId = typeof line.to === 'string' ? line.to : line.reqNode;
+        const isActiveBranch = !targetNodeId || getSkillTreeNodeLevel(targetNodeId) > 0 || isSkillTreeNodeUnlocked(targetNodeId);
+        const branchInfo = targetNodeId && ANCIENT_SKILL_TREE[targetNodeId]
+            ? SKILL_TREE_BRANCHES.find(b => b.id === ANCIENT_SKILL_TREE[targetNodeId].branch)
+            : null;
+
+        const strokeCol = isActiveBranch ? (branchInfo ? branchInfo.color : '#22c55e') : '#334155';
+        const strokeW = typeof line.from !== 'string' ? 9 : (isActiveBranch ? 5 : 3.5);
+        const midY = (p1.y + p2.y) / 2;
+
+        svgHtml += `
+            <path d="M ${p1.x} ${p1.y} C ${p1.x} ${midY}, ${p2.x} ${midY}, ${p2.x} ${p2.y}"
+                  stroke="${strokeCol}"
+                  stroke-width="${strokeW}"
+                  stroke-opacity="${isActiveBranch ? '0.92' : '0.45'}"
+                  fill="none"
+                  stroke-linecap="round" />
+        `;
+    });
+
+    SKILL_TREE_BRANCHES.forEach(b => {
+        svgHtml += `
+            <rect x="${b.rootX - 66}" y="138" width="132" height="24" rx="12" fill="#0f172a" stroke="${b.color}" stroke-width="2"/>
+            <text x="${b.rootX}" y="154" fill="${b.color}" font-size="11" font-weight="900" text-anchor="middle">${b.shortName}</text>
+        `;
+    });
+
+    svgEl.innerHTML = svgHtml;
+
+    nodesLayer.innerHTML = '';
+    Object.values(ANCIENT_SKILL_TREE).forEach(node => {
+        const curLv = getSkillTreeNodeLevel(node.id);
+        const unlocked = isSkillTreeNodeUnlocked(node.id);
+        const isSelected = lobbyState.activeSkillTreeNodeId === node.id;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `st-tree-node ${node.isKeystone ? 'special-keystone' : ''} ${curLv > 0 ? 'leveled' : (unlocked ? 'unlocked' : 'locked')} ${isSelected ? 'selected-node' : ''}`;
+        btn.style.left = `${node.x}px`;
+        btn.style.top = `${node.y}px`;
+        btn.title = node.name;
+        btn.innerHTML = `
+            <span style="font-size:${node.isKeystone ? '24px' : '18px'}; line-height:1;">${node.icon}</span>
+            <span class="st-node-lv-tag">${node.isKeystone ? (curLv > 0 ? 'MAX' : '★10') : `${curLv}/${node.maxLevel}`}</span>
+        `;
+
+        btn.addEventListener('click', () => {
+            lobbyState.activeSkillTreeNodeId = node.id;
+            lobbyState.activeSkillTreeBranch = node.branch;
+            sfx.play('gas');
+            renderSkillTreeTab();
+        });
+
+        nodesLayer.appendChild(btn);
+    });
+
+    document.querySelectorAll('[data-st-branch]').forEach(bBtn => {
+        bBtn.classList.toggle('active', bBtn.dataset.stBranch === lobbyState.activeSkillTreeBranch);
+        bBtn.onclick = () => {
+            const bId = bBtn.dataset.stBranch;
+            lobbyState.activeSkillTreeBranch = bId;
+            const branchMeta = SKILL_TREE_BRANCHES.find(b => b.id === bId);
+            const firstNode = Object.values(ANCIENT_SKILL_TREE).find(n => n.branch === bId && n.order === 1);
+            if (firstNode) lobbyState.activeSkillTreeNodeId = firstNode.id;
+            if (viewport && branchMeta) {
+                const targetScrollX = Math.max(0, branchMeta.rootX - viewport.clientWidth / 2);
+                viewport.scrollTo({ left: targetScrollX, behavior: 'smooth' });
+            }
+            renderSkillTreeTab();
+        };
+    });
+
+    const activeNode = ANCIENT_SKILL_TREE[lobbyState.activeSkillTreeNodeId] || ANCIENT_SKILL_TREE.fp_1;
+    const curLv = getSkillTreeNodeLevel(activeNode.id);
+    const unlocked = isSkillTreeNodeUnlocked(activeNode.id);
+    const canUpg = canUpgradeSkillTreeNode(activeNode.id);
+    const cost = getSkillTreeNodeCost(activeNode.id, curLv);
+
+    const titleEl = document.getElementById('st-inspector-title');
+    const descEl = document.getElementById('st-inspector-desc');
+    const reqEl = document.getElementById('st-inspector-req');
+    const upgBtn = document.getElementById('btn-upgrade-skilltree-node');
+    const costEl = document.getElementById('st-upgrade-cost-val');
+
+    if (titleEl) titleEl.textContent = `${activeNode.icon} ${activeNode.name} (LV.${curLv}/${activeNode.maxLevel})`;
+    if (descEl) descEl.textContent = `${activeNode.desc} (${activeNode.getEffectText(curLv)})`;
+    if (reqEl) {
+        if (curLv >= activeNode.maxLevel) {
+            reqEl.textContent = 'Trạng thái: ĐÃ ĐẠT CẤP TỐI ĐA (MAX)';
+            reqEl.style.color = '#4ade80';
+        } else if (!unlocked) {
+            const reqNames = activeNode.requires.map(rId => ANCIENT_SKILL_TREE[rId]?.name || rId).join(' + ');
+            reqEl.textContent = `🔒 Cần mở khóa trước: ${reqNames}`;
+            reqEl.style.color = '#fb7185';
+        } else {
+            reqEl.textContent = '✨ Sẵn sàng nâng cấp bằng Ngọc Trai Trắng';
+            reqEl.style.color = '#fde047';
+        }
     }
 
-    if (isMasterRarity(highestRarity) || isDemonRarity(highestRarity)) {
-        drawCanvasRarityAura(sCtx, 64, 92, 34, highestRarity, timeSec);
+    if (costEl) {
+        costEl.textContent = curLv >= activeNode.maxLevel ? 'MAX' : (metaState.isAdminMode ? 'MIỄN PHÍ' : `⚪ ${cost}`);
     }
 
-    const bob = Math.sin(timeSec * 5) * 3;
-    if (isCustomArtUnit(u.id)) {
-        drawCustomUnitArt(sCtx, u.id, 64, 62 + bob, 76, 'blue', timeSec, 0);
-    } else if (atlasRef && atlasRef.ready) {
-        atlasRef.draw(sCtx, u.spriteCol, 7, 64, 62 + bob, 78, 78);
+    if (upgBtn) {
+        upgBtn.disabled = !canUpg;
+        upgBtn.onclick = () => {
+            if (!upgradeSkillTreeNode(activeNode.id)) {
+                sfx.play('cannon');
+                return;
+            }
+            sfx.play('upgrade');
+            triggerHaptic(25);
+            renderSkillTreeTab();
+        };
+    }
+}
+
+// ============================================================================
+// 5. TAB 1: SHOP (MỞ RƯƠNG SIÊU TỐC O(1) & CỬA HÀNG CHIP BỔ TRỢ)
+// ============================================================================
+export function renderShopChipsSection() {
+    const listEl = document.getElementById('shop-chips-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    Object.values(UNIT_CHIPS).forEach(chip => {
+        const owned = getChipOwnedCount(chip.id);
+        const coinCost = chip.buyCoins || CHIP_BUY_COST_COINS;
+        const gemCost = chip.buyGems || CHIP_BUY_COST_GEMS;
+        const canBuyCoins = metaState.isAdminMode || metaState.coins >= coinCost;
+        const canBuyGems = metaState.isAdminMode || metaState.gems >= gemCost;
+
+        const row = document.createElement('div');
+        row.className = 'shop-chip-item-row';
+        row.innerHTML = `
+            <div class="flex items-center gap-2 flex-1 text-left">
+                <div class="w-9 h-9 rounded-lg bg-slate-800 border-2 border-slate-500 flex items-center justify-center text-lg flex-shrink-0">
+                    ${chip.icon}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[11px] font-black text-white truncate">${chip.name}</span>
+                        <span class="text-[9.5px] font-black bg-sky-500/20 text-sky-300 border border-sky-400 px-1.5 rounded-full vt323-num">Kho: ${metaState.isAdminMode ? '∞' : owned}</span>
+                    </div>
+                    <div class="text-[9px] font-bold text-slate-300 leading-tight mt-0.5">${chip.desc}</div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-1 flex-shrink-0">
+                <button type="button" data-buy-chip="${chip.id}" data-cur="coins" class="btn-3d btn-3d-amber px-2 py-1 text-[9.5px]" ${canBuyCoins ? '' : 'disabled'}>
+                    🪙 ${coinCost.toLocaleString('en-US')}
+                </button>
+                <button type="button" data-buy-chip="${chip.id}" data-cur="gems" class="btn-3d btn-3d-cyan px-2 py-1 text-[9.5px]" ${canBuyGems ? '' : 'disabled'}>
+                    💎 ${gemCost}
+                </button>
+            </div>
+        `;
+
+        row.querySelectorAll('[data-buy-chip]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!buyChipItem(btn.dataset.buyChip, btn.dataset.cur)) {
+                    sfx.play('cannon');
+                    return;
+                }
+                sfx.play('upgrade');
+                triggerHaptic(20);
+                updateLobbyTopBar();
+                renderShopChipsSection();
+            });
+        });
+
+        listEl.appendChild(row);
+    });
+}
+
+export function triggerSingleOrTenGacha(crateType, count) {
+    const cfg = CRATE_CONFIG[crateType];
+    if (!cfg) return;
+    const calc = calcCrateBatchPrice(crateType, count);
+    if (!metaState.isAdminMode && metaState.gems < calc.finalCost) {
+        sfx.play('cannon');
+        alert(`Không đủ Gems! Cần 💎 ${calc.finalCost.toLocaleString('en-US')} Gems.`);
+        return;
+    }
+    executeGachaOpening(crateType, count, calc.finalCost);
+}
+
+export function openCustomGachaConfirmModal(crateType) {
+    const cfg = CRATE_CONFIG[crateType];
+    const inputEl = document.getElementById(
+        crateType === 'legendary' ? 'input-custom-leg-count' : 'input-custom-epic-count'
+    );
+    const rawVal = parseInt(inputEl?.value || '1', 10);
+    const qty = Math.max(1, Math.min(MAX_CRATE_OPEN_QTY, isNaN(rawVal) ? 1 : rawVal));
+    if (inputEl) inputEl.value = qty;
+
+    const calc = calcCrateBatchPrice(crateType, qty);
+    lobbyState.pendingCustomGacha = { crateType, qty, finalCost: calc.finalCost };
+
+    const modal = document.getElementById('gacha-confirm-modal');
+    if (!modal) return;
+
+    document.getElementById('gacha-conf-crate-title').textContent = cfg.name;
+    document.getElementById('gacha-conf-qty').textContent = `${qty.toLocaleString('en-US')} rương (${formatCompactNumber(qty)})`;
+    document.getElementById('gacha-conf-raw-cost').textContent = `💎 ${calc.rawCost.toLocaleString('en-US')}`;
+    document.getElementById('gacha-conf-discount-tag').textContent =
+        calc.bundlesOfTen > 0
+            ? `-10% (${formatCompactNumber(calc.bundlesOfTen)} cụm 10)`
+            : '0% (Dưới 10 rương)';
+    document.getElementById('gacha-conf-saved').textContent = `💎 ${calc.savedGems.toLocaleString('en-US')}`;
+    document.getElementById('gacha-conf-final-cost').textContent = metaState.isAdminMode
+        ? 'MIỄN PHÍ (ADMIN ∞)'
+        : `💎 ${calc.finalCost.toLocaleString('en-US')}`;
+
+    const canAfford = metaState.isAdminMode || metaState.gems >= calc.finalCost;
+    document.getElementById('gacha-conf-error')?.classList.toggle('hidden', canAfford);
+    const confBtn = document.getElementById('btn-confirm-custom-gacha');
+    if (confBtn) confBtn.disabled = !canAfford;
+
+    modal.classList.add('active');
+}
+
+export function executeGachaOpening(crateType, qty, finalCost) {
+    if (!metaState.isAdminMode) {
+        if (metaState.gems < finalCost) {
+            sfx.play('cannon');
+            return;
+        }
+        metaState.gems -= finalCost;
+    }
+
+    const t0 = performance.now();
+    sfx.play('upgrade');
+    triggerHaptic(30);
+
+    const { countsByKey, rarityTotals } = simulateMassiveCrateOpening(crateType, qty);
+    const pulledCards = [];
+
+    for (const [key, count] of Object.entries(countsByKey)) {
+        const [unitId, rarity] = key.split('__');
+        addCardToStacks(unitId, rarity, count);
+        pulledCards.push({ unitId, rarity, count });
+    }
+
+    syncRepresentativeInventoryFromStacks();
+    const elapsedMs = Math.max(0.05, +(performance.now() - t0).toFixed(2));
+
+    metaState.missionsProgress.cratesOpened = (metaState.missionsProgress.cratesOpened || 0) + qty;
+    saveProgress();
+    updateLobbyTopBar();
+    renderMissionNotifDot();
+
+    pulledCards.sort((a, b) => (RARITY_CONFIG[b.rarity]?.rank || 0) - (RARITY_CONFIG[a.rarity]?.rank || 0));
+
+    const modal = document.getElementById('gacha-result-modal');
+    const grid = document.getElementById('gacha-cards-grid');
+    const breakdownEl = document.getElementById('gacha-rarity-breakdown');
+    const totalEl = document.getElementById('gacha-total-pulled');
+
+    if (totalEl) totalEl.textContent = `${qty.toLocaleString('en-US')} (${elapsedMs}ms)`;
+
+    if (breakdownEl) {
+        breakdownEl.innerHTML = '';
+        breakdownEl.classList.remove('hidden');
+        RARITY_ORDER.forEach(rKey => {
+            const cnt = rarityTotals[rKey] || 0;
+            if (cnt > 0) {
+                const rCfg = RARITY_CONFIG[rKey];
+                const pill = document.createElement('span');
+                pill.className = `gacha-rarity-stat-pill ${rCfg.cssClass}`;
+                pill.textContent = `${rCfg.name}: ${cnt.toLocaleString('en-US')}`;
+                breakdownEl.appendChild(pill);
+            }
+        });
+    }
+
+    if (grid) {
+        grid.innerHTML = '';
+        pulledCards.slice(0, 60).forEach(item => {
+            const uSpec = UNIT_BY_ID[item.unitId] || UNIT_CATALOG[0];
+            const rCfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
+            const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
+
+            const cardDiv = document.createElement('div');
+            cardDiv.className = `army-unit-card ${rCfg.cssClass}`;
+            cardDiv.innerHTML = `
+                <div class="card-top-lv">
+                    <span>${rCfg.name}</span>
+                    <span class="card-plus-tag">x${formatCompactNumber(item.count)}</span>
+                </div>
+                <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-0.5" alt="${uSpec.name}" />
+                <div class="card-unit-title">${uSpec.name}</div>
+            `;
+            grid.appendChild(cardDiv);
+        });
+    }
+
+    modal?.classList.add('active');
+}
+
+// ============================================================================
+// 6. TAB 2: ARMY (QUẢN LÝ, BẮN THỬ SANDBOX REVIEW & GHÉP TIẾN HÓA 41 BẬC)
+// ============================================================================
+export function renderArmyTab() {
+    renderArmyShowcase();
+
+    document.getElementById('btn-mode-army')?.classList.toggle('active', lobbyState.armyMode === 'army');
+    document.getElementById('btn-mode-review')?.classList.toggle('active', lobbyState.armyMode === 'review');
+    document.getElementById('btn-mode-merge')?.classList.toggle('active', lobbyState.armyMode === 'merge');
+
+    document.getElementById('army-list-view')?.classList.toggle('active', lobbyState.armyMode === 'army');
+    document.getElementById('army-review-view')?.classList.toggle('active', lobbyState.armyMode === 'review');
+    document.getElementById('army-merge-view')?.classList.toggle('active', lobbyState.armyMode === 'merge');
+
+    if (lobbyState.armyMode === 'army') renderArmyUnitsGrid();
+    else if (lobbyState.armyMode === 'review') renderArmyReviewGrid();
+    else renderMergeInventoryGrid();
+}
+
+export function renderArmyShowcase() {
+    const unitId = normalizeUnitId(lobbyState.selectedShowcaseUnitId || PRIMARY_INFANTRY_ID);
+    const uSpec = UNIT_BY_ID[unitId] || UNIT_CATALOG[0];
+    const bestRarity = getHighestRarityForUnit(unitId);
+    const rCfg = RARITY_CONFIG[bestRarity] || RARITY_CONFIG.common;
+    const permLv = metaState.armyPermanentLevels[unitId] || 1;
+
+    const canvas = document.getElementById('army-hero-showcase');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const timeSec = performance.now() * 0.001;
+        const bob = Math.sin(timeSec * 5) * 2.5;
+        drawCanvasRarityAura(ctx, 64, 86, 36, bestRarity, timeSec);
+        // rotation = null -> Vẽ góc chính diện / 3-4 hùng dũng trên bệ Showcase
+        drawUnitArt(ctx, unitId, 64, 60 + bob, 82, 'blue', timeSec, null);
+    }
+
+    const pedestal = document.querySelector('.army-pedestal-circle');
+    if (pedestal) {
+        pedestal.classList.toggle('pedestal-master', isMasterRarity(bestRarity));
+        pedestal.classList.toggle('pedestal-demon', isDemonRarity(bestRarity));
     }
 
     const nameEl = document.getElementById('army-showcase-name');
-    if (nameEl) nameEl.textContent = `${u.name.toUpperCase()} (LV.${metaState.armyPermanentLevels[u.id] || 1})`;
-
-    const rarityEl = document.getElementById('army-showcase-rarity');
-    if (rarityEl) {
-        rarityEl.className = `rarity-badge ${rCfg.cssClass}`;
-        rarityEl.textContent = `${rCfg.name.toUpperCase()} (${rCfg.mult}x)`;
-    }
-}
-
-export function renderArmyTabUI() {
-    renderArmyShowcaseCanvas();
-
-    const btnArmy = document.getElementById('btn-mode-army');
-    const btnReview = document.getElementById('btn-mode-review');
-    const btnMerge = document.getElementById('btn-mode-merge');
-
-    const listView = document.getElementById('army-list-view');
-    const reviewView = document.getElementById('army-review-view');
-    const mergeView = document.getElementById('army-merge-view');
-
-    btnArmy?.classList.toggle('active', currentArmyMode === 'army');
-    btnReview?.classList.toggle('active', currentArmyMode === 'review');
-    btnMerge?.classList.toggle('active', currentArmyMode === 'merge');
-
-    listView?.classList.toggle('active', currentArmyMode === 'army');
-    reviewView?.classList.toggle('active', currentArmyMode === 'review');
-    mergeView?.classList.toggle('active', currentArmyMode === 'merge');
-
-    if (currentArmyMode === 'army') {
-        renderArmyUnitsGrid();
-    } else if (currentArmyMode === 'review') {
-        renderArmyReviewGrid();
-    } else {
-        renderMergeWorkbenchAndInventory();
+    const rarEl = document.getElementById('army-showcase-rarity');
+    if (nameEl) nameEl.textContent = `${uSpec.name.toUpperCase()} (LV.${permLv})`;
+    if (rarEl) {
+        rarEl.textContent = `${rCfg.name.toUpperCase()} (${rCfg.mult}x)`;
+        rarEl.className = `rarity-badge ${rCfg.cssClass}`;
     }
 }
 
@@ -1113,40 +809,38 @@ export function renderArmyUnitsGrid() {
     if (!grid) return;
     grid.innerHTML = '';
 
-    UNIT_CATALOG.forEach(u => {
-        const permLv = metaState.armyPermanentLevels[u.id] || 1;
-        const highestRarity = getHighestRarityForUnit(u.id);
-        const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
-        const owned = hasUnitInInventory(u.id);
-        const spriteUrl = getUnitSpriteDataURL(u, 7);
+    UNIT_CATALOG.forEach(uSpec => {
+        const owned = hasUnitInInventory(uSpec.id);
+        const bestRarity = owned ? getHighestRarityForUnit(uSpec.id) : 'common';
+        const rCfg = RARITY_CONFIG[bestRarity] || RARITY_CONFIG.common;
+        const lv = metaState.armyPermanentLevels[uSpec.id] || 1;
+        const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
+        const sockets = metaState.unitSockets?.[uSpec.id] || [null, null];
+        const slot2Unlocked = isUnitSocket2Unlocked(uSpec.id);
 
-        const sockets = metaState.unitSockets[u.id] || [null, null];
-        const slot2Unlocked = isUnitSocket2Unlocked(u.id);
-        const chipDotsHtml = [0, 1].map(idx => {
-            if (idx === 1 && !slot2Unlocked) {
-                return `<span class="socket-dot" style="background:#0f172a;border-color:#fde047;" title="Khe 2 khóa"></span>`;
-            }
-            const cId = sockets[idx];
-            const chip = cId ? UNIT_CHIPS[cId] : null;
-            return `<span class="socket-dot ${chip ? chip.dotCss : ''}"></span>`;
-        }).join('');
+        const dot0Class = sockets[0] ? (UNIT_CHIPS[sockets[0]]?.dotCss || '') : '';
+        const dot1Style = !slot2Unlocked ? 'style="background:#0f172a;border-color:#fde047;"' : '';
+        const dot1Class = slot2Unlocked && sockets[1] ? (UNIT_CHIPS[sockets[1]]?.dotCss || '') : '';
 
         const card = document.createElement('div');
-        card.className = `army-unit-card ${rCfg.cssClass}`;
+        card.className = `army-unit-card ${rCfg.cssClass} ${owned ? '' : 'dimmed-unmatch'}`;
         card.innerHTML = `
-            <div class="card-socket-dots">${chipDotsHtml}</div>
             <div class="card-top-lv">
-                <span>LV.${permLv}</span>
+                <span>LV.${lv}</span>
                 ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : `<span class="text-[8px] opacity-95">${owned ? rCfg.name : 'Cơ bản'}</span>`}
             </div>
-            <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-            <div class="card-unit-title">${u.name}</div>
+            <div class="card-socket-dots">
+                <span class="socket-dot ${dot0Class}"></span>
+                <span class="socket-dot ${dot1Class}" ${dot1Style}></span>
+            </div>
+            <img src="${spriteUrl}" class="w-11 h-11 pixel-art my-0.5" alt="${uSpec.name}" />
+            <div class="card-unit-title">${uSpec.name}</div>
         `;
 
         card.addEventListener('click', () => {
-            showcaseUnitId = u.id;
-            renderArmyShowcaseCanvas();
-            openUnitUpgradeModal(u.id);
+            lobbyState.selectedShowcaseUnitId = uSpec.id;
+            renderArmyShowcase();
+            openUnitUpgradeModal(uSpec.id);
         });
 
         grid.appendChild(card);
@@ -1154,1106 +848,903 @@ export function renderArmyUnitsGrid() {
 }
 
 // ============================================================================
-// 7B. CHẾ ĐỘ REVIEW & PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal)
+// 6B. CHẾ ĐỘ REVIEW & PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal)
 // ============================================================================
 export function renderArmyReviewGrid() {
     const grid = document.getElementById('army-review-grid');
     if (!grid) return;
     grid.innerHTML = '';
 
-    UNIT_CATALOG.forEach(u => {
-        const permLv = metaState.armyPermanentLevels[u.id] || 1;
-        const owned = hasUnitInInventory(u.id);
-        const highestRarity = owned ? getHighestRarityForUnit(u.id) : 'common';
-        const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
-        const spriteUrl = getUnitSpriteDataURL(u, 7);
+    UNIT_CATALOG.forEach(uSpec => {
+        const owned = hasUnitInInventory(uSpec.id);
+        const bestRarity = owned ? getHighestRarityForUnit(uSpec.id) : 'common';
+        const rCfg = RARITY_CONFIG[bestRarity] || RARITY_CONFIG.common;
+        const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
 
         const card = document.createElement('div');
         card.className = `army-unit-card ${rCfg.cssClass}`;
         card.innerHTML = `
             <div class="card-top-lv">
-                <span>${u.cost}⛽</span>
+                <span>${uSpec.cost}⛽</span>
                 <span class="card-plus-tag" style="background:#0284c7;color:#fff;">🎯 TEST</span>
             </div>
-            <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-            <div class="card-unit-title">${u.name}</div>
+            <img src="${spriteUrl}" class="w-11 h-11 pixel-art my-0.5" alt="${uSpec.name}" />
+            <div class="card-unit-title">${uSpec.name}</div>
         `;
 
         card.addEventListener('click', () => {
-            showcaseUnitId = u.id;
-            renderArmyShowcaseCanvas();
-            openSandboxReviewModal(u.id);
+            lobbyState.selectedShowcaseUnitId = uSpec.id;
+            renderArmyShowcase();
+            openSandboxReviewModal(uSpec.id, bestRarity);
         });
 
         grid.appendChild(card);
     });
 }
 
-const sandboxState = {
-    active: false,
-    unitId: PRIMARY_INFANTRY_ID,
-    rarityId: 'common',
-    totalDamageDealt: 0,
-    elapsedSec: 0,
-    attackTimer: 0.15,
-    dummyHitFlash: 0,
-    dummyHpDisplay: 999999,
-    projectiles: [],
-    beams: [],
-    floats: [],
-    rafId: null,
-    lastTs: 0,
-    hudTick: 0
-};
+export function openSandboxReviewModal(unitId, initialRarityId = null) {
+    const normId = normalizeUnitId(unitId);
+    const bestRar = initialRarityId || getHighestRarityForUnit(normId) || 'common';
 
-const SANDBOX_TEST_RARITIES = [
-    'common', 'uncommon', 'rare', 'epic2', 'legendary3', 'mythic4', 'secret5', 'master8', 'demon10'
-];
+    const sb = lobbyState.sandbox;
+    sb.active = true;
+    sb.unitId = normId;
+    sb.rarityId = bestRar;
+    sb.timeSec = 0;
+    sb.fireTimer = 0.2;
+    sb.recoil = 0;
+    sb.totalDamageDealt = 0;
+    sb.elapsedTestSec = 0;
+    sb.projectiles = [];
+    sb.beams = [];
+    sb.particles = [];
+    sb.floatingDmg = [];
+    sb.dummyHitFlash = 0;
 
-export function stopSandboxReviewLoop() {
-    sandboxState.active = false;
-    if (sandboxState.rafId) {
-        cancelAnimationFrame(sandboxState.rafId);
-        sandboxState.rafId = null;
-    }
+    document.getElementById('sandbox-review-modal')?.classList.add('active');
+    renderSandboxModalHeaderAndPills();
+    startSandboxLoop();
 }
 
-function resetSandboxDpsMetrics() {
-    sandboxState.totalDamageDealt = 0;
-    sandboxState.elapsedSec = 0;
-    sandboxState.attackTimer = 0.12;
-    sandboxState.projectiles = [];
-    sandboxState.beams = [];
-    sandboxState.floats = [];
-    updateSandboxStatsUI();
+export function closeSandboxReviewModal() {
+    lobbyState.sandbox.active = false;
+    if (lobbyState.sandbox.rafId) {
+        cancelAnimationFrame(lobbyState.sandbox.rafId);
+        lobbyState.sandbox.rafId = null;
+    }
+    document.getElementById('sandbox-review-modal')?.classList.remove('active');
 }
 
-function updateSandboxStatsUI() {
-    const u = UNIT_BY_ID[sandboxState.unitId] || UNIT_CATALOG[0];
-    const sp = getEffectiveUnitStats(u.id, 'blue', sandboxState.rarityId);
-    const rCfg = RARITY_CONFIG[sandboxState.rarityId] || RARITY_CONFIG.common;
+function renderSandboxModalHeaderAndPills() {
+    const sb = lobbyState.sandbox;
+    const uSpec = UNIT_BY_ID[sb.unitId] || UNIT_CATALOG[0];
+    const rCfg = RARITY_CONFIG[sb.rarityId] || RARITY_CONFIG.common;
+    const permLv = metaState.armyPermanentLevels[uSpec.id] || 1;
+    const lvMult = 1 + (permLv - 1) * 0.12;
+    const effDmg = Math.max(1, Math.round(uSpec.damage * lvMult * rCfg.mult));
+    const effHp = Math.max(1, Math.round(uSpec.hp * lvMult * rCfg.mult));
 
-    const titleEl = document.getElementById('sb-modal-title');
-    if (titleEl) titleEl.textContent = `👁️ REVIEW: ${u.name.toUpperCase()}`;
+    document.getElementById('sb-modal-title').textContent = `👁️ REVIEW: ${uSpec.name.toUpperCase()}`;
+    document.getElementById('sb-unit-name').textContent = `${uSpec.name.toUpperCase()} (LV.${permLv}) • ${uSpec.cost} ⛽`;
+    document.getElementById('sb-unit-role').textContent = `${uSpec.role} • Tốc bắn ${uSpec.fireRate}/s`;
 
-    const nameEl = document.getElementById('sb-unit-name');
-    if (nameEl) nameEl.textContent = `${u.name.toUpperCase()} (LV.${sp.level || 1}) • ${u.cost} ⛽`;
-
-    const roleEl = document.getElementById('sb-unit-role');
-    if (roleEl) roleEl.textContent = `${u.role} • Tốc bắn: ${sp.fireRate}/s`;
-
-    const badgeEl = document.getElementById('sb-unit-rarity-badge');
-    if (badgeEl) {
-        badgeEl.className = `rarity-badge ${rCfg.cssClass}`;
-        badgeEl.textContent = `${rCfg.name.toUpperCase()} (${rCfg.mult}x)`;
+    const rarBadge = document.getElementById('sb-unit-rarity-badge');
+    if (rarBadge) {
+        rarBadge.textContent = `${rCfg.name.toUpperCase()} (${rCfg.mult}x)`;
+        rarBadge.className = `rarity-badge ${rCfg.cssClass}`;
     }
+    document.getElementById('sb-stat-dmg').textContent = formatCompactNumber(effDmg);
+    document.getElementById('sb-stat-hp-range').textContent = `${formatCompactNumber(effHp)} / ${uSpec.range}px`;
 
-    const dmgEl = document.getElementById('sb-stat-dmg');
-    if (dmgEl) dmgEl.textContent = formatCompactNumber(sp.damage);
-
-    const dpsEl = document.getElementById('sb-stat-dps');
-    if (dpsEl) {
-        const avgDps = sandboxState.elapsedSec > 0.25
-            ? (sandboxState.totalDamageDealt / sandboxState.elapsedSec)
-            : (sp.damage * sp.fireRate);
-        dpsEl.textContent = avgDps >= 10000 ? formatCompactNumber(avgDps) : avgDps.toFixed(1);
-    }
-
-    const hpRangeEl = document.getElementById('sb-stat-hp-range');
-    if (hpRangeEl) hpRangeEl.textContent = `${formatCompactNumber(sp.hp)} / ${sp.range}px`;
-}
-
-export function openSandboxReviewModal(rawUnitId) {
-    stopSandboxReviewLoop();
-    const unitId = normalizeUnitId(rawUnitId);
-    const u = UNIT_BY_ID[unitId] || UNIT_CATALOG[0];
-    const ownedRarity = getHighestRarityForUnit(u.id);
-
-    sandboxState.unitId = u.id;
-    sandboxState.rarityId = ownedRarity;
-    resetSandboxDpsMetrics();
-
-    // Render dải nút chọn nhanh Rarity để test bắn thử
-    const selectorEl = document.getElementById('sb-rarity-selector');
-    if (selectorEl) {
-        selectorEl.innerHTML = '';
-        const list = [...SANDBOX_TEST_RARITIES];
-        if (!list.includes(ownedRarity)) list.unshift(ownedRarity);
-
-        list.forEach(rKey => {
-            const rCfg = RARITY_CONFIG[rKey];
-            if (!rCfg) return;
+    const strip = document.getElementById('sb-rarity-selector');
+    if (strip) {
+        const testTiers = ['common', 'uncommon', 'rare', 'epic2', 'legendary3', 'mythic4', 'secret5', 'master8', 'demon10'];
+        strip.innerHTML = '';
+        testTiers.forEach(rKey => {
+            const cfg = RARITY_CONFIG[rKey];
+            if (!cfg) return;
             const pill = document.createElement('button');
             pill.type = 'button';
-            pill.className = `sb-rarity-pill ${rCfg.cssClass} ${sandboxState.rarityId === rKey ? 'active' : ''}`;
-            pill.textContent = `${rCfg.name} (${rCfg.mult}x)`;
+            pill.className = `sb-rarity-pill ${cfg.cssClass} ${sb.rarityId === rKey ? 'active' : ''}`;
+            pill.textContent = `${cfg.name} (${cfg.mult}x)`;
             pill.addEventListener('click', () => {
-                sandboxState.rarityId = rKey;
-                selectorEl.querySelectorAll('.sb-rarity-pill').forEach(p => p.classList.remove('active'));
-                pill.classList.add('active');
-                if (sfxRef) sfxRef.play('gas');
-                resetSandboxDpsMetrics();
+                sb.rarityId = rKey;
+                sb.totalDamageDealt = 0;
+                sb.elapsedTestSec = 0;
+                sfx.play('gas');
+                renderSandboxModalHeaderAndPills();
             });
-            selectorEl.appendChild(pill);
+            strip.appendChild(pill);
         });
     }
-
-    updateSandboxStatsUI();
-    document.getElementById('sandbox-review-modal')?.classList.add('active');
-
-    sandboxState.active = true;
-    sandboxState.lastTs = performance.now();
-
-    function sandboxLoop(now) {
-        if (!sandboxState.active) return;
-        const dt = Math.min(0.05, Math.max(0.001, (now - sandboxState.lastTs) / 1000));
-        sandboxState.lastTs = now;
-        sandboxState.elapsedSec += dt;
-
-        const sp = getEffectiveUnitStats(sandboxState.unitId, 'blue', sandboxState.rarityId);
-        const unitX = 82;
-        const unitY = 108;
-        const dummyX = 252;
-        const dummyY = 108;
-
-        if (sandboxState.dummyHitFlash > 0) {
-            sandboxState.dummyHitFlash = Math.max(0, sandboxState.dummyHitFlash - dt);
-        }
-
-        sandboxState.attackTimer -= dt * (sp.fireRate || 1.0);
-        if (sandboxState.attackTimer <= 0) {
-            sandboxState.attackTimer = 1.0;
-
-            if (sp.isHealer) {
-                if (sfxRef) sfxRef.play('heal');
-                sandboxState.totalDamageDealt += sp.damage;
-                sandboxState.beams.push({ x1: unitX + 12, y1: unitY - 4, x2: dummyX, y2: dummyY, color: '#34d399', width: 3.5, ttl: 0.16 });
-                sandboxState.floats.push({ x: dummyX, y: dummyY - 22, text: `+${formatCompactNumber(sp.damage)} HP`, color: '#4ade80', alpha: 1.0 });
-            } else if (sp.attackType === 'projectile') {
-                if (sfxRef) sfxRef.play('cannon');
-                sandboxState.projectiles.push({
-                    x: unitX + 14,
-                    y: unitY,
-                    startX: unitX + 14,
-                    startY: unitY,
-                    targetX: dummyX,
-                    targetY: dummyY,
-                    arcHeight: sp.arcHeight || 16,
-                    projType: sp.projType || 'shell',
-                    damage: sp.damage,
-                    burnDps: sp.burnDps || 0,
-                    t: 0,
-                    duration: 0.42
-                });
-            } else {
-                if (sfxRef) sfxRef.play(sp.attackType === 'railgun_line' ? 'railgun' : 'beam');
-                sandboxState.totalDamageDealt += sp.damage;
-                sandboxState.dummyHitFlash = 0.12;
-                const beamCol = sp.attackType === 'railgun_line' ? '#00f2fe' : '#fde047';
-                const endX = sp.attackType === 'railgun_line' ? 330 : dummyX;
-                sandboxState.beams.push({ x1: unitX + 14, y1: unitY, x2: endX, y2: dummyY, color: beamCol, width: sp.attackType === 'railgun_line' ? 5 : 2.8, ttl: 0.12 });
-                sandboxState.floats.push({ x: dummyX + (Math.random() - 0.5) * 14, y: dummyY - 22, text: `-${formatCompactNumber(sp.damage)}`, color: '#fde047', alpha: 1.0 });
-            }
-        }
-
-        // Cập nhật đạn bay trong phòng tập
-        for (let i = sandboxState.projectiles.length - 1; i >= 0; i--) {
-            const p = sandboxState.projectiles[i];
-            p.t += dt / p.duration;
-            const clamped = Math.min(1, p.t);
-            p.x = p.startX + (p.targetX - p.startX) * clamped;
-            p.y = p.startY + (p.targetY - p.startY) * clamped - Math.sin(clamped * Math.PI) * p.arcHeight;
-            if (p.t >= 1) {
-                const totalHit = p.damage + (p.burnDps > 0 ? p.burnDps * 2 : 0);
-                sandboxState.totalDamageDealt += totalHit;
-                sandboxState.dummyHitFlash = 0.14;
-                if (sfxRef) sfxRef.play('boom');
-                sandboxState.floats.push({
-                    x: dummyX + (Math.random() - 0.5) * 16,
-                    y: dummyY - 22,
-                    text: `-${formatCompactNumber(totalHit)}`,
-                    color: p.projType === 'ice_shard' ? '#38bdf8' : '#fb923c',
-                    alpha: 1.0
-                });
-                sandboxState.projectiles.splice(i, 1);
-            }
-        }
-
-        for (let i = sandboxState.beams.length - 1; i >= 0; i--) {
-            sandboxState.beams[i].ttl -= dt;
-            if (sandboxState.beams[i].ttl <= 0) sandboxState.beams.splice(i, 1);
-        }
-
-        for (let i = sandboxState.floats.length - 1; i >= 0; i--) {
-            const ft = sandboxState.floats[i];
-            ft.y -= 28 * dt;
-            ft.alpha -= dt * 1.15;
-            if (ft.alpha <= 0) sandboxState.floats.splice(i, 1);
-        }
-
-        sandboxState.hudTick += dt;
-        if (sandboxState.hudTick >= 0.22) {
-            sandboxState.hudTick = 0;
-            updateSandboxStatsUI();
-        }
-
-        // Vẽ Canvas Phòng Tập Sandbox
-        const sbCanvas = document.getElementById('sandboxCanvas');
-        if (sbCanvas) {
-            const sCtx = sbCanvas.getContext('2d');
-            const W = sbCanvas.width;
-            const H = sbCanvas.height;
-            sCtx.clearRect(0, 0, W, H);
-
-            // Sàn lưới công nghệ phòng tập
-            sCtx.fillStyle = '#0f172a';
-            sCtx.fillRect(0, 0, W, H);
-            sCtx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
-            sCtx.lineWidth = 1;
-            for (let gx = 0; gx < W; gx += 24) {
-                sCtx.beginPath();
-                sCtx.moveTo(gx, 0);
-                sCtx.lineTo(gx, H);
-                sCtx.stroke();
-            }
-            for (let gy = 0; gy < H; gy += 24) {
-                sCtx.beginPath();
-                sCtx.moveTo(0, gy);
-                sCtx.lineTo(W, gy);
-                sCtx.stroke();
-            }
-
-            // Vòng tầm bắn của nhân vật
-            sCtx.save();
-            sCtx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-            sCtx.lineWidth = 1.5;
-            sCtx.setLineDash([5, 5]);
-            sCtx.beginPath();
-            sCtx.arc(unitX, unitY, Math.min(230, sp.range), 0, Math.PI * 2);
-            sCtx.stroke();
-            sCtx.restore();
-
-            // Hào quang Master / Demon nếu có
-            if (isMasterRarity(sandboxState.rarityId) || isDemonRarity(sandboxState.rarityId)) {
-                drawCanvasRarityAura(sCtx, unitX, unitY + 12, 24, sandboxState.rarityId, sandboxState.elapsedSec);
-            }
-
-            // Vẽ Nhân vật đang test (hướng mặt sang phải về phía Bia tập bắn)
-            const bob = Math.sin(sandboxState.elapsedSec * 6) * 2;
-            if (isCustomArtUnit(sp.id)) {
-                const rot = sp.id === 'railgun_walker' ? Math.PI / 2 : 0;
-                drawCustomUnitArt(sCtx, sp.id, unitX, unitY + bob, 46, 'blue', sandboxState.elapsedSec, rot);
-            } else if (atlasRef && atlasRef.ready) {
-                atlasRef.draw(sCtx, sp.spriteCol ?? 16, 7, unitX, unitY + bob, 46, 46, { rotation: Math.PI / 2 });
-            }
-
-            // Vẽ Bia Tập Bắn HP Vô Hạn (hoặc Đồng minh giả định nếu là Mục sư)
-            sCtx.save();
-            sCtx.translate(dummyX, dummyY);
-            sCtx.fillStyle = 'rgba(0,0,0,0.45)';
-            sCtx.beginPath();
-            sCtx.ellipse(0, 18, 18, 7, 0, 0, Math.PI * 2);
-            sCtx.fill();
-
-            sCtx.fillStyle = sandboxState.dummyHitFlash > 0 ? '#ffffff' : (sp.isHealer ? '#0284c7' : '#dc2626');
-            sCtx.strokeStyle = '#fde047';
-            sCtx.lineWidth = 2.5;
-            sCtx.beginPath();
-            sCtx.arc(0, 0, 18, 0, Math.PI * 2);
-            sCtx.fill();
-            sCtx.stroke();
-
-            sCtx.fillStyle = '#ffffff';
-            sCtx.beginPath();
-            sCtx.arc(0, 0, 10, 0, Math.PI * 2);
-            sCtx.fill();
-            sCtx.fillStyle = sp.isHealer ? '#16a34a' : '#ef4444';
-            sCtx.beginPath();
-            sCtx.arc(0, 0, 4.5, 0, Math.PI * 2);
-            sCtx.fill();
-
-            sCtx.font = '900 10px "Chakra Petch", sans-serif';
-            sCtx.textAlign = 'center';
-            sCtx.fillStyle = '#fde047';
-            sCtx.fillText(sp.isHealer ? 'ĐỒNG MINH (HP ∞)' : 'BIA TẬP BẮN (HP ∞)', 0, -25);
-            sCtx.restore();
-
-            // Vẽ tia laser & đạn bay
-            for (const bm of sandboxState.beams) {
-                sCtx.save();
-                sCtx.strokeStyle = bm.color;
-                sCtx.lineWidth = bm.width;
-                sCtx.beginPath();
-                sCtx.moveTo(bm.x1, bm.y1);
-                sCtx.lineTo(bm.x2, bm.y2);
-                sCtx.stroke();
-                sCtx.restore();
-            }
-
-            for (const p of sandboxState.projectiles) {
-                sCtx.save();
-                sCtx.fillStyle = p.projType === 'ice_shard' ? '#38bdf8' : (p.projType === 'dark_orb' ? '#c084fc' : '#f97316');
-                sCtx.beginPath();
-                sCtx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
-                sCtx.fill();
-                sCtx.restore();
-            }
-
-            for (const ft of sandboxState.floats) {
-                sCtx.save();
-                sCtx.globalAlpha = Math.max(0, ft.alpha);
-                sCtx.font = '900 13px "Chakra Petch", sans-serif';
-                sCtx.textAlign = 'center';
-                sCtx.fillStyle = ft.color;
-                sCtx.fillText(ft.text, ft.x, ft.y);
-                sCtx.restore();
-            }
-        }
-
-        sandboxState.rafId = requestAnimationFrame(sandboxLoop);
-    }
-
-    sandboxState.rafId = requestAnimationFrame(sandboxLoop);
 }
 
-// ============================================================================
-// 7C. MODAL NÂNG CẤP TƯỚNG, KHE CHIP (MỞ KHE 2 = 500 💎) & HOÀN CẤP
-// ============================================================================
-export function calcUnitPermanentStats(spec, rarityId, permLv) {
-    const rCfg = RARITY_CONFIG[rarityId] || RARITY_CONFIG.common;
-    const lvMult = 1 + (permLv - 1) * 0.12;
-    const totalMult = rCfg.mult * lvMult;
+function startSandboxLoop() {
+    const sb = lobbyState.sandbox;
+    if (sb.rafId) cancelAnimationFrame(sb.rafId);
+    sb.lastTs = performance.now();
 
-    const normId = normalizeUnitId(spec.id);
-    const sockets = metaState.unitSockets[normId] || [];
-    const steelLv = Number(metaState.metaTalents?.high_grade_steel) || 0;
-    const vitalRootsLv = getSkillTreeNodeLevel('vital_roots');
-    const ironTrunkLv = getSkillTreeNodeLevel('iron_trunk');
-    const arcaneTrunkLv = getSkillTreeNodeLevel('arcane_trunk');
-
-    const elemMult = spec.element === 'elemental'
-        ? (1 + arcaneTrunkLv * 0.18)
-        : (1 + ironTrunkLv * 0.15);
-
-    const hpBonus = (sockets.includes('reactive_armor') ? 1.18 : 1.0) * (1 + steelLv * 0.03 + vitalRootsLv * 0.12);
-
-    return {
-        damage: Math.max(1, Math.round(spec.damage * totalMult * elemMult)),
-        hp: Math.max(1, Math.round(spec.hp * totalMult * hpBonus))
+    const step = now => {
+        if (!sb.active) return;
+        const dt = Math.min(0.05, Math.max(0.001, (now - sb.lastTs) / 1000));
+        sb.lastTs = now;
+        updateAndDrawSandbox(dt);
+        sb.rafId = requestAnimationFrame(step);
     };
+    sb.rafId = requestAnimationFrame(step);
 }
 
-function ensureUnitSocketContainers() {
-    const slotsRow = document.getElementById('unit-sockets-slots-row');
-    const pickerDrawer = document.getElementById('chip-picker-drawer');
-    return { slotsRow, pickerDrawer };
-}
+function updateAndDrawSandbox(dt) {
+    const sb = lobbyState.sandbox;
+    const canvas = document.getElementById('sandboxCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
 
-export function renderUnitSocketsInModal(rawUnitId) {
-    const unitId = normalizeUnitId(rawUnitId);
-    const { slotsRow, pickerDrawer } = ensureUnitSocketContainers();
-    if (!slotsRow) return;
+    sb.timeSec += dt;
+    sb.elapsedTestSec += dt;
+    if (sb.recoil > 0) sb.recoil = Math.max(0, sb.recoil - dt * 24);
+    if (sb.dummyHitFlash > 0) sb.dummyHitFlash = Math.max(0, sb.dummyHitFlash - dt);
 
-    if (!metaState.unitSockets[unitId]) {
-        metaState.unitSockets[unitId] = [null, null];
+    const uSpec = UNIT_BY_ID[sb.unitId] || UNIT_CATALOG[0];
+    const rCfg = RARITY_CONFIG[sb.rarityId] || RARITY_CONFIG.common;
+    const permLv = metaState.armyPermanentLevels[uSpec.id] || 1;
+    const lvMult = 1 + (permLv - 1) * 0.12;
+    const effDmg = Math.max(1, Math.round(uSpec.damage * lvMult * rCfg.mult));
+
+    const unitX = 76;
+    const unitY = H / 2 + 10;
+    const dummyX = W - 76;
+    const dummyY = H / 2 + 10;
+
+    sb.fireTimer -= dt * (uSpec.fireRate || 1.0);
+    if (sb.fireTimer <= 0) {
+        sb.fireTimer = 1.0;
+        sb.recoil = 5.5;
+        if (uSpec.attackType === 'beam' || uSpec.attackType === 'railgun_line' || uSpec.attackType === 'heal_beam') {
+            sb.beams.push({
+                x1: unitX + 18,
+                y1: unitY - 4,
+                x2: uSpec.attackType === 'railgun_line' ? W - 12 : dummyX,
+                y2: dummyY - 4,
+                color: uSpec.attackType === 'heal_beam' ? '#4ade80' : (uSpec.attackType === 'railgun_line' ? '#00f2fe' : '#fde047'),
+                width: uSpec.attackType === 'railgun_line' ? 5 : 3,
+                ttl: 0.14
+            });
+            sb.totalDamageDealt += effDmg;
+            sb.dummyHitFlash = 0.14;
+            const prefix = uSpec.isHealer ? '+' : '-';
+            const col = uSpec.isHealer ? '#4ade80' : '#fde047';
+            sb.floatingDmg.push({ x: dummyX, y: dummyY - 26, text: `${prefix}${formatCompactNumber(effDmg)}`, color: col, alpha: 1.0 });
+            for (let i = 0; i < 6; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const spd = 25 + Math.random() * 55;
+                sb.particles.push({ x: dummyX, y: dummyY, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 3, color: col, alpha: 1 });
+            }
+        } else {
+            sb.projectiles.push({
+                x: unitX + 18,
+                y: unitY - 4,
+                vx: 290,
+                vy: -25,
+                damage: effDmg,
+                projType: uSpec.projType || 'shell'
+            });
+        }
     }
-    const equipped = metaState.unitSockets[unitId];
-    const slot2Unlocked = isUnitSocket2Unlocked(unitId);
-    slotsRow.innerHTML = '';
 
-    [0, 1].forEach(slotIdx => {
-        const isLockedSlot2 = slotIdx === 1 && !slot2Unlocked;
-        const chipId = equipped[slotIdx];
-        const chip = chipId ? UNIT_CHIPS[chipId] : null;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `chip-slot-btn ${chip ? 'equipped' : ''}`;
-        if (chip) btn.setAttribute('data-chip', chip.id);
+    sb.projectiles.forEach(p => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 65 * dt;
+        if (p.x >= dummyX - 10) {
+            p.done = true;
+            sb.totalDamageDealt += p.damage;
+            sb.dummyHitFlash = 0.15;
+            sb.floatingDmg.push({ x: dummyX, y: dummyY - 26, text: `-${formatCompactNumber(p.damage)}`, color: '#fb923c', alpha: 1.0 });
+            for (let i = 0; i < 9; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const spd = 30 + Math.random() * 70;
+                const col = p.projType === 'ice_shard' ? '#38bdf8' : (p.projType === 'dark_orb' ? '#d946ef' : '#f97316');
+                sb.particles.push({ x: dummyX, y: dummyY, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, r: 3.5, color: col, alpha: 1 });
+            }
+        }
+    });
+    sb.projectiles = sb.projectiles.filter(p => !p.done);
+    sb.beams.forEach(b => (b.ttl -= dt));
+    sb.beams = sb.beams.filter(b => b.ttl > 0);
+    sb.particles.forEach(pt => {
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.alpha -= dt * 2.4;
+    });
+    sb.particles = sb.particles.filter(pt => pt.alpha > 0);
+    sb.floatingDmg.forEach(ft => {
+        ft.y -= 28 * dt;
+        ft.alpha -= dt * 1.1;
+    });
+    sb.floatingDmg = sb.floatingDmg.filter(ft => ft.alpha > 0);
 
-        if (isLockedSlot2) {
-            btn.style.borderColor = '#f59e0b';
-            btn.style.background = '#fffbeb';
-            btn.innerHTML = `
-                <div class="chip-slot-icon">🔒</div>
-                <div class="chip-slot-text-wrap">
-                    <span class="chip-slot-name text-amber-800">Khe #2 (Khóa)</span>
-                    <span class="chip-slot-effect text-amber-700 font-black">Mở: 💎 ${CHIP_SOCKET_2_UNLOCK_GEMS}</span>
-                </div>
-            `;
-            btn.addEventListener('click', () => {
-                if (unlockUnitSocket2(unitId)) {
-                    triggerHaptic(25);
-                    if (sfxRef) sfxRef.play('upgrade');
-                    updateTopBarUI();
-                    renderUnitSocketsInModal(unitId);
-                    renderArmyTabUI();
-                } else {
-                    if (sfxRef) sfxRef.play('cannon');
-                    alert(`Bạn cần ${CHIP_SOCKET_2_UNLOCK_GEMS} 💎 Gems để mở khóa Khe Chip thứ 2 cho binh chủng này!`);
+    const dpsEl = document.getElementById('sb-stat-dps');
+    if (dpsEl && sb.elapsedTestSec > 0.2) {
+        const dps = sb.totalDamageDealt / sb.elapsedTestSec;
+        dpsEl.textContent = dps >= 10000 ? formatCompactNumber(dps) : dps.toFixed(1);
+    }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
+    ctx.lineWidth = 1;
+    for (let gx = 0; gx < W; gx += 24) {
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, H);
+        ctx.stroke();
+    }
+    for (let gy = 0; gy < H; gy += 24) {
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(W, gy);
+        ctx.stroke();
+    }
+
+    // Vòng tầm bắn của nhân vật trong Sandbox
+    ctx.save();
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.arc(unitX, unitY, Math.min(225, uSpec.range), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+
+    drawCanvasRarityAura(ctx, unitX, unitY + 14, 30, sb.rarityId, sb.timeSec);
+
+    // Vẽ nhân vật quay ngang 0 rad hướng thẳng vào Bia Tập Bắn ở bên phải
+    drawUnitArt(ctx, sb.unitId, unitX - sb.recoil, unitY, 54, 'blue', sb.timeSec, 0, {
+        walkCycle: sb.timeSec * 8,
+        rotorAngle: sb.timeSec * 24,
+        recoilOffset: sb.recoil
+    });
+
+    // Bia Tập Bắn / Đồng minh giả định
+    ctx.save();
+    ctx.translate(dummyX, dummyY);
+    if (sb.dummyHitFlash > 0) ctx.translate((Math.random() - 0.5) * 4, 0);
+    ctx.fillStyle = sb.dummyHitFlash > 0 ? '#ffffff' : (uSpec.isHealer ? '#0284c7' : '#dc2626');
+    ctx.strokeStyle = '#fde047';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, 19, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(0, 0, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = uSpec.isHealer ? '#16a34a' : '#ef4444';
+    ctx.beginPath();
+    ctx.arc(0, 0, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fde047';
+    ctx.font = '900 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(uSpec.isHealer ? 'ĐỒNG MINH (HP ∞)' : 'BIA TẬP BẮN (HP ∞)', 0, -27);
+    ctx.restore();
+
+    sb.beams.forEach(b => {
+        ctx.save();
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = b.width;
+        ctx.beginPath();
+        ctx.moveTo(b.x1, b.y1);
+        ctx.lineTo(b.x2, b.y2);
+        ctx.stroke();
+        ctx.restore();
+    });
+    sb.projectiles.forEach(p => {
+        ctx.save();
+        ctx.fillStyle = p.projType === 'ice_shard' ? '#38bdf8' : (p.projType === 'dark_orb' ? '#d946ef' : '#fde047');
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+    sb.particles.forEach(pt => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.alpha);
+        ctx.fillStyle = pt.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    });
+    sb.floatingDmg.forEach(ft => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.alpha);
+        ctx.font = '900 14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+    });
+}
+
+// ============================================================================
+// 6C. BÀN GHÉP TIẾN HÓA TƯỚNG 41 BẬC (MERGE & AUTO-MERGE O(1))
+// ============================================================================
+export function renderMergeInventoryGrid() {
+    const grid = document.getElementById('merge-inventory-grid');
+    const hintEl = document.getElementById('merge-hint-text');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (hintEl && !lobbyState.mergeSlot1Uid) {
+        hintEl.innerHTML = `Kho hiện có <b>${formatCompactNumber(getTotalCardsInInventory())} thẻ</b> • Chọn 2 thẻ giống nhau hoặc bấm <b>⚡ AUTO MERGE</b> để ghép dây chuyền O(1)!`;
+    }
+
+    const entries = Object.entries(metaState.inventoryStacks || {})
+        .filter(([, qty]) => qty > 0)
+        .map(([key, qty]) => {
+            const [unitId, rarity] = key.split('__');
+            return { key, unitId, rarity, qty, rank: RARITY_CONFIG[rarity]?.rank ?? 0 };
+        })
+        .sort((a, b) => b.rank - a.rank || a.unitId.localeCompare(b.unitId));
+
+    entries.forEach(item => {
+        const uSpec = UNIT_BY_ID[item.unitId] || UNIT_CATALOG[0];
+        const rCfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
+        const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
+        const isSelected = lobbyState.mergeSlot1Uid === item.key;
+
+        const card = document.createElement('div');
+        card.className = `army-unit-card ${rCfg.cssClass} ${isSelected ? 'selected-for-merge' : ''}`;
+        card.innerHTML = `
+            <div class="card-top-lv">
+                <span>${rCfg.name}</span>
+                ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
+            </div>
+            <span class="card-qty-badge" title="${item.qty.toLocaleString('en-US')} thẻ">x${formatCompactNumber(item.qty)}</span>
+            <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-0.5" alt="${uSpec.name}" />
+            <div class="card-unit-title">${uSpec.name}</div>
+        `;
+
+        card.addEventListener('click', () => {
+            if (!rCfg.next || item.qty < 2) {
+                sfx.play('cannon');
+                if (hintEl) {
+                    hintEl.innerHTML = `<span class="text-rose-300 font-bold">⚠️ Cần ít nhất 2 thẻ ${uSpec.name} (${rCfg.name}) để ghép tiến hóa!</span>`;
                 }
-            });
-        } else {
-            btn.innerHTML = `
-                <div class="chip-slot-icon">${chip ? chip.icon : '➕'}</div>
-                <div class="chip-slot-text-wrap">
-                    <span class="chip-slot-name">${chip ? chip.name : `Khe Chip #${slotIdx + 1}`}</span>
-                    <span class="chip-slot-effect">${chip ? chip.shortName : 'Chạm chọn từ kho'}</span>
-                </div>
-            `;
-            btn.addEventListener('click', () => {
-                activeChipSocketIndex = slotIdx;
-                renderChipPickerDrawer(unitId, slotIdx);
-            });
-        }
-
-        slotsRow.appendChild(btn);
-    });
-
-    if (pickerDrawer) {
-        pickerDrawer.classList.add('hidden');
-        pickerDrawer.style.display = 'none';
-    }
-}
-
-export function renderChipPickerDrawer(rawUnitId, slotIdx) {
-    const unitId = normalizeUnitId(rawUnitId);
-    const { pickerDrawer } = ensureUnitSocketContainers();
-    if (!pickerDrawer) return;
-    pickerDrawer.classList.remove('hidden');
-    pickerDrawer.style.display = 'grid';
-    pickerDrawer.innerHTML = '';
-
-    const currentEquippedChip = metaState.unitSockets?.[unitId]?.[slotIdx] || null;
-
-    if (currentEquippedChip) {
-        const removeCard = document.createElement('div');
-        removeCard.className = 'chip-item-card';
-        removeCard.innerHTML = `
-            <span style="font-size:11px;font-weight:800;color:#dc2626;">❌ Tháo Chip khỏi Khe #${slotIdx + 1} (Hoàn 1 viên về kho)</span>
-            <button type="button" class="btn-3d btn-3d-danger" style="padding:4px 8px;font-size:9.5px;">GỠ BỎ</button>
-        `;
-        removeCard.addEventListener('click', () => {
-            if (unequipChipFromUnitSlot(unitId, slotIdx)) {
-                if (sfxRef) sfxRef.play('gas');
-                openUnitUpgradeModal(unitId);
-                renderArmyTabUI();
+                return;
             }
-        });
-        pickerDrawer.appendChild(removeCard);
-    }
-
-    Object.values(UNIT_CHIPS).forEach(chip => {
-        const ownedQty = getChipOwnedCount(chip.id);
-        const hasStock = metaState.isAdminMode || ownedQty > 0;
-        const isRecommended = chip.recommendedUnits.includes(unitId) ||
-            (unitId === PRIMARY_INFANTRY_ID && (chip.recommendedUnits.includes('infantry') || chip.recommendedUnits.includes('rifleman')));
-
-        const item = document.createElement('div');
-        item.className = `chip-item-card ${isRecommended ? 'compatible' : ''}`;
-        item.innerHTML = `
-            <div style="display:flex;align-items:center;gap:6px;flex:1;">
-                <span style="font-size:20px;">${chip.icon}</span>
-                <div style="text-align:left;">
-                    <div style="font-size:11px;font-weight:900;color:#0f172a;">
-                        ${chip.name} <span style="color:#0284c7;">(Kho: ${metaState.isAdminMode ? '∞' : ownedQty})</span>
-                        ${isRecommended ? '<span style="color:#16a34a;font-size:9px;">(Khuyên dùng)</span>' : ''}
-                    </div>
-                    <div style="font-size:9.5px;color:#475569;">${chip.desc}</div>
-                </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:3px;">
-                <button type="button" data-action="equip" class="btn-3d btn-3d-green" style="padding:4px 8px;font-size:9.5px;" ${!hasStock ? 'disabled' : ''}>
-                    ${hasStock ? 'LẮP' : 'HẾT CHIP'}
-                </button>
-                ${!hasStock ? `<button type="button" data-action="quickbuy" class="btn-3d btn-3d-amber" style="padding:3px 6px;font-size:8.5px;">MUA 2.5K🪙</button>` : ''}
-            </div>
-        `;
-
-        item.querySelector('button[data-action="equip"]')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const res = equipChipToUnitSlot(unitId, slotIdx, chip.id);
-            if (res.ok) {
-                triggerHaptic(20);
-                if (sfxRef) sfxRef.play('upgrade');
-                openUnitUpgradeModal(unitId);
-                renderArmyTabUI();
-            } else if (sfxRef) {
-                sfxRef.play('cannon');
-            }
+            lobbyState.mergeSlot1Uid = item.key;
+            updateMergeWorkbenchUI();
+            renderMergeInventoryGrid();
         });
 
-        item.querySelector('button[data-action="quickbuy"]')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (buyChipItem(chip.id, 'coins')) {
-                triggerHaptic(20);
-                if (sfxRef) sfxRef.play('upgrade');
-                updateTopBarUI();
-                renderChipPickerDrawer(unitId, slotIdx);
-            } else if (sfxRef) {
-                sfxRef.play('cannon');
-            }
-        });
-
-        pickerDrawer.appendChild(item);
+        grid.appendChild(card);
     });
+
+    updateMergeWorkbenchUI();
 }
 
-export function updateBulkUpgradePreviewUI(rawAddLevels = null) {
-    const u = UNIT_BY_ID[inspectingUnitId];
-    if (!u) return;
+export function updateMergeWorkbenchUI() {
+    const s1 = document.getElementById('merge-slot-1');
+    const s2 = document.getElementById('merge-slot-2');
+    const sRes = document.getElementById('merge-slot-result');
+    const execBtn = document.getElementById('btn-execute-merge');
 
-    const inputEl = document.getElementById('upg-custom-add-lv-input');
-    let addLv = rawAddLevels !== null
-        ? Math.floor(Number(rawAddLevels) || 1)
-        : Math.floor(Number(inputEl?.value) || 1);
-    addLv = Math.max(1, Math.min(999999, addLv));
-    currentBulkAddLevels = addLv;
+    const key = lobbyState.mergeSlot1Uid;
+    const qty = key ? (metaState.inventoryStacks[key] || 0) : 0;
 
-    if (inputEl && Number(inputEl.value) !== addLv) {
-        inputEl.value = String(addLv);
-    }
-
-    const permLv = metaState.armyPermanentLevels[u.id] || 1;
-    const targetLv = permLv + addLv;
-    const highestRarity = getHighestRarityForUnit(u.id);
-    const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
-    const totalCostCoins = calcBulkUpgradeCost(permLv, addLv);
-
-    const curStats = calcUnitPermanentStats(u, highestRarity, permLv);
-    const targetStats = calcUnitPermanentStats(u, highestRarity, targetLv);
-
-    const lvBadge = document.getElementById('upg-modal-level-badge');
-    if (lvBadge) {
-        lvBadge.textContent = `LV.${permLv} ➔ LV.${targetLv} (+${addLv.toLocaleString('en-US')})`;
-    }
-
-    const multInfoEl = document.getElementById('upg-modal-mult-info');
-    if (multInfoEl) {
-        multInfoEl.textContent = `Độ hiếm ${rCfg.name}: ${rCfg.mult}x HP & DMG • Cấp ${permLv} ➔ ${targetLv} (+${addLv * 12}% cơ bản)`;
-    }
-
-    const bracketEl = document.getElementById('upg-modal-tier-bracket');
-    if (bracketEl) bracketEl.textContent = getUpgradeTierBracketText(permLv);
-
-    const dmgLabelEl = document.getElementById('upg-stat-label-dmg');
-    if (dmgLabelEl) {
-        dmgLabelEl.textContent = u.isHealer ? '💚 Hồi máu (x2 mục tiêu):' : '⚔️ Sát thương:';
-    }
-
-    const curDmgEl = document.getElementById('upg-cur-dmg');
-    if (curDmgEl) curDmgEl.textContent = formatCompactNumber(curStats.damage);
-
-    const nextDmgEl = document.getElementById('upg-next-dmg');
-    if (nextDmgEl) {
-        const diffDmg = Math.max(0, targetStats.damage - curStats.damage);
-        nextDmgEl.textContent = `${formatCompactNumber(targetStats.damage)} (+${formatCompactNumber(diffDmg)})`;
-    }
-
-    const curHpEl = document.getElementById('upg-cur-hp');
-    if (curHpEl) curHpEl.textContent = formatCompactNumber(curStats.hp);
-
-    const nextHpEl = document.getElementById('upg-next-hp');
-    if (nextHpEl) {
-        const diffHp = Math.max(0, targetStats.hp - curStats.hp);
-        nextHpEl.textContent = `${formatCompactNumber(targetStats.hp)} (+${formatCompactNumber(diffHp)})`;
-    }
-
-    const actionLabelEl = document.getElementById('upg-btn-action-label');
-    if (actionLabelEl) {
-        actionLabelEl.textContent = `⬆️ NÂNG +${addLv.toLocaleString('en-US')} CẤP`;
-    }
-
-    const costEl = document.getElementById('upg-cost-coins');
-    if (costEl) {
-        costEl.textContent = metaState.isAdminMode
-            ? '🪙 0 (ADMIN ∞)'
-            : `🪙 ${formatCurrency(totalCostCoins)}`;
-    }
-
-    const btnUpg = document.getElementById('btn-confirm-unit-upgrade');
-    if (btnUpg) {
-        btnUpg.disabled = !metaState.isAdminMode && metaState.coins < totalCostCoins;
-    }
-
-    document.querySelectorAll('.upg-quick-lv-btn').forEach(b => {
-        const attr = b.getAttribute('data-add-lv');
-        if (attr !== 'max') {
-            b.classList.toggle('active', Number(attr) === addLv);
-        } else {
-            b.classList.remove('active');
-        }
-    });
-}
-
-export function openUnitUpgradeModal(rawUnitId) {
-    const unitId = normalizeUnitId(rawUnitId);
-    inspectingUnitId = unitId;
-    const u = UNIT_BY_ID[unitId];
-    if (!u) return;
-
-    if (sfxRef) sfxRef.play('gas');
-    const permLv = metaState.armyPermanentLevels[u.id] || 1;
-    const highestRarity = getHighestRarityForUnit(u.id);
-    const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
-
-    const nameEl = document.getElementById('upg-modal-unit-name');
-    if (nameEl) nameEl.textContent = u.name.toUpperCase();
-
-    const frameEl = document.getElementById('upg-modal-card-frame');
-    if (frameEl) frameEl.className = `upg-unit-avatar-box ${rCfg.cssClass}`;
-
-    const spriteEl = document.getElementById('upg-modal-sprite');
-    if (spriteEl) spriteEl.src = getUnitSpriteDataURL(u, 7);
-
-    const rarityBadge = document.getElementById('upg-modal-rarity-badge');
-    if (rarityBadge) {
-        rarityBadge.className = `rarity-badge ${rCfg.cssClass}`;
-        rarityBadge.textContent = `${rCfg.name.toUpperCase()} (${rCfg.mult}x)`;
-    }
-
-    const roleEl = document.getElementById('upg-modal-role');
-    if (roleEl) roleEl.textContent = u.role;
-
-    const gasEl = document.getElementById('upg-unit-gas');
-    if (gasEl) gasEl.textContent = `${u.cost} Xăng`;
-
-    const btnRefund = document.getElementById('btn-open-level-refund');
-    if (btnRefund) {
-        btnRefund.disabled = permLv <= 1;
-    }
-
-    renderUnitSocketsInModal(u.id);
-    updateBulkUpgradePreviewUI(currentBulkAddLevels || 1);
-    document.getElementById('unit-upgrade-modal')?.classList.add('active');
-}
-
-export function updateLevelRefundModalCalculation() {
-    const u = UNIT_BY_ID[inspectingUnitId];
-    if (!u) return;
-
-    const curLv = metaState.armyPermanentLevels[u.id] || 1;
-    const inputEl = document.getElementById('refund-target-level-input');
-    const previewEl = document.getElementById('refund-target-lv-preview');
-    const coinsValEl = document.getElementById('refund-total-coins-val');
-    const errEl = document.getElementById('refund-error-msg');
-    const confirmBtn = document.getElementById('btn-confirm-level-refund');
-
-    const rawTarget = Math.floor(Number(inputEl?.value));
-    const isValid = Number.isFinite(rawTarget) && rawTarget >= 1 && rawTarget < curLv;
-
-    if (previewEl) {
-        previewEl.textContent = isValid ? `LV.${rawTarget}` : '---';
-    }
-
-    if (isValid) {
-        const refundCoins = calcTotalRefundCoins(rawTarget, curLv);
-        if (coinsValEl) coinsValEl.textContent = `+🪙 ${refundCoins.toLocaleString('en-US')}`;
-        if (errEl) errEl.classList.add('hidden');
-        if (confirmBtn) confirmBtn.disabled = false;
-    } else {
-        if (coinsValEl) coinsValEl.textContent = '+🪙 0';
-        if (errEl) errEl.classList.remove('hidden');
-        if (confirmBtn) confirmBtn.disabled = true;
-    }
-}
-
-export function openLevelRefundModal() {
-    const u = UNIT_BY_ID[inspectingUnitId];
-    if (!u) return;
-    const curLv = metaState.armyPermanentLevels[u.id] || 1;
-    if (curLv <= 1) {
-        if (sfxRef) sfxRef.play('cannon');
+    if (!key || qty < 2) {
+        lobbyState.mergeSlot1Uid = null;
+        if (s1) s1.innerHTML = '<span class="merge-slot-placeholder">+ THẺ 1</span>';
+        if (s2) s2.innerHTML = '<span class="merge-slot-placeholder">+ THẺ 2</span>';
+        if (sRes) sRes.innerHTML = '<span class="merge-slot-placeholder">KẾT QUẢ</span>';
+        if (execBtn) execBtn.disabled = true;
         return;
     }
 
-    if (sfxRef) sfxRef.play('gas');
-    const titleEl = document.getElementById('refund-unit-title');
-    const curLvEl = document.getElementById('refund-current-lv');
-    const inputEl = document.getElementById('refund-target-level-input');
+    const [unitId, rarity] = key.split('__');
+    const uSpec = UNIT_BY_ID[unitId] || UNIT_CATALOG[0];
+    const rCfg = RARITY_CONFIG[rarity];
+    const nextCfg = rCfg?.next ? RARITY_CONFIG[rCfg.next] : null;
+    const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
 
-    if (titleEl) titleEl.textContent = `${u.name.toUpperCase()} (HIỆN TẠI LV.${curLv})`;
-    if (curLvEl) curLvEl.textContent = `LV.${curLv}`;
-    if (inputEl) {
-        inputEl.min = '1';
-        inputEl.max = String(curLv - 1);
-        inputEl.value = '1';
+    const miniHtml = `<img src="${spriteUrl}" class="w-8 h-8 pixel-art" alt="${uSpec.name}" /><span style="font-size:7.5px;font-weight:900;color:#fde047;">${rCfg.name}</span>`;
+    if (s1) s1.innerHTML = miniHtml;
+    if (s2) s2.innerHTML = miniHtml;
+
+    if (nextCfg && sRes) {
+        sRes.innerHTML = `<img src="${spriteUrl}" class="w-8 h-8 pixel-art" alt="${uSpec.name}" /><span style="font-size:7.5px;font-weight:900;color:#4ade80;">${nextCfg.name}</span>`;
+        if (execBtn) execBtn.disabled = false;
+    } else if (execBtn) {
+        execBtn.disabled = true;
     }
-
-    updateLevelRefundModalCalculation();
-    document.getElementById('level-refund-modal')?.classList.add('active');
 }
 
-// ============================================================================
-// 8. CHẾ ĐỘ MERGE: BÀN GHÉP THỦ CÔNG & CASCADE AUTO-MERGE SIÊU TỐC O(1)
-// ============================================================================
-export function renderMergeWorkbenchAndInventory() {
+export function executeSingleMerge() {
+    const key = lobbyState.mergeSlot1Uid;
+    if (!key || (metaState.inventoryStacks[key] || 0) < 2) return;
+    const [unitId, rarity] = key.split('__');
+    const rCfg = RARITY_CONFIG[rarity];
+    if (!rCfg || !rCfg.next) return;
+
+    addCardToStacks(unitId, rarity, -2);
+    addCardToStacks(unitId, rCfg.next, 1);
     syncRepresentativeInventoryFromStacks();
 
-    const slot1El = document.getElementById('merge-slot-1');
-    const slot2El = document.getElementById('merge-slot-2');
-    const slotResEl = document.getElementById('merge-slot-result');
-    const btnMergeExec = document.getElementById('btn-execute-merge');
-    const hintEl = document.getElementById('merge-hint-text');
-    const invGrid = document.getElementById('merge-inventory-grid');
+    metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + 1;
+    saveProgress();
+    sfx.play('upgrade');
+    triggerHaptic(25);
+    renderMergeInventoryGrid();
+    renderMissionNotifDot();
+}
 
-    const card1 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]) || null;
-    const card2 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[1]) || null;
+export function executeAutoMergeAllO1() {
+    const t0 = performance.now();
+    let totalMerges = 0;
+    const highestByUnit = {};
 
-    const renderMiniSlotCard = (slotEl, cardObj, placeholderText) => {
-        if (!slotEl) return;
-        if (!cardObj) {
-            slotEl.className = 'merge-slot';
-            slotEl.innerHTML = `<span class="merge-slot-placeholder">${placeholderText}</span>`;
-            return;
+    UNIT_CATALOG.forEach(uSpec => {
+        for (let rIdx = 0; rIdx < MAX_RARITY_RANK; rIdx++) {
+            const curRar = RARITY_ORDER[rIdx];
+            const nextRar = RARITY_ORDER[rIdx + 1];
+            const curKey = `${uSpec.id}__${curRar}`;
+            const qty = Math.floor(Number(metaState.inventoryStacks[curKey]) || 0);
+            if (qty >= 2) {
+                const pairs = Math.floor(qty / 2);
+                addCardToStacks(uSpec.id, curRar, -(pairs * 2));
+                addCardToStacks(uSpec.id, nextRar, pairs);
+                highestByUnit[uSpec.id] = nextRar;
+                totalMerges += pairs;
+            }
         }
-        const u = UNIT_BY_ID[normalizeUnitId(cardObj.unitId)];
-        const rCfg = RARITY_CONFIG[cardObj.rarity] || RARITY_CONFIG.common;
-        const spriteUrl = u ? getUnitSpriteDataURL(u, 7) : '';
-        slotEl.className = `merge-slot ${rCfg.cssClass}`;
-        slotEl.innerHTML = `
-            <img src="${spriteUrl}" class="w-7 h-7 pixel-art" alt="${u?.name || ''}" />
-            <span class="text-[7px] font-black text-white leading-none mt-0.5 text-center">${rCfg.name}</span>
-        `;
-    };
+    });
 
-    renderMiniSlotCard(slot1El, card1, '+ THẺ 1');
-    renderMiniSlotCard(slot2El, card2, '+ THẺ 2');
+    if (totalMerges <= 0) {
+        sfx.play('cannon');
+        const hintEl = document.getElementById('merge-hint-text');
+        if (hintEl) hintEl.innerHTML = `<span class="text-rose-300 font-bold">⚠️ Không có cặp thẻ nào đủ điều kiện ghép tự động!</span>`;
+        return;
+    }
 
-    if (
-        card1 &&
-        card2 &&
-        normalizeUnitId(card1.unitId) === normalizeUnitId(card2.unitId) &&
-        card1.rarity === card2.rarity
-    ) {
-        const nextRarityId = RARITY_CONFIG[card1.rarity]?.next;
-        if (nextRarityId && RARITY_CONFIG[nextRarityId]) {
-            const u = UNIT_BY_ID[normalizeUnitId(card1.unitId)];
-            const nextRCfg = RARITY_CONFIG[nextRarityId];
-            const spriteUrl = u ? getUnitSpriteDataURL(u, 7) : '';
-            if (slotResEl) {
-                slotResEl.className = `merge-slot result-slot ${nextRCfg.cssClass}`;
-                slotResEl.innerHTML = `
-                    <img src="${spriteUrl}" class="w-8 h-8 pixel-art" alt="${u?.name || ''}" />
-                    <span class="text-[7px] font-black text-white leading-none mt-0.5 text-center">${nextRCfg.name}</span>
+    syncRepresentativeInventoryFromStacks();
+    const elapsedMs = Math.max(0.05, +(performance.now() - t0).toFixed(2));
+    metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + totalMerges;
+    saveProgress();
+    sfx.play('upgrade');
+    triggerHaptic(35);
+    renderMergeInventoryGrid();
+    renderMissionNotifDot();
+
+    const modal = document.getElementById('auto-merge-modal');
+    const grid = document.getElementById('auto-merge-results-grid');
+    const sumEl = document.getElementById('auto-merge-summary-text');
+
+    if (sumEl) {
+        sumEl.innerHTML = `⚡ Đã hợp nhất dây chuyền <b>${totalMerges.toLocaleString('en-US')} lượt</b> trong <b>${elapsedMs}ms</b>!`;
+    }
+    if (grid) {
+        grid.innerHTML = '';
+        Object.entries(highestByUnit)
+            .map(([uId, rar]) => ({
+                uId,
+                rar,
+                rank: RARITY_CONFIG[rar]?.rank || 0,
+                count: metaState.inventoryStacks[`${uId}__${rar}`] || 1
+            }))
+            .sort((a, b) => b.rank - a.rank)
+            .forEach(item => {
+                const uSpec = UNIT_BY_ID[item.uId] || UNIT_CATALOG[0];
+                const rCfg = RARITY_CONFIG[item.rar] || RARITY_CONFIG.common;
+                const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
+
+                const card = document.createElement('div');
+                card.className = `army-unit-card ${rCfg.cssClass}`;
+                card.innerHTML = `
+                    <div class="card-top-lv">
+                        <span>${rCfg.name}</span>
+                        ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
+                    </div>
+                    <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-0.5" alt="${uSpec.name}" />
+                    <span class="card-qty-badge">x${formatCompactNumber(item.count)}</span>
+                    <div class="card-unit-title">${uSpec.name}</div>
                 `;
-            }
-            if (btnMergeExec) btnMergeExec.disabled = false;
-            if (hintEl && u) {
-                hintEl.innerHTML = `Sẵn sàng ghép 2 <b>${u.name} (${RARITY_CONFIG[card1.rarity].name})</b> ➔ <b class="text-amber-300">${nextRCfg.name} (${nextRCfg.mult}x)</b>!`;
-            }
-        }
-    } else {
-        if (slotResEl) {
-            slotResEl.className = 'merge-slot result-slot';
-            slotResEl.innerHTML = `<span class="merge-slot-placeholder">KẾT QUẢ</span>`;
-        }
-        if (btnMergeExec) btnMergeExec.disabled = true;
-        if (card1) {
-            const u = UNIT_BY_ID[normalizeUnitId(card1.unitId)];
-            const rCfg = RARITY_CONFIG[card1.rarity];
-            if (hintEl && u && rCfg) {
-                hintEl.innerHTML = `Hãy chọn thêm 1 thẻ <b>${u.name} (${rCfg.name})</b> giống hệt để ghép!`;
-            }
-        } else if (hintEl) {
-            hintEl.innerHTML = `Kho hiện có <b>${formatCompactNumber(getTotalCardsInInventory())} thẻ</b> • Bấm <b>⚡ AUTO MERGE</b> để ghép dây chuyền O(1)!`;
-        }
-    }
-
-    if (!invGrid) return;
-    invGrid.innerHTML = '';
-
-    const repByKey = new Map();
-    for (let i = 0; i < metaState.inventory.length; i++) {
-        const c = metaState.inventory[i];
-        const normId = normalizeUnitId(c.unitId);
-        const key = `${normId}__${c.rarity}`;
-        let list = repByKey.get(key);
-        if (!list) {
-            list = [];
-            repByKey.set(key, list);
-        }
-        list.push(c);
-    }
-
-    const sortedGroups = [];
-    for (const [key, rawCount] of Object.entries(metaState.inventoryStacks || {})) {
-        const totalCount = Math.floor(Number(rawCount) || 0);
-        if (totalCount <= 0) continue;
-        const [rawUnitId, rarity] = key.split('__');
-        const unitId = normalizeUnitId(rawUnitId);
-        if (!UNIT_BY_ID[unitId] || !RARITY_CONFIG[rarity]) continue;
-        sortedGroups.push({
-            unitId,
-            rarity,
-            rank: RARITY_CONFIG[rarity]?.rank ?? 0,
-            totalCount,
-            sampleCards: repByKey.get(`${unitId}__${rarity}`) || []
-        });
-    }
-
-    sortedGroups.sort((a, b) => {
-        if (b.rank !== a.rank) return b.rank - a.rank;
-        return a.unitId.localeCompare(b.unitId);
-    });
-
-    const fragment = document.createDocumentFragment();
-
-    sortedGroups.forEach(grp => {
-        const u = UNIT_BY_ID[grp.unitId];
-        const rCfg = RARITY_CONFIG[grp.rarity] || RARITY_CONFIG.common;
-        if (!u) return;
-
-        const isMaxRarity = !rCfg.next;
-        const permLv = metaState.armyPermanentLevels[u.id] || 1;
-        const spriteUrl = getUnitSpriteDataURL(u, 7);
-
-        grp.sampleCards.forEach((cardObj, idx) => {
-            const isSelected = mergeSelectedCardUids.includes(cardObj.uid);
-            let isDimmed = false;
-            if (isMaxRarity) isDimmed = true;
-            else if (card1 && !isSelected) {
-                if (
-                    normalizeUnitId(cardObj.unitId) !== normalizeUnitId(card1.unitId) ||
-                    cardObj.rarity !== card1.rarity
-                ) {
-                    isDimmed = true;
-                }
-            }
-
-            const showStackBadge = idx === 0 && grp.totalCount > 2;
-
-            const cardEl = document.createElement('div');
-            cardEl.className = `army-unit-card ${rCfg.cssClass}` +
-                (isSelected ? ' selected-for-merge' : '') +
-                (isDimmed ? ' dimmed-unmatch' : '');
-
-            cardEl.innerHTML = `
-                <div class="card-top-lv">
-                    <span>LV.${permLv}</span>
-                    ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : `<span class="text-[8px]">${rCfg.name}</span>`}
-                </div>
-                <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-                ${showStackBadge ? `<span class="card-qty-badge" title="Tổng cộng: ${grp.totalCount.toLocaleString('en-US')} thẻ">x${formatCompactNumber(grp.totalCount)}</span>` : ''}
-                <div class="card-unit-title">${u.name}</div>
-            `;
-
-            cardEl.addEventListener('click', () => {
-                showcaseUnitId = u.id;
-                renderArmyShowcaseCanvas();
-
-                if (isSelected) {
-                    mergeSelectedCardUids = mergeSelectedCardUids.filter(id => id !== cardObj.uid);
-                    if (sfxRef) sfxRef.play('gas');
-                    renderMergeWorkbenchAndInventory();
-                    return;
-                }
-
-                if (isMaxRarity) {
-                    if (sfxRef) sfxRef.play('cannon');
-                    return;
-                }
-
-                if (mergeSelectedCardUids.length === 0) {
-                    mergeSelectedCardUids.push(cardObj.uid);
-                    if (sfxRef) sfxRef.play('gas');
-                } else if (mergeSelectedCardUids.length === 1) {
-                    const firstCard = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]);
-                    if (
-                        firstCard &&
-                        normalizeUnitId(firstCard.unitId) === normalizeUnitId(cardObj.unitId) &&
-                        firstCard.rarity === cardObj.rarity
-                    ) {
-                        mergeSelectedCardUids.push(cardObj.uid);
-                        if (sfxRef) sfxRef.play('spawn');
-                    } else {
-                        mergeSelectedCardUids = [cardObj.uid];
-                        if (sfxRef) sfxRef.play('gas');
-                    }
-                } else {
-                    mergeSelectedCardUids = [cardObj.uid];
-                    if (sfxRef) sfxRef.play('gas');
-                }
-                renderMergeWorkbenchAndInventory();
+                grid.appendChild(card);
             });
+    }
 
-            fragment.appendChild(cardEl);
-        });
-    });
-
-    invGrid.appendChild(fragment);
+    modal?.classList.add('active');
 }
 
 // ============================================================================
-// 9. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 45 MAP - ZOMBIE TOWER DEFENSE 20 WAVE)
+// 7. MODAL CHI TIẾT NÂNG CẤP TƯỚNG, HOÀN CẤP (-1/+1) & KHE CHIP (MỞ KHE 2 = 500 💎)
 // ============================================================================
-export function renderChallengeRoadmapUI() {
-    const listEl = document.getElementById('challenge-roadmap-list');
-    if (!listEl) return;
-    listEl.innerHTML = '';
+export function openUnitUpgradeModal(rawUnitId) {
+    const unitId = normalizeUnitId(rawUnitId);
+    lobbyState.selectedUpgradeUnitId = unitId;
+    lobbyState.pendingUpgradeAddLevels = 1;
+    lobbyState.activeChipSocketIdx = null;
 
-    const ancientHeartLv = getSkillTreeNodeLevel('ancient_heart');
-    const fragment = document.createDocumentFragment();
+    document.getElementById('unit-upgrade-modal')?.classList.add('active');
+    document.getElementById('chip-picker-drawer')?.classList.add('hidden');
+    refreshUnitUpgradeModalUI();
+}
 
-    LEVELS.forEach(cfg => {
-        const lv = cfg.level;
-        const unlocked = isChallengeMapUnlocked(lv);
-        const cleared = isChallengeMapCleared(lv);
-        const entryCost = calcChallengeEntryCostCoins(lv);
-        const rewards = calcChallengeRewards(lv, ancientHeartLv);
-        const bestW = Number(metaState.challengeBestWave?.[lv]) || 0;
-        const canAfford = metaState.isAdminMode || metaState.coins >= entryCost;
+export function refreshUnitUpgradeModalUI() {
+    const unitId = lobbyState.selectedUpgradeUnitId;
+    const uSpec = UNIT_BY_ID[unitId] || UNIT_CATALOG[0];
+    const curLv = metaState.armyPermanentLevels[unitId] || 1;
+    const bestRarity = getHighestRarityForUnit(unitId);
+    const rCfg = RARITY_CONFIG[bestRarity] || RARITY_CONFIG.common;
 
-        const node = document.createElement('div');
-        node.className = `challenge-stage-node ${cleared ? 'cleared' : (unlocked ? 'unlocked' : 'locked')}`;
-        node.innerHTML = `
-            <div class="flex-1 text-left">
-                <div class="flex items-center gap-1.5">
-                    <span class="text-xs font-black text-white">${lv}. ${cfg.name}</span>
-                    ${cleared ? '<span class="bg-emerald-500 text-slate-950 text-[8.5px] font-black px-1.5 py-0.5 rounded-full">✓ ĐÃ QUA</span>' : ''}
-                    ${!unlocked ? '<span class="text-xs">🔒</span>' : ''}
+    let addLv = lobbyState.pendingUpgradeAddLevels;
+    if (addLv === 'max') {
+        addLv = metaState.isAdminMode ? 100 : Math.max(1, calcMaxAffordableLevels(curLv, metaState.coins));
+    } else {
+        addLv = Math.max(1, Math.floor(Number(addLv) || 1));
+    }
+
+    const nextLv = curLv + addLv;
+    const totalCost = metaState.isAdminMode ? 0 : calcBulkUpgradeTotalCost(curLv, addLv);
+
+    const curMult = (1 + (curLv - 1) * 0.12) * rCfg.mult;
+    const nextMult = (1 + (nextLv - 1) * 0.12) * rCfg.mult;
+
+    document.getElementById('upg-modal-unit-name').textContent = uSpec.name.toUpperCase();
+    document.getElementById('upg-modal-card-frame').className = `upg-unit-avatar-box ${rCfg.cssClass}`;
+    document.getElementById('upg-modal-sprite').src = getUnitSpriteDataURL(uSpec, 'blue');
+    document.getElementById('upg-modal-rarity-badge').textContent = `${rCfg.name.toUpperCase()} (${rCfg.mult}x)`;
+    document.getElementById('upg-modal-rarity-badge').className = `rarity-badge ${rCfg.cssClass}`;
+    document.getElementById('upg-modal-level-badge').textContent = `LV.${curLv} ➔ LV.${nextLv} (+${addLv.toLocaleString('en-US')})`;
+    document.getElementById('upg-modal-role').textContent = uSpec.role;
+    document.getElementById('upg-modal-mult-info').textContent = `Hệ số Độ hiếm: ${rCfg.mult}x HP & DMG`;
+    document.getElementById('upg-modal-tier-bracket').textContent = getUpgradeTierBracketText(curLv);
+
+    document.getElementById('upg-cur-dmg').textContent = formatCompactNumber(Math.round(uSpec.damage * curMult));
+    document.getElementById('upg-next-dmg').textContent = formatCompactNumber(Math.round(uSpec.damage * nextMult));
+    document.getElementById('upg-cur-hp').textContent = formatCompactNumber(Math.round(uSpec.hp * curMult));
+    document.getElementById('upg-next-hp').textContent = formatCompactNumber(Math.round(uSpec.hp * nextMult));
+    document.getElementById('upg-unit-gas').textContent = `${uSpec.cost} Xăng`;
+
+    const customInput = document.getElementById('upg-custom-add-lv-input');
+    if (customInput && document.activeElement !== customInput) {
+        customInput.value = addLv;
+    }
+
+    document.getElementById('upg-btn-action-label').textContent = `⬆️ NÂNG +${addLv.toLocaleString('en-US')} CẤP`;
+    document.getElementById('upg-cost-coins').textContent = metaState.isAdminMode
+        ? 'MIỄN PHÍ'
+        : `🪙 ${formatCurrency(totalCost)}`;
+
+    const confirmBtn = document.getElementById('btn-confirm-unit-upgrade');
+    if (confirmBtn) confirmBtn.disabled = !metaState.isAdminMode && metaState.coins < totalCost;
+
+    const refundBtn = document.getElementById('btn-open-level-refund');
+    if (refundBtn) refundBtn.disabled = curLv <= 1;
+
+    renderUnitChipSocketsRow(unitId);
+}
+
+export function renderUnitChipSocketsRow(unitId) {
+    const row = document.getElementById('unit-sockets-slots-row');
+    if (!row) return;
+    row.innerHTML = '';
+
+    const sockets = metaState.unitSockets?.[unitId] || [null, null];
+    const slot2Unlocked = isUnitSocket2Unlocked(unitId);
+
+    [0, 1].forEach(slotIdx => {
+        const equippedChipId = sockets[slotIdx];
+        const chipObj = equippedChipId ? UNIT_CHIPS[equippedChipId] : null;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+
+        if (slotIdx === 1 && !slot2Unlocked) {
+            btn.className = 'chip-slot-btn locked-slot2';
+            btn.innerHTML = `
+                <div class="chip-slot-icon">🔒</div>
+                <div class="chip-slot-text-wrap">
+                    <span class="chip-slot-name text-amber-800">KHE CHIP 2 (KHÓA)</span>
+                    <span class="chip-slot-effect text-amber-700">Chạm mở: 💎 ${CHIP_SOCKET_2_UNLOCK_GEMS}</span>
                 </div>
-                <div class="text-[9.5px] font-bold text-slate-300 mt-0.5">
-                    Kỷ lục: <b class="text-rose-300">Wave ${cleared ? 20 : bestW} / 20</b> • 3 Boss (W.7, W.14, W.20)
+            `;
+            btn.addEventListener('click', () => {
+                if (!metaState.isAdminMode && metaState.gems < CHIP_SOCKET_2_UNLOCK_GEMS) {
+                    sfx.play('cannon');
+                    alert(`Cần 💎 ${CHIP_SOCKET_2_UNLOCK_GEMS} Gems để mở khóa Khe Chip 2 cho binh chủng này!`);
+                    return;
+                }
+                if (unlockUnitSocket2(unitId)) {
+                    sfx.play('upgrade');
+                    triggerHaptic(25);
+                    updateLobbyTopBar();
+                    renderUnitChipSocketsRow(unitId);
+                    renderArmyUnitsGrid();
+                }
+            });
+        } else if (chipObj) {
+            btn.className = 'chip-slot-btn equipped';
+            btn.dataset.chip = chipObj.id;
+            btn.innerHTML = `
+                <div class="chip-slot-icon">${chipObj.icon}</div>
+                <div class="chip-slot-text-wrap">
+                    <span class="chip-slot-name">${chipObj.name}</span>
+                    <span class="chip-slot-effect">Chạm để đổi / tháo</span>
                 </div>
-                <div class="text-[9.5px] font-extrabold text-amber-300 mt-0.5 vt323-num">
-                    Thưởng 20W: ⚪ +${rewards.pearls} Ngọc Trai • 💎 +${rewards.gems} • 🪙 +${rewards.coins.toLocaleString('en-US')}
+            `;
+            btn.addEventListener('click', () => {
+                lobbyState.activeChipSocketIdx = slotIdx;
+                openChipPickerDrawer(unitId, slotIdx);
+            });
+        } else {
+            btn.className = 'chip-slot-btn';
+            btn.innerHTML = `
+                <div class="chip-slot-icon">➕</div>
+                <div class="chip-slot-text-wrap">
+                    <span class="chip-slot-name text-slate-700">KHE CHIP ${slotIdx + 1} (TRỐNG)</span>
+                    <span class="chip-slot-effect">Chạm để gắn Chip từ Kho</span>
+                </div>
+            `;
+            btn.addEventListener('click', () => {
+                lobbyState.activeChipSocketIdx = slotIdx;
+                openChipPickerDrawer(unitId, slotIdx);
+            });
+        }
+
+        row.appendChild(btn);
+    });
+}
+
+function openChipPickerDrawer(unitId, slotIdx) {
+    const drawer = document.getElementById('chip-picker-drawer');
+    if (!drawer) return;
+    drawer.classList.remove('hidden');
+    drawer.innerHTML = '';
+
+    const sockets = metaState.unitSockets?.[unitId] || [null, null];
+    if (sockets[slotIdx]) {
+        const unequipRow = document.createElement('div');
+        unequipRow.className = 'chip-item-card';
+        unequipRow.innerHTML = `
+            <span class="text-xs font-black text-rose-700">🔓 Tháo Chip đang gắn ở Khe ${slotIdx + 1}</span>
+            <button type="button" class="btn-3d btn-3d-rose px-2.5 py-1 text-[10px]">THÁO CHIP</button>
+        `;
+        unequipRow.querySelector('button').addEventListener('click', () => {
+            unequipChipFromUnitSlot(unitId, slotIdx);
+            sfx.play('gas');
+            drawer.classList.add('hidden');
+            refreshUnitUpgradeModalUI();
+            renderArmyUnitsGrid();
+        });
+        drawer.appendChild(unequipRow);
+    }
+
+    Object.values(UNIT_CHIPS).forEach(chip => {
+        const owned = getChipOwnedCount(chip.id);
+        const hasStock = metaState.isAdminMode || owned > 0;
+        const isRec = Array.isArray(chip.recommendedUnits) && chip.recommendedUnits.includes(unitId);
+
+        const card = document.createElement('div');
+        card.className = `chip-item-card ${isRec ? 'compatible' : ''}`;
+        card.innerHTML = `
+            <div class="flex items-center gap-2 flex-1 text-left">
+                <span class="text-lg">${chip.icon}</span>
+                <div>
+                    <div class="text-[10.5px] font-black text-slate-900">
+                        ${chip.name} <span class="text-sky-700 vt323-num">(Kho: ${metaState.isAdminMode ? '∞' : owned})</span>
+                        ${isRec ? '<span class="text-emerald-600 text-[9px]">(Khuyên dùng)</span>' : ''}
+                    </div>
+                    <div class="text-[8.5px] font-bold text-slate-600">${chip.desc}</div>
                 </div>
             </div>
-            <button type="button" class="btn-3d ${cleared ? 'btn-3d-green' : (unlocked ? 'btn-3d-rose' : 'btn-3d-slate')} px-2.5 py-2 text-[10px] flex flex-col items-center flex-shrink-0" ${!unlocked ? 'disabled' : ''}>
-                <span>${unlocked ? '☠️ CHIẾN' : '🔒 KHÓA'}</span>
-                <span class="vt323-num text-xs text-amber-200">${metaState.isAdminMode ? '🪙 0' : `🪙 ${entryCost.toLocaleString('en-US')}`}</span>
+            <div class="flex flex-col gap-1">
+                <button type="button" data-act="equip" class="btn-3d btn-3d-green px-2.5 py-1 text-[9.5px]" ${hasStock ? '' : 'disabled'}>
+                    ${hasStock ? 'GẮN' : 'HẾT CHIP'}
+                </button>
+                ${!hasStock ? `<button type="button" data-act="quickbuy" class="btn-3d btn-3d-amber px-2 py-0.5 text-[8.5px]">MUA 2.5K🪙</button>` : ''}
+            </div>
+        `;
+        card.querySelector('[data-act="equip"]')?.addEventListener('click', () => {
+            if (!equipChipToUnitSlot(unitId, slotIdx, chip.id).ok) {
+                sfx.play('cannon');
+                return;
+            }
+            sfx.play('upgrade');
+            triggerHaptic(20);
+            drawer.classList.add('hidden');
+            refreshUnitUpgradeModalUI();
+            renderArmyUnitsGrid();
+        });
+        card.querySelector('[data-act="quickbuy"]')?.addEventListener('click', () => {
+            if (buyChipItem(chip.id, 'coins')) {
+                sfx.play('upgrade');
+                updateLobbyTopBar();
+                openChipPickerDrawer(unitId, slotIdx);
+            } else {
+                sfx.play('cannon');
+            }
+        });
+        drawer.appendChild(card);
+    });
+}
+
+// ============================================================================
+// 8. TAB 3: BATTLE (45 BẢN ĐỒ, ĐỘ KHÓ & CHẾ ĐỘ CHIẾN ĐẤU)
+// ============================================================================
+export function renderBattleStageView() {
+    const maxUnlocked = getMaxUnlockedMapLevel();
+    const lv = Math.max(1, Math.min(LEVELS.length, lobbyState.selectedMapLevel));
+    lobbyState.selectedMapLevel = lv;
+
+    const mapObj = LEVELS[lv - 1] || LEVELS[0];
+    const isMapUnlocked = lv <= maxUnlocked;
+
+    if (!isDifficultyUnlocked(lv, lobbyState.selectedDifficulty)) {
+        lobbyState.selectedDifficulty = getDefaultDifficultyForMap(lv);
+    }
+
+    document.getElementById('stage-map-title').textContent = `${lv}. ${mapObj.name}`;
+    document.getElementById('stage-progress-text').textContent = metaState.isAdminMode
+        ? `👑 ADMIN: ĐÃ MỞ TOÀN BỘ ${LEVELS.length} MAP`
+        : `MỞ KHÓA: MAP ${maxUnlocked} / ${LEVELS.length}`;
+    document.getElementById('select-map-desc').textContent = mapObj.mechanicTag
+        ? `${mapObj.desc} (${mapObj.mechanicTag})`
+        : mapObj.desc;
+
+    const waterBadge = document.getElementById('select-map-water-badge');
+    if (waterBadge) {
+        if (mapObj.hasWater) {
+            waterBadge.textContent = '🌊 CÓ THỦY QUÂN';
+            waterBadge.className = 'map-water-pill has-water';
+        } else if (mapObj.hasLava) {
+            waterBadge.textContent = '🌋 DUNG NHAM (THỦY QUÂN)';
+            waterBadge.className = 'map-water-pill has-water';
+        } else {
+            waterBadge.textContent = '🌲 LỤC QUÂN';
+            waterBadge.className = 'map-water-pill no-water';
+        }
+    }
+
+    document.getElementById('stage-cleared-stamp')?.classList.toggle('hidden', !isDifficultyCleared(lv, 'easy'));
+
+    const previewCanvas = document.getElementById('selected-map-preview');
+    if (previewCanvas) {
+        const pCtx = previewCanvas.getContext('2d');
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        renderMap(pCtx, previewCanvas.width, previewCanvas.height, lv, true);
+    }
+
+    const diffUnlocked = isDifficultyUnlocked(lv, 'difficult');
+    document.getElementById('diff-btn-easy')?.classList.toggle('active', lobbyState.selectedDifficulty === 'easy');
+    document.getElementById('diff-btn-difficult')?.classList.toggle('active', lobbyState.selectedDifficulty === 'difficult');
+    document.getElementById('diff-btn-difficult')?.classList.toggle('locked', !diffUnlocked);
+
+    const easySt = document.getElementById('diff-status-easy');
+    const diffSt = document.getElementById('diff-status-difficult');
+    if (easySt) easySt.textContent = isDifficultyCleared(lv, 'easy') ? '✓' : '★';
+    if (diffSt) diffSt.textContent = !diffUnlocked ? '🔒' : (isDifficultyCleared(lv, 'difficult') ? '✓' : '★');
+
+    document.getElementById('mode-btn-destroy')?.classList.toggle('active', lobbyState.selectedMode === 'destroy');
+    document.getElementById('mode-btn-survival')?.classList.toggle('active', lobbyState.selectedMode === 'survival');
+
+    const stDes = document.getElementById('mode-status-destroy');
+    const stSur = document.getElementById('mode-status-survival');
+    if (stDes) stDes.textContent = isDifficultyModeCleared(lv, lobbyState.selectedDifficulty, 'destroy') ? '✓' : '★';
+    if (stSur) stSur.textContent = isDifficultyModeCleared(lv, lobbyState.selectedDifficulty, 'survival') ? '✓' : '★';
+
+    document.querySelectorAll('.special-mode-pill').forEach(btn => {
+        btn.classList.toggle('active', lobbyState.selectedMode === btn.dataset.mode);
+    });
+
+    const endlessMini = document.getElementById('endless-best-mini');
+    if (endlessMini) endlessMini.textContent = `W:${metaState.endlessBestWave || 0}`;
+
+    const rewardCoins = calcStageRewardCoins(lv, lobbyState.selectedDifficulty, lobbyState.selectedMode);
+    const infoBanner = document.getElementById('diff-info-banner');
+    if (infoBanner) {
+        const goalLabel = lobbyState.selectedMode === 'survival' ? 'Sống sót 10 Wave' : 'Phá hủy Căn cứ Đỏ';
+        const medalNote = lobbyState.selectedDifficulty === 'difficult' ? ' + <b>🎖️ 3 Huy Chương</b>' : '';
+        infoBanner.innerHTML = `Mục tiêu: <b>${goalLabel}</b> • Thưởng: <b class="text-amber-300 vt323-num">🪙 ${rewardCoins.toLocaleString('en-US')} Coins</b>${medalNote}`;
+    }
+
+    const startBtn = document.getElementById('btn-start-battle');
+    if (startBtn) {
+        startBtn.disabled = !isMapUnlocked;
+        startBtn.textContent = isMapUnlocked ? 'START' : '🔒 KHÓA';
+    }
+}
+
+// ============================================================================
+// 9. CÁC POPUP: TALENTS 6 NHÁNH, VÒNG QUAY (SKIP SPIN + LỊCH SỬ), Ụ PHÁO, INDEX, ARCADE
+// ============================================================================
+export function openTalentsModal() {
+    document.getElementById('talents-modal')?.classList.add('active');
+    renderTalentsModal();
+}
+
+export function renderTalentsModal() {
+    const container = document.getElementById('talents-list-container');
+    const medCountEl = document.getElementById('modal-medals-count');
+    if (medCountEl) medCountEl.textContent = formatCurrency(metaState.medals);
+    if (!container) return;
+
+    container.innerHTML = '';
+    Object.values(META_TALENTS).forEach(t => {
+        const curLv = Number(metaState.metaTalents?.[t.id]) || 0;
+        const isMax = curLv >= t.maxLevel;
+        const cost = t.baseCost + curLv * t.costStep;
+        const canUpg = !isMax && (metaState.isAdminMode || metaState.medals >= cost);
+
+        let pipsHtml = '<div class="talent-level-pips">';
+        for (let i = 1; i <= t.maxLevel; i++) {
+            pipsHtml += `<span class="talent-pip ${i <= curLv ? 'active' : ''}"></span>`;
+        }
+        pipsHtml += '</div>';
+
+        const card = document.createElement('div');
+        card.className = `talent-node-card ${isMax ? 'talent-maxed' : ''}`;
+        card.innerHTML = `
+            <div class="talent-node-icon">${t.icon}</div>
+            <div class="talent-node-info">
+                <div class="talent-node-title">${t.name} <span class="text-sky-700 vt323-num">(LV.${curLv}/${t.maxLevel})</span></div>
+                <div class="talent-node-desc">${t.desc}</div>
+                <div class="talent-node-stat-preview">${t.getEffectText(curLv)}</div>
+                ${pipsHtml}
+            </div>
+            <button type="button" class="btn-3d btn-3d-green talent-upgrade-btn" ${canUpg ? '' : 'disabled'}>
+                <span>${isMax ? 'MAX' : 'NÂNG'}</span>
+                <span class="talent-cost-num">${isMax ? '★' : `🎖️ ${metaState.isAdminMode ? '0' : cost}`}</span>
             </button>
         `;
 
-        const playBtn = node.querySelector('button');
-        if (playBtn && unlocked) {
-            playBtn.addEventListener('click', () => {
-                if (!canAfford) {
-                    if (sfxRef) sfxRef.play('cannon');
-                    alert(`Bạn cần ${entryCost.toLocaleString('en-US')} 🪙 Vàng để vào ải Challenge Map ${lv}!`);
-                    return;
-                }
-                if (!metaState.isAdminMode) {
-                    metaState.coins -= entryCost;
-                    saveProgress();
-                    updateTopBarUI();
-                }
-                if (sfxRef) sfxRef.play('spawn');
-                syncLegacyEngineBridges();
-                document.getElementById('lobby-wrapper')?.classList.remove('active');
-                if (onStartBattleCallback) {
-                    onStartBattleCallback(lv, 'difficult', 'challenge', 'challenge');
-                }
-            });
-        }
+        card.querySelector('button').addEventListener('click', () => {
+            if (isMax) return;
+            if (!metaState.isAdminMode && metaState.medals < cost) {
+                sfx.play('cannon');
+                return;
+            }
+            if (!metaState.isAdminMode) metaState.medals -= cost;
+            metaState.metaTalents[t.id] = curLv + 1;
+            saveProgress();
+            sfx.play('upgrade');
+            triggerHaptic(20);
+            updateLobbyTopBar();
+            renderTalentsModal();
+        });
 
-        fragment.appendChild(node);
+        container.appendChild(card);
     });
-
-    listEl.appendChild(fragment);
 }
 
-// ============================================================================
-// 10. TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ - DÙNG ⚪ NGỌC TRAI TRẮNG)
-// ============================================================================
-export function renderSkillTreeTabUI() {
-    const balanceEl = document.getElementById('skilltree-pearls-balance');
-    if (balanceEl) {
-        balanceEl.textContent = `⚪ ${formatCurrency(metaState.pearls || 0)}`;
+let wheelCurrentRotation = 0;
+let isWheelSpinning = false;
+
+export function openLuckyWheelModal() {
+    document.getElementById('lucky-wheel-modal')?.classList.add('active');
+
+    const skipChk = document.getElementById('chk-skip-wheel-anim');
+    if (skipChk) {
+        skipChk.checked = !!metaState.wheelSkipAnim;
+        skipChk.onchange = () => {
+            metaState.wheelSkipAnim = skipChk.checked;
+            saveProgress();
+        };
     }
 
-    // Vẽ các nhánh nối SVG phát sáng từ Rễ -> Thân -> Cành -> Ngọn
-    const svgEl = document.getElementById('skilltree-branches-svg');
-    if (svgEl) {
-        const connections = [
-            // Rễ gốc dưới đáy
-            { x1: 190, y1: 425, x2: 100, y2: 380, active: true },
-            { x1: 190, y1: 425, x2: 280, y2: 380, active: true },
-            // Rễ -> Thân
-            { x1: 100, y1: 380, x2: 100, y2: 275, active: getSkillTreeNodeLevel('vital_roots') > 0 },
-            { x1: 280, y1: 380, x2: 280, y2: 275, active: getSkillTreeNodeLevel('supply_roots') > 0 },
-            // Thân -> Cành
-            { x1: 100, y1: 275, x2: 100, y2: 165, active: getSkillTreeNodeLevel('iron_trunk') > 0 },
-            { x1: 280, y1: 275, x2: 280, y2: 165, active: getSkillTreeNodeLevel('arcane_trunk') > 0 },
-            // Cành -> Ngọn Cây Tối Thượng
-            { x1: 100, y1: 165, x2: 190, y2: 58, active: getSkillTreeNodeLevel('undead_slayer') > 0 },
-            { x1: 280, y1: 165, x2: 190, y2: 58, active: getSkillTreeNodeLevel('elite_lineage') > 0 }
-        ];
-
-        svgEl.innerHTML = connections.map(c => {
-            const stroke = c.active ? '#4ade80' : '#334155';
-            const width = c.active ? '5' : '3.5';
-            const dash = c.active ? '' : 'stroke-dasharray="6,6"';
-            return `<line x1="${c.x1}" y1="${c.y1}" x2="${c.x2}" y2="${c.y2}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" ${dash} />`;
-        }).join('');
-    }
-
-    // Cập nhật trạng thái 7 nút trên cây
-    Object.values(ANCIENT_SKILL_TREE).forEach(node => {
-        const curLv = getSkillTreeNodeLevel(node.id);
-        const unlocked = isSkillTreeNodeUnlocked(node.id);
-        const btnEl = document.getElementById(`st-node-${node.id}`);
-        const lvEl = document.getElementById(`st-lv-${node.id}`);
-
-        if (btnEl) {
-            btnEl.classList.toggle('unlocked', unlocked);
-            btnEl.classList.toggle('leveled', curLv > 0);
-            btnEl.classList.toggle('locked', !unlocked);
-            btnEl.classList.toggle('selected-node', selectedSkillTreeNodeId === node.id);
-        }
-        if (lvEl) {
-            lvEl.textContent = `LV.${curLv}/${node.maxLevel}`;
-        }
-    });
-
-    // Cập nhật khung Inspector bên dưới
-    const selNode = ANCIENT_SKILL_TREE[selectedSkillTreeNodeId] || ANCIENT_SKILL_TREE.vital_roots;
-    const curLv = getSkillTreeNodeLevel(selNode.id);
-    const isMax = curLv >= selNode.maxLevel;
-    const unlocked = isSkillTreeNodeUnlocked(selNode.id);
-    const cost = getSkillTreeNodeCost(selNode.id, curLv);
-    const canUpg = canUpgradeSkillTreeNode(selNode.id);
-
-    const titleEl = document.getElementById('st-inspector-title');
-    if (titleEl) {
-        titleEl.textContent = `${selNode.icon} ${selNode.name} (LV.${curLv}/${selNode.maxLevel})`;
-    }
-
-    const descEl = document.getElementById('st-inspector-desc');
-    if (descEl) {
-        descEl.textContent = `${selNode.desc} (${selNode.getEffectText(curLv)})`;
-    }
-
-    const reqEl = document.getElementById('st-inspector-req');
-    if (reqEl) {
-        if (isMax) {
-            reqEl.textContent = '✨ Đã đạt cấp độ tối đa của nhánh này!';
-        } else if (!unlocked) {
-            const reqNames = selNode.requires.map(rId => ANCIENT_SKILL_TREE[rId]?.name || rId).join(' & ');
-            reqEl.textContent = `🔒 Yêu cầu nâng tối thiểu Lv.1: ${reqNames}`;
-        } else {
-            reqEl.textContent = `✅ Đủ điều kiện nâng cấp (Tầng ${selNode.tier}: ${selNode.tierName})`;
-        }
-    }
-
-    const costEl = document.getElementById('st-upgrade-cost-val');
-    if (costEl) {
-        costEl.textContent = isMax ? 'MAX' : (metaState.isAdminMode ? '⚪ 0' : `⚪ ${cost}`);
-    }
-
-    const upgBtn = document.getElementById('btn-upgrade-skilltree-node');
-    if (upgBtn) {
-        upgBtn.disabled = !canUpg;
-    }
+    drawLuckyWheelCanvas(wheelCurrentRotation);
+    updateLuckyWheelUI();
 }
 
-// ============================================================================
-// 11. VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal), SKIP SPIN & LỊCH SỬ JACKPOT
-// ============================================================================
-let wheelCurrentRotationRad = 0;
-let wheelIsSpinning = false;
-
-export function drawLuckyWheelCanvas(rotationRad = wheelCurrentRotationRad) {
+function drawLuckyWheelCanvas(rotRad) {
     const canvas = document.getElementById('luckyWheelCanvas');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -2261,1848 +1752,1088 @@ export function drawLuckyWheelCanvas(rotationRad = wheelCurrentRotationRad) {
     const H = canvas.height;
     const cx = W / 2;
     const cy = H / 2;
-    const radius = Math.min(cx, cy) - 8;
+    const r = cx - 6;
 
     ctx.clearRect(0, 0, W, H);
     const slices = LUCKY_WHEEL_CONFIG.slices;
-    const numSlices = slices.length;
-    const arcStep = (Math.PI * 2) / numSlices;
+    const arc = (Math.PI * 2) / slices.length;
 
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rotationRad);
-
-    slices.forEach((slice, idx) => {
-        const startA = idx * arcStep;
-        const endA = startA + arcStep;
+    slices.forEach((sl, i) => {
+        const startA = rotRad + i * arc - Math.PI / 2 - arc / 2;
+        const endA = startA + arc;
 
         ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, radius, startA, endA);
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, startA, endA);
         ctx.closePath();
-        ctx.fillStyle = slice.bgColor;
+        ctx.fillStyle = sl.bgColor;
         ctx.fill();
         ctx.lineWidth = 2.5;
         ctx.strokeStyle = '#0f172a';
         ctx.stroke();
 
         ctx.save();
-        ctx.rotate(startA + arcStep / 2);
+        ctx.translate(cx, cy);
+        ctx.rotate(startA + arc / 2);
         ctx.textAlign = 'right';
-        ctx.fillStyle = slice.textColor || '#ffffff';
-        ctx.font = '900 11px "Chakra Petch", sans-serif';
-        ctx.fillText(slice.label, radius - 14, 4);
+        ctx.fillStyle = sl.textColor;
+        ctx.font = '900 11px sans-serif';
+        ctx.fillText(sl.label, r - 12, 4);
         ctx.restore();
     });
-
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.lineWidth = 5;
-    ctx.strokeStyle = '#facc15';
-    ctx.stroke();
-
-    for (let i = 0; i < numSlices * 2; i++) {
-        const a = (i * Math.PI) / numSlices;
-        const px = Math.cos(a) * (radius - 2);
-        const py = Math.sin(a) * (radius - 2);
-        ctx.fillStyle = i % 2 === 0 ? '#ffffff' : '#ef4444';
-        ctx.beginPath();
-        ctx.arc(px, py, 3, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    ctx.restore();
 }
 
-export function updateLuckyWheelPityUI() {
-    const pity = Math.max(0, Math.min(100, Number(metaState.wheelPity) || 0));
-    const countEl = document.getElementById('lucky-pity-count');
-    const fillEl = document.getElementById('lucky-pity-bar-fill');
-    if (countEl) countEl.textContent = `${pity} / ${LUCKY_WHEEL_CONFIG.pityMax}`;
-    if (fillEl) fillEl.style.width = `${Math.min(100, Math.round((pity / LUCKY_WHEEL_CONFIG.pityMax) * 100))}%`;
-
-    const skipChk = document.getElementById('chk-skip-wheel-anim');
-    if (skipChk) skipChk.checked = !!metaState.wheelSkipAnim;
-
-    renderLuckyWheelJackpotHistoryUI();
-}
-
-export function renderLuckyWheelJackpotHistoryUI() {
-    const totalEl = document.getElementById('wheel-jackpot-total-count');
+function updateLuckyWheelUI() {
+    const pity = metaState.wheelPity || 0;
+    const pityEl = document.getElementById('lucky-pity-count');
+    const barEl = document.getElementById('lucky-pity-bar-fill');
+    const totalJpEl = document.getElementById('wheel-jackpot-total-count');
     const histEl = document.getElementById('lucky-wheel-jackpot-history');
-    if (totalEl) {
-        totalEl.textContent = `${(metaState.wheelJackpotTotal || 0).toLocaleString('en-US')} lần`;
-    }
-    if (!histEl) return;
 
-    const list = Array.isArray(metaState.wheelJackpotHistory) ? metaState.wheelJackpotHistory : [];
-    if (list.length === 0) {
-        histEl.innerHTML = `<div class="italic text-slate-400">Chưa có lịch sử nổ Jackpot. Hãy thử vận may ngay!</div>`;
+    if (pityEl) pityEl.textContent = `${pity} / 100`;
+    if (barEl) barEl.style.width = `${Math.min(100, pity)}%`;
+    if (totalJpEl) totalJpEl.textContent = `${metaState.wheelJackpotTotal || 0} lần`;
+
+    if (histEl) {
+        const list = metaState.wheelJackpotHistory || [];
+        histEl.innerHTML = list.length === 0
+            ? '<div class="italic text-slate-400">Chưa có lịch sử nổ Jackpot. Hãy thử vận may ngay!</div>'
+            : list.map(entry => {
+                if (typeof entry === 'string') return `<div>💠 <b>${entry}</b></div>`;
+                return `<div>💠 <b>${entry.unitName}</b> — <span class="text-fuchsia-300 font-black">${entry.rarityName}</span> <span class="text-slate-400">(${entry.timeStr || ''})</span></div>`;
+            }).join('');
+    }
+}
+
+export function spinLuckyWheelBatch(spinCount) {
+    if (isWheelSpinning) return;
+    const count = Math.max(1, Math.min(100000, Math.floor(Number(spinCount) || 1)));
+    const bundles = Math.floor(count / 10);
+    const rem = count % 10;
+    const totalCost = metaState.isAdminMode ? 0 : bundles * LUCKY_WHEEL_CONFIG.tenPrice + rem * LUCKY_WHEEL_CONFIG.singlePrice;
+
+    if (!metaState.isAdminMode && metaState.gems < totalCost) {
+        sfx.play('cannon');
+        alert(`Không đủ Gems! Cần 💎 ${totalCost.toLocaleString('en-US')} Gems.`);
         return;
     }
 
-    histEl.innerHTML = list
-        .slice(0, 8)
-        .map(item => `<div>💠 <b>${item.unitName}</b> — <span class="text-fuchsia-300 font-black">${item.rarityName}</span> <span class="text-slate-400">(${item.timeStr})</span></div>`)
-        .join('');
-}
+    if (!metaState.isAdminMode) metaState.gems -= totalCost;
 
-function rollSingleWheelSlice(forceJackpot = false) {
     const slices = LUCKY_WHEEL_CONFIG.slices;
-    if (forceJackpot) {
-        return slices[slices.length - 1];
-    }
-    const rand = Math.random() * 100;
-    let acc = 0;
-    for (let i = 0; i < slices.length; i++) {
-        acc += slices[i].weight;
-        if (rand <= acc) return slices[i];
-    }
-    return slices[0];
-}
-
-export function executeLuckyWheelSpins(rawSpinCount = 1) {
-    if (wheelIsSpinning) return;
-    const spins = Math.max(1, Math.min(100000, Math.floor(Number(rawSpinCount) || 1)));
-    const blocksOf10 = Math.floor(spins / 10);
-    const remSpins = spins % 10;
-    const totalGemCost = metaState.isAdminMode
-        ? 0
-        : (blocksOf10 * LUCKY_WHEEL_CONFIG.tenPrice + remSpins * LUCKY_WHEEL_CONFIG.singlePrice);
-
-    const bannerEl = document.getElementById('lucky-wheel-result-banner');
-    if (!metaState.isAdminMode && metaState.gems < totalGemCost) {
-        if (sfxRef) sfxRef.play('cannon');
-        if (bannerEl) {
-            bannerEl.classList.remove('jackpot-hit');
-            bannerEl.innerHTML = `⚠️ Không đủ Gems! Cần <b>💎 ${totalGemCost.toLocaleString('en-US')}</b> để quay ${spins.toLocaleString('en-US')} lượt.`;
-        }
-        return;
-    }
-
-    if (!metaState.isAdminMode) {
-        metaState.gems -= totalGemCost;
-    }
-
-    const t0 = performance.now();
-    let gainedCoins = 0;
-    let gainedGems = 0;
-    let gainedMedals = 0;
-    const gainedCardsSummary = {};
-    let lastSlice = LUCKY_WHEEL_CONFIG.slices[0];
-    let hitJackpotCount = 0;
+    const totalW = slices.reduce((s, x) => s + x.weight, 0);
+    let lastSliceIdx = 0;
+    let jackpotHitText = null;
+    const rewardSummary = [];
     const nowTimeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-    for (let i = 0; i < spins; i++) {
-        metaState.wheelPity = (Number(metaState.wheelPity) || 0) + 1;
-        const isGuaranteedPity = metaState.wheelPity >= LUCKY_WHEEL_CONFIG.pityMax;
-        const slice = rollSingleWheelSlice(isGuaranteedPity);
-        lastSlice = slice;
+    for (let s = 0; s < count; s++) {
+        metaState.wheelPity = (metaState.wheelPity || 0) + 1;
+        let pickedSlice = slices[0];
 
-        if (slice.type === 'coins') {
-            gainedCoins += slice.amount;
-        } else if (slice.type === 'gems') {
-            gainedGems += slice.amount;
-        } else if (slice.type === 'medals') {
-            gainedMedals += slice.amount;
-        } else if (slice.type === 'card') {
-            const randUnit = UNIT_CATALOG[(Math.random() * UNIT_CATALOG.length) | 0];
-            addCardToStacks(randUnit.id, slice.rarity, 1);
-            const rName = RARITY_CONFIG[slice.rarity]?.name || slice.rarity;
-            const k = `${randUnit.name} (${rName})`;
-            gainedCardsSummary[k] = (gainedCardsSummary[k] || 0) + 1;
-        } else if (slice.type === 'jackpot_card') {
+        if (metaState.wheelPity >= LUCKY_WHEEL_CONFIG.pityMax) {
             metaState.wheelPity = 0;
-            hitJackpotCount++;
-            metaState.wheelJackpotTotal = (Number(metaState.wheelJackpotTotal) || 0) + 1;
-
-            const jackpotRarities = slice.rarities || ['master', 'demon'];
-            const pickedRarity = jackpotRarities[(Math.random() * jackpotRarities.length) | 0];
-            const randUnit = UNIT_CATALOG[(Math.random() * UNIT_CATALOG.length) | 0];
-            addCardToStacks(randUnit.id, pickedRarity, 1);
-
-            const rName = RARITY_CONFIG[pickedRarity]?.name || pickedRarity;
-            const k = `💠 ${randUnit.name} [${rName}]`;
-            gainedCardsSummary[k] = (gainedCardsSummary[k] || 0) + 1;
-
-            if (!Array.isArray(metaState.wheelJackpotHistory)) {
-                metaState.wheelJackpotHistory = [];
-            }
-            metaState.wheelJackpotHistory.unshift({
-                unitName: randUnit.name,
-                rarityName: rName,
-                timeStr: nowTimeStr
-            });
-            if (metaState.wheelJackpotHistory.length > 15) {
-                metaState.wheelJackpotHistory.length = 15;
-            }
-        }
-    }
-
-    metaState.coins += gainedCoins;
-    metaState.gems += gainedGems;
-    metaState.medals = (metaState.medals || 0) + gainedMedals;
-    saveProgress();
-    updateTopBarUI();
-    updateLuckyWheelPityUI();
-
-    const numSlices = LUCKY_WHEEL_CONFIG.slices.length;
-    const arcStep = (Math.PI * 2) / numSlices;
-    const sliceCenterAngle = lastSlice.index * arcStep + arcStep / 2;
-    const targetPointerAngle = -Math.PI / 2;
-    const extraSpinsRad = (spins === 1 ? 6 : 8) * Math.PI * 2;
-    const startRot = wheelCurrentRotationRad % (Math.PI * 2);
-    let targetRot = startRot + extraSpinsRad + (targetPointerAngle - sliceCenterAngle - startRot);
-    while (targetRot <= startRot + Math.PI * 6) {
-        targetRot += Math.PI * 2;
-    }
-
-    const showResultBannerText = (elapsedMs = null) => {
-        if (!bannerEl) return;
-        bannerEl.classList.toggle('jackpot-hit', hitJackpotCount > 0);
-        const speedTag = elapsedMs !== null ? ` <span class="text-sky-300">(${elapsedMs}ms)</span>` : '';
-        if (spins === 1) {
-            const cardKeys = Object.keys(gainedCardsSummary);
-            const extraCardTxt = cardKeys.length > 0 ? ` ➔ <b>${cardKeys[0]}</b>` : '';
-            bannerEl.innerHTML = `🎉 Trúng: <b>${lastSlice.fullName}</b>${extraCardTxt}!${speedTag}`;
+            pickedSlice = slices[7];
         } else {
-            const parts = [];
-            if (gainedCoins > 0) parts.push(`+🪙 ${gainedCoins.toLocaleString('en-US')}`);
-            if (gainedGems > 0) parts.push(`+💎 ${gainedGems.toLocaleString('en-US')}`);
-            if (gainedMedals > 0) parts.push(`+🎖️ ${gainedMedals.toLocaleString('en-US')}`);
-            const cardList = Object.entries(gainedCardsSummary).map(([k, v]) => `${k} x${v}`);
-            if (cardList.length > 0) parts.push(`🃏 ${cardList.slice(0, 4).join(', ')}${cardList.length > 4 ? '...' : ''}`);
-            bannerEl.innerHTML = `🎉 Kết quả ${spins.toLocaleString('en-US')} lượt${speedTag}: ${parts.join(' • ')}`;
-        }
-    };
-
-    const skipChk = document.getElementById('chk-skip-wheel-anim');
-    const shouldSkipAnim = !!(skipChk?.checked || metaState.wheelSkipAnim);
-
-    if (shouldSkipAnim) {
-        wheelCurrentRotationRad = targetRot % (Math.PI * 2);
-        drawLuckyWheelCanvas(wheelCurrentRotationRad);
-        if (sfxRef) sfxRef.play('upgrade');
-        triggerHaptic(25);
-        const elapsedMs = Math.max(0.01, +(performance.now() - t0).toFixed(2));
-        showResultBannerText(elapsedMs);
-        if (currentLobbyTab === 'army') renderArmyTabUI();
-        return;
-    }
-
-    const canvasEl = document.getElementById('luckyWheelCanvas');
-    canvasEl?.classList.add('spinning');
-    wheelIsSpinning = true;
-    if (sfxRef) sfxRef.play('blitz');
-
-    const animDurationMs = spins > 25 ? 1100 : 2100;
-    const animStartTs = performance.now();
-
-    function animateWheel(now) {
-        const elapsed = now - animStartTs;
-        const t = Math.min(1, elapsed / animDurationMs);
-        const easeOut = 1 - Math.pow(1 - t, 3);
-        wheelCurrentRotationRad = startRot + (targetRot - startRot) * easeOut;
-        drawLuckyWheelCanvas(wheelCurrentRotationRad);
-
-        if (t < 1) {
-            requestAnimationFrame(animateWheel);
-        } else {
-            wheelIsSpinning = false;
-            canvasEl?.classList.remove('spinning');
-            if (sfxRef) sfxRef.play('upgrade');
-            triggerHaptic(35);
-            showResultBannerText(null);
-            if (currentLobbyTab === 'army') renderArmyTabUI();
-        }
-    }
-
-    requestAnimationFrame(animateWheel);
-}
-
-// ============================================================================
-// 12. TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal)
-// ============================================================================
-let currentMinigameTab = 'mines';
-
-const minesGameState = {
-    active: false,
-    board: [],
-    safeOpened: 0,
-    potCoins: 0,
-    potGems: 0,
-    potMedals: 0
-};
-
-const catcherGameState = {
-    running: false,
-    timeLeft: 30.0,
-    playerX: 160,
-    moveLeft: false,
-    moveRight: false,
-    spawnTimer: 0,
-    items: [],
-    floatingTexts: [],
-    scoreCoins: 0,
-    scoreGems: 0,
-    scoreMedals: 0,
-    rafId: null,
-    lastFrameTs: 0
-};
-
-const highLowGameState = {
-    active: false,
-    streak: 0,
-    potCoins: 0,
-    potGems: 0,
-    curRarityId: 'common',
-    curUnitId: PRIMARY_INFANTRY_ID
-};
-
-export function switchMinigameTab(tabId) {
-    currentMinigameTab = tabId;
-    if (sfxRef) sfxRef.play('gas');
-
-    document.querySelectorAll('.arcade-tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-mg-tab') === tabId);
-    });
-    ['mines', 'catcher', 'highlow'].forEach(key => {
-        document.getElementById(`mg-pane-${key}`)?.classList.toggle('active', key === tabId);
-    });
-
-    if (tabId === 'mines') renderMinesMinigameBoard();
-    else if (tabId === 'catcher') drawCatcherIdleCanvas();
-    else if (tabId === 'highlow') renderHighLowMinigameUI();
-}
-
-export function startMinesMinigame() {
-    const cfg = MINIGAME_CONFIG.mines;
-    if (!metaState.isAdminMode && metaState.coins < cfg.entryCostCoins) {
-        if (sfxRef) sfxRef.play('cannon');
-        const stEl = document.getElementById('mg-mines-status-text');
-        if (stEl) stEl.innerHTML = `<span class="text-rose-600">⚠️ Bạn cần 🪙 ${cfg.entryCostCoins.toLocaleString('en-US')} Vàng để bắt đầu dò mìn!</span>`;
-        return;
-    }
-
-    if (!metaState.isAdminMode) {
-        metaState.coins -= cfg.entryCostCoins;
-        saveProgress();
-        updateTopBarUI();
-    }
-
-    const cells = Array.from({ length: cfg.gridSize }, (_, idx) => ({
-        isMine: idx < cfg.mineCells,
-        revealed: false,
-        icon: '❓'
-    }));
-    for (let i = cells.length - 1; i > 0; i--) {
-        const j = (Math.random() * (i + 1)) | 0;
-        const tmp = cells[i];
-        cells[i] = cells[j];
-        cells[j] = tmp;
-    }
-
-    minesGameState.active = true;
-    minesGameState.board = cells;
-    minesGameState.safeOpened = 0;
-    minesGameState.potCoins = cfg.entryCostCoins;
-    minesGameState.potGems = 15;
-    minesGameState.potMedals = 0;
-
-    if (sfxRef) sfxRef.play('spawn');
-    const stEl = document.getElementById('mg-mines-status-text');
-    if (stEl) stEl.innerHTML = `🎯 Hãy chạm vào các ô trên lưới 5x5 để tìm Kho báu! Tránh <b>5 quả Mìn</b>!`;
-    renderMinesMinigameBoard();
-}
-
-export function renderMinesMinigameBoard() {
-    const gridEl = document.getElementById('mg-mines-grid');
-    if (!gridEl) return;
-    gridEl.innerHTML = '';
-
-    const cfg = MINIGAME_CONFIG.mines;
-    const curMult = minesGameState.safeOpened > 0
-        ? (cfg.multipliers[Math.min(minesGameState.safeOpened - 1, cfg.multipliers.length - 1)] || 1.0)
-        : 1.0;
-
-    const multBadge = document.getElementById('mg-mines-mult-badge');
-    if (multBadge) multBadge.textContent = `x${curMult.toFixed(2)}`;
-
-    const safeCountEl = document.getElementById('mg-mines-safe-count');
-    if (safeCountEl) safeCountEl.textContent = `${minesGameState.safeOpened}/${cfg.safeCells}`;
-
-    const potEl = document.getElementById('mg-mines-current-pot');
-    if (potEl) {
-        const medalStr = minesGameState.potMedals > 0 ? ` | 🎖️ ${minesGameState.potMedals}` : '';
-        potEl.textContent = `🪙 ${minesGameState.potCoins.toLocaleString('en-US')} | 💎 ${minesGameState.potGems}${medalStr}`;
-    }
-
-    const cashoutBtn = document.getElementById('btn-mg-mines-cashout');
-    if (cashoutBtn) {
-        cashoutBtn.disabled = !minesGameState.active || minesGameState.safeOpened <= 0;
-    }
-
-    if (minesGameState.board.length === 0) {
-        for (let i = 0; i < cfg.gridSize; i++) {
-            minesGameState.board.push({ isMine: false, revealed: false, icon: 'radar' });
-        }
-    }
-
-    minesGameState.board.forEach(cell => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'mg-mine-cell' +
-            (cell.revealed ? (cell.isMine ? ' revealed mine' : ' revealed safe') : '');
-        btn.textContent = cell.revealed ? (cell.isMine ? '💣' : cell.icon) : '📡';
-
-        btn.addEventListener('click', () => {
-            if (!minesGameState.active || cell.revealed) return;
-            cell.revealed = true;
-
-            if (cell.isMine) {
-                minesGameState.active = false;
-                minesGameState.potCoins = 0;
-                minesGameState.potGems = 0;
-                minesGameState.potMedals = 0;
-                minesGameState.board.forEach(c => {
-                    if (c.isMine) c.revealed = true;
-                });
-                triggerHaptic(50);
-                if (sfxRef) sfxRef.play('boom');
-                const stEl = document.getElementById('mg-mines-status-text');
-                if (stEl) stEl.innerHTML = `<span class="text-rose-600 font-black">💥 BÙM! Bạn đã đạp trúng Mìn Chống Tăng và mất quỹ thưởng ván này!</span>`;
-                renderMinesMinigameBoard();
-            } else {
-                minesGameState.safeOpened++;
-                const m = cfg.multipliers[Math.min(minesGameState.safeOpened - 1, cfg.multipliers.length - 1)] || 1.2;
-                const addCoins = Math.round(cfg.baseCoinsPerSafe * m);
-                const addGems = Math.round(cfg.baseGemsPerSafe * m);
-                minesGameState.potCoins += addCoins;
-                minesGameState.potGems += addGems;
-
-                if (Math.random() < cfg.medalChancePerSafe) {
-                    minesGameState.potMedals += 2;
-                    cell.icon = '🎖️';
-                } else {
-                    cell.icon = minesGameState.safeOpened % 2 === 0 ? '💎' : '🪙';
-                }
-
-                triggerHaptic(15);
-                if (sfxRef) sfxRef.play('upgrade');
-                const stEl = document.getElementById('mg-mines-status-text');
-                if (stEl) {
-                    stEl.innerHTML = `✨ An toàn! Hệ số tăng lên <b class="text-emerald-600">x${m.toFixed(2)}</b>! Có thể bấm <b>RÚT THƯỞNG NGAY</b>!`;
-                }
-
-                if (minesGameState.safeOpened >= cfg.safeCells) {
-                    cashoutMinesMinigame();
-                    return;
-                }
-                renderMinesMinigameBoard();
-            }
-        });
-
-        gridEl.appendChild(btn);
-    });
-}
-
-export function cashoutMinesMinigame() {
-    if (!minesGameState.active || minesGameState.safeOpened <= 0) return;
-    minesGameState.active = false;
-
-    const c = minesGameState.potCoins;
-    const g = minesGameState.potGems;
-    const m = minesGameState.potMedals;
-
-    metaState.coins += c;
-    metaState.gems += g;
-    metaState.medals = (metaState.medals || 0) + m;
-
-    let bonusCardMsg = '';
-    if (minesGameState.safeOpened >= 8) {
-        const bonusRarity = minesGameState.safeOpened >= 14 ? 'mythic' : 'legendary';
-        const randUnit = UNIT_CATALOG[(Math.random() * UNIT_CATALOG.length) | 0];
-        addCardToStacks(randUnit.id, bonusRarity, 1);
-        bonusCardMsg = ` + 1 Thẻ <b>${randUnit.name} (${RARITY_CONFIG[bonusRarity].name})</b>`;
-    }
-
-    minesGameState.board.forEach(cell => {
-        if (cell.isMine) cell.revealed = true;
-    });
-
-    saveProgress();
-    updateTopBarUI();
-    if (sfxRef) sfxRef.play('upgrade');
-
-    const stEl = document.getElementById('mg-mines-status-text');
-    if (stEl) {
-        const mTxt = m > 0 ? `, +🎖️ ${m}` : '';
-        stEl.innerHTML = `<span class="text-emerald-600 font-black">🎉 RÚT THƯỞNG THÀNH CÔNG: +🪙 ${c.toLocaleString('en-US')}, +💎 ${g.toLocaleString('en-US')}${mTxt}${bonusCardMsg}!</span>`;
-    }
-    renderMinesMinigameBoard();
-}
-
-export function drawCatcherIdleCanvas() {
-    const canvas = document.getElementById('mgCatcherCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width;
-    const H = canvas.height;
-
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#0284c7';
-    ctx.fillRect(0, 0, W, H * 0.72);
-    ctx.fillStyle = '#15803d';
-    ctx.fillRect(0, H * 0.72, W, H * 0.28);
-
-    ctx.fillStyle = '#1e3a8a';
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(catcherGameState.playerX - 24, H - 38, 48, 22, 6);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#fde047';
-    ctx.font = '900 12px "Chakra Petch", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('BẤM "BẮT ĐẦU HỨNG TIẾP TẾ" ĐỂ CHƠI!', W / 2, H / 2 - 10);
-}
-
-export function stopCatcherMinigame(awardLoot = true) {
-    if (catcherGameState.rafId) {
-        cancelAnimationFrame(catcherGameState.rafId);
-        catcherGameState.rafId = null;
-    }
-    if (!catcherGameState.running) return;
-    catcherGameState.running = false;
-
-    if (awardLoot) {
-        const c = Math.max(0, catcherGameState.scoreCoins);
-        const g = Math.max(0, catcherGameState.scoreGems);
-        const m = Math.max(0, catcherGameState.scoreMedals);
-        metaState.coins += c;
-        metaState.gems += g;
-        metaState.medals = (metaState.medals || 0) + m;
-        saveProgress();
-        updateTopBarUI();
-        if (sfxRef) sfxRef.play('upgrade');
-    }
-}
-
-export function startCatcherMinigame() {
-    stopCatcherMinigame(false);
-    const cfg = MINIGAME_CONFIG.catcher;
-
-    catcherGameState.running = true;
-    catcherGameState.timeLeft = cfg.durationSec;
-    catcherGameState.playerX = cfg.canvasWidth / 2;
-    catcherGameState.items = [];
-    catcherGameState.floatingTexts = [];
-    catcherGameState.scoreCoins = 0;
-    catcherGameState.scoreGems = 0;
-    catcherGameState.scoreMedals = 0;
-    catcherGameState.spawnTimer = 0.1;
-    catcherGameState.lastFrameTs = performance.now();
-
-    if (sfxRef) sfxRef.play('spawn');
-
-    function catcherLoop(now) {
-        if (!catcherGameState.running) return;
-        const dt = Math.min(0.05, Math.max(0.001, (now - catcherGameState.lastFrameTs) / 1000));
-        catcherGameState.lastFrameTs = now;
-
-        catcherGameState.timeLeft = Math.max(0, catcherGameState.timeLeft - dt);
-
-        if (catcherGameState.moveLeft) {
-            catcherGameState.playerX -= cfg.playerSpeed * dt;
-        }
-        if (catcherGameState.moveRight) {
-            catcherGameState.playerX += cfg.playerSpeed * dt;
-        }
-        catcherGameState.playerX = Math.max(28, Math.min(cfg.canvasWidth - 28, catcherGameState.playerX));
-
-        catcherGameState.spawnTimer -= dt;
-        if (catcherGameState.spawnTimer <= 0) {
-            catcherGameState.spawnTimer = cfg.spawnIntervalSec;
-            const rand = Math.random() * 100;
-            let acc = 0;
-            let spec = cfg.items[0];
-            for (const it of cfg.items) {
-                acc += it.weight;
-                if (rand <= acc) {
-                    spec = it;
+            let roll = Math.random() * totalW;
+            for (const sl of slices) {
+                roll -= sl.weight;
+                if (roll <= 0) {
+                    pickedSlice = sl;
                     break;
                 }
             }
-            catcherGameState.items.push({
-                ...spec,
-                x: 24 + Math.random() * (cfg.canvasWidth - 48),
-                y: -16
-            });
+            if (pickedSlice.index === 7) metaState.wheelPity = 0;
         }
 
-        const playerY = cfg.canvasHeight - 28;
-        for (let i = catcherGameState.items.length - 1; i >= 0; i--) {
-            const it = catcherGameState.items[i];
-            it.y += it.speed * dt;
+        lastSliceIdx = pickedSlice.index;
 
-            if (Math.abs(it.x - catcherGameState.playerX) <= 28 && Math.abs(it.y - playerY) <= 20) {
-                catcherGameState.scoreCoins = Math.max(0, catcherGameState.scoreCoins + it.coins);
-                catcherGameState.scoreGems = Math.max(0, catcherGameState.scoreGems + it.gems);
-                catcherGameState.scoreMedals = Math.max(0, catcherGameState.scoreMedals + it.medals);
-
-                if (it.type === 'bomb') {
-                    if (sfxRef) sfxRef.play('boom');
-                    triggerHaptic(35);
-                    catcherGameState.floatingTexts.push({ x: it.x, y: it.y, text: '💥 TRÚNG BOM!', color: '#ef4444', alpha: 1.0 });
-                } else {
-                    if (sfxRef) sfxRef.play('gas');
-                    const txt = it.coins > 0 ? `+${it.coins}🪙` : (it.gems > 0 ? `+${it.gems}💎` : `+${it.medals}🎖️`);
-                    catcherGameState.floatingTexts.push({ x: it.x, y: it.y, text: txt, color: it.color, alpha: 1.0 });
-                }
-                catcherGameState.items.splice(i, 1);
-                continue;
-            }
-
-            if (it.y > cfg.canvasHeight + 20) {
-                catcherGameState.items.splice(i, 1);
-            }
+        if (pickedSlice.type === 'coins') {
+            metaState.coins += pickedSlice.amount;
+            if (count === 1) rewardSummary.push(pickedSlice.fullName);
+        } else if (pickedSlice.type === 'gems') {
+            metaState.gems += pickedSlice.amount;
+            if (count === 1) rewardSummary.push(pickedSlice.fullName);
+        } else if (pickedSlice.type === 'medals') {
+            metaState.medals += pickedSlice.amount;
+            if (count === 1) rewardSummary.push(pickedSlice.fullName);
+        } else if (pickedSlice.type === 'card') {
+            const u = UNIT_CATALOG[Math.floor(Math.random() * UNIT_CATALOG.length)];
+            addCardToStacks(u.id, pickedSlice.rarity, 1);
+            if (count === 1) rewardSummary.push(`${u.name} (${RARITY_CONFIG[pickedSlice.rarity].name})`);
+        } else if (pickedSlice.type === 'jackpot_card') {
+            const u = UNIT_CATALOG[Math.floor(Math.random() * UNIT_CATALOG.length)];
+            const jpRar = pickedSlice.rarities[Math.floor(Math.random() * pickedSlice.rarities.length)];
+            addCardToStacks(u.id, jpRar, 1);
+            const rName = RARITY_CONFIG[jpRar]?.name || jpRar;
+            jackpotHitText = `${u.name} [${rName}]`;
+            metaState.wheelJackpotTotal = (metaState.wheelJackpotTotal || 0) + 1;
+            metaState.wheelJackpotHistory = [
+                { unitName: u.name, rarityName: rName, timeStr: nowTimeStr },
+                ...(metaState.wheelJackpotHistory || [])
+            ].slice(0, 15);
+            rewardSummary.push(`💠 JACKPOT: ${jackpotHitText}`);
         }
-
-        for (let i = catcherGameState.floatingTexts.length - 1; i >= 0; i--) {
-            const ft = catcherGameState.floatingTexts[i];
-            ft.y -= 32 * dt;
-            ft.alpha -= dt * 1.4;
-            if (ft.alpha <= 0) catcherGameState.floatingTexts.splice(i, 1);
-        }
-
-        const timeEl = document.getElementById('mg-catcher-time');
-        if (timeEl) timeEl.textContent = `${catcherGameState.timeLeft.toFixed(1)}s`;
-        const scoreEl = document.getElementById('mg-catcher-score');
-        if (scoreEl) {
-            scoreEl.textContent = `🪙 ${catcherGameState.scoreCoins.toLocaleString('en-US')} | 💎 ${catcherGameState.scoreGems} | 🎖️ ${catcherGameState.scoreMedals}`;
-        }
-
-        const canvas = document.getElementById('mgCatcherCanvas');
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            const W = canvas.width;
-            const H = canvas.height;
-            ctx.clearRect(0, 0, W, H);
-
-            for (const it of catcherGameState.items) {
-                ctx.save();
-                if (it.type !== 'bomb') {
-                    ctx.strokeStyle = '#e2e8f0';
-                    ctx.lineWidth = 1.2;
-                    ctx.beginPath();
-                    ctx.moveTo(it.x - 9, it.y - 12);
-                    ctx.lineTo(it.x, it.y);
-                    ctx.moveTo(it.x + 9, it.y - 12);
-                    ctx.lineTo(it.x, it.y);
-                    ctx.stroke();
-
-                    ctx.fillStyle = '#f8fafc';
-                    ctx.beginPath();
-                    ctx.arc(it.x, it.y - 12, 10, Math.PI, 0);
-                    ctx.fill();
-                }
-                ctx.font = '18px sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(it.icon, it.x, it.y);
-                ctx.restore();
-            }
-
-            if (atlasRef && atlasRef.ready) {
-                atlasRef.draw(ctx, 5, 7, catcherGameState.playerX, playerY, 44, 44);
-            } else {
-                ctx.fillStyle = '#0284c7';
-                ctx.strokeStyle = '#0f172a';
-                ctx.lineWidth = 2;
-                ctx.fillRect(catcherGameState.playerX - 22, playerY - 12, 44, 22);
-            }
-
-            for (const ft of catcherGameState.floatingTexts) {
-                ctx.save();
-                ctx.globalAlpha = Math.max(0, ft.alpha);
-                ctx.font = '900 12px "Chakra Petch", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillStyle = ft.color;
-                ctx.fillText(ft.text, ft.x, ft.y);
-                ctx.restore();
-            }
-        }
-
-        if (catcherGameState.timeLeft <= 0) {
-            stopCatcherMinigame(true);
-            const canvas = document.getElementById('mgCatcherCanvas');
-            if (canvas) {
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#4ade80';
-                ctx.font = '900 13px "Chakra Petch", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.fillText(
-                    `HOÀN THÀNH! +🪙${catcherGameState.scoreCoins} +💎${catcherGameState.scoreGems} +🎖️${catcherGameState.scoreMedals}`,
-                    canvas.width / 2,
-                    canvas.height / 2
-                );
-            }
-            return;
-        }
-
-        catcherGameState.rafId = requestAnimationFrame(catcherLoop);
     }
 
-    catcherGameState.rafId = requestAnimationFrame(catcherLoop);
-}
+    syncRepresentativeInventoryFromStacks();
+    saveProgress();
+    updateLobbyTopBar();
+    updateLuckyWheelUI();
 
-export function startHighLowMinigame() {
-    const cfg = MINIGAME_CONFIG.highlow;
-    if (!metaState.isAdminMode && metaState.coins < cfg.entryCostCoins) {
-        if (sfxRef) sfxRef.play('cannon');
-        const stEl = document.getElementById('mg-hl-status-text');
-        if (stEl) stEl.innerHTML = `<span class="text-rose-600">⚠️ Bạn cần 🪙 ${cfg.entryCostCoins.toLocaleString('en-US')} Vàng để mở ván bài!</span>`;
+    const bannerEl = document.getElementById('lucky-wheel-result-banner');
+    const finalMsg = count === 1
+        ? `🎉 Nhận được: <b>${rewardSummary[0]}</b>!`
+        : `🎉 Hoàn tất <b>${count.toLocaleString('en-US')} lượt quay</b>! ${jackpotHitText ? `Nổ hũ: <b>${jackpotHitText}</b>` : 'Phần thưởng đã cộng thẳng vào tài khoản!'}`;
+
+    if (metaState.wheelSkipAnim || count > 1) {
+        const arc = (Math.PI * 2) / slices.length;
+        wheelCurrentRotation = -(lastSliceIdx * arc);
+        drawLuckyWheelCanvas(wheelCurrentRotation);
+        sfx.play('upgrade');
+        if (bannerEl) {
+            bannerEl.innerHTML = finalMsg;
+            bannerEl.classList.toggle('jackpot-hit', !!jackpotHitText);
+        }
         return;
     }
 
-    if (!metaState.isAdminMode) {
-        metaState.coins -= cfg.entryCostCoins;
-        saveProgress();
-        updateTopBarUI();
-    }
+    isWheelSpinning = true;
+    const arc = (Math.PI * 2) / slices.length;
+    const startRot = wheelCurrentRotation;
+    const targetRot = startRot + Math.PI * 8 - ((startRot + lastSliceIdx * arc) % (Math.PI * 2));
+    const startTs = performance.now();
+    const durMs = 1500;
 
-    const startRank = 8 + ((Math.random() * 25) | 0);
-    highLowGameState.active = true;
-    highLowGameState.streak = 0;
-    highLowGameState.potCoins = cfg.initialPotCoins;
-    highLowGameState.potGems = cfg.initialPotGems;
-    highLowGameState.curRarityId = RARITY_ORDER[startRank] || 'legendary2';
-    highLowGameState.curUnitId = UNIT_CATALOG[(Math.random() * UNIT_CATALOG.length) | 0].id;
+    const animStep = now => {
+        const t = Math.min(1, (now - startTs) / durMs);
+        const ease = 1 - Math.pow(1 - t, 3);
+        wheelCurrentRotation = startRot + (targetRot - startRot) * ease;
+        drawLuckyWheelCanvas(wheelCurrentRotation);
 
-    if (sfxRef) sfxRef.play('spawn');
-    const stEl = document.getElementById('mg-hl-status-text');
-    if (stEl) stEl.innerHTML = `🃏 Hãy dự đoán thẻ tiếp theo có <b>Rank Cao hơn (HIGHER)</b> hay <b>Thấp hơn (LOWER)</b>!`;
-
-    const nextBox = document.getElementById('mg-hl-next-card');
-    if (nextBox) {
-        nextBox.className = 'mg-hl-card-box mystery-card';
-        document.getElementById('mg-hl-next-rarity').textContent = '???';
-        document.getElementById('mg-hl-next-rank').textContent = 'RANK ?';
-        document.getElementById('mg-hl-next-unit').textContent = 'ĐANG ÚP';
-    }
-
-    renderHighLowMinigameUI();
-}
-
-export function renderHighLowMinigameUI() {
-    const rCfg = RARITY_CONFIG[highLowGameState.curRarityId] || RARITY_CONFIG.common;
-    const u = UNIT_BY_ID[highLowGameState.curUnitId] || UNIT_CATALOG[0];
-
-    const curBox = document.getElementById('mg-hl-current-card');
-    if (curBox) curBox.className = `mg-hl-card-box ${rCfg.cssClass}`;
-
-    const curRarityEl = document.getElementById('mg-hl-cur-rarity');
-    if (curRarityEl) {
-        curRarityEl.className = `rarity-badge ${rCfg.cssClass} mt-1`;
-        curRarityEl.textContent = rCfg.name.toUpperCase();
-    }
-
-    const curRankEl = document.getElementById('mg-hl-cur-rank');
-    if (curRankEl) curRankEl.textContent = `RANK ${rCfg.rank} (${rCfg.mult}x)`;
-
-    const curUnitEl = document.getElementById('mg-hl-cur-unit');
-    if (curUnitEl) curUnitEl.textContent = u.name.toUpperCase();
-
-    const streakEl = document.getElementById('mg-hl-streak');
-    if (streakEl) streakEl.textContent = String(highLowGameState.streak);
-
-    const potEl = document.getElementById('mg-hl-pot');
-    if (potEl) {
-        potEl.textContent = `🪙 ${highLowGameState.potCoins.toLocaleString('en-US')} | 💎 ${highLowGameState.potGems.toLocaleString('en-US')}`;
-    }
-
-    const btnHigher = document.getElementById('btn-mg-hl-higher');
-    const btnLower = document.getElementById('btn-mg-hl-lower');
-    const btnCashout = document.getElementById('btn-mg-hl-cashout');
-
-    if (btnHigher) btnHigher.disabled = !highLowGameState.active;
-    if (btnLower) btnLower.disabled = !highLowGameState.active;
-    if (btnCashout) btnCashout.disabled = !highLowGameState.active || highLowGameState.streak <= 0;
-}
-
-export function guessHighLowCard(guessDirection = 'higher') {
-    if (!highLowGameState.active) return;
-
-    const curRank = RARITY_CONFIG[highLowGameState.curRarityId]?.rank ?? 0;
-    let nextRank = (Math.random() * RARITY_ORDER.length) | 0;
-    if (nextRank === curRank) {
-        nextRank = (nextRank + 1) % RARITY_ORDER.length;
-    }
-
-    const nextRarityId = RARITY_ORDER[nextRank];
-    const nextRCfg = RARITY_CONFIG[nextRarityId];
-    const nextUnit = UNIT_CATALOG[(Math.random() * UNIT_CATALOG.length) | 0];
-
-    const nextBox = document.getElementById('mg-hl-next-card');
-    if (nextBox) {
-        nextBox.className = `mg-hl-card-box ${nextRCfg.cssClass} card-revealed`;
-        const nr = document.getElementById('mg-hl-next-rarity');
-        if (nr) {
-            nr.className = `rarity-badge ${nextRCfg.cssClass} mt-1`;
-            nr.textContent = nextRCfg.name.toUpperCase();
+        if (t < 1) {
+            requestAnimationFrame(animStep);
+        } else {
+            isWheelSpinning = false;
+            sfx.play('upgrade');
+            if (bannerEl) {
+                bannerEl.innerHTML = finalMsg;
+                bannerEl.classList.toggle('jackpot-hit', !!jackpotHitText);
+            }
         }
-        const nRankEl = document.getElementById('mg-hl-next-rank');
-        if (nRankEl) nRankEl.textContent = `RANK ${nextRCfg.rank} (${nextRCfg.mult}x)`;
-        const nUnitEl = document.getElementById('mg-hl-next-unit');
-        if (nUnitEl) nUnitEl.textContent = nextUnit.name.toUpperCase();
-    }
-
-    const isWin =
-        (guessDirection === 'higher' && nextRank >= curRank) ||
-        (guessDirection === 'lower' && nextRank <= curRank);
-
-    const stEl = document.getElementById('mg-hl-status-text');
-
-    if (isWin) {
-        highLowGameState.streak++;
-        const mult = MINIGAME_CONFIG.highlow.winMultiplier;
-        highLowGameState.potCoins = Math.round(highLowGameState.potCoins * mult);
-        highLowGameState.potGems = Math.round(highLowGameState.potGems * mult);
-        highLowGameState.curRarityId = nextRarityId;
-        highLowGameState.curUnitId = nextUnit.id;
-
-        triggerHaptic(20);
-        if (sfxRef) sfxRef.play('upgrade');
-        if (stEl) {
-            stEl.innerHTML = `<span class="text-emerald-600 font-black">✅ CHÍNH XÁC! Thẻ mới là ${nextRCfg.name} (Rank ${nextRank})! Quỹ thưởng nhân x${mult}!</span>`;
-        }
-        renderHighLowMinigameUI();
-    } else {
-        highLowGameState.active = false;
-        highLowGameState.potCoins = 0;
-        highLowGameState.potGems = 0;
-        triggerHaptic(45);
-        if (sfxRef) sfxRef.play('boom');
-        if (stEl) {
-            stEl.innerHTML = `<span class="text-rose-600 font-black">❌ ĐOÁN SAI! Thẻ lật ra là ${nextRCfg.name} (Rank ${nextRank}). Hãy bắt đầu ván mới!</span>`;
-        }
-        renderHighLowMinigameUI();
-    }
-}
-
-export function cashoutHighLowMinigame() {
-    if (!highLowGameState.active || highLowGameState.streak <= 0) return;
-    highLowGameState.active = false;
-
-    const c = highLowGameState.potCoins;
-    const g = highLowGameState.potGems;
-    metaState.coins += c;
-    metaState.gems += g;
-
-    let bonusTxt = '';
-    if (highLowGameState.streak >= MINIGAME_CONFIG.highlow.bonusCardStreakThreshold) {
-        const bonusRarity = highLowGameState.streak >= 8 ? 'master' : 'secret';
-        addCardToStacks(highLowGameState.curUnitId, bonusRarity, 1);
-        const u = UNIT_BY_ID[highLowGameState.curUnitId];
-        bonusTxt = ` + 1 Thẻ <b>${u?.name || 'Tướng'} (${RARITY_CONFIG[bonusRarity].name})</b>`;
-    }
-
-    saveProgress();
-    updateTopBarUI();
-    if (sfxRef) sfxRef.play('upgrade');
-
-    const stEl = document.getElementById('mg-hl-status-text');
-    if (stEl) {
-        stEl.innerHTML = `<span class="text-emerald-600 font-black">💰 ĐÃ THU NHẬN: +🪙 ${c.toLocaleString('en-US')}, +💎 ${g.toLocaleString('en-US')}${bonusTxt}!</span>`;
-    }
-    renderHighLowMinigameUI();
+    };
+    requestAnimationFrame(animStep);
 }
 
 // ============================================================================
-// 13. KHỞI TẠO BỘ LẮNG NGHE SỰ KIỆN SẢNH (INIT LOBBY LISTENERS)
+// 10. Ụ PHÁO CĂN CỨ XANH & SỔ TAY INDEX (CODEX)
 // ============================================================================
-export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPreview }) {
-    sfxRef = sfx;
-    atlasRef = atlas;
-    onStartBattleCallback = onStartBattle;
+export function openBaseTurretModal() {
+    document.getElementById('base-turret-modal')?.classList.add('active');
+    renderBaseTurretModal();
+}
 
-    if (typeof onRenderMapPreview === 'function') {
-        onRenderMapPreviewCallback = onRenderMapPreview;
-    } else if (typeof renderMap === 'function') {
-        onRenderMapPreviewCallback = (lv) => {
-            const previewCanvas = document.getElementById('selected-map-preview');
-            if (!previewCanvas) return;
-            const pCtx = previewCanvas.getContext('2d');
-            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-            renderMap(pCtx, previewCanvas.width, previewCanvas.height, lv, true);
+export function renderBaseTurretModal() {
+    const container = document.getElementById('turret-options-container');
+    if (!container) return;
+
+    const curType = metaState.baseTurret?.type || 'gatling';
+    const curLv = metaState.baseTurret?.level || 1;
+    const curCfg = BASE_TURRET_CONFIG[curType] || BASE_TURRET_CONFIG.gatling;
+    const lvMult = 1 + (curLv - 1) * 0.15;
+    const upgCost = metaState.isAdminMode ? 0 : getBaseTurretUpgradeCost(curLv);
+
+    document.getElementById('turret-modal-level-val').textContent = `LV.${curLv}`;
+    document.getElementById('turret-modal-stats-badge').textContent =
+        `DMG: ${Math.round(curCfg.baseDamage * lvMult)} • Tầm: ${curCfg.range}`;
+    document.getElementById('turret-upgrade-cost-label').textContent = metaState.isAdminMode
+        ? 'MIỄN PHÍ'
+        : `🪙 ${upgCost.toLocaleString('en-US')}`;
+
+    const upgBtn = document.getElementById('btn-upgrade-base-turret');
+    if (upgBtn) {
+        upgBtn.disabled = !metaState.isAdminMode && metaState.coins < upgCost;
+        upgBtn.onclick = () => {
+            if (!metaState.isAdminMode && metaState.coins < upgCost) {
+                sfx.play('cannon');
+                return;
+            }
+            if (!metaState.isAdminMode) metaState.coins -= upgCost;
+            metaState.baseTurret.level = curLv + 1;
+            saveProgress();
+            sfx.play('upgrade');
+            triggerHaptic(20);
+            updateLobbyTopBar();
+            renderBaseTurretModal();
         };
     }
 
-    loadProgress();
-    currentStageViewLevel = getMaxUnlockedMapLevel();
-    currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
+    container.innerHTML = '';
+    Object.values(BASE_TURRET_CONFIG).forEach(t => {
+        const isActive = t.id === curType;
+        const card = document.createElement('div');
+        card.className = `turret-option-card ${isActive ? 'active-turret' : ''}`;
+        card.innerHTML = `
+            <canvas width="40" height="40" class="pixel-art flex-shrink-0"></canvas>
+            <div class="flex-1 text-left">
+                <div class="text-xs font-black text-slate-900">${t.icon} ${t.name}</div>
+                <div class="text-[9.5px] font-bold text-slate-600 leading-tight mt-0.5">${t.desc}</div>
+            </div>
+            <button type="button" class="btn-3d ${isActive ? 'btn-3d-green' : 'btn-3d-slate'} px-2.5 py-1.5 text-[10px]">
+                ${isActive ? '✓ ĐANG DÙNG' : 'CHỌN'}
+            </button>
+        `;
 
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button, .btn-3d, .army-unit-card, .diff-pill-btn, .mode-pill-btn, .special-mode-pill, .nav-tab-btn, .side-feature-btn, .quick-utility-pill, .st-node-btn');
-        if (btn && !btn.disabled) {
-            triggerHaptic(15);
-        }
+        const c = card.querySelector('canvas');
+        if (c) drawBaseTurretArt(c.getContext('2d'), t.id, 20, 20, -Math.PI / 2, 0.5);
+
+        card.querySelector('button').addEventListener('click', () => {
+            metaState.baseTurret.type = t.id;
+            saveProgress();
+            sfx.play('gas');
+            updateLobbyTopBar();
+            renderBaseTurretModal();
+        });
+
+        container.appendChild(card);
+    });
+}
+
+export function openCodexModal() {
+    document.getElementById('codex-modal')?.classList.add('active');
+    renderCodexModal();
+}
+
+export function renderCodexModal() {
+    const listEl = document.getElementById('codex-units-list');
+    const sumEl = document.getElementById('codex-claimed-summary');
+    if (!listEl) return;
+
+    let claimedCount = 0;
+    const totalMilestones = UNIT_CATALOG.length * CODEX_MILESTONES.length;
+
+    listEl.innerHTML = '';
+    UNIT_CATALOG.forEach(uSpec => {
+        const maxRank = getHighestEverRarityRankForUnit(uSpec.id);
+        const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
+
+        const row = document.createElement('div');
+        row.className = 'codex-unit-row';
+
+        let msHtml = '<div class="codex-milestones-grid">';
+        CODEX_MILESTONES.forEach(ms => {
+            const key = `${uSpec.id}__${ms.id}`;
+            const isClaimed = !!metaState.codexClaimed?.[key];
+            if (isClaimed) claimedCount++;
+            const canClaim = !isClaimed && maxRank >= ms.minRank;
+
+            const cls = isClaimed ? 'ms-claimed' : (canClaim ? 'ms-claimable' : 'ms-locked');
+            const label = isClaimed ? '✓ ĐÃ NHẬN' : `${ms.label} (+${ms.rewardGems}💎)`;
+            msHtml += `<button type="button" data-codex-key="${key}" data-ms-id="${ms.id}" class="codex-ms-btn ${cls}" ${canClaim ? '' : 'disabled'}>${label}</button>`;
+        });
+        msHtml += '</div>';
+
+        row.innerHTML = `
+            <div class="flex items-center gap-2 text-left">
+                <img src="${spriteUrl}" class="w-8 h-8 pixel-art" alt="${uSpec.name}" />
+                <div class="flex-1">
+                    <div class="text-xs font-black text-slate-900">${uSpec.name}</div>
+                    <div class="text-[9px] font-bold text-slate-500">${uSpec.role}</div>
+                </div>
+            </div>
+            ${msHtml}
+        `;
+
+        row.querySelectorAll('[data-codex-key]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.codexKey;
+                const ms = CODEX_MILESTONES.find(x => x.id === btn.dataset.msId);
+                if (!ms || metaState.codexClaimed?.[key]) return;
+                if (!metaState.codexClaimed) metaState.codexClaimed = {};
+                metaState.codexClaimed[key] = true;
+                metaState.gems += ms.rewardGems;
+                metaState.medals += ms.rewardMedals;
+                saveProgress();
+                sfx.play('upgrade');
+                updateLobbyTopBar();
+                renderCodexModal();
+            });
+        });
+
+        listEl.appendChild(row);
     });
 
-    // Thanh điều hướng 5 Tab
-    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tab = btn.getAttribute('data-tab');
-            if (tab) switchLobbyTab(tab);
+    if (sumEl) sumEl.textContent = `${claimedCount} / ${totalMilestones}`;
+}
+
+export function claimAllCodexMilestones() {
+    let anyClaimed = false;
+    if (!metaState.codexClaimed) metaState.codexClaimed = {};
+
+    UNIT_CATALOG.forEach(uSpec => {
+        const maxRank = getHighestEverRarityRankForUnit(uSpec.id);
+        CODEX_MILESTONES.forEach(ms => {
+            const key = `${uSpec.id}__${ms.id}`;
+            if (!metaState.codexClaimed[key] && maxRank >= ms.minRank) {
+                metaState.codexClaimed[key] = true;
+                metaState.gems += ms.rewardGems;
+                metaState.medals += ms.rewardMedals;
+                anyClaimed = true;
+            }
         });
     });
 
-    // Hồ sơ & Đặt tên
+    if (anyClaimed) {
+        saveProgress();
+        sfx.play('upgrade');
+        triggerHaptic(30);
+        updateLobbyTopBar();
+        renderCodexModal();
+    } else {
+        sfx.play('cannon');
+    }
+}
+
+// ============================================================================
+// 11. GẮN TOÀN BỘ SỰ KIỆN GIAO DIỆN LOBBY (BIND LOBBY EVENTS)
+// ============================================================================
+export function bindLobbyEvents(onStartBattleCallback) {
+    // 1. Chuyển 5 Tab dưới đáy
+    document.querySelectorAll('.nav-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            sfx.play('gas');
+            switchLobbyTab(btn.dataset.tab);
+        });
+    });
+
+    // 2. Hồ sơ Chỉ huy & Đổi tên
     document.getElementById('btn-edit-name')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        checkAndPromptPlayerName(true);
+        const inp = document.getElementById('player-name-input');
+        if (inp) inp.value = metaState.playerName || '';
+        document.getElementById('name-modal')?.classList.add('active');
     });
 
     document.getElementById('btn-confirm-name')?.addEventListener('click', () => {
-        const input = document.getElementById('player-name-input');
-        const errEl = document.getElementById('name-error-msg');
-        if (!input) return;
-
-        const val = input.value.trim();
-        if (val.length < 1 || val.length > 14) {
-            if (errEl) errEl.classList.remove('hidden');
-            if (sfxRef) sfxRef.play('cannon');
+        const inp = document.getElementById('player-name-input');
+        const err = document.getElementById('name-error-msg');
+        const val = (inp?.value || '').trim();
+        if (!val || val.length > 14) {
+            err?.classList.remove('hidden');
             return;
         }
-
-        metaState.playerName = val;
+        err?.classList.add('hidden');
+        metaState.playerName = val.toUpperCase();
         saveProgress();
-        updateTopBarUI();
-        if (sfxRef) sfxRef.play('upgrade');
+        updateLobbyTopBar();
         document.getElementById('name-modal')?.classList.remove('active');
+        sfx.play('upgrade');
     });
 
-    // Cài đặt & Admin Mode
+    // 3. Cài đặt & Admin Mode
     document.getElementById('btn-open-settings')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        renderSettingsModalUI();
+        const badge = document.getElementById('settings-mode-badge');
+        if (badge) {
+            badge.textContent = metaState.isAdminMode ? 'QUYỀN ADMIN ∞' : 'NGƯỜI CHƠI THƯỜNG';
+            badge.className = metaState.isAdminMode ? 'mode-pill-admin' : 'mode-pill-normal';
+        }
+        document.getElementById('admin-login-section')?.classList.toggle('hidden', metaState.isAdminMode);
+        document.getElementById('admin-active-section')?.classList.toggle('hidden', !metaState.isAdminMode);
         document.getElementById('settings-modal')?.classList.add('active');
     });
-
     document.getElementById('btn-close-settings')?.addEventListener('click', () => {
         document.getElementById('settings-modal')?.classList.remove('active');
     });
-
     document.getElementById('btn-toggle-admin-form')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
         document.getElementById('admin-password-form')?.classList.toggle('hidden');
     });
-
     document.getElementById('btn-submit-admin-pass')?.addEventListener('click', () => {
-        const passInput = document.getElementById('admin-password-input');
+        const pass = (document.getElementById('admin-password-input')?.value || '').trim();
         const fb = document.getElementById('admin-auth-feedback');
-        if (!passInput || !fb) return;
-
-        const enteredPass = passInput.value.trim();
-        fb.classList.remove('hidden');
-
-        if (enteredPass === (ADMIN_PASSWORD || 'HUNGADMINDZ')) {
+        if (pass === ADMIN_PASSWORD) {
             metaState.isAdminMode = true;
             saveProgress();
-            updateTopBarUI();
-            if (sfxRef) sfxRef.play('upgrade');
-            renderSettingsModalUI();
-            if (currentLobbyTab === 'battle') renderStageScreenUI();
-            else if (currentLobbyTab === 'challenge') renderChallengeRoadmapUI();
-            else if (currentLobbyTab === 'skilltree') renderSkillTreeTabUI();
-        } else {
+            updateLobbyTopBar();
+            renderBattleStageView();
+            renderChallengeRoadmap();
+            renderSkillTreeTab();
+            sfx.play('upgrade');
+            document.getElementById('settings-modal')?.classList.remove('active');
+        } else if (fb) {
+            fb.textContent = '❌ Sai mật khẩu Admin!';
             fb.className = 'text-[11px] font-extrabold mt-1.5 text-center text-rose-600';
-            fb.textContent = '❌ Mật khẩu Admin không chính xác!';
-            if (sfxRef) sfxRef.play('cannon');
+            fb.classList.remove('hidden');
+            sfx.play('cannon');
         }
     });
-
     document.getElementById('btn-Return-normal-mode')?.addEventListener('click', () => {
         metaState.isAdminMode = false;
         saveProgress();
-        updateTopBarUI();
-        if (sfxRef) sfxRef.play('gas');
-        renderSettingsModalUI();
-        if (currentLobbyTab === 'battle') renderStageScreenUI();
-        else if (currentLobbyTab === 'challenge') renderChallengeRoadmapUI();
-        else if (currentLobbyTab === 'skilltree') renderSkillTreeTabUI();
+        updateLobbyTopBar();
+        renderBattleStageView();
+        renderChallengeRoadmap();
+        renderSkillTreeTab();
+        document.getElementById('settings-modal')?.classList.remove('active');
     });
-
     document.getElementById('btn-settings-rename')?.addEventListener('click', () => {
         document.getElementById('settings-modal')?.classList.remove('active');
-        checkAndPromptPlayerName(true);
+        document.getElementById('name-modal')?.classList.add('active');
     });
-
-    document.getElementById('btn-settings-sound')?.addEventListener('click', (e) => {
-        if (!sfxRef) return;
-        sfxRef.enabled = !sfxRef.enabled;
-        e.currentTarget.textContent = sfxRef.enabled ? '🔊 ÂM THANH: BẬT' : '🔇 ÂM THANH: TẮT';
-        sfxRef.play('gas');
+    document.getElementById('btn-settings-sound')?.addEventListener('click', e => {
+        sfx.enabled = !sfx.enabled;
+        e.currentTarget.textContent = sfx.enabled ? '🔊 ÂM THANH: BẬT' : '🔇 ÂM THANH: TẮT';
     });
-
     document.getElementById('btn-reset-account-data')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('cannon');
         document.getElementById('reset-confirm-modal')?.classList.add('active');
     });
-
     document.getElementById('btn-close-reset-confirm')?.addEventListener('click', () => {
         document.getElementById('reset-confirm-modal')?.classList.remove('active');
     });
-
     document.getElementById('btn-cancel-reset-data')?.addEventListener('click', () => {
         document.getElementById('reset-confirm-modal')?.classList.remove('active');
     });
-
     document.getElementById('btn-confirm-reset-data')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('boom');
         resetAllAccountData();
     });
 
-    // Điều hướng Map trong Tab Battle
-    document.getElementById('btn-prev-stage')?.addEventListener('click', () => {
-        if (currentStageViewLevel > 1) {
-            currentStageViewLevel--;
-            currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
-            if (sfxRef) sfxRef.play('gas');
-            renderStageScreenUI();
-        }
-    });
+    // 4. Tab SHOP: Gacha Rương
+    document.getElementById('btn-open-leg-1')?.addEventListener('click', () => triggerSingleOrTenGacha('legendary', 1));
+    document.getElementById('btn-open-leg-10')?.addEventListener('click', () => triggerSingleOrTenGacha('legendary', 10));
+    document.getElementById('btn-open-leg-custom')?.addEventListener('click', () => openCustomGachaConfirmModal('legendary'));
 
-    document.getElementById('btn-next-stage')?.addEventListener('click', () => {
-        if (currentStageViewLevel < getMaxUnlockedMapLevel()) {
-            currentStageViewLevel++;
-            currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
-            if (sfxRef) sfxRef.play('gas');
-            renderStageScreenUI();
-        }
-    });
-
-    DIFFICULTY_ORDER.forEach(diffKey => {
-        const btn = document.getElementById(`diff-btn-${diffKey}`);
-        if (btn) {
-            btn.addEventListener('click', () => {
-                if (!isDifficultyUnlocked(currentStageViewLevel, diffKey)) {
-                    if (sfxRef) sfxRef.play('cannon');
-                    return;
-                }
-                currentSelectedDifficulty = diffKey;
-                if (sfxRef) sfxRef.play('gas');
-                renderStageScreenUI();
-            });
-        }
-    });
-
-    BATTLE_MODE_ORDER.forEach(modeKey => {
-        const btn = document.getElementById(`mode-btn-${modeKey}`);
-        if (btn) {
-            btn.addEventListener('click', () => {
-                currentSelectedBattleMode = modeKey;
-                currentSelectedSpecialMode = 'standard';
-                if (sfxRef) sfxRef.play('gas');
-                renderStageScreenUI();
-            });
-        }
-    });
-
-    document.querySelectorAll('.special-mode-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const spMode = btn.getAttribute('data-special') || btn.getAttribute('data-mode');
-            if (!spMode) return;
-            currentSelectedSpecialMode = currentSelectedSpecialMode === spMode ? 'standard' : spMode;
-            if (sfxRef) sfxRef.play('gas');
-            renderStageScreenUI();
-        });
-    });
-
-    // Ụ Pháo Căn Cứ Xanh
-    document.getElementById('btn-open-turret-modal')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        renderBaseTurretModalUI();
-        document.getElementById('base-turret-modal')?.classList.add('active');
-    });
-
-    document.getElementById('btn-close-turret-modal')?.addEventListener('click', () => {
-        document.getElementById('base-turret-modal')?.classList.remove('active');
-    });
-
-    document.getElementById('btn-upgrade-base-turret')?.addEventListener('click', () => {
-        if (!metaState.baseTurret) metaState.baseTurret = { type: 'gatling', level: 1 };
-        const curLv = Math.max(1, Number(metaState.baseTurret.level) || 1);
-        const cost = getBaseTurretUpgradeCost(curLv);
-        if (!metaState.isAdminMode && metaState.coins < cost) {
-            if (sfxRef) sfxRef.play('cannon');
-            return;
-        }
-        if (!metaState.isAdminMode) metaState.coins -= cost;
-        metaState.baseTurret.level = curLv + 1;
-        saveProgress();
-        triggerHaptic(25);
-        if (sfxRef) sfxRef.play('upgrade');
-        renderBaseTurretModalUI();
-        updateTopBarUI();
-    });
-
-    // Nút mở Sổ Tay INDEX (đặt ở cột phải phía trên nút CODE)
-    document.getElementById('btn-open-index')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        renderCodexModalUI();
-        document.getElementById('codex-modal')?.classList.add('active');
-    });
-
-    document.getElementById('btn-close-codex')?.addEventListener('click', () => {
-        document.getElementById('codex-modal')?.classList.remove('active');
-    });
-
-    document.getElementById('btn-codex-claim-all')?.addEventListener('click', claimAllCodexMilestones);
-
-    // Talents 6 Nhánh
-    document.getElementById('btn-open-talents')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        renderMetaTalentsModalUI();
-        document.getElementById('talents-modal')?.classList.add('active');
-    });
-
-    const closeTalentsModal = () => {
-        document.getElementById('talents-modal')?.classList.remove('active');
-    };
-    document.getElementById('btn-close-talents')?.addEventListener('click', closeTalentsModal);
-    document.getElementById('btn-close-talents-bottom')?.addEventListener('click', closeTalentsModal);
-    document.querySelector('[data-close="talents-modal"]')?.addEventListener('click', closeTalentsModal);
-
-    document.getElementById('btn-reset-talents')?.addEventListener('click', resetAllMetaTalents);
-
-    document.getElementById('btn-quick-army-chips')?.addEventListener('click', () => {
-        switchLobbyTab('army');
-        openUnitUpgradeModal(showcaseUnitId || PRIMARY_INFANTRY_ID);
-    });
-
-    // Nút START vào trận Battle
-    document.getElementById('btn-start-battle')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('spawn');
-        syncLegacyEngineBridges();
-
-        const effectiveMode =
-            currentSelectedSpecialMode !== 'standard' && SPECIAL_TO_ENGINE_MODE[currentSelectedSpecialMode]
-                ? SPECIAL_TO_ENGINE_MODE[currentSelectedSpecialMode]
-                : currentSelectedBattleMode;
-
-        document.getElementById('lobby-wrapper')?.classList.remove('active');
-
-        if (onStartBattleCallback) {
-            onStartBattleCallback(
-                currentStageViewLevel,
-                currentSelectedDifficulty,
-                effectiveMode,
-                currentSelectedSpecialMode
-            );
-        }
-    });
-
-    // Nhiệm vụ & Giftcode
-    document.getElementById('btn-open-missions')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        renderMissionsList();
-        document.getElementById('mission-modal')?.classList.add('active');
-    });
-
-    document.getElementById('btn-close-missions')?.addEventListener('click', () => {
-        document.getElementById('mission-modal')?.classList.remove('active');
-    });
-
-    document.getElementById('btn-open-code')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        renderGiftcodeModalUI();
-        document.getElementById('code-modal')?.classList.add('active');
-    });
-
-    document.getElementById('btn-close-code')?.addEventListener('click', () => {
-        document.getElementById('code-modal')?.classList.remove('active');
-    });
-
-    document.getElementById('btn-submit-code')?.addEventListener('click', () => {
-        const input = document.getElementById('giftcode-input');
-        const fb = document.getElementById('giftcode-feedback');
-        if (!input || !fb) return;
-
-        const rawCode = input.value.trim().toUpperCase();
-        fb.classList.remove('hidden');
-
-        if (!rawCode) {
-            fb.className = 'text-xs font-extrabold mt-2 text-rose-600';
-            fb.textContent = '⚠️ Vui lòng nhập mã Giftcode!';
-            if (sfxRef) sfxRef.play('cannon');
-            return;
-        }
-
-        if (!OFFICIAL_GIFTCODES.includes(rawCode)) {
-            fb.className = 'text-xs font-extrabold mt-2 text-rose-600';
-            fb.textContent = '❌ Mã Giftcode không hợp lệ hoặc không tồn tại!';
-            if (sfxRef) sfxRef.play('cannon');
-            return;
-        }
-
-        if (!Array.isArray(metaState.usedCodes)) metaState.usedCodes = [];
-
-        if (metaState.usedCodes.includes(rawCode)) {
-            fb.className = 'text-xs font-extrabold mt-2 text-amber-600';
-            fb.textContent = '⚠️ Mã Giftcode này đã được sử dụng trên tài khoản này rồi!';
-            if (sfxRef) sfxRef.play('cannon');
-            return;
-        }
-
-        const rewardPack = (GIFT_CODES && GIFT_CODES[rawCode]) || {
-            gems: GIFTCODE_REWARD_GEMS,
-            coins: GIFTCODE_REWARD_COINS,
-            medals: 15,
-            pearls: GIFTCODE_REWARD_PEARLS
-        };
-
-        metaState.usedCodes.push(rawCode);
-        metaState.gems += Number(rewardPack.gems) || GIFTCODE_REWARD_GEMS;
-        metaState.coins += Number(rewardPack.coins) || GIFTCODE_REWARD_COINS;
-        metaState.medals = (metaState.medals || 0) + (Number(rewardPack.medals) || 0);
-        metaState.pearls = (metaState.pearls || 0) + (Number(rewardPack.pearls) || 0);
-
-        saveProgress();
-        updateTopBarUI();
-        if (sfxRef) sfxRef.play('upgrade');
-
-        const extraMsg = ` & +${rewardPack.medals || 0} 🎖️, +${rewardPack.pearls || 0} ⚪`;
-        fb.className = 'text-xs font-extrabold mt-2 text-emerald-600';
-        fb.innerHTML = `🎉 NHẬP QUÀ THÀNH CÔNG! (+${(Number(rewardPack.gems) || 0).toLocaleString('en-US')} 💎, +${(Number(rewardPack.coins) || 0).toLocaleString('en-US')} 🪙${extraMsg})`;
-        input.value = '';
-        renderGiftcodeModalUI();
-    });
-
-    // Shop Gacha Rương Siêu Tốc O(1)
-    document.getElementById('btn-open-leg-1')?.addEventListener('click', () => requestOpenGachaCrate('legendary', 1));
-    document.getElementById('btn-open-leg-10')?.addEventListener('click', () => requestOpenGachaCrate('legendary', 10));
-    document.getElementById('btn-open-leg-custom')?.addEventListener('click', () => {
-        const val = document.getElementById('input-custom-leg-count')?.value || 20;
-        requestOpenGachaCrate('legendary', val);
-    });
-
-    document.getElementById('btn-open-epic-1')?.addEventListener('click', () => requestOpenGachaCrate('epic', 1));
-    document.getElementById('btn-open-epic-10')?.addEventListener('click', () => requestOpenGachaCrate('epic', 10));
-    document.getElementById('btn-open-epic-custom')?.addEventListener('click', () => {
-        const val = document.getElementById('input-custom-epic-count')?.value || 20;
-        requestOpenGachaCrate('epic', val);
-    });
+    document.getElementById('btn-open-epic-1')?.addEventListener('click', () => triggerSingleOrTenGacha('epic', 1));
+    document.getElementById('btn-open-epic-10')?.addEventListener('click', () => triggerSingleOrTenGacha('epic', 10));
+    document.getElementById('btn-open-epic-custom')?.addEventListener('click', () => openCustomGachaConfirmModal('epic'));
 
     document.querySelectorAll('.crate-preset-qty-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const targetInputId = btn.getAttribute('data-target-input');
-            const crateType = btn.getAttribute('data-crate') || 'legendary';
-            const qty = Number(btn.getAttribute('data-qty')) || 1000;
-            const inputEl = document.getElementById(targetInputId);
-            if (inputEl) inputEl.value = String(qty);
-            if (sfxRef) sfxRef.play('gas');
-            requestOpenGachaCrate(crateType, qty);
+            const targetInp = document.getElementById(btn.dataset.targetInput);
+            if (targetInp) targetInp.value = btn.dataset.qty;
+            openCustomGachaConfirmModal(btn.dataset.crate);
         });
     });
 
     document.getElementById('btn-close-gacha-confirm')?.addEventListener('click', () => {
         document.getElementById('gacha-confirm-modal')?.classList.remove('active');
     });
-
     document.getElementById('btn-cancel-custom-gacha')?.addEventListener('click', () => {
         document.getElementById('gacha-confirm-modal')?.classList.remove('active');
     });
-
     document.getElementById('btn-confirm-custom-gacha')?.addEventListener('click', () => {
-        if (!pendingGachaData) return;
-        const { crateType, qty, finalCost, isLegendary } = pendingGachaData;
-
-        if (!metaState.isAdminMode && metaState.gems < finalCost) {
-            if (sfxRef) sfxRef.play('cannon');
-            return;
-        }
-
-        const tStart = performance.now();
-        if (!metaState.isAdminMode) {
-            metaState.gems -= finalCost;
-        }
-        metaState.missionsProgress.cratesOpened = (metaState.missionsProgress.cratesOpened || 0) + qty;
-
-        const unitIds = UNIT_CATALOG.map(u => normalizeUnitId(u.id));
-        const pullResult = simulateBulkCrateOpeningO1(crateType, qty, unitIds);
-
-        for (const [stackKey, count] of Object.entries(pullResult.unitRarityStacks)) {
-            if (count > 0) {
-                metaState.inventoryStacks[stackKey] = (metaState.inventoryStacks[stackKey] || 0) + count;
-                const [uId, rKey] = stackKey.split('__');
-                recordHighestRarityForUnit(uId, rKey);
-            }
-        }
-
-        saveProgress();
-        updateTopBarUI();
-        if (sfxRef) sfxRef.play('upgrade');
+        const p = lobbyState.pendingCustomGacha;
         document.getElementById('gacha-confirm-modal')?.classList.remove('active');
-
-        const elapsedMs = Math.max(0.1, +(performance.now() - tStart).toFixed(2));
-        const resModal = document.getElementById('gacha-result-modal');
-        const titleEl = document.getElementById('gacha-modal-title');
-        const sumBanner = document.getElementById('gacha-total-pulled');
-        const breakdownEl = document.getElementById('gacha-rarity-breakdown');
-        const gridEl = document.getElementById('gacha-cards-grid');
-
-        if (titleEl) {
-            titleEl.textContent = isLegendary
-                ? `👑 LEGENDARY CRATE X${formatCompactNumber(qty)}`
-                : `🧰 EPIC CRATE X${formatCompactNumber(qty)}`;
-        }
-        if (sumBanner) {
-            sumBanner.textContent = `${qty.toLocaleString('en-US')} thẻ tướng (trong ${elapsedMs}ms)`;
-        }
-
-        if (breakdownEl) {
-            breakdownEl.innerHTML = '';
-            const orderedRarities = ['legendary', 'epic', 'rare', 'uncommon', 'common'];
-            let hasAny = false;
-            orderedRarities.forEach(rKey => {
-                const count = pullResult.rarityTotals[rKey] || 0;
-                if (count > 0) {
-                    hasAny = true;
-                    const rCfg = RARITY_CONFIG[rKey];
-                    const pill = document.createElement('span');
-                    pill.className = `gacha-rarity-stat-pill ${rCfg.cssClass}`;
-                    pill.textContent = `${rCfg.name}: ${count.toLocaleString('en-US')}`;
-                    breakdownEl.appendChild(pill);
-                }
-            });
-            breakdownEl.classList.toggle('hidden', !hasAny);
-        }
-
-        if (gridEl) {
-            gridEl.innerHTML = '';
-            const fragment = document.createDocumentFragment();
-
-            if (qty <= 10 && pullResult.sampleCards.length > 0) {
-                pullResult.sampleCards.forEach(c => {
-                    const u = UNIT_BY_ID[normalizeUnitId(c.unitId)];
-                    const rCfg = RARITY_CONFIG[c.rarity] || RARITY_CONFIG.common;
-                    if (!u) return;
-                    const spriteUrl = getUnitSpriteDataURL(u, 7);
-
-                    const cardEl = document.createElement('div');
-                    cardEl.className = `army-unit-card ${rCfg.cssClass}`;
-                    cardEl.innerHTML = `
-                        <div class="card-top-lv">
-                            <span>${rCfg.name.toUpperCase()}</span>
-                            ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
-                        </div>
-                        <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-                        <div class="card-unit-title">${u.name}</div>
-                    `;
-                    fragment.appendChild(cardEl);
-                });
-            } else {
-                const aggregatedEntries = Object.entries(pullResult.unitRarityStacks).map(([key, count]) => {
-                    const [unitId, rarity] = key.split('__');
-                    return {
-                        unitId,
-                        rarity,
-                        count,
-                        rank: RARITY_CONFIG[rarity]?.rank ?? 0
-                    };
-                }).sort((a, b) => {
-                    if (b.rank !== a.rank) return b.rank - a.rank;
-                    return b.count - a.count;
-                });
-
-                aggregatedEntries.forEach(item => {
-                    const u = UNIT_BY_ID[normalizeUnitId(item.unitId)];
-                    const rCfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
-                    if (!u) return;
-                    const spriteUrl = getUnitSpriteDataURL(u, 7);
-
-                    const cardEl = document.createElement('div');
-                    cardEl.className = `army-unit-card ${rCfg.cssClass}`;
-                    cardEl.innerHTML = `
-                        <div class="card-top-lv">
-                            <span>${rCfg.name.toUpperCase()}</span>
-                            ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
-                        </div>
-                        <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-                        <span class="card-qty-badge" title="${item.count.toLocaleString('en-US')} thẻ">x${formatCompactNumber(item.count)}</span>
-                        <div class="card-unit-title">${u.name}</div>
-                    `;
-                    fragment.appendChild(cardEl);
-                });
-            }
-
-            gridEl.appendChild(fragment);
-        }
-
-        if (resModal) resModal.classList.add('active');
+        if (p) executeGachaOpening(p.crateType, p.qty, p.finalCost);
     });
-
     document.getElementById('btn-close-gacha')?.addEventListener('click', () => {
         document.getElementById('gacha-result-modal')?.classList.remove('active');
-        if (currentLobbyTab === 'army') renderArmyTabUI();
     });
 
-    // Tab ARMY: chuyển 3 chế độ ARMY / REVIEW / MERGE
+    // 5. Tab ARMY: Chuyển 3 chế độ ARMY / REVIEW / MERGE & Modal Nâng cấp / Hoàn cấp / Sandbox
     document.getElementById('btn-mode-army')?.addEventListener('click', () => {
-        currentArmyMode = 'army';
-        if (sfxRef) sfxRef.play('gas');
-        renderArmyTabUI();
+        lobbyState.armyMode = 'army';
+        renderArmyTab();
     });
-
     document.getElementById('btn-mode-review')?.addEventListener('click', () => {
-        currentArmyMode = 'review';
-        if (sfxRef) sfxRef.play('gas');
-        renderArmyTabUI();
+        lobbyState.armyMode = 'review';
+        renderArmyTab();
     });
-
     document.getElementById('btn-mode-merge')?.addEventListener('click', () => {
-        currentArmyMode = 'merge';
-        mergeSelectedCardUids = [];
-        if (sfxRef) sfxRef.play('gas');
-        renderArmyTabUI();
+        lobbyState.armyMode = 'merge';
+        renderArmyTab();
     });
 
-    // Đóng & Reset Sandbox Review Modal
-    document.getElementById('btn-close-sandbox-modal')?.addEventListener('click', () => {
-        stopSandboxReviewLoop();
-        document.getElementById('sandbox-review-modal')?.classList.remove('active');
-    });
-
+    document.getElementById('btn-close-sandbox-modal')?.addEventListener('click', () => closeSandboxReviewModal());
     document.getElementById('btn-reset-sandbox-dps')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        resetSandboxDpsMetrics();
+        lobbyState.sandbox.totalDamageDealt = 0;
+        lobbyState.sandbox.elapsedTestSec = 0;
+        sfx.play('gas');
     });
 
-    // Nâng cấp tướng & Hoàn cấp
-    document.querySelectorAll('.upg-quick-lv-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const u = UNIT_BY_ID[inspectingUnitId];
-            if (!u) return;
-            const permLv = metaState.armyPermanentLevels[u.id] || 1;
-            const attr = btn.getAttribute('data-add-lv');
-            if (sfxRef) sfxRef.play('gas');
-
-            if (attr === 'max') {
-                const maxAdd = calcMaxAffordableLevels(permLv, metaState.coins, metaState.isAdminMode);
-                updateBulkUpgradePreviewUI(maxAdd);
-                btn.classList.add('active');
-            } else {
-                updateBulkUpgradePreviewUI(Number(attr) || 1);
-            }
-        });
+    document.getElementById('merge-slot-1')?.addEventListener('click', () => {
+        lobbyState.mergeSlot1Uid = null;
+        renderMergeInventoryGrid();
     });
-
-    document.getElementById('upg-custom-add-lv-input')?.addEventListener('input', (e) => {
-        const val = Math.max(1, Math.min(999999, Math.floor(Number(e.target.value) || 1)));
-        updateBulkUpgradePreviewUI(val);
+    document.getElementById('merge-slot-2')?.addEventListener('click', () => {
+        lobbyState.mergeSlot1Uid = null;
+        renderMergeInventoryGrid();
+    });
+    document.getElementById('btn-execute-merge')?.addEventListener('click', () => executeSingleMerge());
+    document.getElementById('btn-auto-merge')?.addEventListener('click', () => executeAutoMergeAllO1());
+    document.getElementById('btn-close-auto-merge')?.addEventListener('click', () => {
+        document.getElementById('auto-merge-modal')?.classList.remove('active');
+    });
+    document.getElementById('btn-close-auto-merge-x')?.addEventListener('click', () => {
+        document.getElementById('auto-merge-modal')?.classList.remove('active');
     });
 
     document.getElementById('btn-close-upg-modal')?.addEventListener('click', () => {
         document.getElementById('unit-upgrade-modal')?.classList.remove('active');
     });
 
-    document.getElementById('btn-confirm-unit-upgrade')?.addEventListener('click', () => {
-        const u = UNIT_BY_ID[inspectingUnitId];
-        if (!u) return;
-
-        const permLv = metaState.armyPermanentLevels[u.id] || 1;
-        const addLv = Math.max(1, Math.min(999999, Math.floor(Number(currentBulkAddLevels) || 1)));
-        const totalCostCoins = calcBulkUpgradeCost(permLv, addLv);
-
-        if (!metaState.isAdminMode && metaState.coins < totalCostCoins) {
-            if (sfxRef) sfxRef.play('cannon');
-            return;
-        }
-
-        if (!metaState.isAdminMode) {
-            metaState.coins -= totalCostCoins;
-        }
-        metaState.armyPermanentLevels[u.id] = permLv + addLv;
-        metaState.missionsProgress.upgrades = (metaState.missionsProgress.upgrades || 0) + addLv;
-
-        saveProgress();
-        if (sfxRef) sfxRef.play('upgrade');
-        updateTopBarUI();
-        renderArmyTabUI();
-        openUnitUpgradeModal(u.id);
+    document.querySelectorAll('.upg-quick-lv-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.upg-quick-lv-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            lobbyState.pendingUpgradeAddLevels = btn.dataset.addLv === 'max' ? 'max' : parseInt(btn.dataset.addLv, 10);
+            refreshUnitUpgradeModalUI();
+        });
     });
 
-    document.getElementById('btn-open-level-refund')?.addEventListener('click', openLevelRefundModal);
+    document.getElementById('upg-custom-add-lv-input')?.addEventListener('input', e => {
+        lobbyState.pendingUpgradeAddLevels = Math.max(1, Math.min(999999, parseInt(e.target.value || '1', 10) || 1));
+        refreshUnitUpgradeModalUI();
+    });
 
+    document.getElementById('btn-confirm-unit-upgrade')?.addEventListener('click', () => {
+        const unitId = lobbyState.selectedUpgradeUnitId;
+        const curLv = metaState.armyPermanentLevels[unitId] || 1;
+        const addLv = lobbyState.pendingUpgradeAddLevels === 'max'
+            ? (metaState.isAdminMode ? 100 : Math.max(1, calcMaxAffordableLevels(curLv, metaState.coins)))
+            : Math.max(1, Number(lobbyState.pendingUpgradeAddLevels) || 1);
+
+        const cost = metaState.isAdminMode ? 0 : calcBulkUpgradeTotalCost(curLv, addLv);
+        if (!metaState.isAdminMode && metaState.coins < cost) {
+            sfx.play('cannon');
+            return;
+        }
+        if (!metaState.isAdminMode) metaState.coins -= cost;
+        metaState.armyPermanentLevels[unitId] = curLv + addLv;
+        metaState.missionsProgress.upgrades = (metaState.missionsProgress.upgrades || 0) + addLv;
+        saveProgress();
+        sfx.play('upgrade');
+        triggerHaptic(25);
+        updateLobbyTopBar();
+        refreshUnitUpgradeModalUI();
+        renderArmyUnitsGrid();
+        renderMissionNotifDot();
+    });
+
+    // Hoàn cấp O(1) đầy đủ nút LV.1, -, +, -1 CẤP
+    document.getElementById('btn-open-level-refund')?.addEventListener('click', () => {
+        const unitId = lobbyState.selectedUpgradeUnitId;
+        const uSpec = UNIT_BY_ID[unitId] || UNIT_CATALOG[0];
+        const curLv = metaState.armyPermanentLevels[unitId] || 1;
+        if (curLv <= 1) return;
+
+        document.getElementById('refund-unit-title').textContent = uSpec.name.toUpperCase();
+        document.getElementById('refund-current-lv').textContent = `LV.${curLv}`;
+        const inp = document.getElementById('refund-target-level-input');
+        if (inp) inp.value = 1;
+        updateRefundPreview(1, curLv);
+        document.getElementById('level-refund-modal')?.classList.add('active');
+    });
+
+    const updateRefundPreview = (targetLv, curLv) => {
+        const t = Math.max(1, Math.min(curLv - 1, Math.floor(Number(targetLv) || 1)));
+        document.getElementById('refund-target-lv-preview').textContent = `LV.${t}`;
+        const coinsBack = calcTotalRefundCoins(t, curLv);
+        document.getElementById('refund-total-coins-val').textContent = `+🪙 ${coinsBack.toLocaleString('en-US')}`;
+    };
+
+    document.getElementById('refund-target-level-input')?.addEventListener('input', e => {
+        const curLv = metaState.armyPermanentLevels[lobbyState.selectedUpgradeUnitId] || 1;
+        updateRefundPreview(e.target.value, curLv);
+    });
+    document.getElementById('btn-refund-lv-min')?.addEventListener('click', () => {
+        const curLv = metaState.armyPermanentLevels[lobbyState.selectedUpgradeUnitId] || 1;
+        document.getElementById('refund-target-level-input').value = 1;
+        updateRefundPreview(1, curLv);
+    });
+    document.getElementById('btn-refund-lv-minus')?.addEventListener('click', () => {
+        const curLv = metaState.armyPermanentLevels[lobbyState.selectedUpgradeUnitId] || 1;
+        const inp = document.getElementById('refund-target-level-input');
+        const nextVal = Math.max(1, (parseInt(inp.value || '1', 10) || 1) - 1);
+        inp.value = nextVal;
+        updateRefundPreview(nextVal, curLv);
+    });
+    document.getElementById('btn-refund-lv-plus')?.addEventListener('click', () => {
+        const curLv = metaState.armyPermanentLevels[lobbyState.selectedUpgradeUnitId] || 1;
+        const inp = document.getElementById('refund-target-level-input');
+        const nextVal = Math.min(curLv - 1, (parseInt(inp.value || '1', 10) || 1) + 1);
+        inp.value = nextVal;
+        updateRefundPreview(nextVal, curLv);
+    });
+    document.getElementById('btn-refund-lv-max')?.addEventListener('click', () => {
+        const curLv = metaState.armyPermanentLevels[lobbyState.selectedUpgradeUnitId] || 1;
+        const t = Math.max(1, curLv - 1);
+        document.getElementById('refund-target-level-input').value = t;
+        updateRefundPreview(t, curLv);
+    });
     document.getElementById('btn-close-refund-modal')?.addEventListener('click', () => {
         document.getElementById('level-refund-modal')?.classList.remove('active');
     });
-
     document.getElementById('btn-cancel-level-refund')?.addEventListener('click', () => {
         document.getElementById('level-refund-modal')?.classList.remove('active');
     });
-
-    document.getElementById('refund-target-level-input')?.addEventListener('input', updateLevelRefundModalCalculation);
-
-    document.getElementById('btn-refund-lv-min')?.addEventListener('click', () => {
-        const inputEl = document.getElementById('refund-target-level-input');
-        if (inputEl) {
-            inputEl.value = '1';
-            if (sfxRef) sfxRef.play('gas');
-            updateLevelRefundModalCalculation();
-        }
-    });
-
-    document.getElementById('btn-refund-lv-max')?.addEventListener('click', () => {
-        const u = UNIT_BY_ID[inspectingUnitId];
-        const curLv = u ? (metaState.armyPermanentLevels[u.id] || 1) : 1;
-        const inputEl = document.getElementById('refund-target-level-input');
-        if (inputEl && curLv > 1) {
-            inputEl.value = String(curLv - 1);
-            if (sfxRef) sfxRef.play('gas');
-            updateLevelRefundModalCalculation();
-        }
-    });
-
-    document.getElementById('btn-refund-lv-minus')?.addEventListener('click', () => {
-        const u = UNIT_BY_ID[inspectingUnitId];
-        const curLv = u ? (metaState.armyPermanentLevels[u.id] || 1) : 1;
-        const inputEl = document.getElementById('refund-target-level-input');
-        if (!inputEl) return;
-        const curVal = Math.floor(Number(inputEl.value) || 1);
-        inputEl.value = String(Math.max(1, Math.min(curLv - 1, curVal - 1)));
-        if (sfxRef) sfxRef.play('gas');
-        updateLevelRefundModalCalculation();
-    });
-
-    document.getElementById('btn-refund-lv-plus')?.addEventListener('click', () => {
-        const u = UNIT_BY_ID[inspectingUnitId];
-        const curLv = u ? (metaState.armyPermanentLevels[u.id] || 1) : 1;
-        const inputEl = document.getElementById('refund-target-level-input');
-        if (!inputEl) return;
-        const curVal = Math.floor(Number(inputEl.value) || 1);
-        inputEl.value = String(Math.max(1, Math.min(curLv - 1, curVal + 1)));
-        if (sfxRef) sfxRef.play('gas');
-        updateLevelRefundModalCalculation();
-    });
-
     document.getElementById('btn-confirm-level-refund')?.addEventListener('click', () => {
-        const u = UNIT_BY_ID[inspectingUnitId];
-        if (!u) return;
+        const unitId = lobbyState.selectedUpgradeUnitId;
+        const curLv = metaState.armyPermanentLevels[unitId] || 1;
+        const inpVal = parseInt(document.getElementById('refund-target-level-input')?.value || '1', 10);
+        const targetLv = Math.max(1, Math.min(curLv - 1, isNaN(inpVal) ? 1 : inpVal));
+        if (curLv <= 1 || targetLv >= curLv) return;
 
-        const curLv = metaState.armyPermanentLevels[u.id] || 1;
-        const inputEl = document.getElementById('refund-target-level-input');
-        const targetLv = Math.floor(Number(inputEl?.value));
-
-        if (!Number.isFinite(targetLv) || targetLv < 1 || targetLv >= curLv) {
-            if (sfxRef) sfxRef.play('cannon');
-            return;
-        }
-
-        const refundCoins = calcTotalRefundCoins(targetLv, curLv);
-        metaState.coins += refundCoins;
-        metaState.armyPermanentLevels[u.id] = targetLv;
-
+        const coinsBack = calcTotalRefundCoins(targetLv, curLv);
+        metaState.armyPermanentLevels[unitId] = targetLv;
+        if (!metaState.isAdminMode) metaState.coins += coinsBack;
         saveProgress();
-        if (sfxRef) sfxRef.play('upgrade');
+        sfx.play('upgrade');
+        updateLobbyTopBar();
         document.getElementById('level-refund-modal')?.classList.remove('active');
-        updateTopBarUI();
-        renderArmyTabUI();
-        openUnitUpgradeModal(u.id);
+        refreshUnitUpgradeModalUI();
+        renderArmyUnitsGrid();
     });
 
-    // Merge thủ công & Auto-Merge O(1)
-    document.getElementById('merge-slot-1')?.addEventListener('click', () => {
-        if (mergeSelectedCardUids.length > 0) {
-            mergeSelectedCardUids.shift();
-            if (sfxRef) sfxRef.play('gas');
-            renderMergeWorkbenchAndInventory();
-        }
+    // 6. Tab BATTLE: Chuyển 45 Map, Độ khó, Chế độ & START
+    document.getElementById('btn-prev-stage')?.addEventListener('click', () => {
+        lobbyState.selectedMapLevel = lobbyState.selectedMapLevel > 1 ? lobbyState.selectedMapLevel - 1 : LEVELS.length;
+        sfx.play('gas');
+        renderBattleStageView();
     });
-
-    document.getElementById('merge-slot-2')?.addEventListener('click', () => {
-        if (mergeSelectedCardUids.length > 1) {
-            mergeSelectedCardUids.pop();
-            if (sfxRef) sfxRef.play('gas');
-            renderMergeWorkbenchAndInventory();
-        }
+    document.getElementById('btn-next-stage')?.addEventListener('click', () => {
+        lobbyState.selectedMapLevel = lobbyState.selectedMapLevel < LEVELS.length ? lobbyState.selectedMapLevel + 1 : 1;
+        sfx.play('gas');
+        renderBattleStageView();
     });
-
-    document.getElementById('btn-execute-merge')?.addEventListener('click', () => {
-        if (mergeSelectedCardUids.length < 2) return;
-        const card1 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]);
-        const card2 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[1]);
-
-        if (!card1 || !card2) return;
-        const normId1 = normalizeUnitId(card1.unitId);
-        const normId2 = normalizeUnitId(card2.unitId);
-        if (normId1 !== normId2 || card1.rarity !== card2.rarity) return;
-
-        const nextRarity = RARITY_CONFIG[card1.rarity]?.next;
-        if (!nextRarity) return;
-
-        addCardToStacks(normId1, card1.rarity, -2);
-        addCardToStacks(normId1, nextRarity, 1);
-
-        metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + 1;
-        mergeSelectedCardUids = [];
-        showcaseUnitId = normId1;
-
-        saveProgress();
-        if (sfxRef) sfxRef.play('upgrade');
-        updateTopBarUI();
-        renderArmyTabUI();
-
-        const u = UNIT_BY_ID[normId1];
-        const nextRCfg = RARITY_CONFIG[nextRarity];
-        const hintEl = document.getElementById('merge-hint-text');
-        if (hintEl && u && nextRCfg) {
-            hintEl.innerHTML = `🎉 GHÉP THÀNH CÔNG: <b>${u.name}</b> tiến hóa lên bậc <b class="text-amber-300">${nextRCfg.name} (${nextRCfg.mult}x)</b>!`;
-        }
+    document.getElementById('diff-btn-easy')?.addEventListener('click', () => {
+        lobbyState.selectedDifficulty = 'easy';
+        renderBattleStageView();
     });
-
-    document.getElementById('btn-auto-merge')?.addEventListener('click', () => {
-        const t0 = performance.now();
-        let totalMergeOperations = 0;
-        const touchedUnits = new Set();
-        const highestReachedRarityByUnit = {};
-
-        UNIT_CATALOG.forEach(u => {
-            const normId = normalizeUnitId(u.id);
-            for (let rIdx = 0; rIdx < RARITY_ORDER.length - 1; rIdx++) {
-                const curR = RARITY_ORDER[rIdx];
-                const nextR = RARITY_CONFIG[curR]?.next;
-                if (!nextR) continue;
-
-                const curKey = `${normId}__${curR}`;
-                const nextKey = `${normId}__${nextR}`;
-                const stackCount = Math.floor(Number(metaState.inventoryStacks[curKey]) || 0);
-
-                if (stackCount >= 2) {
-                    const pairs = Math.floor(stackCount / 2);
-                    const remainder = stackCount % 2;
-
-                    if (remainder > 0) {
-                        metaState.inventoryStacks[curKey] = remainder;
-                    } else {
-                        delete metaState.inventoryStacks[curKey];
-                    }
-                    metaState.inventoryStacks[nextKey] = (Math.floor(Number(metaState.inventoryStacks[nextKey]) || 0)) + pairs;
-
-                    recordHighestRarityForUnit(normId, nextR);
-                    touchedUnits.add(normId);
-                    highestReachedRarityByUnit[normId] = nextR;
-                    totalMergeOperations += pairs;
-                }
-            }
-        });
-
-        if (totalMergeOperations === 0) {
-            if (sfxRef) sfxRef.play('cannon');
-            const hintEl = document.getElementById('merge-hint-text');
-            if (hintEl) {
-                hintEl.innerHTML = `<span class="text-rose-300 font-bold">⚠️ Không có cặp thẻ nào cùng tên & cùng độ hiếm để ghép!</span>`;
-            }
+    document.getElementById('diff-btn-difficult')?.addEventListener('click', () => {
+        if (!isDifficultyUnlocked(lobbyState.selectedMapLevel, 'difficult')) {
+            sfx.play('cannon');
             return;
         }
-
-        const summaryItems = [];
-        touchedUnits.forEach(normId => {
-            let bestR = highestReachedRarityByUnit[normId] || getHighestRarityForUnit(normId);
-            for (let rIdx = RARITY_ORDER.length - 1; rIdx >= 0; rIdx--) {
-                const rKey = RARITY_ORDER[rIdx];
-                const count = Math.floor(Number(metaState.inventoryStacks[`${normId}__${rKey}`]) || 0);
-                if (count > 0) {
-                    bestR = rKey;
-                    break;
-                }
-            }
-            const totalAtBest = Math.max(1, Math.floor(Number(metaState.inventoryStacks[`${normId}__${bestR}`]) || 1));
-            summaryItems.push({
-                unitId: normId,
-                rarity: bestR,
-                count: totalAtBest,
-                rank: RARITY_CONFIG[bestR]?.rank ?? 0
-            });
-        });
-
-        metaState.missionsProgress.merges = (metaState.missionsProgress.merges || 0) + totalMergeOperations;
-
-        summaryItems.sort((a, b) => {
-            if (b.rank !== a.rank) return b.rank - a.rank;
-            return b.count - a.count;
-        });
-
-        saveProgress();
-        if (sfxRef) sfxRef.play('upgrade');
-        updateTopBarUI();
-        mergeSelectedCardUids = [];
-        renderArmyTabUI();
-
-        const elapsedMs = Math.max(0.1, +(performance.now() - t0).toFixed(2));
-        const amModal = document.getElementById('auto-merge-modal');
-        const textEl = document.getElementById('auto-merge-summary-text');
-        const gridEl = document.getElementById('auto-merge-results-grid');
-
-        const totalHighCards = summaryItems.reduce((acc, it) => acc + it.count, 0);
-        if (textEl) {
-            textEl.innerHTML = `⚡ Đã tự động ghép dây chuyền <b>${totalMergeOperations.toLocaleString('en-US')} lần</b> trong <b>${elapsedMs}ms</b>! Sở hữu <b>${totalHighCards.toLocaleString('en-US')} thẻ</b> ở bậc cao nhất:`;
-        }
-
-        if (gridEl) {
-            gridEl.innerHTML = '';
-            const fragment = document.createDocumentFragment();
-            summaryItems.forEach(item => {
-                const u = UNIT_BY_ID[item.unitId];
-                const rCfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
-                const spriteUrl = u ? getUnitSpriteDataURL(u, 7) : '';
-
-                const cardEl = document.createElement('div');
-                cardEl.className = `army-unit-card ${rCfg.cssClass}`;
-                cardEl.innerHTML = `
-                    <div class="card-top-lv">
-                        <span>${rCfg.name.toUpperCase()}</span>
-                        ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : ''}
-                    </div>
-                    <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u?.name || ''}" />
-                    <span class="card-qty-badge">x${formatCompactNumber(item.count)}</span>
-                    <div class="card-unit-title">${u?.name || ''}</div>
-                `;
-                fragment.appendChild(cardEl);
-            });
-            gridEl.appendChild(fragment);
-        }
-
-        if (amModal) amModal.classList.add('active');
+        lobbyState.selectedDifficulty = 'difficult';
+        renderBattleStageView();
     });
-
-    document.getElementById('btn-close-auto-merge')?.addEventListener('click', () => {
-        document.getElementById('auto-merge-modal')?.classList.remove('active');
+    document.getElementById('mode-btn-destroy')?.addEventListener('click', () => {
+        lobbyState.selectedMode = 'destroy';
+        renderBattleStageView();
     });
-
-    document.getElementById('btn-close-auto-merge-x')?.addEventListener('click', () => {
-        document.getElementById('auto-merge-modal')?.classList.remove('active');
+    document.getElementById('mode-btn-survival')?.addEventListener('click', () => {
+        lobbyState.selectedMode = 'survival';
+        renderBattleStageView();
     });
-
-    // Cây Kỹ Năng Cổ Thụ (Skill Tree - Ngọc Trai Trắng)
-    document.querySelectorAll('.st-node-btn').forEach(btn => {
+    document.querySelectorAll('.special-mode-pill').forEach(btn => {
         btn.addEventListener('click', () => {
-            const nodeId = btn.getAttribute('data-st-id');
-            if (nodeId && ANCIENT_SKILL_TREE[nodeId]) {
-                selectedSkillTreeNodeId = nodeId;
-                if (sfxRef) sfxRef.play('gas');
-                renderSkillTreeTabUI();
-            }
+            lobbyState.selectedMode = btn.dataset.mode;
+            renderBattleStageView();
         });
     });
-
-    document.getElementById('btn-upgrade-skilltree-node')?.addEventListener('click', () => {
-        if (upgradeSkillTreeNode(selectedSkillTreeNodeId)) {
-            triggerHaptic(30);
-            if (sfxRef) sfxRef.play('upgrade');
-            updateTopBarUI();
-            renderSkillTreeTabUI();
-        } else if (sfxRef) {
-            sfxRef.play('cannon');
+    document.getElementById('btn-start-battle')?.addEventListener('click', () => {
+        if (typeof onStartBattleCallback === 'function') {
+            onStartBattleCallback(lobbyState.selectedMapLevel, lobbyState.selectedDifficulty, lobbyState.selectedMode);
         }
     });
 
-    // Vòng Quay May Mắn
-    document.getElementById('btn-open-lucky-wheel')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        updateLuckyWheelPityUI();
-        drawLuckyWheelCanvas();
-        document.getElementById('lucky-wheel-modal')?.classList.add('active');
+    // 7. Các nút Sidebar: MISSION, TALENTS, VÒNG QUAY, INDEX, CODE, CHIP MOD, MINI-GAME, Ụ PHÁO
+    document.getElementById('btn-open-missions')?.addEventListener('click', () => {
+        const list = document.getElementById('mission-list-container');
+        if (list) {
+            list.innerHTML = '';
+            MISSIONS_CATALOG.forEach(m => {
+                const cur = metaState.missionsProgress[m.statKey] || 0;
+                const claimed = !!metaState.missionsProgress.claimed[m.id];
+                const canClaim = !claimed && cur >= m.target;
+                const pct = Math.min(100, Math.round((cur / m.target) * 100));
+
+                const card = document.createElement('div');
+                card.className = 'mission-item-card';
+                card.innerHTML = `
+                    <div class="flex-1 text-left">
+                        <div class="text-xs font-black text-slate-900">${m.title}</div>
+                        <div class="text-[10px] font-bold text-slate-600 vt323-num">${Math.min(cur, m.target).toLocaleString('en-US')} / ${m.target.toLocaleString('en-US')} • +${m.rewardGems}💎 +${m.rewardCoins.toLocaleString('en-US')}🪙</div>
+                        <div class="mission-progress-track"><div class="mission-progress-fill" style="width:${pct}%"></div></div>
+                    </div>
+                    <button type="button" class="btn-3d ${claimed ? 'btn-3d-slate' : (canClaim ? 'btn-3d-green' : 'btn-3d-amber')} px-2.5 py-1.5 text-[10px]" ${canClaim ? '' : 'disabled'}>
+                        ${claimed ? '✓ XONG' : (canClaim ? 'NHẬN' : `${pct}%`)}
+                    </button>
+                `;
+                card.querySelector('button').addEventListener('click', () => {
+                    if (!canClaim) return;
+                    metaState.missionsProgress.claimed[m.id] = true;
+                    metaState.gems += m.rewardGems;
+                    metaState.coins += m.rewardCoins;
+                    saveProgress();
+                    sfx.play('upgrade');
+                    updateLobbyTopBar();
+                    renderMissionNotifDot();
+                    document.getElementById('btn-open-missions').click();
+                });
+                list.appendChild(card);
+            });
+        }
+        document.getElementById('mission-modal')?.classList.add('active');
+    });
+    document.getElementById('btn-close-missions')?.addEventListener('click', () => {
+        document.getElementById('mission-modal')?.classList.remove('active');
     });
 
+    document.getElementById('btn-open-talents')?.addEventListener('click', () => openTalentsModal());
+    document.getElementById('btn-close-talents')?.addEventListener('click', () => {
+        document.getElementById('talents-modal')?.classList.remove('active');
+    });
+    document.getElementById('btn-close-talents-bottom')?.addEventListener('click', () => {
+        document.getElementById('talents-modal')?.classList.remove('active');
+    });
+    document.getElementById('btn-reset-talents')?.addEventListener('click', () => {
+        let refundMedals = 0;
+        Object.values(META_TALENTS).forEach(t => {
+            const lv = Number(metaState.metaTalents?.[t.id]) || 0;
+            for (let i = 0; i < lv; i++) refundMedals += t.baseCost + i * t.costStep;
+            metaState.metaTalents[t.id] = 0;
+        });
+        if (!metaState.isAdminMode) metaState.medals += refundMedals;
+        saveProgress();
+        sfx.play('upgrade');
+        updateLobbyTopBar();
+        renderTalentsModal();
+    });
+
+    document.getElementById('btn-open-lucky-wheel')?.addEventListener('click', () => openLuckyWheelModal());
     document.getElementById('btn-close-lucky-wheel')?.addEventListener('click', () => {
         document.getElementById('lucky-wheel-modal')?.classList.remove('active');
     });
-
-    document.getElementById('chk-skip-wheel-anim')?.addEventListener('change', (e) => {
-        metaState.wheelSkipAnim = !!e.target.checked;
-        saveProgress();
-    });
-
-    document.getElementById('btn-wheel-center-spin')?.addEventListener('click', () => executeLuckyWheelSpins(1));
-    document.getElementById('btn-spin-wheel-1')?.addEventListener('click', () => executeLuckyWheelSpins(1));
-    document.getElementById('btn-spin-wheel-10')?.addEventListener('click', () => executeLuckyWheelSpins(10));
+    document.getElementById('btn-wheel-center-spin')?.addEventListener('click', () => spinLuckyWheelBatch(1));
+    document.getElementById('btn-spin-wheel-1')?.addEventListener('click', () => spinLuckyWheelBatch(1));
+    document.getElementById('btn-spin-wheel-10')?.addEventListener('click', () => spinLuckyWheelBatch(10));
     document.getElementById('btn-spin-wheel-custom')?.addEventListener('click', () => {
-        const count = Number(document.getElementById('input-custom-wheel-spins')?.value) || 50;
-        executeLuckyWheelSpins(count);
+        const val = parseInt(document.getElementById('input-custom-wheel-spins')?.value || '10', 10);
+        spinLuckyWheelBatch(val);
     });
 
-    // 3 Mini-Game Giải Trí
+    document.getElementById('btn-open-index')?.addEventListener('click', () => openCodexModal());
+    document.getElementById('btn-close-codex')?.addEventListener('click', () => {
+        document.getElementById('codex-modal')?.classList.remove('active');
+    });
+    document.getElementById('btn-codex-claim-all')?.addEventListener('click', () => claimAllCodexMilestones());
+
+    document.getElementById('btn-open-turret-modal')?.addEventListener('click', () => openBaseTurretModal());
+    document.getElementById('btn-close-turret-modal')?.addEventListener('click', () => {
+        document.getElementById('base-turret-modal')?.classList.remove('active');
+    });
+
+    document.getElementById('btn-quick-army-chips')?.addEventListener('click', () => {
+        openUnitUpgradeModal(lobbyState.selectedShowcaseUnitId || PRIMARY_INFANTRY_ID);
+    });
+
+    document.getElementById('btn-open-code')?.addEventListener('click', () => {
+        document.getElementById('giftcode-used-count').textContent = `${metaState.usedCodes.length} / ${OFFICIAL_GIFTCODES.length} mã`;
+        const tagsWrap = document.getElementById('giftcode-used-tags');
+        if (tagsWrap) {
+            tagsWrap.innerHTML = metaState.usedCodes.length > 0
+                ? metaState.usedCodes.map(c => `<span class="used-code-pill">✓ ${c}</span>`).join('')
+                : '<span class="text-[10px] text-slate-400 italic">Chưa có mã nào được nhập</span>';
+        }
+        document.getElementById('code-modal')?.classList.add('active');
+    });
+    document.getElementById('btn-close-code')?.addEventListener('click', () => {
+        document.getElementById('code-modal')?.classList.remove('active');
+    });
+    document.getElementById('btn-submit-code')?.addEventListener('click', () => {
+        const code = (document.getElementById('giftcode-input')?.value || '').trim().toUpperCase();
+        const fb = document.getElementById('giftcode-feedback');
+        const gift = GIFT_CODES[code];
+        if (!gift) {
+            if (fb) {
+                fb.textContent = '❌ Mã Giftcode không tồn tại!';
+                fb.className = 'text-xs font-extrabold mt-2 text-rose-600';
+                fb.classList.remove('hidden');
+            }
+            sfx.play('cannon');
+            return;
+        }
+        if (metaState.usedCodes.includes(code)) {
+            if (fb) {
+                fb.textContent = '⚠️ Bạn đã nhận quà từ mã này rồi!';
+                fb.className = 'text-xs font-extrabold mt-2 text-amber-600';
+                fb.classList.remove('hidden');
+            }
+            sfx.play('cannon');
+            return;
+        }
+
+        metaState.usedCodes.push(code);
+        metaState.gems += gift.gems || GIFTCODE_REWARD_GEMS;
+        metaState.coins += gift.coins || GIFTCODE_REWARD_COINS;
+        metaState.medals += gift.medals || GIFTCODE_REWARD_MEDALS;
+        metaState.pearls = (metaState.pearls || 0) + (gift.pearls || GIFTCODE_REWARD_PEARLS);
+        saveProgress();
+        updateLobbyTopBar();
+        renderSkillTreeTab();
+        sfx.play('upgrade');
+
+        if (fb) {
+            fb.textContent = `🎉 Nhận thành công: +${(gift.gems || 0).toLocaleString()}💎, +${(gift.coins || 0).toLocaleString()}🪙, +${gift.medals || 0}🎖️, +${gift.pearls || 0}⚪!`;
+            fb.className = 'text-xs font-extrabold mt-2 text-emerald-600';
+            fb.classList.remove('hidden');
+        }
+    });
+
+    bindArcadeMiniGames();
+}
+
+function bindArcadeMiniGames() {
     document.getElementById('btn-open-minigames')?.addEventListener('click', () => {
-        if (sfxRef) sfxRef.play('gas');
-        switchMinigameTab(currentMinigameTab || 'mines');
         document.getElementById('minigame-arcade-modal')?.classList.add('active');
     });
-
     document.getElementById('btn-close-minigames')?.addEventListener('click', () => {
-        stopCatcherMinigame(true);
         document.getElementById('minigame-arcade-modal')?.classList.remove('active');
     });
 
     document.querySelectorAll('.arcade-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const tab = btn.getAttribute('data-mg-tab');
-            if (tab !== 'catcher') stopCatcherMinigame(true);
-            if (tab) switchMinigameTab(tab);
+            const tab = btn.dataset.mgTab;
+            document.querySelectorAll('.arcade-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.mgTab === tab));
+            document.querySelectorAll('.arcade-game-pane').forEach(p => p.classList.toggle('active', p.id === `mg-pane-${tab}`));
         });
     });
 
-    document.getElementById('btn-mg-mines-start')?.addEventListener('click', startMinesMinigame);
-    document.getElementById('btn-mg-mines-cashout')?.addEventListener('click', cashoutMinesMinigame);
-
-    document.getElementById('btn-mg-catcher-start')?.addEventListener('click', startCatcherMinigame);
-
-    const bindHoldBtn = (btnId, dirKey) => {
-        const el = document.getElementById(btnId);
-        if (!el) return;
-        const setMove = (val) => { catcherGameState[dirKey] = val; };
-        el.addEventListener('pointerdown', () => setMove(true));
-        el.addEventListener('pointerup', () => setMove(false));
-        el.addEventListener('pointerleave', () => setMove(false));
-        el.addEventListener('pointercancel', () => setMove(false));
+    // Mini-Game 1: Đập mìn 5x5
+    let minesState = null;
+    const renderMinesBoard = () => {
+        const board = document.getElementById('mg-mines-grid');
+        if (!board || !minesState) return;
+        board.innerHTML = '';
+        for (let i = 0; i < 25; i++) {
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            const rev = minesState.revealed[i];
+            const isMine = minesState.mines.has(i);
+            cell.className = `mg-mine-cell ${rev ? (isMine ? 'revealed mine' : 'revealed safe') : ''}`;
+            cell.textContent = rev ? (isMine ? '💣' : '💎') : '📡';
+            cell.addEventListener('click', () => {
+                if (!minesState || minesState.over || minesState.revealed[i]) return;
+                minesState.revealed[i] = true;
+                if (isMine) {
+                    minesState.over = true;
+                    for (let m = 0; m < 25; m++) minesState.revealed[m] = true;
+                    sfx.play('boom');
+                    document.getElementById('mg-mines-status-text').textContent = '💥 Trúng mìn chống tăng! Mất quỹ thưởng lượt này.';
+                    document.getElementById('btn-mg-mines-cashout').disabled = true;
+                } else {
+                    minesState.safeOpened++;
+                    const mult = MINIGAME_CONFIG.mines.multipliers[Math.min(19, minesState.safeOpened - 1)] || 1.2;
+                    minesState.potCoins = Math.round(MINIGAME_CONFIG.mines.baseCoinsPerSafe * minesState.safeOpened * mult * 0.45);
+                    minesState.potGems = Math.round(MINIGAME_CONFIG.mines.baseGemsPerSafe * minesState.safeOpened * mult * 0.45);
+                    sfx.play('gas');
+                    document.getElementById('mg-mines-mult-badge').textContent = `x${mult.toFixed(2)}`;
+                    document.getElementById('mg-mines-safe-count').textContent = `${minesState.safeOpened}/20`;
+                    document.getElementById('mg-mines-current-pot').textContent = `🪙 ${minesState.potCoins.toLocaleString()} | 💎 ${minesState.potGems}`;
+                    document.getElementById('btn-mg-mines-cashout').disabled = false;
+                }
+                renderMinesBoard();
+            });
+            board.appendChild(cell);
+        }
     };
-    bindHoldBtn('btn-mg-catcher-left', 'moveLeft');
-    bindHoldBtn('btn-mg-catcher-right', 'moveRight');
+
+    document.getElementById('btn-mg-mines-start')?.addEventListener('click', () => {
+        const cost = MINIGAME_CONFIG.mines.entryCostCoins;
+        if (!metaState.isAdminMode && metaState.coins < cost) {
+            sfx.play('cannon');
+            return;
+        }
+        if (!metaState.isAdminMode) metaState.coins -= cost;
+        saveProgress();
+        updateLobbyTopBar();
+
+        const mines = new Set();
+        while (mines.size < 5) mines.add(Math.floor(Math.random() * 25));
+        minesState = {
+            mines,
+            revealed: new Array(25).fill(false),
+            safeOpened: 0,
+            potCoins: 0,
+            potGems: 0,
+            over: false
+        };
+        document.getElementById('mg-mines-mult-badge').textContent = 'x1.00';
+        document.getElementById('mg-mines-safe-count').textContent = '0/20';
+        document.getElementById('mg-mines-current-pot').textContent = '🪙 0 | 💎 0';
+        document.getElementById('btn-mg-mines-cashout').disabled = true;
+        renderMinesBoard();
+    });
+
+    document.getElementById('btn-mg-mines-cashout')?.addEventListener('click', () => {
+        if (!minesState || minesState.over || minesState.safeOpened <= 0) return;
+        minesState.over = true;
+        metaState.coins += minesState.potCoins;
+        metaState.gems += minesState.potGems;
+        saveProgress();
+        updateLobbyTopBar();
+        sfx.play('upgrade');
+        document.getElementById('mg-mines-status-text').textContent =
+            `💰 Rút thưởng thành công: +🪙 ${minesState.potCoins.toLocaleString()} & +💎 ${minesState.potGems}!`;
+        document.getElementById('btn-mg-mines-cashout').disabled = true;
+    });
+
+    // Mini-Game 2: Hứng Tiếp Tế Dù 30s (Hỗ trợ cả nút bấm & vuốt cảm ứng trên Canvas)
+    let catcherActive = false;
+    let catcherX = 160;
+    let catcherDir = 0;
+    document.getElementById('btn-mg-catcher-left')?.addEventListener('pointerdown', () => (catcherDir = -1));
+    document.getElementById('btn-mg-catcher-left')?.addEventListener('pointerup', () => (catcherDir = 0));
+    document.getElementById('btn-mg-catcher-right')?.addEventListener('pointerdown', () => (catcherDir = 1));
+    document.getElementById('btn-mg-catcher-right')?.addEventListener('pointerup', () => (catcherDir = 0));
 
     const catcherCanvas = document.getElementById('mgCatcherCanvas');
-    if (catcherCanvas) {
-        catcherCanvas.addEventListener('pointermove', (e) => {
-            if (!catcherGameState.running) return;
-            const rect = catcherCanvas.getBoundingClientRect();
-            const relX = ((e.clientX - rect.left) / Math.max(1, rect.width)) * catcherCanvas.width;
-            catcherGameState.playerX = Math.max(28, Math.min(catcherCanvas.width - 28, relX));
-        });
-    }
+    catcherCanvas?.addEventListener('pointermove', e => {
+        if (!catcherActive) return;
+        const rect = catcherCanvas.getBoundingClientRect();
+        const relX = ((e.clientX - rect.left) / Math.max(1, rect.width)) * catcherCanvas.width;
+        catcherX = Math.max(24, Math.min(catcherCanvas.width - 24, relX));
+    });
 
-    document.getElementById('btn-mg-hl-start')?.addEventListener('click', startHighLowMinigame);
-    document.getElementById('btn-mg-hl-higher')?.addEventListener('click', () => guessHighLowCard('higher'));
-    document.getElementById('btn-mg-hl-lower')?.addEventListener('click', () => guessHighLowCard('lower'));
-    document.getElementById('btn-mg-hl-cashout')?.addEventListener('click', cashoutHighLowMinigame);
+    document.getElementById('btn-mg-catcher-start')?.addEventListener('click', () => {
+        if (catcherActive || !catcherCanvas) return;
+        const ctx = catcherCanvas.getContext('2d');
+        catcherActive = true;
+        catcherX = catcherCanvas.width / 2;
+        let timeLeft = 30.0;
+        let spawnTimer = 0.2;
+        let drops = [];
+        let gotCoins = 0;
+        let gotGems = 0;
+        let gotMedals = 0;
+        let lastT = performance.now();
 
-    function lobbyShowcaseAnimationLoop() {
-        const lobbyActive = document.getElementById('lobby-wrapper')?.classList.contains('active');
-        if (lobbyActive && currentLobbyTab === 'army') {
-            renderArmyShowcaseCanvas();
+        const loop = now => {
+            if (!catcherActive) return;
+            const dt = Math.min(0.05, (now - lastT) / 1000);
+            lastT = now;
+            timeLeft -= dt;
+
+            catcherX = Math.max(24, Math.min(catcherCanvas.width - 24, catcherX + catcherDir * 230 * dt));
+            spawnTimer -= dt;
+            if (spawnTimer <= 0) {
+                spawnTimer = 0.42;
+                const pool = MINIGAME_CONFIG.catcher.items;
+                const pick = pool[Math.floor(Math.random() * pool.length)];
+                drops.push({ ...pick, x: 20 + Math.random() * (catcherCanvas.width - 40), y: 10 });
+            }
+
+            ctx.clearRect(0, 0, catcherCanvas.width, catcherCanvas.height);
+            drops.forEach(d => {
+                d.y += d.speed * dt;
+                if (Math.hypot(d.x - catcherX, d.y - (catcherCanvas.height - 26)) < 24) {
+                    d.done = true;
+                    if (d.type === 'bomb') {
+                        sfx.play('boom');
+                        gotCoins = Math.max(0, gotCoins - 800);
+                    } else {
+                        sfx.play('gas');
+                        gotCoins += d.coins;
+                        gotGems += d.gems;
+                        gotMedals += d.medals;
+                    }
+                } else if (d.y > catcherCanvas.height + 15) {
+                    d.done = true;
+                }
+                ctx.font = '20px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(d.icon, d.x, d.y);
+            });
+            drops = drops.filter(d => !d.done);
+
+            drawUnitArt(ctx, 'humvee', catcherX, catcherCanvas.height - 24, 34, 'blue', now * 0.002, 0);
+
+            document.getElementById('mg-catcher-time').textContent = `${Math.max(0, timeLeft).toFixed(1)}s`;
+            document.getElementById('mg-catcher-score').textContent = `🪙 ${gotCoins} | 💎 ${gotGems} | 🎖️ ${gotMedals}`;
+
+            if (timeLeft > 0) {
+                requestAnimationFrame(loop);
+            } else {
+                catcherActive = false;
+                metaState.coins += gotCoins;
+                metaState.gems += gotGems;
+                metaState.medals += gotMedals;
+                saveProgress();
+                updateLobbyTopBar();
+                sfx.play('upgrade');
+            }
+        };
+        requestAnimationFrame(loop);
+    });
+
+    // Mini-Game 3: Đoán Bài Rarity (Rank 0 -> 40)
+    let hlState = null;
+    const renderHlCards = () => {
+        if (!hlState) return;
+        const curCfg = RARITY_CONFIG[RARITY_ORDER[hlState.curRank]] || RARITY_CONFIG.common;
+        const curUnit = UNIT_BY_ID[hlState.curUnitId] || UNIT_CATALOG[0];
+        document.getElementById('mg-hl-current-card').className = `mg-hl-card-box ${curCfg.cssClass}`;
+        document.getElementById('mg-hl-cur-rarity').textContent = curCfg.name.toUpperCase();
+        document.getElementById('mg-hl-cur-rank').textContent = `RANK ${hlState.curRank} (${curCfg.mult}x)`;
+        document.getElementById('mg-hl-cur-unit').textContent = curUnit.name.toUpperCase();
+        document.getElementById('mg-hl-streak').textContent = hlState.streak;
+        document.getElementById('mg-hl-pot').textContent = `🪙 ${hlState.potCoins.toLocaleString()} | 💎 ${hlState.potGems}`;
+    };
+
+    const guessHighLow = dir => {
+        if (!hlState || hlState.over) return;
+        const nextRank = Math.floor(Math.random() * RARITY_ORDER.length);
+        const nextUnit = UNIT_CATALOG[Math.floor(Math.random() * UNIT_CATALOG.length)];
+        const win = dir === 'higher' ? nextRank >= hlState.curRank : nextRank <= hlState.curRank;
+        if (win) {
+            hlState.streak++;
+            hlState.curRank = nextRank;
+            hlState.curUnitId = nextUnit.id;
+            hlState.potCoins = Math.round(hlState.potCoins * MINIGAME_CONFIG.highlow.winMultiplier);
+            hlState.potGems = Math.round(hlState.potGems * MINIGAME_CONFIG.highlow.winMultiplier);
+            sfx.play('upgrade');
+            document.getElementById('mg-hl-status-text').textContent = `🎉 Chính xác! Chuỗi thắng ${hlState.streak} lượt!`;
+            document.getElementById('btn-mg-hl-cashout').disabled = false;
+            renderHlCards();
+        } else {
+            hlState.over = true;
+            sfx.play('boom');
+            const missCfg = RARITY_CONFIG[RARITY_ORDER[nextRank]];
+            document.getElementById('mg-hl-status-text').textContent = `💥 Sai rồi! Lá tiếp theo là ${missCfg.name} (Rank ${nextRank}).`;
+            document.getElementById('btn-mg-hl-higher').disabled = true;
+            document.getElementById('btn-mg-hl-lower').disabled = true;
+            document.getElementById('btn-mg-hl-cashout').disabled = true;
         }
-        requestAnimationFrame(lobbyShowcaseAnimationLoop);
-    }
-    requestAnimationFrame(lobbyShowcaseAnimationLoop);
+    };
 
-    updateTopBarUI();
-    renderStageScreenUI();
-    renderShopChipStoreUI();
-    renderChallengeRoadmapUI();
-    renderSkillTreeTabUI();
-    drawLuckyWheelCanvas();
-    checkAndPromptPlayerName(false);
+    document.getElementById('btn-mg-hl-higher')?.addEventListener('click', () => guessHighLow('higher'));
+    document.getElementById('btn-mg-hl-lower')?.addEventListener('click', () => guessHighLow('lower'));
+
+    document.getElementById('btn-mg-hl-start')?.addEventListener('click', () => {
+        const cost = MINIGAME_CONFIG.highlow.entryCostCoins;
+        if (!metaState.isAdminMode && metaState.coins < cost) {
+            sfx.play('cannon');
+            return;
+        }
+        if (!metaState.isAdminMode) metaState.coins -= cost;
+        saveProgress();
+        updateLobbyTopBar();
+
+        hlState = {
+            curRank: Math.floor(Math.random() * RARITY_ORDER.length),
+            curUnitId: UNIT_CATALOG[Math.floor(Math.random() * UNIT_CATALOG.length)].id,
+            streak: 0,
+            potCoins: MINIGAME_CONFIG.highlow.initialPotCoins,
+            potGems: MINIGAME_CONFIG.highlow.initialPotGems,
+            over: false
+        };
+        document.getElementById('btn-mg-hl-higher').disabled = false;
+        document.getElementById('btn-mg-hl-lower').disabled = false;
+        document.getElementById('btn-mg-hl-cashout').disabled = true;
+        renderHlCards();
+    });
+
+    document.getElementById('btn-mg-hl-cashout')?.addEventListener('click', () => {
+        if (!hlState || hlState.over || hlState.streak <= 0) return;
+        hlState.over = true;
+        metaState.coins += hlState.potCoins;
+        metaState.gems += hlState.potGems;
+        saveProgress();
+        updateLobbyTopBar();
+        sfx.play('upgrade');
+        document.getElementById('btn-mg-hl-higher').disabled = true;
+        document.getElementById('btn-mg-hl-lower').disabled = true;
+        document.getElementById('btn-mg-hl-cashout').disabled = true;
+        document.getElementById('mg-hl-status-text').textContent =
+            `💰 Đã thu nhận +🪙 ${hlState.potCoins.toLocaleString()} & +💎 ${hlState.potGems}!`;
+    });
 }

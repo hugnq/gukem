@@ -1,12 +1,12 @@
 /* ============================================================================
    TINY BATTLE - ENGINE CORE (js/engine-core.js)
-   Web Audio SoundFX, Offscreen Projectile Cache, ParticlePool, SpriteAtlas,
-   Procedural 2D Pixel-Vector Art Renderer cho 6 Binh Chủng Mới, Ụ Pháo
-   & 14 Loại Zombie / Boss Góc Nhìn Chính Diện Từ Trên Xuống (Front-Top View)
+   100% Procedural Canvas 2D Art (Zero External Images) • 60-120 FPS Offscreen Cache
+   Web Audio SoundFX, Projectile Cache, ParticlePool, 18 Units (360° + Portrait),
+   14 Front-Top Zombies & Bosses, Base Turrets & Procedural UI Icons
    ============================================================================ */
 
-// Helper vẽ hình chữ nhật bo góc an toàn trên mọi trình duyệt / WebView
-function drawRoundRectPath(ctx, x, y, w, h, r) {
+// Helper vẽ hình chữ nhật bo góc tương thích mọi trình duyệt / WebView
+export function drawRoundRectPath(ctx, x, y, w, h, r) {
     const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
     ctx.beginPath();
     if (typeof ctx.roundRect === 'function') {
@@ -20,6 +20,11 @@ function drawRoundRectPath(ctx, x, y, w, h, r) {
         ctx.closePath();
     }
 }
+
+// Bộ đệm Offscreen Canvas tĩnh cho bản đồ chiến trường
+export const mapBufferCache = {
+    canvas: null
+};
 
 // ============================================================================
 // 1. HỆ THỐNG ÂM THANH WEB AUDIO API (SOUNDFX - CHỐNG RÈ KHI TUA X4)
@@ -49,7 +54,7 @@ export class SoundFX {
 
             const nowPerf = performance.now();
             const last = this.lastPlayTimes[type] || 0;
-            if (nowPerf - last < 42) return; // Chống spam oscillator khi tua x4
+            if (nowPerf - last < 42) return;
             this.lastPlayTimes[type] = nowPerf;
 
             const now = this.ctx.currentTime;
@@ -162,6 +167,15 @@ export class SoundFX {
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.36);
                 osc.start(now);
                 osc.stop(now + 0.36);
+            } else if (type === 'levelup') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(520, now);
+                osc.frequency.setValueAtTime(660, now + 0.08);
+                osc.frequency.setValueAtTime(880, now + 0.16);
+                gain.gain.setValueAtTime(0.14, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.28);
+                osc.start(now);
+                osc.stop(now + 0.28);
             }
         } catch (e) {}
     }
@@ -170,7 +184,7 @@ export class SoundFX {
 export const sfx = new SoundFX();
 
 // ============================================================================
-// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO (KÈM FIREBALL, ICE SHARD, DARK ORB, ACID GLOB)
+// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO & PHÉP THUẬT
 // ============================================================================
 export class ProjectileSpriteCache {
     constructor() {
@@ -185,6 +199,7 @@ export class ProjectileSpriteCache {
         this.iceShardCache = [];
         this.darkOrbCache = [];
         this.acidGlobCache = [];
+        this.meteorCache = [];
         this.muzzleStarCanvas = null;
         this.buildCache();
     }
@@ -202,6 +217,7 @@ export class ProjectileSpriteCache {
             this.iceShardCache.push(this.createMagicProjectile(angle, 'ice_shard'));
             this.darkOrbCache.push(this.createMagicProjectile(angle, 'dark_orb'));
             this.acidGlobCache.push(this.createMagicProjectile(angle, 'acid_glob'));
+            this.meteorCache.push(this.createMagicProjectile(angle, 'meteor'));
         }
         this.muzzleStarCanvas = this.createMuzzleStarSprite();
     }
@@ -245,7 +261,7 @@ export class ProjectileSpriteCache {
     }
 
     createMagicProjectile(angle, projType) {
-        const size = 22;
+        const size = 26;
         const c = document.createElement('canvas');
         c.width = size;
         c.height = size;
@@ -253,7 +269,9 @@ export class ProjectileSpriteCache {
         cx.translate(size / 2, size / 2);
         cx.rotate(angle);
 
-        if (projType === 'fireball') {
+        if (projType === 'fireball' || projType === 'meteor') {
+            const scale = projType === 'meteor' ? 1.3 : 1.0;
+            cx.scale(scale, scale);
             cx.fillStyle = '#ea580c';
             cx.beginPath();
             cx.moveTo(-9, 0);
@@ -292,7 +310,6 @@ export class ProjectileSpriteCache {
             cx.closePath();
             cx.fill();
         } else if (projType === 'acid_glob') {
-            // Cầu axit xanh neon phát sáng (Zombie Phun Axit)
             cx.fillStyle = '#16a34a';
             cx.beginPath();
             cx.ellipse(0, 0, 6.8, 4.6, 0, 0, Math.PI * 2);
@@ -306,7 +323,6 @@ export class ProjectileSpriteCache {
             cx.arc(2, -1, 2.6, 0, Math.PI * 2);
             cx.fill();
         } else {
-            // dark_orb (Necromancer)
             cx.fillStyle = '#7e22ce';
             cx.beginPath();
             cx.arc(0, 0, 6, 0, Math.PI * 2);
@@ -361,6 +377,7 @@ export class ProjectileSpriteCache {
         let norm = angle % (Math.PI * 2);
         if (norm < 0) norm += Math.PI * 2;
         const idx = Math.floor((norm / (Math.PI * 2)) * this.angleSteps) % this.angleSteps;
+        if (projType === 'meteor') return this.meteorCache[idx];
         if (projType === 'fireball') return this.fireballCache[idx];
         if (projType === 'ice_shard') return this.iceShardCache[idx];
         if (projType === 'dark_orb') return this.darkOrbCache[idx];
@@ -488,36 +505,685 @@ export class ParticlePool {
 export const particlePool = new ParticlePool(240);
 
 // ============================================================================
-// 4. BỘ VẼ CANVAS PIXEL-VECTOR ART CHO 6 NHÂN VẬT MỚI + XƯƠNG + Ụ PHÁO
+// 4. BỘ VẼ PROCEDURAL CANVAS 2D CHO TOÀN BỘ 18 BINH CHỦNG + XƯƠNG (360° + PORTRAIT)
+//    - Quy ước góc vẽ thế giới (rotation !== null):
+//      0 rad = Hướng SANG PHẢI (+X), -Math.PI/2 = LÊN TRÊN (-Y), Math.PI/2 = XUỐNG (+Y)
+//    - Quy ước vẽ thẻ bài / Showcase / Sandbox (rotation === null):
+//      Vẽ góc chính diện / 3-4 hùng dũng, cân đối trong khung 32x32
 // ============================================================================
-export const CUSTOM_ART_UNIT_IDS = new Set([
-    'pyromancer',
-    'cryomancer',
-    'cleric',
-    'necromancer',
-    'mecha_paladin',
-    'railgun_walker',
-    'skeleton'
-]);
+export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'blue', animPhase = 0, rotation = null, opts = {}) {
+    const unitId = rawUnitId === 'rifleman' ? 'infantry' : (rawUnitId || 'infantry');
+    const isBlue = team !== 'red';
+    const isPortrait = rotation === null || rotation === undefined;
+    const walkCycle = opts.walkCycle ?? animPhase * 6;
+    const recoil = opts.recoilOffset ?? 0;
 
-export function isCustomArtUnit(unitId) {
-    return CUSTOM_ART_UNIT_IDS.has(unitId);
-}
+    // Bảng màu phe Xanh / Đỏ
+    const primaryCol   = isBlue ? '#0284c7' : '#dc2626';
+    const secondaryCol = isBlue ? '#1e3a8a' : '#7f1d1d';
+    const highlightCol = isBlue ? '#38bdf8' : '#fb7185';
+    const hullMetalCol = isBlue ? '#1d4ed8' : '#b91c1c';
+    const navalHullCol = isBlue ? '#334155' : '#450a0a';
 
-export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team = 'blue', animPhase = 0, rotation = 0) {
     ctx.save();
     ctx.translate(cx, cy);
-    if (rotation) {
-        ctx.rotate(rotation);
-    }
     const scale = size / 32;
     ctx.scale(scale, scale);
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
 
-    const isBlue = team !== 'red';
+    if (!isPortrait) {
+        ctx.rotate(rotation);
+    }
 
-    if (unitId === 'pyromancer') {
+    // ------------------------------------------------------------------------
+    // 1. BỘ BINH (infantry): Mũ sắt, áo giáp chiến thuật, súng trường tấn công
+    // ------------------------------------------------------------------------
+    if (unitId === 'infantry') {
+        if (isPortrait) {
+            const footShift = Math.sin(walkCycle) * 1.5;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-5.5, 8 + footShift, 4, 4);
+            ctx.fillRect(1.5, 8 - footShift, 4, 4);
+
+            ctx.fillStyle = primaryCol;
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            drawRoundRectPath(ctx, -8, -3, 16, 12, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#fde047';
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(-6, -2);
+            ctx.lineTo(6, 7);
+            ctx.stroke();
+
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.arc(0, -6.5, 4.8, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = secondaryCol;
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.arc(0, -7.5, 6.2, Math.PI, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = highlightCol;
+            ctx.fillRect(-4, -7.2, 8, 2.2);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-7, 1, 18, 3.2);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(7, 1.5, 6, 2);
+            ctx.fillStyle = '#fde047';
+            ctx.beginPath();
+            ctx.arc(14, 2.5, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            const legSwing = Math.sin(walkCycle) * 2.5;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-4 + legSwing, -6.5, 5, 3);
+            ctx.fillRect(-4 - legSwing, 3.5, 5, 3);
+
+            ctx.fillStyle = secondaryCol;
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.6;
+            drawRoundRectPath(ctx, -8.5, -5.5, 5, 11, 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = primaryCol;
+            drawRoundRectPath(ctx, -5, -7.5, 10, 15, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            const gunX = 2 - recoil * 0.4;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(gunX, 1.5, 13, 3);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(gunX + 9, 2, 5, 2);
+
+            ctx.fillStyle = secondaryCol;
+            ctx.beginPath();
+            ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = highlightCol;
+            ctx.fillRect(2.5, -3, 2.2, 6);
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // 2. LÍNH TÊN LỬA (bazooka): Mũ nồi/băng đô, balo đạn, ống phóng RPG đầu đỏ
+    // ------------------------------------------------------------------------
+    else if (unitId === 'bazooka') {
+        if (isPortrait) {
+            ctx.fillStyle = primaryCol;
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            drawRoundRectPath(ctx, -8.5, -2, 17, 12, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#fde68a';
+            ctx.beginPath();
+            ctx.arc(-1, -6.5, 4.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(-5.8, -8.5, 9.6, 2.4);
+            ctx.fillStyle = secondaryCol;
+            ctx.beginPath();
+            ctx.ellipse(0, -10.2, 6.2, 2.8, -0.15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.save();
+            ctx.rotate(-0.28);
+            ctx.fillStyle = '#365314';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.8;
+            ctx.fillRect(-11, -2.5, 21, 5);
+            ctx.strokeRect(-11, -2.5, 21, 5);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.moveTo(10, -4);
+            ctx.lineTo(16, 0);
+            ctx.lineTo(10, 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        } else {
+            const legSwing = Math.sin(walkCycle) * 2.2;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-4 + legSwing, -6.5, 5, 3);
+            ctx.fillRect(-4 - legSwing, 3.5, 5, 3);
+
+            ctx.fillStyle = '#78350f';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.6;
+            drawRoundRectPath(ctx, -9.5, -6, 6, 12, 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = primaryCol;
+            drawRoundRectPath(ctx, -5, -7.5, 10, 15, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = secondaryCol;
+            ctx.beginPath();
+            ctx.arc(0, 0, 5.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            const rpgX = -7 - recoil * 0.5;
+            ctx.fillStyle = '#3f6212';
+            ctx.fillRect(rpgX, 3.2, 18, 4.4);
+            ctx.strokeRect(rpgX, 3.2, 18, 4.4);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.moveTo(rpgX + 18, 2);
+            ctx.lineTo(rpgX + 23.5, 5.4);
+            ctx.lineTo(rpgX + 18, 8.8);
+            ctx.closePath();
+            ctx.fill();
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // 3. LÍNH BẮN TỈA (sniper): Áo choàng ngụy trang Ghillie, súng nòng dài + laser đỏ
+    // ------------------------------------------------------------------------
+    else if (unitId === 'sniper') {
+        if (isPortrait) {
+            ctx.fillStyle = '#15803d';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, 11);
+            ctx.lineTo(-6, -9);
+            ctx.lineTo(6, -9);
+            ctx.lineTo(10, 11);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(-7, -4, 4, 3);
+            ctx.fillRect(3, -2, 4, 3);
+
+            ctx.fillStyle = '#166534';
+            ctx.beginPath();
+            ctx.arc(0, -6.5, 5.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(2, -6.5, 2.1, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-9, 2, 23, 2.8);
+            ctx.fillStyle = '#475569';
+            ctx.fillRect(-3, -0.5, 7, 2.2);
+
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(14, 3.4);
+            ctx.lineTo(18, 3.4);
+            ctx.stroke();
+        } else {
+            ctx.fillStyle = '#15803d';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.ellipse(-1, 0, 8.5, 7.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(-6, -4, 4, 2.5);
+            ctx.fillRect(-5, 2, 4, 2.5);
+
+            const gunX = 0 - recoil * 0.4;
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(gunX, 1.2, 17, 2.6);
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(gunX + 3, 0.5, 6, 4);
+
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.65)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(gunX + 17, 2.5);
+            ctx.lineTo(gunX + 26, 2.5);
+            ctx.stroke();
+
+            ctx.fillStyle = primaryCol;
+            ctx.beginPath();
+            ctx.arc(1, 0, 4.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // 4. XE HUMVEE (humvee): Xe bọc thép 4 bánh lốp gai, nóc gắn súng máy hạng nặng
+    // ------------------------------------------------------------------------
+    else if (unitId === 'humvee') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        ctx.fillStyle = '#0f172a';
+        [[-8, -9.5], [5, -9.5], [-8, 6.5], [5, 6.5]].forEach(([wx, wy]) => {
+            drawRoundRectPath(ctx, wx, wy, 5.5, 3, 1);
+            ctx.fill();
+        });
+
+        ctx.fillStyle = primaryCol;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -11, -7.5, 22, 15, 3.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#bae6fd';
+        ctx.fillRect(4, -5.5, 3.5, 11);
+        ctx.strokeRect(4, -5.5, 3.5, 11);
+
+        ctx.fillStyle = secondaryCol;
+        ctx.beginPath();
+        ctx.arc(-2, 0, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(-1 - recoil * 0.3, -1.4, 13, 2.8);
+    }
+
+    // ------------------------------------------------------------------------
+    // 5. XE THIẾT GIÁP APC (apc): Thân xe 6 bánh dày, tháp pháo tự động
+    // ------------------------------------------------------------------------
+    else if (unitId === 'apc') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        ctx.fillStyle = '#0f172a';
+        [[-10, -10.5], [-2, -10.5], [6, -10.5], [-10, 7.5], [-2, 7.5], [6, 7.5]].forEach(([wx, wy]) => {
+            ctx.fillRect(wx, wy, 5, 3);
+        });
+
+        ctx.fillStyle = hullMetalCol;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        drawRoundRectPath(ctx, -13, -8.5, 26, 17, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(9, -5, 2.2, 4);
+        ctx.fillRect(9, 1, 2.2, 4);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(-1, 0, 5.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(2 - recoil * 0.35, -1.8, 12, 3.6);
+        ctx.strokeRect(2 - recoil * 0.35, -1.8, 12, 3.6);
+    }
+
+    // ------------------------------------------------------------------------
+    // 6. XE TĂNG CHIẾN ĐẤU (tank): Bánh xích động theo walkCycle, tháp pháo giật nòng
+    // ------------------------------------------------------------------------
+    else if (unitId === 'tank') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.8;
+        drawRoundRectPath(ctx, -13, -11.5, 26, 4.5, 1.5);
+        ctx.fill();
+        ctx.stroke();
+        drawRoundRectPath(ctx, -13, 7, 26, 4.5, 1.5);
+        ctx.fill();
+        ctx.stroke();
+
+        const treadShift = ((walkCycle * 2) % 4 + 4) % 4;
+        ctx.fillStyle = '#64748b';
+        for (let tx = -11 + treadShift; tx < 11; tx += 4) {
+            ctx.fillRect(tx, -10.8, 1.8, 3);
+            ctx.fillRect(tx, 7.8, 1.8, 3);
+        }
+
+        ctx.fillStyle = primaryCol;
+        drawRoundRectPath(ctx, -11.5, -8, 23, 16, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        const barrelX = 2 - recoil * 0.55;
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(barrelX, -2.2, 16, 4.4);
+        ctx.strokeRect(barrelX, -2.2, 16, 4.4);
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(barrelX + 14, -3, 3, 6);
+
+        ctx.fillStyle = secondaryCol;
+        drawRoundRectPath(ctx, -6.5, -5.8, 12, 11.6, 3.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = highlightCol;
+        ctx.beginPath();
+        ctx.arc(-1, 0, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ------------------------------------------------------------------------
+    // 7. SIÊU TĂNG HẠNG NẶNG (heavy_tank): Thân rộng giáp ERA, tháp pháo nòng đôi
+    // ------------------------------------------------------------------------
+    else if (unitId === 'heavy_tank') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        ctx.fillStyle = '#0f172a';
+        drawRoundRectPath(ctx, -15, -13, 30, 5, 2);
+        ctx.fill();
+        drawRoundRectPath(ctx, -15, 8, 30, 5, 2);
+        ctx.fill();
+
+        const treadShift = ((walkCycle * 1.8) % 4 + 4) % 4;
+        ctx.fillStyle = '#94a3b8';
+        for (let tx = -13 + treadShift; tx < 13; tx += 4) {
+            ctx.fillRect(tx, -12, 2, 3);
+            ctx.fillRect(tx, 9, 2, 3);
+        }
+
+        ctx.fillStyle = secondaryCol;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        drawRoundRectPath(ctx, -13.5, -9.5, 27, 19, 3.5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = highlightCol;
+        [-8, -2, 4].forEach(bx => {
+            ctx.fillRect(bx, -9, 4.5, 2.2);
+            ctx.fillRect(bx, 6.8, 4.5, 2.2);
+        });
+
+        const barrelX = 2 - recoil * 0.55;
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(barrelX, -4.5, 16, 3.2);
+        ctx.strokeRect(barrelX, -4.5, 16, 3.2);
+        ctx.fillRect(barrelX, 1.3, 16, 3.2);
+        ctx.strokeRect(barrelX, 1.3, 16, 3.2);
+
+        ctx.fillStyle = primaryCol;
+        drawRoundRectPath(ctx, -8, -7, 14, 14, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(-1, 0, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ------------------------------------------------------------------------
+    // 8. TRỰC THĂNG VŨ TRANG (heli): Thân khí động học, 2 cánh tên lửa, cánh quạt quay mờ
+    // ------------------------------------------------------------------------
+    else if (unitId === 'heli') {
+        if (isPortrait) ctx.rotate(-Math.PI / 6);
+
+        ctx.fillStyle = secondaryCol;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-4, -2.5);
+        ctx.lineTo(-15, -1.5);
+        ctx.lineTo(-15, 1.5);
+        ctx.lineTo(-4, 2.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(-15.5, -5, 2, 10);
+
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(-3, -11, 5, 22);
+        ctx.strokeRect(-3, -11, 5, 22);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(2, -10.5, 3, 2.5);
+        ctx.fillRect(2, 8, 3, 2.5);
+
+        ctx.fillStyle = primaryCol;
+        ctx.beginPath();
+        ctx.ellipse(2, 0, 10.5, 5.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#bae6fd';
+        ctx.beginPath();
+        ctx.ellipse(6.5, 0, 4.8, 3.6, 0, -Math.PI / 2, Math.PI / 2);
+        ctx.fill();
+
+        const rotorSpin = opts.rotorAngle ?? animPhase * 22;
+        ctx.save();
+        ctx.translate(1, 0);
+        ctx.fillStyle = 'rgba(248, 250, 252, 0.16)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 14.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.rotate(rotorSpin);
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-14.5, 0);
+        ctx.lineTo(14.5, 0);
+        ctx.moveTo(0, -14.5);
+        ctx.lineTo(0, 14.5);
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // ------------------------------------------------------------------------
+    // 9. THUYỀN TUẦN TRA (patrol_boat): Thân tàu nhọn rẽ sóng chữ V, súng máy mũi tàu
+    // ------------------------------------------------------------------------
+    else if (unitId === 'patrol_boat') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        ctx.strokeStyle = 'rgba(224, 242, 254, 0.85)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(-10, 0);
+        ctx.lineTo(-16, -7);
+        ctx.moveTo(-10, 0);
+        ctx.lineTo(-16, 7);
+        ctx.stroke();
+
+        ctx.fillStyle = navalHullCol;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(15, 0);
+        ctx.lineTo(4, -7);
+        ctx.lineTo(-12, -6.5);
+        ctx.lineTo(-12, 6.5);
+        ctx.lineTo(4, 7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = primaryCol;
+        drawRoundRectPath(ctx, -7, -4.2, 9, 8.4, 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(7, 0, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(7, -1, 7, 2);
+    }
+
+    // ------------------------------------------------------------------------
+    // 10. TÀU KHU TRỤC (destroyer): 2 tháp pháo trước-sau và radar xoay
+    // ------------------------------------------------------------------------
+    else if (unitId === 'destroyer') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        ctx.fillStyle = navalHullCol;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(16.5, 0);
+        ctx.lineTo(6, -7.5);
+        ctx.lineTo(-14, -7);
+        ctx.lineTo(-15.5, 0);
+        ctx.lineTo(-14, 7);
+        ctx.lineTo(6, 7.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = primaryCol;
+        drawRoundRectPath(ctx, -4, -4.8, 8, 9.6, 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(animPhase * 4);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(0, -4.5);
+        ctx.lineTo(0, 4.5);
+        ctx.stroke();
+        ctx.restore();
+
+        [8.5, -9.5].forEach((tx, idx) => {
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath();
+            ctx.arc(tx, 0, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(idx === 0 ? tx : tx - 6, -1, 6, 2);
+        });
+    }
+
+    // ------------------------------------------------------------------------
+    // 11. THIẾT GIÁP HẠM (battleship): Chiến hạm khổng lồ 3 tháp pháo nhiều nòng
+    // ------------------------------------------------------------------------
+    else if (unitId === 'battleship') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(17.5, 0);
+        ctx.lineTo(7, -9.5);
+        ctx.lineTo(-15, -9);
+        ctx.lineTo(-17, 0);
+        ctx.lineTo(-15, 9);
+        ctx.lineTo(7, 9.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = primaryCol;
+        drawRoundRectPath(ctx, -12, -6.5, 22, 13, 3);
+        ctx.fill();
+
+        ctx.fillStyle = '#475569';
+        drawRoundRectPath(ctx, -4, -4.5, 7, 9, 2);
+        ctx.fill();
+        ctx.stroke();
+
+        [[9.5, 1], [4.5, 1], [-10, -1]].forEach(([tx, dir]) => {
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.arc(tx, 0, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#0f172a';
+            const bx = dir > 0 ? tx : tx - 6.5;
+            ctx.fillRect(bx, -2.2, 6.5, 1.5);
+            ctx.fillRect(bx, 0.7, 6.5, 1.5);
+        });
+    }
+
+    // ------------------------------------------------------------------------
+    // 12. KHÔNG KÍCH (airstrike): Máy bay phản lực tiêm kích cánh xuôi + lửa phản lực
+    // ------------------------------------------------------------------------
+    else if (unitId === 'airstrike') {
+        if (isPortrait) ctx.rotate(-Math.PI / 5);
+
+        const flameLen = 7 + Math.sin(animPhase * 28) * 2.5;
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.moveTo(-11, -3);
+        ctx.lineTo(-11 - flameLen, 0);
+        ctx.lineTo(-11, 3);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.moveTo(-11, -1.6);
+        ctx.lineTo(-11 - flameLen * 0.6, 0);
+        ctx.lineTo(-11, 1.6);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = secondaryCol;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(4, 0);
+        ctx.lineTo(-8, -14.5);
+        ctx.lineTo(-12, -13);
+        ctx.lineTo(-6, 0);
+        ctx.lineTo(-12, 13);
+        ctx.lineTo(-8, 14.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = primaryCol;
+        ctx.beginPath();
+        ctx.moveTo(16.5, 0);
+        ctx.lineTo(4, -4.2);
+        ctx.lineTo(-12, -3.5);
+        ctx.lineTo(-12, 3.5);
+        ctx.lineTo(4, 4.2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.ellipse(5, 0, 4.5, 2.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // ------------------------------------------------------------------------
+    // 13. PHÙ THỦY LỬA (pyromancer)
+    // ------------------------------------------------------------------------
+    else if (unitId === 'pyromancer') {
+        if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = isBlue ? '#b91c1c' : '#7f1d1d';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -560,13 +1226,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
 
-        ctx.strokeStyle = '#fde047';
-        ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.moveTo(-5, -8.2);
-        ctx.lineTo(5, -8.2);
-        ctx.stroke();
-
         ctx.strokeStyle = '#78350f';
         ctx.lineWidth = 2.4;
         ctx.beginPath();
@@ -583,7 +1242,13 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.beginPath();
         ctx.arc(11, -11, orbPulse * 0.65, 0, Math.PI * 2);
         ctx.fill();
-    } else if (unitId === 'cryomancer') {
+    }
+
+    // ------------------------------------------------------------------------
+    // 14. PHÁP SƯ BĂNG GIÁ (cryomancer)
+    // ------------------------------------------------------------------------
+    else if (unitId === 'cryomancer') {
+        if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = isBlue ? '#0284c7' : '#be123c';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -646,7 +1311,13 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
             ctx.stroke();
             ctx.restore();
         }
-    } else if (unitId === 'cleric') {
+    }
+
+    // ------------------------------------------------------------------------
+    // 15. MỤC SƯ THÁNH QUANG (cleric)
+    // ------------------------------------------------------------------------
+    else if (unitId === 'cleric') {
+        if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.strokeStyle = 'rgba(52, 211, 153, 0.75)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -690,7 +1361,13 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.beginPath();
         ctx.arc(9.5, -8, 2.6, 0, Math.PI * 2);
         ctx.fill();
-    } else if (unitId === 'necromancer') {
+    }
+
+    // ------------------------------------------------------------------------
+    // 16. PHÁP SƯ CHIÊU HỒN (necromancer)
+    // ------------------------------------------------------------------------
+    else if (unitId === 'necromancer') {
+        if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = 'rgba(147, 51, 234, 0.45)';
         ctx.beginPath();
         ctx.ellipse(0, 10, 11 + Math.sin(animPhase * 5) * 1.5, 4.5, 0, 0, Math.PI * 2);
@@ -706,15 +1383,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(10.5, 11);
         ctx.closePath();
         ctx.fill();
-        ctx.stroke();
-
-        ctx.strokeStyle = '#c084fc';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.moveTo(-5, -4);
-        ctx.lineTo(-7, 10);
-        ctx.moveTo(5, -4);
-        ctx.lineTo(7, 10);
         ctx.stroke();
 
         ctx.fillStyle = '#3b0764';
@@ -746,7 +1414,13 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.beginPath();
         ctx.arc(10, -10.5, 1.8, 0, Math.PI * 2);
         ctx.fill();
-    } else if (unitId === 'mecha_paladin') {
+    }
+
+    // ------------------------------------------------------------------------
+    // 17. ROBOT HỘ VỆ TITAN (mecha_paladin)
+    // ------------------------------------------------------------------------
+    else if (unitId === 'mecha_paladin') {
+        if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = isBlue ? '#1e3a8a' : '#7f1d1d';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2.2;
@@ -801,13 +1475,16 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
         ctx.restore();
-    } else if (unitId === 'railgun_walker') {
+    }
+
+    // ------------------------------------------------------------------------
+    // 18. PHÁO ĐIỆN TỪ RAILGUN (railgun_walker)
+    // ------------------------------------------------------------------------
+    else if (unitId === 'railgun_walker') {
+        if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.strokeStyle = '#1e293b';
         ctx.lineWidth = 3.2;
-        [
-            [-11, -9], [11, -9],
-            [-11, 9],  [11, 9]
-        ].forEach(([lx, ly]) => {
+        [[-11, -9], [11, -9], [-11, 9], [11, 9]].forEach(([lx, ly]) => {
             ctx.beginPath();
             ctx.moveTo(0, 0);
             ctx.lineTo(lx, ly);
@@ -840,7 +1517,13 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(1.5, -11 + Math.sin(animPhase * 12) * 1.5);
         ctx.lineTo(-1.5, -8);
         ctx.stroke();
-    } else if (unitId === 'skeleton') {
+    }
+
+    // ------------------------------------------------------------------------
+    // 19. CHIẾN BINH XƯƠNG TRIỆU HỒI (skeleton)
+    // ------------------------------------------------------------------------
+    else if (unitId === 'skeleton') {
+        if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = '#e2e8f0';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.8;
@@ -877,6 +1560,12 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
     ctx.restore();
 }
 
+// Giữ alias tương thích ngược với các module khác
+export const drawCustomUnitArt = drawUnitArt;
+export function isCustomArtUnit() {
+    return true;
+}
+
 // ============================================================================
 // 4B. BỘ VẼ CANVAS 2D CHO 14 LOẠI ZOMBIE & BOSS (FRONT-TOP VIEW - THẤY RÕ MẶT)
 // ============================================================================
@@ -901,10 +1590,6 @@ export function isZombieUnit(unitId) {
     return ZOMBIE_ART_IDS.has(unitId);
 }
 
-/**
- * Vẽ 14 Loại Zombie & Boss theo góc nhìn Front-Top View:
- * Nhân vật hướng mặt xuống dưới (+Y) để người chơi luôn nhìn rõ khuôn mặt, đôi mắt & vũ khí
- */
 export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhase = 0) {
     ctx.save();
     ctx.translate(cx, cy);
@@ -916,7 +1601,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
     const sway = Math.sin(animPhase * 6) * 1.2;
 
     if (zombieId === 'zombie_walker') {
-        // 1. Walker Zombie: Da xanh tái, mắt lờ đờ, áo rách, 2 tay đưa ra trước (+Y)
         ctx.fillStyle = '#475569';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -924,25 +1608,21 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Vết rách áo & xương sườn
         ctx.fillStyle = '#84cc16';
         ctx.fillRect(-3, -3, 6, 4);
 
-        // Hai cánh tay xanh tái vươn xuống (+Y)
         ctx.fillStyle = '#84cc16';
         ctx.fillRect(-10.5, -2 + sway, 4, 11);
         ctx.strokeRect(-10.5, -2 + sway, 4, 11);
         ctx.fillRect(6.5, -2 - sway, 4, 11);
         ctx.strokeRect(6.5, -2 - sway, 4, 11);
 
-        // Đầu chính diện hướng xuống (+Y)
         ctx.fillStyle = '#a3e635';
         ctx.beginPath();
         ctx.arc(0, 1, 7.2, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // Đôi mắt lờ đờ & miệng há
         ctx.fillStyle = '#fef08a';
         ctx.beginPath();
         ctx.arc(-2.6, 2.5, 1.8, 0, Math.PI * 2);
@@ -954,7 +1634,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillStyle = '#365314';
         ctx.fillRect(-2.5, 5.2, 5, 2);
     } else if (zombieId === 'zombie_runner') {
-        // 2. Crawler / Runner Zombie: Dáng lao gù sát đất, mắt đỏ rực, vuốt sắc
         const pounce = Math.abs(Math.sin(animPhase * 11)) * 2;
         ctx.fillStyle = '#65a30d';
         ctx.strokeStyle = '#0f172a';
@@ -963,7 +1642,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Vuốt sắc vươn tới trước
         ctx.strokeStyle = '#f8fafc';
         ctx.lineWidth = 1.8;
         ctx.beginPath();
@@ -973,14 +1651,12 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.lineTo(11, 11);
         ctx.stroke();
 
-        // Đầu gù cúi thấp hướng thẳng về phía trước
         ctx.fillStyle = '#84cc16';
         ctx.beginPath();
         ctx.arc(0, 3, 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // Đôi mắt đỏ rực phát sáng
         ctx.fillStyle = '#ef4444';
         ctx.beginPath();
         ctx.arc(-2.8, 4, 2, 0, Math.PI * 2);
@@ -990,11 +1666,9 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-3.2, 3.5, 1, 1);
         ctx.fillRect(2.4, 3.5, 1, 1);
     } else if (zombieId === 'zombie_bunny_rider') {
-        // 3. Zombie Cưỡi Thỏ Đột Biến: Thỏ khổng lồ tai dài mắt đỏ bên dưới, Zombie ngồi trên lưng
         const hop = Math.abs(Math.sin(animPhase * 9)) * 2.5;
         ctx.translate(0, -hop);
 
-        // Thân Thỏ khổng lồ màu xám trắng đột biến
         ctx.fillStyle = '#e2e8f0';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -1003,13 +1677,11 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Đầu Thỏ phía trước (+Y) với 2 tai dài vểnh lên & mắt đỏ
         ctx.beginPath();
         ctx.arc(0, 8, 6.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // Hai tai thỏ dài
         ctx.fillStyle = '#cbd5e1';
         ctx.beginPath();
         ctx.ellipse(-4.5, 1, 2.3, 7.5, -0.25, 0, Math.PI * 2);
@@ -1020,7 +1692,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Mắt đỏ & răng cửa thỏ
         ctx.fillStyle = '#ef4444';
         ctx.fillRect(-3.5, 8.5, 2.2, 2.2);
         ctx.fillRect(1.3, 8.5, 2.2, 2.2);
@@ -1028,7 +1699,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-1.8, 12, 1.6, 2.5);
         ctx.fillRect(0.2, 12, 1.6, 2.5);
 
-        // Zombie ngồi cưỡi trên lưng thỏ
         ctx.fillStyle = '#84cc16';
         ctx.beginPath();
         ctx.arc(0, -3.5, 5.2, 0, Math.PI * 2);
@@ -1038,7 +1708,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-2.2, -2.5, 1.5, 1.5);
         ctx.fillRect(0.8, -2.5, 1.5, 1.5);
     } else if (zombieId === 'zombie_horse_knight') {
-        // 4. Kỵ Sĩ Ngựa Xương: Chiến mã thây ma bên dưới + Kỵ sĩ giáp sắt rỉ sét bên trên
         ctx.fillStyle = '#334155';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -1046,7 +1715,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Đầu ngựa xương vươn về phía trước (+Y)
         ctx.fillStyle = '#cbd5e1';
         drawRoundRectPath(ctx, -5, 6, 10, 10, 3);
         ctx.fill();
@@ -1055,21 +1723,18 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-3.2, 10, 2, 2);
         ctx.fillRect(1.2, 10, 2, 2);
 
-        // Kỵ sĩ giáp rỉ sét & Thương sắt bên phải
         ctx.fillStyle = '#78350f';
         ctx.beginPath();
         ctx.arc(0, -2, 6.8, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // Khe mũ giáp sáng mắt đỏ
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(-4.5, -1, 9, 2.5);
         ctx.fillStyle = '#ef4444';
         ctx.fillRect(-3, -0.5, 2, 1.5);
         ctx.fillRect(1, -0.5, 2, 1.5);
 
-        // Ngọn thương kỵ sĩ chỉ thẳng xuống (+Y)
         ctx.strokeStyle = '#94a3b8';
         ctx.lineWidth = 2.6;
         ctx.beginPath();
@@ -1077,7 +1742,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.lineTo(11, 15);
         ctx.stroke();
     } else if (zombieId === 'zombie_tiger_lord') {
-        // 5. Chúa Tể Cưỡi Hổ Răng Kiếm: Hổ vằn cam đột biến + Thủ lĩnh Zombie
         ctx.fillStyle = '#ea580c';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -1085,7 +1749,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Vằn đen trên lưng hổ
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2.2;
         ctx.beginPath();
@@ -1099,14 +1762,12 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.lineTo(9, 1);
         ctx.stroke();
 
-        // Đầu Hổ răng kiếm phía trước (+Y)
         ctx.fillStyle = '#f97316';
         ctx.beginPath();
         ctx.arc(0, 9, 7.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // Cặp răng nanh kiếm trắng dài
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.moveTo(-4, 13);
@@ -1121,7 +1782,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.closePath();
         ctx.fill();
 
-        // Chúa tể Zombie đội mũ xương trên lưng hổ
         ctx.fillStyle = '#65a30d';
         ctx.beginPath();
         ctx.arc(0, -3, 5.8, 0, Math.PI * 2);
@@ -1131,7 +1791,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-2.5, -2, 1.8, 1.8);
         ctx.fillRect(0.8, -2, 1.8, 1.8);
     } else if (zombieId === 'zombie_spitter') {
-        // 6. Zombie Phun Axit: Bình hóa chất xanh phát sáng sau lưng, miệng nhỏ axit
         ctx.fillStyle = '#15803d';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -1139,21 +1798,18 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // 2 ống bình hóa chất neon phát sáng trên vai
         ctx.fillStyle = '#4ade80';
         ctx.beginPath();
         ctx.arc(-6, -7, 3.6, 0, Math.PI * 2);
         ctx.arc(6, -7, 3.6, 0, Math.PI * 2);
         ctx.fill();
 
-        // Đầu chính diện
         ctx.fillStyle = '#86efac';
         ctx.beginPath();
         ctx.arc(0, 2, 7.2, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
 
-        // Miệng phun axit xanh rực
         ctx.fillStyle = '#22c55e';
         ctx.beginPath();
         ctx.arc(0, 5.5, 3.2 + Math.sin(animPhase * 8) * 0.6, 0, Math.PI * 2);
@@ -1162,7 +1818,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-3.2, 1.5, 2, 2);
         ctx.fillRect(1.2, 1.5, 2, 2);
     } else if (zombieId === 'zombie_bomber') {
-        // 7. Zombie Cảm Tử Ôm Bom: Ôm thùng thuốc nổ TNT đỏ nhấp nháy trước ngực (+Y)
         ctx.fillStyle = '#65a30d';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -1171,14 +1826,12 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Mắt điên dại
         ctx.fillStyle = '#fef08a';
         ctx.beginPath();
         ctx.arc(-2.6, -1.5, 2, 0, Math.PI * 2);
         ctx.arc(2.6, -1.5, 1.6, 0, Math.PI * 2);
         ctx.fill();
 
-        // Thùng TNT đỏ nhấp nháy ôm trước ngực (+Y)
         const blink = Math.sin(animPhase * 16) > 0;
         ctx.fillStyle = blink ? '#ef4444' : '#b91c1c';
         drawRoundRectPath(ctx, -8.5, 2, 17, 11, 3);
@@ -1190,7 +1843,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.textAlign = 'center';
         ctx.fillText('TNT', 0, 9.8);
     } else if (zombieId === 'zombie_necromancer') {
-        // 8. Pháp Sư Zombie Gọi Hồn: Mũ đầu lâu, áo choàng tím, trượng xương phát sáng
         ctx.fillStyle = '#3b0764';
         ctx.strokeStyle = '#090014';
         ctx.lineWidth = 2;
@@ -1198,7 +1850,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Mũ đầu lâu trắng chính diện
         ctx.fillStyle = '#f1f5f9';
         ctx.beginPath();
         ctx.arc(0, 1, 7, 0, Math.PI * 2);
@@ -1209,7 +1860,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-3.2, 1.5, 2.2, 2.2);
         ctx.fillRect(1, 1.5, 2.2, 2.2);
 
-        // Trượng xương tím bên phải
         ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 2.4;
         ctx.beginPath();
@@ -1222,7 +1872,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.arc(11, 12, 3.6 + Math.sin(animPhase * 7) * 0.8, 0, Math.PI * 2);
         ctx.fill();
     } else if (zombieId === 'zombie_riot') {
-        // 9. Zombie Khiên Chống Bạo Động: Thân sau + Khiên thép chữ nhật lớn che chắn mặt trước (+Y)
         ctx.fillStyle = '#1e293b';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -1231,17 +1880,14 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Khiên thép chữ nhật lớn phía trước (+Y)
         ctx.fillStyle = '#64748b';
         drawRoundRectPath(ctx, -12, 3, 24, 9, 2.5);
         ctx.fill();
         ctx.stroke();
 
-        // Khe kính quan sát trên khiên & chữ RIOT
         ctx.fillStyle = '#38bdf8';
         ctx.fillRect(-7, 5, 14, 2.4);
     } else if (zombieId === 'zombie_cyborg') {
-        // 10. Cyborg Zombie: Nửa mặt bọc thép mắt laser đỏ + Tay phải là lưỡi cưa máy
         ctx.fillStyle = '#334155';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -1249,7 +1895,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Lưỡi cưa máy quay tít bên tay phải
         const sawJitter = Math.sin(animPhase * 28) * 1.2;
         ctx.fillStyle = '#94a3b8';
         drawRoundRectPath(ctx, 8, -2 + sawJitter, 5, 16, 2);
@@ -1258,7 +1903,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillStyle = '#ef4444';
         ctx.fillRect(9.5, 2 + sawJitter, 2, 10);
 
-        // Đầu nửa thịt zombie (trái) nửa thép robot (phải)
         ctx.fillStyle = '#84cc16';
         ctx.beginPath();
         ctx.arc(0, 1, 7.2, Math.PI / 2, Math.PI * 1.5);
@@ -1271,7 +1915,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.arc(0, 1, 7.2, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Mắt laser đỏ rực
         ctx.fillStyle = '#ef4444';
         ctx.beginPath();
         ctx.arc(2.8, 2, 2.2, 0, Math.PI * 2);
@@ -1279,7 +1922,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillStyle = '#fef08a';
         ctx.fillRect(-3.5, 1.5, 1.8, 1.8);
     } else if (zombieId === 'zombie_mecha') {
-        // 11. Mecha-Zombie MK-IV: Cỗ máy chiến đấu bọc thép, lồng kính chứa đầu zombie + 2 bệ tên lửa
         ctx.fillStyle = '#1e293b';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2.2;
@@ -1287,14 +1929,12 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // 2 bệ phóng tên lửa trên vai
         ctx.fillStyle = '#dc2626';
         ctx.fillRect(-14.5, -4, 4, 11);
         ctx.strokeRect(-14.5, -4, 4, 11);
         ctx.fillRect(10.5, -4, 4, 11);
         ctx.strokeRect(10.5, -4, 4, 11);
 
-        // Lồng kính bán cầu ở giữa chứa đầu Zombie
         ctx.fillStyle = '#84cc16';
         ctx.beginPath();
         ctx.arc(0, 2, 5.5, 0, Math.PI * 2);
@@ -1311,7 +1951,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
     } else if (zombieId === 'boss_butcher') {
-        // 12. BOSS Wave 7 – Đồ Tể Khổng Lồ: Tạp dề đẫm máu, mặt khâu chằng chịt, dao phay khổng lồ
         ctx.fillStyle = '#7f1d1d';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2.4;
@@ -1319,7 +1958,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Tạp dề trắng vấy máu phía trước
         ctx.fillStyle = '#f8fafc';
         ctx.fillRect(-9, 1, 18, 10);
         ctx.fillStyle = '#dc2626';
@@ -1328,13 +1966,11 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.arc(4, 7, 2.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Dao phay khổng lồ bên phải
         ctx.fillStyle = '#cbd5e1';
         drawRoundRectPath(ctx, 11, -3, 7, 19, 2);
         ctx.fill();
         ctx.stroke();
 
-        // Đầu đồ tể mặt khâu
         ctx.fillStyle = '#84cc16';
         ctx.beginPath();
         ctx.arc(0, 0, 8.5, 0, Math.PI * 2);
@@ -1352,7 +1988,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fillRect(-3.8, 1, 2.4, 2.4);
         ctx.fillRect(1.4, 1, 2.4, 2.4);
     } else if (zombieId === 'boss_chimera') {
-        // 13. BOSS Wave 14 – Quái Thú Chimera: Quái thú đột biến 2 đầu có sừng, gầm sóng âm
         ctx.fillStyle = '#581c87';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2.4;
@@ -1360,7 +1995,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // Hai đầu quái thú song sinh hướng xuống (+Y)
         [-6.5, 6.5].forEach((hx, idx) => {
             ctx.fillStyle = idx === 0 ? '#7e22ce' : '#991b1b';
             ctx.beginPath();
@@ -1368,7 +2002,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
             ctx.fill();
             ctx.stroke();
 
-            // Sừng cong
             ctx.strokeStyle = '#fde047';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -1378,13 +2011,11 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
             ctx.lineTo(hx + 6, -4);
             ctx.stroke();
 
-            // Mắt rực sáng
             ctx.fillStyle = '#00f2fe';
             ctx.fillRect(hx - 2.8, 5, 2, 2);
             ctx.fillRect(hx + 0.8, 5, 2, 2);
         });
     } else if (zombieId === 'boss_omega_tyrant') {
-        // 14. BOSS Wave 20 – Bạo Chúa Omega: Đại boss Zombie-Robot 4 nòng pháo plasma, vương miện sừng
         ctx.fillStyle = '#090014';
         ctx.strokeStyle = '#d946ef';
         ctx.lineWidth = 2.5;
@@ -1392,7 +2023,6 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
         ctx.fill();
         ctx.stroke();
 
-        // 4 nòng pháo plasma hướng xuống (+Y)
         ctx.fillStyle = '#38bdf8';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.4;
@@ -1401,13 +2031,11 @@ export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhas
             ctx.strokeRect(bx, 6, 3, 10);
         });
 
-        // Lõi lò phản ứng tím-đỏ trước ngực
         ctx.fillStyle = '#ef4444';
         ctx.beginPath();
         ctx.arc(0, 3, 4.5 + Math.sin(animPhase * 10) * 1, 0, Math.PI * 2);
         ctx.fill();
 
-        // Đầu Bạo Chúa & Vương miện sừng
         ctx.fillStyle = '#4c1d95';
         ctx.beginPath();
         ctx.arc(0, -3, 7.8, 0, Math.PI * 2);
@@ -1450,9 +2078,9 @@ export function getZombieSpriteDataURL(zombieId) {
     return url;
 }
 
-/**
- * Vẽ Ụ Pháo Phòng Thủ gắn trên Căn Cứ Xanh (`gatling` | `sam_missile` | `tesla_coil`)
- */
+// ============================================================================
+// 4C. BỘ VẼ Ụ PHÁO CĂN CỨ XANH & CÁC BIỂU TƯỢNG GIAO DIỆN 100% CANVAS 2D
+// ============================================================================
 export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI / 2, timeSec = 0) {
     ctx.save();
     ctx.translate(cx, cy);
@@ -1510,363 +2138,158 @@ export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI /
     ctx.restore();
 }
 
-const customUnitIconCache = new Map();
+const unitIconCache = new Map();
 
-export function getUnitSpriteDataURL(unitOrId, fallbackRow = 7) {
+export function getUnitSpriteDataURL(unitOrId, teamOrRow = 'blue') {
     const unitId = typeof unitOrId === 'string' ? unitOrId : (unitOrId?.id || 'infantry');
-    const spriteCol = typeof unitOrId === 'object' && unitOrId !== null ? (unitOrId.spriteCol ?? 16) : 16;
-
     if (isZombieUnit(unitId)) {
         return getZombieSpriteDataURL(unitId);
     }
 
-    if (isCustomArtUnit(unitId)) {
-        const team = fallbackRow === 8 ? 'red' : 'blue';
-        const cacheKey = `${unitId}__${team}`;
-        if (customUnitIconCache.has(cacheKey)) {
-            return customUnitIconCache.get(cacheKey);
-        }
-        const c = document.createElement('canvas');
-        c.width = 48;
-        c.height = 48;
-        const cCtx = c.getContext('2d');
-        drawCustomUnitArt(cCtx, unitId, 24, 25, 38, team, 0.5, 0);
-        const url = c.toDataURL();
-        customUnitIconCache.set(cacheKey, url);
-        return url;
+    const team = (teamOrRow === 'red' || teamOrRow === 8) ? 'red' : 'blue';
+    const cacheKey = `${unitId}__${team}`;
+    if (unitIconCache.has(cacheKey)) {
+        return unitIconCache.get(cacheKey);
     }
 
-    if (atlas && atlas.ready) {
-        return atlas.toDataURL(spriteCol, fallbackRow);
-    }
-    return '';
+    const c = document.createElement('canvas');
+    c.width = 48;
+    c.height = 48;
+    const cCtx = c.getContext('2d');
+    drawUnitArt(cCtx, unitId, 24, 24, 38, team, 0.5, null);
+    const url = c.toDataURL();
+    unitIconCache.set(cacheKey, url);
+    return url;
 }
 
-// ============================================================================
-// 5. ATLAS BÓC TÁCH SPRITE SHEET ("Preview.png")
-// ============================================================================
-export class SpriteAtlas {
-    constructor() {
-        this.ready = false;
-        this.tiles = new Map();
-        this.bakedMapCanvas = null;
-        this.onReadyCallback = null;
+// Vẽ Bình Xăng (#icon-gas-can, .gas-inline-sprite) bằng Canvas 2D
+function createGasCanDataURL() {
+    const c = document.createElement('canvas');
+    c.width = 32;
+    c.height = 32;
+    const cx = c.getContext('2d');
+    cx.lineJoin = 'round';
 
-        this.image = new Image();
-        this.image.src = 'Preview.png';
-        this.image.onload = () => this.processAtlas();
-        this.image.onerror = () => {
-            if (!this.image.src.endsWith('preview.png')) {
-                this.image.src = 'preview.png';
-            }
-        };
-    }
+    cx.fillStyle = '#ef4444';
+    cx.strokeStyle = '#0f172a';
+    cx.lineWidth = 2.2;
+    drawRoundRectPath(cx, 6, 7, 20, 21, 4);
+    cx.fill();
+    cx.stroke();
 
-    isSolidTerrainTile(col, row) {
-        if (col <= 3 && row <= 5) return true;
-        if (col === 4 && (row === 0 || row === 1 || row === 8)) return true;
-        return false;
-    }
+    cx.fillStyle = '#0f172a';
+    cx.fillRect(10, 10, 9, 3);
+    cx.fillStyle = '#facc15';
+    cx.fillRect(20, 3, 5, 5);
+    cx.strokeRect(20, 3, 5, 5);
 
-    extractUnitOrBuilding(sx, sy, tileW, bgR, bgG, bgB, hasFullData, filterDisconnected = true) {
-        const tileCanvas = document.createElement('canvas');
-        tileCanvas.width = tileW;
-        tileCanvas.height = tileW;
-        const tCtx = tileCanvas.getContext('2d');
-        tCtx.imageSmoothingEnabled = false;
-        tCtx.drawImage(this.image, sx, sy, tileW, tileW, 0, 0, tileW, tileW);
+    cx.strokeStyle = '#fca5a5';
+    cx.lineWidth = 2;
+    cx.beginPath();
+    cx.moveTo(11, 16);
+    cx.lineTo(21, 24);
+    cx.moveTo(21, 16);
+    cx.lineTo(11, 24);
+    cx.stroke();
 
-        if (!hasFullData) return tileCanvas;
-
-        try {
-            const subData = tCtx.getImageData(0, 0, tileW, tileW);
-            const d = subData.data;
-            const total = tileW * tileW;
-            const visitedBg = new Uint8Array(total);
-            const queue = [];
-
-            const matchBg = (idx, tol = 24) =>
-                Math.abs(d[idx] - bgR) <= tol &&
-                Math.abs(d[idx + 1] - bgG) <= tol &&
-                Math.abs(d[idx + 2] - bgB) <= tol;
-
-            for (let x = 0; x < tileW; x++) {
-                queue.push(x, (tileW - 1) * tileW + x);
-            }
-            for (let y = 0; y < tileW; y++) {
-                queue.push(y * tileW, y * tileW + (tileW - 1));
-            }
-
-            while (queue.length > 0) {
-                const pos = queue.pop();
-                if (pos < 0 || pos >= total || visitedBg[pos]) continue;
-                visitedBg[pos] = 1;
-
-                const pIdx = pos * 4;
-                if (matchBg(pIdx, 24)) {
-                    d[pIdx + 3] = 0;
-                    const px = pos % tileW;
-                    const py = (pos / tileW) | 0;
-                    if (px > 0) queue.push(pos - 1);
-                    if (px < tileW - 1) queue.push(pos + 1);
-                    if (py > 0) queue.push(pos - tileW);
-                    if (py < tileW - 1) queue.push(pos + tileW);
-                }
-            }
-
-            if (filterDisconnected) {
-                const keep = new Uint8Array(total);
-                const fgQueue = [];
-                const c0 = Math.max(2, Math.floor(tileW * 0.2));
-                const c1 = Math.min(tileW - 3, Math.ceil(tileW * 0.8));
-
-                for (let y = c0; y <= c1; y++) {
-                    for (let x = c0; x <= c1; x++) {
-                        const pos = y * tileW + x;
-                        if (d[pos * 4 + 3] > 0) {
-                            keep[pos] = 1;
-                            fgQueue.push(pos);
-                        }
-                    }
-                }
-
-                while (fgQueue.length > 0) {
-                    const pos = fgQueue.pop();
-                    const px = pos % tileW;
-                    const py = (pos / tileW) | 0;
-
-                    for (let ny = Math.max(0, py - 1); ny <= Math.min(tileW - 1, py + 1); ny++) {
-                        for (let nx = Math.max(0, px - 1); nx <= Math.min(tileW - 1, px + 1); nx++) {
-                            const nPos = ny * tileW + nx;
-                            if (!keep[nPos] && d[nPos * 4 + 3] > 0) {
-                                keep[nPos] = 1;
-                                fgQueue.push(nPos);
-                            }
-                        }
-                    }
-                }
-
-                for (let i = 0; i < total; i++) {
-                    if (!keep[i]) d[i * 4 + 3] = 0;
-                }
-            }
-
-            tCtx.putImageData(subData, 0, 0);
-        } catch (e) {}
-
-        return tileCanvas;
-    }
-
-    extractRow10Icon(sx, sy, sw, sh, outSize, bgR, bgG, bgB, hasFullData) {
-        const tileCanvas = document.createElement('canvas');
-        tileCanvas.width = outSize;
-        tileCanvas.height = outSize;
-        const tCtx = tileCanvas.getContext('2d');
-        tCtx.imageSmoothingEnabled = false;
-
-        const w = Math.max(1, Math.round(sw));
-        const h = Math.max(1, Math.round(sh));
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = w;
-        tempCanvas.height = h;
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.imageSmoothingEnabled = false;
-        tempCtx.drawImage(this.image, Math.round(sx), Math.round(sy), w, h, 0, 0, w, h);
-
-        if (!hasFullData) {
-            tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
-            return tileCanvas;
-        }
-
-        try {
-            const subData = tempCtx.getImageData(0, 0, w, h);
-            const d = subData.data;
-
-            const matchBg = (idx, tol = 24) =>
-                Math.abs(d[idx] - bgR) <= tol &&
-                Math.abs(d[idx + 1] - bgG) <= tol &&
-                Math.abs(d[idx + 2] - bgB) <= tol;
-
-            let bMinX = w, bMaxX = -1, bMinY = h, bMaxY = -1;
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    const pIdx = (y * w + x) * 4;
-                    if (matchBg(pIdx, 24)) {
-                        d[pIdx + 3] = 0;
-                    } else if (d[pIdx + 3] > 0) {
-                        if (x < bMinX) bMinX = x;
-                        if (x > bMaxX) bMaxX = x;
-                        if (y < bMinY) bMinY = y;
-                        if (y > bMaxY) bMaxY = y;
-                    }
-                }
-            }
-
-            tempCtx.putImageData(subData, 0, 0);
-
-            if (bMaxX >= bMinX && bMaxY >= bMinY) {
-                const cw = bMaxX - bMinX + 1;
-                const ch = bMaxY - bMinY + 1;
-                const pad = 2;
-                const targetMax = outSize - pad * 2;
-                const scale = Math.min(targetMax / Math.max(cw, ch, 1), 1.2);
-                const dw = Math.max(1, Math.round(cw * scale));
-                const dh = Math.max(1, Math.round(ch * scale));
-                const dx = Math.floor((outSize - dw) / 2);
-                const dy = Math.floor((outSize - dh) / 2);
-                tCtx.drawImage(tempCanvas, bMinX, bMinY, cw, ch, dx, dy, dw, dh);
-            } else {
-                tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
-            }
-        } catch (e) {
-            tCtx.drawImage(tempCanvas, 0, 0, w, h, 0, 0, outSize, outSize);
-        }
-
-        return tileCanvas;
-    }
-
-    processAtlas() {
-        const W = this.image.naturalWidth;
-        const H = this.image.naturalHeight;
-        const rawCanvas = document.createElement('canvas');
-        rawCanvas.width = W;
-        rawCanvas.height = H;
-        const rawCtx = rawCanvas.getContext('2d', { willReadFrequently: true });
-        rawCtx.imageSmoothingEnabled = false;
-        rawCtx.drawImage(this.image, 0, 0);
-
-        let minX = Math.round(W * 0.16875);
-        let maxX = Math.round(W * 0.83125);
-        let minY = Math.round(H * 0.0963);
-        let tileW = Math.round(((maxX - minX + 1) * 16) / 305);
-        let stepX = (maxX - minX + 1 - tileW) / 17;
-        let rowStarts = Array.from({ length: 10 }, (_, r) => Math.round(minY + r * stepX));
-        let row10Y0 = Math.round(minY + 10 * stepX + tileW * 0.25);
-        let row10Y1 = row10Y0 + tileW + 4;
-
-        let fullData = null;
-        let bgR = 59, bgG = 136, bgB = 214;
-
-        try {
-            const imgData = rawCtx.getImageData(0, 0, W, H);
-            fullData = imgData.data;
-            bgR = fullData[0];
-            bgG = fullData[1];
-            bgB = fullData[2];
-        } catch (err) {}
-
-        for (let row = 0; row < 10; row++) {
-            for (let col = 0; col < 18; col++) {
-                const sx = Math.round(minX + col * stepX);
-                const sy = rowStarts[row];
-                const isTerrain = this.isSolidTerrainTile(col, row);
-
-                if (isTerrain) {
-                    const tileCanvas = document.createElement('canvas');
-                    tileCanvas.width = tileW;
-                    tileCanvas.height = tileW;
-                    const tCtx = tileCanvas.getContext('2d');
-                    tCtx.imageSmoothingEnabled = false;
-                    const inset = Math.max(1, Math.floor(tileW * 0.04));
-                    tCtx.drawImage(
-                        this.image,
-                        sx + inset,
-                        sy + inset,
-                        tileW - inset * 2,
-                        tileW - inset * 2,
-                        0,
-                        0,
-                        tileW,
-                        tileW
-                    );
-                    this.tiles.set(`${col},${row}`, tileCanvas);
-                } else {
-                    const isRoadOrMulti = (row >= 6 && col <= 4) || (col === 7 && row === 3);
-                    const tileCanvas = this.extractUnitOrBuilding(
-                        sx,
-                        sy,
-                        tileW,
-                        bgR,
-                        bgG,
-                        bgB,
-                        !!fullData,
-                        !isRoadOrMulti
-                    );
-                    this.tiles.set(`${col},${row}`, tileCanvas);
-                }
-            }
-        }
-
-        for (let col = 0; col < 18; col++) {
-            const sx = Math.round(minX + col * stepX);
-            const sw = tileW;
-            const sy = row10Y0;
-            const sh = row10Y1 - row10Y0 + 1;
-            const iconCanvas = this.extractRow10Icon(sx, sy, sw, sh, tileW, bgR, bgG, bgB, !!fullData);
-            this.tiles.set(`${col},10`, iconCanvas);
-        }
-
-        this.ready = true;
-        this.populateUIDeckIcons();
-        this.renderTopAvatarArt();
-        if (typeof this.onReadyCallback === 'function') {
-            this.onReadyCallback();
-        }
-    }
-
-    get(col, row) {
-        return this.tiles.get(`${col},${row}`) || null;
-    }
-
-    draw(ctx, col, row, cx, cy, w, h, opts = {}) {
-        const sprite = this.get(col, row);
-        if (!sprite) return false;
-        ctx.save();
-        ctx.imageSmoothingEnabled = false;
-        ctx.translate(cx, cy);
-        if (opts.rotation) ctx.rotate(opts.rotation);
-        if (opts.flipX || opts.flipY) {
-            ctx.scale(opts.flipX ? -1 : 1, opts.flipY ? -1 : 1);
-        }
-        if (opts.alpha !== undefined) ctx.globalAlpha = opts.alpha;
-        ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
-        ctx.restore();
-        return true;
-    }
-
-    toDataURL(col, row) {
-        const sprite = this.get(col, row);
-        return sprite ? sprite.toDataURL() : '';
-    }
-
-    populateUIDeckIcons() {
-        const setImg = (id, col, row) => {
-            const el = document.getElementById(id);
-            if (el) el.src = this.toDataURL(col, row);
-        };
-
-        const gasUrl = this.toDataURL(12, 10);
-        setImg('icon-gas-can', 12, 10);
-        setImg('icon-upgrade-building', 11, 2);
-
-        document.querySelectorAll('.gas-inline-sprite').forEach(img => {
-            img.src = gasUrl;
-        });
-
-        const lockUrl = this.toDataURL(13, 10);
-        document.querySelectorAll('.lock-sprite').forEach(img => {
-            img.src = lockUrl;
-        });
-    }
-
-    renderTopAvatarArt() {
-        const avatarCanvas = document.getElementById('topAvatarCanvas');
-        if (!avatarCanvas) return;
-        const aCtx = avatarCanvas.getContext('2d');
-        aCtx.imageSmoothingEnabled = false;
-        aCtx.clearRect(0, 0, 32, 32);
-        this.draw(aCtx, 16, 7, 16, 17, 26, 26);
-    }
+    return c.toDataURL();
 }
 
-export const atlas = new SpriteAtlas();
+// Vẽ Ổ Khóa (.lock-sprite) bằng Canvas 2D
+function createLockDataURL() {
+    const c = document.createElement('canvas');
+    c.width = 32;
+    c.height = 32;
+    const cx = c.getContext('2d');
+    cx.lineJoin = 'round';
+
+    cx.strokeStyle = '#cbd5e1';
+    cx.lineWidth = 3.5;
+    cx.beginPath();
+    cx.arc(16, 13, 6.5, Math.PI, 0);
+    cx.stroke();
+
+    cx.fillStyle = '#f59e0b';
+    cx.strokeStyle = '#0f172a';
+    cx.lineWidth = 2.2;
+    drawRoundRectPath(cx, 7, 13, 18, 15, 3);
+    cx.fill();
+    cx.stroke();
+
+    cx.fillStyle = '#0f172a';
+    cx.beginPath();
+    cx.arc(16, 19, 2.2, 0, Math.PI * 2);
+    cx.fill();
+    cx.fillRect(15, 20, 2, 4);
+
+    return c.toDataURL();
+}
+
+// Vẽ Trạm Bơm Nâng Cấp Xăng (#icon-upgrade-building) bằng Canvas 2D
+function createUpgradeBuildingDataURL() {
+    const c = document.createElement('canvas');
+    c.width = 36;
+    c.height = 36;
+    const cx = c.getContext('2d');
+    cx.lineJoin = 'round';
+
+    cx.fillStyle = '#0284c7';
+    cx.strokeStyle = '#0f172a';
+    cx.lineWidth = 2;
+    drawRoundRectPath(cx, 4, 6, 28, 7, 2);
+    cx.fill();
+    cx.stroke();
+
+    cx.fillStyle = '#10b981';
+    drawRoundRectPath(cx, 8, 13, 20, 18, 2);
+    cx.fill();
+    cx.stroke();
+
+    cx.fillStyle = '#fde047';
+    cx.beginPath();
+    cx.moveTo(18, 15);
+    cx.lineTo(24, 21);
+    cx.lineTo(20.5, 21);
+    cx.lineTo(20.5, 28);
+    cx.lineTo(15.5, 28);
+    cx.lineTo(15.5, 21);
+    cx.lineTo(12, 21);
+    cx.closePath();
+    cx.fill();
+
+    return c.toDataURL();
+}
+
+export function renderTopAvatarArt() {
+    const avatarCanvas = document.getElementById('topAvatarCanvas');
+    if (!avatarCanvas) return;
+    const aCtx = avatarCanvas.getContext('2d');
+    aCtx.clearRect(0, 0, 32, 32);
+
+    aCtx.fillStyle = '#0284c7';
+    aCtx.fillRect(0, 0, 32, 32);
+
+    drawUnitArt(aCtx, 'infantry', 16, 17, 26, 'blue', 0.4, null);
+}
+
+export function populateProceduralUIIcons() {
+    const gasUrl = createGasCanDataURL();
+    const lockUrl = createLockDataURL();
+    const upgBuildingUrl = createUpgradeBuildingDataURL();
+
+    const gasCanEl = document.getElementById('icon-gas-can');
+    if (gasCanEl) gasCanEl.src = gasUrl;
+
+    const upgBuildEl = document.getElementById('icon-upgrade-building');
+    if (upgBuildEl) upgBuildEl.src = upgBuildingUrl;
+
+    document.querySelectorAll('.gas-inline-sprite').forEach(img => {
+        img.src = gasUrl;
+    });
+
+    document.querySelectorAll('.lock-sprite').forEach(img => {
+        img.src = lockUrl;
+    });
+
+    renderTopAvatarArt();
+}

@@ -162,7 +162,7 @@
     flex-shrink: 0;
 }
 
-/* Thanh chọn đội hình chiến đấu (Tương thích ngược nếu cần) */
+/* Thanh chọn đội hình chiến đấu */
 .army-deck-builder-strip {
     background: #1e293b;
     border: 2px solid #0f172a;

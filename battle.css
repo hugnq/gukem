@@ -1,7 +1,7 @@
 /* ============================================================================
    TINY BATTLE - IN-GAME BATTLE STYLES (css/battle.css)
-   HUD, Base HP Strip, 5/6 Deck Slots, Radial Cooldown, Commander Q/W/E/R,
-   Roll Draft (3/6 Cards), Auto-Battler, Raid Boss & Win/Lose Panels
+   HUD, Base HP Strip, Floating Level-Up Button, 5/6 Deck Slots, Radial Cooldown,
+   Commander Q/W/E/R, Roll Draft (3/6 Cards), Auto-Battler, Raid Boss & Win/Lose
    ============================================================================ */
 
 /* ============================================================================
@@ -20,8 +20,62 @@
 }
 
 /* ============================================================================
-   2. BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN
+   2. NÚT NỔI LEVEL UP (+N) BÊN TRÁI TRONG TRẬN & BANNER CẢNH BÁO BOSS
    ============================================================================ */
+.battle-levelup-float-btn {
+    position: absolute;
+    left: 8px;
+    top: 148px;
+    z-index: 32;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 10px 6px 7px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #d97706 100%);
+    border: 2.5px solid #ffffff;
+    outline: 2px solid #0f172a;
+    color: #0f172a;
+    cursor: pointer;
+    animation: levelUpGlowPulse 0.65s ease-in-out infinite alternate;
+    pointer-events: auto;
+    transition: transform 0.08s ease;
+}
+
+.battle-levelup-float-btn:active {
+    transform: scale(0.93) translateY(2px);
+}
+
+.lvup-icon {
+    font-size: 18px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
+}
+
+.lvup-text-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.05;
+}
+
+.lvup-title {
+    font-size: 9.5px;
+    font-weight: 900;
+    letter-spacing: 0.3px;
+    color: #422006;
+}
+
+.lvup-count-pill {
+    font-size: 16px;
+    font-weight: 900;
+    color: #ffffff;
+    background: #0f172a;
+    padding: 0 6px;
+    border-radius: 999px;
+    margin-top: 1px;
+}
+
 .boss-alert-banner {
     position: absolute;
     top: 122px;
@@ -114,6 +168,18 @@
     padding: 2px 10px;
     border-radius: 999px;
     margin-bottom: 4px;
+}
+
+.draft-queue-badge {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(16, 185, 129, 0.22);
+    border: 1.5px solid #34d399;
+    color: #6ee7b7;
+    font-size: 10px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 999px;
 }
 
 .draft-header-title {
@@ -521,6 +587,7 @@
     transition: transform 0.08s ease, filter 0.15s, border-color 0.2s, box-shadow 0.2s;
     box-shadow: 0 4px 0 #0f172a, inset 0 1px 2px rgba(255, 255, 255, 0.25);
     will-change: transform, box-shadow;
+    touch-action: none;
 }
 
 .unit-btn.naval-btn,
@@ -603,9 +670,11 @@
     margin-top: 6px;
 }
 
-.unit-card-art canvas {
+.unit-card-art canvas,
+.unit-card-art img {
     width: 40px;
     height: 40px;
+    pointer-events: none;
 }
 
 .battle-deck-slots.challenge-6-slots .unit-card-art {

@@ -1,6 +1,7 @@
 /* ============================================================================
-   TINY BATTLE - BATTLE STATE, ENTITIES, ZOMBIE TD, ROLL SYSTEM & BOSSES (js/entities.js)
-   Central Game State, 17 Units, 14 Zombies & Bosses, Base HP HUD, Level Roll & Reroll
+   TINY BATTLE - BATTLE STATE, ENTITIES, ZOMBIE TD, LEVEL-UP QUEUE & BOSSES (js/entities.js)
+   100% Procedural Canvas 2D • 18 Units (360° Rotation) • 14 Front-Top Zombies & Bosses
+   Full-Map 7x11 Challenge Grid • Floating LEVEL UP (+N) Queue • 4 Special Keystones
    ============================================================================ */
 
 import {
@@ -14,8 +15,6 @@ import {
     TD_CELL_SIZE,
     TD_GRID_TOP_Y,
     TD_GRID_ROWS,
-    T_WATER,
-    T_OBSTACLE,
     MAP_ENEMY_SCALE_PER_LEVEL,
     RARITY_CONFIG,
     isMasterRarity,
@@ -40,16 +39,14 @@ import {
     getHighestRarityForUnit,
     normalizeUnitId,
     hasUnitInInventory,
-    getSkillTreeNodeLevel
+    getAncientSkillTreeBonuses
 } from './state.js';
 import { drawCanvasRarityAura } from './lobby-ui.js';
 import {
     sfx,
     projCache,
     particlePool,
-    atlas,
-    isCustomArtUnit,
-    drawCustomUnitArt,
+    drawUnitArt,
     isZombieUnit,
     drawZombieArt,
     getUnitSpriteDataURL
@@ -105,16 +102,18 @@ export const game = {
     matchKills: 0,
     matchSpawns: 0,
 
-    // Kinh tế Xăng
+    // Kinh tế Xăng & Lò Phản Ứng Vô Cực (Mốc 10 Nhánh Kinh Tế)
     gas: 6,
     maxGas: 20,
     gasGenLevel: 0,
     gasTimer: 0,
+    gasSpentAccumulator: 0,
 
-    // Cấp độ trong trận (EXP Roll System + 1 Reroll)
+    // Hệ thống Tích Lũy Cấp Độ Trận (Không bật popup ngang xương -> Nút LEVEL UP +N bên trái)
     battleLv: 1,
     battleExp: 0,
     battleNextExp: 35,
+    pendingLevelUps: 0,
     battleUnitStars: {},
     rerollsLeft: 1,
     currentRollCandidates: [],
@@ -129,8 +128,15 @@ export const game = {
     challengeWaveSpawnedCount: 0,
     challengeWaveTotalToSpawn: 0,
 
-    // Lưới ô vuông 7x9 cho chế độ Tower Defense CHALLENGE
+    // Lưới ô vuông 7x11 Full Map cho chế độ Tower Defense CHALLENGE
     tdGrid: new Array(TD_GRID_ROWS * TD_GRID_COLS).fill(null),
+
+    // Cờ Tập Kết Xanh (Rally Point) cho chế độ Battle bình thường
+    rallyPoint: {
+        active: false,
+        x: LOGICAL_WIDTH / 2,
+        y: PLAYFIELD_HEIGHT - 122
+    },
 
     // Trạng thái Kéo - Thả đặt quân (Drag & Drop Deploy)
     dragDeploy: {
@@ -144,12 +150,30 @@ export const game = {
         gridRow: -1
     },
 
-    // Máu Căn Cứ & Ụ Pháo Căn Cứ Xanh
+    // Trạng thái Nhấn Giữ 3.0s để Đổi Vị Trí Tower trong chế độ CHALLENGE
+    towerRelocate: {
+        holding: false,
+        dragging: false,
+        tower: null,
+        holdTime: 0,
+        x: 0,
+        y: 0,
+        targetCol: -1,
+        targetRow: -1,
+        isValid: false
+    },
+
+    // Bộ đếm Bão Thiên Thạch (Mốc 10 Nhánh Hỏa Lực)
+    meteorStormTimer: 14.0,
+
+    // Máu Căn Cứ, Khiên Phản Chấn Vĩnh Cửu & Ụ Pháo Căn Cứ Xanh
     playerBase: {
         x: LOGICAL_WIDTH / 2,
         y: PLAYFIELD_HEIGHT - 55,
         hp: 250,
         maxHp: 250,
+        shield: 0,
+        maxShield: 0,
         hitFlash: 0,
         turretAngle: -Math.PI / 2,
         turretTimer: 0.5
@@ -203,7 +227,7 @@ export const game = {
 };
 
 // ============================================================================
-// 2. HÀM TIỆN ÍCH LƯỚI TOWER DEFENSE 7 CỘT (CHALLENGE MODE)
+// 2. HÀM TIỆN ÍCH LƯỚI TOWER DEFENSE 7x11 FULL MAP (CHALLENGE MODE)
 // ============================================================================
 export function getTdGridCellFromPixel(x, y) {
     if (x < 0 || x >= LOGICAL_WIDTH) return null;
@@ -221,19 +245,14 @@ export function getTdCellCenterPixel(col, row) {
     };
 }
 
-export function canPlaceTowerAtCell(unitSpec, col, row) {
+export function canPlaceTowerAtCell(unitSpec, col, row, ignoreTower = null) {
     if (!unitSpec || col < 0 || col >= TD_GRID_COLS || row < 0 || row >= TD_GRID_ROWS) return false;
     const idx = row * TD_GRID_COLS + col;
-    if (game.tdGrid[idx] && !game.tdGrid[idx].dead) return false;
+    const occ = game.tdGrid[idx];
+    if (occ && !occ.dead && occ !== ignoreTower) return false;
 
     const pt = getTdCellCenterPixel(col, row);
-    const navCell = nav.getCellAtPixel(pt.x, pt.y);
-
-    if (unitSpec.isAir) return true;
-    if (unitSpec.isNaval) {
-        return navCell === T_WATER;
-    }
-    return navCell !== T_WATER && navCell !== T_OBSTACLE;
+    return nav.isValidChallengeTileTerrain(unitSpec, pt.x, pt.y);
 }
 
 export function placeTowerInChallengeGrid(unitId, col, row) {
@@ -255,9 +274,64 @@ export function placeTowerInChallengeGrid(unitId, col, row) {
     return u;
 }
 
+export function relocateTowerToCell(tower, newCol, newRow) {
+    if (!tower || tower.dead || !tower.isTower) return false;
+    if (!canPlaceTowerAtCell(tower.spec, newCol, newRow, tower)) return false;
+
+    if (tower.tdCellIdx >= 0 && game.tdGrid[tower.tdCellIdx] === tower) {
+        game.tdGrid[tower.tdCellIdx] = null;
+    }
+
+    const pt = getTdCellCenterPixel(newCol, newRow);
+    tower.x = pt.x;
+    tower.y = pt.y;
+    tower.tdCol = newCol;
+    tower.tdRow = newRow;
+    tower.tdCellIdx = newRow * TD_GRID_COLS + newCol;
+    game.tdGrid[tower.tdCellIdx] = tower;
+    return true;
+}
+
 // ============================================================================
-// 3. HIỆU ỨNG CHIẾN TRƯỜNG & HUD MÁU 2 CĂN CỨ
+// 3. HIỆU ỨNG CHIẾN TRƯỜNG, KINH TẾ XĂNG & HUD MÁU 2 CĂN CỨ
 // ============================================================================
+export function spendMatchGas(amount) {
+    const cost = Math.max(0, Number(amount) || 0);
+    if (cost <= 0) return;
+    game.gas = Math.max(0, game.gas - cost);
+
+    // Kỹ năng Đặc Biệt Mốc 10 Nhánh Kinh Tế: Lò Phản Ứng Vô Cực (Hoàn 1 Xăng mỗi 5 Xăng tiêu tốn)
+    const treeB = getAncientSkillTreeBonuses();
+    if (treeB.infinite_reactor) {
+        game.gasSpentAccumulator = (game.gasSpentAccumulator || 0) + cost;
+        if (game.gasSpentAccumulator >= 5) {
+            const refundCount = Math.floor(game.gasSpentAccumulator / 5);
+            game.gasSpentAccumulator %= 5;
+            game.gas = Math.min(game.maxGas, game.gas + refundCount);
+            spawnFloatingText(48, PLAYFIELD_HEIGHT - 102, `⚛️ +${refundCount}⛽ HOÀN XĂNG!`, '#38bdf8', 12);
+        }
+    }
+}
+
+export function refreshEternalShields() {
+    const treeB = getAncientSkillTreeBonuses();
+    if (!treeB.eternal_shield) return;
+
+    // Căn cứ Xanh nhận khiên bằng 25% HP tối đa
+    game.playerBase.maxShield = Math.round(game.playerBase.maxHp * 0.25);
+    game.playerBase.shield = game.playerBase.maxShield;
+
+    // Toàn bộ Tower phe Xanh nhận khiên bằng 25% HP tối đa
+    for (const u of game.units) {
+        if (!u.dead && u.team === 'blue' && u.isTower) {
+            u.maxShield = Math.round(u.maxHp * 0.25);
+            u.shield = u.maxShield;
+        }
+    }
+    spawnShockwave(game.playerBase.x, game.playerBase.y, 110, '#38bdf8', 3.5);
+    spawnFloatingText(game.playerBase.x, game.playerBase.y - 36, '🔰 KHIÊN PHẢN CHẤN HỒI ĐẦY!', '#38bdf8', 13);
+}
+
 export function addScreenShake(intensity = 4, duration = 0.18) {
     game.shakeIntensity = Math.max(game.shakeIntensity, intensity);
     game.shakeTimer = Math.max(game.shakeTimer, duration);
@@ -346,11 +420,14 @@ export function spawnExplosionFX(x, y, radius = 28, isNapalm = false, isEmp = fa
 export function updateBaseHpHUD() {
     const blueHp = Math.max(0, Math.ceil(game.playerBase.hp));
     const blueMax = Math.max(1, Math.ceil(game.playerBase.maxHp));
+    const blueShield = Math.max(0, Math.ceil(game.playerBase.shield || 0));
     const bluePct = Math.max(0, Math.min(100, (blueHp / blueMax) * 100));
 
     const blueTxt = document.getElementById('hud-blue-hp-text');
     const blueBar = document.getElementById('hud-blue-hp-bar');
-    if (blueTxt) blueTxt.textContent = `${blueHp}/${blueMax}`;
+    if (blueTxt) {
+        blueTxt.textContent = blueShield > 0 ? `${blueHp}+${blueShield}/${blueMax}` : `${blueHp}/${blueMax}`;
+    }
     if (blueBar) {
         blueBar.style.width = `${bluePct}%`;
         blueBar.classList.toggle('hp-warn', bluePct <= 60 && bluePct > 30);
@@ -435,10 +512,9 @@ export function renderSynergyHUD() {
 }
 
 // ============================================================================
-// 5. TÍNH TOÁN CHỈ SỐ ĐƠN VỊ (41 RARITY + 6 TALENTS + 7 SKILL TREE + CHIPS)
+// 5. TÍNH TOÁN CHỈ SỐ ĐƠN VỊ (41 RARITY + 6 TALENTS + 40 SKILL TREE + CHIPS)
 // ============================================================================
 export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId = null) {
-    // Nếu là Zombie trong chế độ CHALLENGE
     if (ZOMBIE_BY_ID[rawUnitId]) {
         const zBase = ZOMBIE_BY_ID[rawUnitId];
         const mapScale = 1 + Math.max(0, (game?.currentLevel || 1) - 1) * 0.14;
@@ -473,7 +549,6 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
     const mapProjSpeedMult = mapCfg.projSpeedMult || 1.0;
     const mapAirCdMult = (base.isAir || base.isAirstrike) ? (mapCfg.airCooldownMult || 1.0) : 1.0;
 
-    // Phe Đỏ (Địch trong 45 Map Battle đã tăng độ khó +9.5%/map & 1.20x/1.85x)
     if (team === 'red') {
         const diffCfg = DIFFICULTY_CONFIG[game?.difficulty || 'easy'] || DIFFICULTY_CONFIG.easy;
         const lvScale = 1 + Math.max(0, (game?.currentLevel || 1) - 1) * MAP_ENEMY_SCALE_PER_LEVEL;
@@ -517,25 +592,32 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
     const rarityObj = RARITY_CONFIG[rarityId] || { mult: 1.0, color: '#94a3b8', auraType: 'none' };
     const rarityMult = rarityObj.mult ?? 1.0;
 
-    let hpBonusPct = 0;
-    let dmgBonusPct = 0;
-    let speedBonusPct = 0;
-    let fireRateBonusPct = 0;
-    let rangeBonusFlat = 0;
-    let cdReductionPct = 0;
-    let splashBonusFlat = 0;
-    let armorReductionPct = 0;
-    let lifestealPct = 0;
-    let critChance = 0;
-    let ccDurationMult = 1.0;
-    let zombieDmgBonusPct = 0;
-    let hpRegenPctPerSec = 0;
-    let burnDps = base.innateBurnDps ? Math.round(base.innateBurnDps * Math.max(1, Math.sqrt(lvMult))) : 0;
-    let burnDuration = base.innateBurnDuration || 3.0;
-    let stunChance = 0;
-    let stunDuration = 1.2;
+    // 1. Tổng hợp chỉ số từ Cây Kỹ Năng Cổ Thụ 4 Nhánh (40 Kỹ Năng)
+    const treeB = getAncientSkillTreeBonuses();
 
-    // 1. Tích hợp 6 nhánh TALENTS (Huy chương)
+    let hpBonusPct = treeB.hpPct;
+    let dmgBonusPct = treeB.allDmgPct + (base.element === 'elemental' ? treeB.elemDmgPct : treeB.physDmgPct);
+    let speedBonusPct = treeB.moveSpeedPct;
+    let fireRateBonusPct = treeB.fireRatePct;
+    let rangeBonusFlat = treeB.rangeBonus;
+    let cdReductionPct = treeB.cdReductionPct;
+    let splashBonusFlat = base.splash > 0 ? treeB.splashBonus : 0;
+    let armorReductionPct = treeB.armorPct;
+    let lifestealPct = treeB.lifestealPct;
+    let critChance = treeB.critChance;
+    let ccDurationMult = 1 + treeB.ccDurationPct;
+    let ccResistPct = treeB.ccResistPct;
+    let healBonusPct = treeB.healBonusPct;
+    let zombieDmgBonusPct = treeB.zombieDmgPct;
+    let hpRegenPctPerSec = treeB.hpRegenPct;
+    let burnDps = base.innateBurnDps
+        ? Math.round(base.innateBurnDps * Math.max(1, Math.sqrt(lvMult)) * (1 + treeB.burnBonusPct))
+        : 0;
+    let burnDuration = base.innateBurnDuration || 3.0;
+    let stunChance = treeB.stunChanceBonus;
+    let stunDuration = 1.1;
+
+    // 2. Tích hợp 6 nhánh TALENTS (Huy chương)
     const steelLv = Number(metaState?.metaTalents?.high_grade_steel) || 0;
     const logiLv = Number(metaState?.metaTalents?.optimal_logistics) || 0;
     const critLv = Number(metaState?.metaTalents?.critical_firepower) || 0;
@@ -551,47 +633,17 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
         critChance += critLv * 0.025;
     }
 
-    // 2. Tích hợp 7 nhánh CÂY KỸ NĂNG CỔ THỤ (Ngọc Trai Trắng)
-    const vitalRootsLv = getSkillTreeNodeLevel('vital_roots');
-    const ironTrunkLv = getSkillTreeNodeLevel('iron_trunk');
-    const arcaneTrunkLv = getSkillTreeNodeLevel('arcane_trunk');
-    const undeadSlayerLv = getSkillTreeNodeLevel('undead_slayer');
-    const eliteLineageLv = getSkillTreeNodeLevel('elite_lineage');
-    const ancientHeartLv = getSkillTreeNodeLevel('ancient_heart');
-
-    if (vitalRootsLv > 0) {
-        hpBonusPct += vitalRootsLv * 0.12;
-    }
-    if (ironTrunkLv > 0 && base.element !== 'elemental') {
-        dmgBonusPct += ironTrunkLv * 0.15;
-        fireRateBonusPct += ironTrunkLv * 0.15;
-    }
-    if (arcaneTrunkLv > 0 && base.element === 'elemental') {
-        dmgBonusPct += arcaneTrunkLv * 0.18;
-        ccDurationMult += arcaneTrunkLv * 0.12;
-    }
-    if (undeadSlayerLv > 0) {
-        zombieDmgBonusPct += undeadSlayerLv * 0.25;
-    }
-    if (eliteLineageLv > 0) {
-        cdReductionPct += eliteLineageLv * 0.03; // Tối đa 15%
-        critChance += eliteLineageLv * 0.016;    // Tối đa +8%
-    }
-    if (ancientHeartLv > 0) {
-        hpRegenPctPerSec += 0.02; // Hồi 2% HP mỗi giây
-    }
-
     // 3. Tích hợp 2 Khe Chip Bổ Trợ
     const sockets = Array.isArray(metaState?.unitSockets?.[base.id]) ? metaState.unitSockets[base.id] : [];
     sockets.forEach(chipId => {
         if (!chipId) return;
         if (chipId === 'napalm_rocket') {
-            burnDps += UNIT_CHIPS.napalm_rocket?.burnDps ?? 18;
+            burnDps += Math.round((UNIT_CHIPS.napalm_rocket?.burnDps ?? 18) * (1 + treeB.burnBonusPct));
             burnDuration = Math.max(burnDuration, UNIT_CHIPS.napalm_rocket?.burnDuration ?? 3.0);
             splashBonusFlat += UNIT_CHIPS.napalm_rocket?.splashBonus ?? 14;
         } else if (chipId === 'tactical_radar') {
             rangeBonusFlat += UNIT_CHIPS.tactical_radar?.rangeBonusFlat ?? 28;
-            stunChance = Math.min(0.65, stunChance + (UNIT_CHIPS.tactical_radar?.stunChance ?? 0.14));
+            stunChance = Math.min(0.75, stunChance + (UNIT_CHIPS.tactical_radar?.stunChance ?? 0.14));
             stunDuration = Math.max(stunDuration, UNIT_CHIPS.tactical_radar?.stunDuration ?? 1.2);
         } else if (chipId === 'reactive_armor') {
             hpBonusPct += UNIT_CHIPS.reactive_armor?.hpBonusPct ?? 0.18;
@@ -599,7 +651,7 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
         } else if (chipId === 'overclock_core' || chipId === 'overclock_servo') {
             speedBonusPct += UNIT_CHIPS.overclock_core?.speedBonusPct ?? 0.20;
             cdReductionPct += UNIT_CHIPS.overclock_core?.cooldownReductionPct ?? 0.15;
-            stunChance = Math.min(0.65, stunChance + (UNIT_CHIPS.overclock_core?.stunChance ?? 0.14));
+            stunChance = Math.min(0.75, stunChance + (UNIT_CHIPS.overclock_core?.stunChance ?? 0.14));
             stunDuration = Math.max(stunDuration, UNIT_CHIPS.overclock_core?.stunDuration ?? 1.2);
         }
     });
@@ -623,9 +675,10 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
     let finalHp = Math.max(1, Math.round(base.hp * lvMult * rarityMult * starMult * (1 + hpBonusPct)));
     let finalDmg = Math.max(1, Math.round(base.damage * lvMult * rarityMult * starMult * (1 + dmgBonusPct)));
 
-    if (base.isSummonedSkeleton && game?.activeSynergies?.dark_legion) {
-        finalHp *= BATTLE_SYNERGIES.dark_legion.skeletonStatMult || 2.0;
-        finalDmg *= BATTLE_SYNERGIES.dark_legion.skeletonStatMult || 2.0;
+    if (base.isSummonedSkeleton) {
+        const skelMult = (game?.activeSynergies?.dark_legion ? 2.0 : 1.0) * (1 + treeB.skeletonStatPct);
+        finalHp = Math.round(finalHp * skelMult);
+        finalDmg = Math.round(finalDmg * skelMult);
     }
 
     const challengeCdMult = game?.battleMode === 'challenge' ? CHALLENGE_COOLDOWN_MULT : 1.0;
@@ -663,6 +716,8 @@ export function getEffectiveUnitStats(rawUnitId, team = 'blue', customRarityId =
         rangedShieldReductionPct: base.rangedShieldReductionPct || 0,
         chillSlowPct: base.chillSlowPct || 0,
         chillDuration: (base.chillDuration || 0) * ccDurationMult,
+        ccResistPct: Math.min(0.75, ccResistPct),
+        healBonusPct,
         lifestealPct,
         critChance: Math.min(0.85, critChance),
         zombieDmgBonusPct,
@@ -689,6 +744,8 @@ export class Unit {
         this.y = y;
         this.hp = this.spec.hp;
         this.maxHp = this.spec.maxHp;
+        this.shield = 0;
+        this.maxShield = 0;
         this.radius = this.spec.radius || 12;
         this.isWalker = !!this.spec.isWalker;
         this.isAir = !!this.spec.isAir;
@@ -726,11 +783,26 @@ export class Unit {
         this.dead = false;
     }
 
+    applyStatusEffect(type, duration, value = 0) {
+        if (this.dead || this.spec?.ccImmune) return;
+        const resistMult = this.team === 'blue' ? (1 - (this.spec?.ccResistPct || 0)) : 1.0;
+        const effDur = duration * Math.max(0.25, resistMult);
+
+        if (type === 'stun') {
+            this.stunTimer = Math.max(this.stunTimer, effDur);
+        } else if (type === 'chill') {
+            this.chillTimer = Math.max(this.chillTimer, effDur);
+            this.chillSlowPct = value || 0.55;
+        } else if (type === 'acid') {
+            this.acidSlowTimer = Math.max(this.acidSlowTimer, effDur);
+        }
+    }
+
     takeDamage(rawAmount, attacker = null, isRangedAttack = false, isTrueDamage = false) {
         if (this.dead) return;
         let finalDmg = rawAmount;
 
-        // Cành Săn Xác Sống (Skill Tree): +25%/cấp sát thương lên Zombie & Boss
+        // Cành Săn Xác Sống: tăng sát thương lên Zombie & Boss
         if (this.isZombie && attacker && attacker.team === 'blue' && attacker.spec?.zombieDmgBonusPct > 0) {
             finalDmg *= 1 + attacker.spec.zombieDmgBonusPct;
         }
@@ -752,7 +824,6 @@ export class Unit {
             if (isRangedAttack && this.spec.rangedShieldReductionPct > 0) {
                 totalRed += this.spec.rangedShieldReductionPct;
             }
-            // Zombie Khiên Chống Bạo Động: Giảm 50% sát thương từ phía trước (+Y)
             if (this.spec.frontalShieldReductionPct > 0 && attacker && attacker.y >= this.y - 12) {
                 totalRed += this.spec.frontalShieldReductionPct;
             }
@@ -763,6 +834,18 @@ export class Unit {
         }
 
         finalDmg = Math.max(1, Math.round(finalDmg));
+
+        // Hấp thụ sát thương bằng Khiên Phản Chấn Vĩnh Cửu trước khi trừ máu
+        if (this.shield > 0) {
+            const absorbed = Math.min(this.shield, finalDmg);
+            this.shield -= absorbed;
+            finalDmg -= absorbed;
+            if (finalDmg <= 0) {
+                this.hitFlash = 0.08;
+                return;
+            }
+        }
+
         this.hp -= finalDmg;
         this.hitFlash = 0.12;
 
@@ -780,18 +863,28 @@ export class Unit {
             this.dead = true;
             sfx.play('boom');
 
-            // Giải phóng ô lưới nếu là Tower trong Challenge
             if (this.isTower && this.tdCellIdx >= 0 && game.tdGrid[this.tdCellIdx] === this) {
                 game.tdGrid[this.tdCellIdx] = null;
             }
 
-            // Talent Thu Hoạch Chiến Trường: Hoàn lại 15% chi phí Xăng khi quân Xanh hy sinh
+            const treeB = getAncientSkillTreeBonuses();
+
+            // Hoàn Xăng khi quân Xanh hy sinh (Talent Thu Hoạch Chiến Trường + Tái Chế Khí Tài)
             if (this.team === 'blue' && !this.spec.isSummonedSkeleton) {
                 const harvestLv = Number(metaState?.metaTalents?.battlefield_harvest) || 0;
-                if (harvestLv > 0 && (this.spec.cost || 0) > 0) {
-                    const gasBack = Math.max(0.3, +(this.spec.cost * 0.15).toFixed(2));
+                const totalRefundPct = (harvestLv > 0 ? 0.15 : 0) + (treeB.deathGasRefundPct || 0);
+                if (totalRefundPct > 0 && (this.spec.cost || 0) > 0) {
+                    const gasBack = Math.max(0.3, +(this.spec.cost * totalRefundPct).toFixed(2));
                     game.gas = Math.min(game.maxGas, game.gas + gasBack);
                     spawnFloatingText(this.x, this.y, `+${gasBack}⛽`, '#4ade80', 11);
+                }
+
+                // Kỹ năng Đặc Biệt Mốc 10 Nhánh Triệu Hồi: Lãnh Chúa Hư Không (25% hồi sinh thành Xương)
+                if (treeB.void_lord && Math.random() < 0.25) {
+                    sfx.play('summon');
+                    spawnUnit('blue', 'skeleton', this.x, this.y, this.spec.rarityId);
+                    spawnShockwave(this.x, this.y, 26, '#c084fc', 2.5);
+                    spawnFloatingText(this.x, this.y - 14, '👑 HỒI SINH XƯƠNG!', '#f0abfc', 11);
                 }
             }
 
@@ -813,7 +906,8 @@ export class Unit {
                 const expGain = this.spec.expReward || (this.isBossUnit ? 85 : 10);
                 grantBattleExp(expGain);
 
-                if (game.battleMode === 'endless_siege' && Math.random() < 0.25) {
+                const killGasProb = (game.battleMode === 'endless_siege' ? 0.25 : 0) + (treeB.killGasChance || 0);
+                if (killGasProb > 0 && Math.random() < killGasProb) {
                     game.gas = Math.min(game.maxGas, game.gas + 0.5);
                 }
             }
@@ -840,7 +934,7 @@ export class Unit {
         if (this.acidSlowTimer > 0) this.acidSlowTimer = Math.max(0, this.acidSlowTimer - dt);
         if (this.isAir) this.rotorAngle += dt * 24;
 
-        // Trái Tim Cổ Thụ (Skill Tree): Hồi 2% HP mỗi giây cho toàn quân & Tower
+        // Huyết Thanh Tái Tạo (Skill Tree): Hồi HP tự động mỗi giây cho toàn quân & Tower
         if (this.team === 'blue' && this.spec.hpRegenPctPerSec > 0 && this.hp < this.maxHp) {
             this.hp = Math.min(this.maxHp, this.hp + this.maxHp * this.spec.hpRegenPctPerSec * dt);
         }
@@ -893,7 +987,6 @@ export class Unit {
 
         // Kỹ năng đặc biệt của Zombie & Boss trong CHALLENGE
         if (this.isZombie) {
-            // 1. Pháp Sư Zombie Gọi Hồn & Bạo Chúa Omega triệu hồi thêm Zombie
             if (this.spec.summonCooldown > 0) {
                 this.summonTimer -= dt;
                 if (this.summonTimer <= 0) {
@@ -907,7 +1000,6 @@ export class Unit {
                     spawnShockwave(this.x, this.y, 34, '#a855f7', 2.5);
                 }
             }
-            // 2. Boss Wave 14 (Chimera) gầm rú sóng âm làm choáng các Tower trong phạm vi 135px
             if (this.spec.roarCooldown > 0) {
                 this.roarTimer -= dt;
                 if (this.roarTimer <= 0) {
@@ -919,7 +1011,7 @@ export class Unit {
                     spawnFloatingText(this.x, this.y - 20, '🔊 GẦM CHOÁNG!', '#f0abfc', 13);
                     for (const u of game.units) {
                         if (u.team === 'blue' && !u.dead && Math.hypot(u.x - this.x, u.y - this.y) <= rRad) {
-                            u.stunTimer = Math.max(u.stunTimer, this.spec.roarStunDuration || 2.2);
+                            u.applyStatusEffect('stun', this.spec.roarStunDuration || 2.2);
                         }
                     }
                 }
@@ -932,7 +1024,7 @@ export class Unit {
         const airdropFireMult = 1 + (COMMANDER_TACTICS.airdrop?.atkSpeedBuff ?? 0.30);
 
         const chillMult = (this.chillTimer > 0 && !this.spec.ccImmune) ? (1 - (this.chillSlowPct || 0.55)) : 1.0;
-        const acidMult = this.acidSlowTimer > 0 ? 0.60 : 1.0; // Axit giảm 40% tốc độ bắn của Tower
+        const acidMult = this.acidSlowTimer > 0 ? 0.60 : 1.0;
 
         let iceVehicleMult = 1.0;
         if (mapCfg.vehicleIceSpeedBonus > 0 && this.spec.category === 'vehicle' && nav.isPointOnIce(this.x, this.y)) {
@@ -944,7 +1036,6 @@ export class Unit {
 
         this.attackTimer -= dt * fireRateMult;
 
-        // Mục Sư Thánh Quang (Hồi máu đồng minh / Tower xung quanh)
         if (this.spec.isHealer) {
             const injuredAllies = this.findInjuredAlliesInRange();
             if (injuredAllies.length > 0) {
@@ -977,7 +1068,6 @@ export class Unit {
             }
         }
 
-        // Nếu là Tower trong chế độ CHALLENGE: Đứng cố định tại ô vuông, không di chuyển
         if (this.isTower) {
             this.walkCycle += dt * 3;
             return;
@@ -987,7 +1077,6 @@ export class Unit {
         let dirY = this.team === 'blue' ? -1 : 1;
 
         if (this.isZombie) {
-            // Zombie tiến thẳng xuống Căn Cứ Xanh ở đáy bản đồ, lắt léo ngang nếu là Zombie Cưỡi Thỏ
             dirX = this.spec.zigzagAmp ? Math.sin(this.walkCycle * 1.4) * 0.55 : 0;
             dirY = 1.0;
         } else {
@@ -1090,10 +1179,11 @@ export class Unit {
 
     castHolyHealOnAllies(allies) {
         sfx.play('heal');
-        const healMult = (this.team === 'blue' && game.activeSynergies.immortal_fortress)
+        const synMult = (this.team === 'blue' && game.activeSynergies.immortal_fortress)
             ? (1 + (BATTLE_SYNERGIES.immortal_fortress.healBonusPct || 0.20))
             : 1.0;
-        const healAmount = Math.max(1, Math.round(this.spec.damage * healMult));
+        const skillTreeHealMult = 1 + (this.spec.healBonusPct || 0);
+        const healAmount = Math.max(1, Math.round(this.spec.damage * synMult * skillTreeHealMult));
 
         allies.forEach(ally => {
             ally.hp = Math.min(ally.maxHp, ally.hp + healAmount);
@@ -1183,7 +1273,6 @@ export class Unit {
             }
         }
 
-        // Trong chế độ CHALLENGE: Tower phe Xanh chỉ bắn Zombie, không bắn Căn Cứ Đỏ
         if (game.battleMode === 'challenge' && this.team === 'blue') {
             return best;
         }
@@ -1214,7 +1303,6 @@ export class Unit {
         this.recoilOffset = 4.2;
         spawnMuzzleFlash(mx, my, this.turretAngle, this.spec.splash >= 30 ? 1.25 : 0.9);
 
-        // Zombie Cảm Tử Ôm Bom (zombie_bomber): Phát nổ diện rộng khi chạm vào Tower
         if (this.spec.isBomber) {
             sfx.play('boom');
             addScreenShake(6, 0.25);
@@ -1233,7 +1321,6 @@ export class Unit {
             return;
         }
 
-        // Boss Wave 7 (Đồ Tể Khổng Lồ): Chém lan nhiều Tower cùng lúc
         if (this.spec.cleaveRadius > 0) {
             sfx.play('boom');
             const cRad = this.spec.cleaveRadius;
@@ -1282,9 +1369,7 @@ export class Unit {
                 const dSeg = pointToSegmentDistance(u.x, u.y, this.x, this.y, endX, endY);
                 if (dSeg <= u.radius + 8) {
                     applyDamageToTargetObject(u, this.spec.damage, this, true);
-                    if (!u.spec?.ccImmune) {
-                        u.stunTimer = Math.max(u.stunTimer, stunDur);
-                    }
+                    u.applyStatusEffect('stun', stunDur);
                     particlePool.spawn(u.x, u.y, 0, 0, 5, '#00f2fe', 3.0, 'circle');
                 }
             }
@@ -1371,12 +1456,11 @@ export class Unit {
             );
         }
 
-        // Bệ tháp phòng thủ nếu là Tower trong Challenge
         if (this.isTower) {
             ctx.save();
             ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 1.6;
+            ctx.strokeStyle = this.shield > 0 ? '#00f2fe' : '#38bdf8';
+            ctx.lineWidth = this.shield > 0 ? 2.4 : 1.6;
             ctx.beginPath();
             ctx.arc(this.x, this.y + 5, this.radius + 3, 0, Math.PI * 2);
             ctx.fill();
@@ -1445,6 +1529,15 @@ export class Unit {
             ctx.stroke();
         }
 
+        // Vòng Khiên Phản Chấn Vĩnh Cửu trên Tower
+        if (this.shield > 0) {
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.85)';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.arc(drawX, drawY, this.radius + 5, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
         if (this.isAir && this.team === 'blue' && (isMasterRarity(this.spec.rarityId) || isDemonRarity(this.spec.rarityId))) {
             drawCanvasRarityAura(
                 ctx,
@@ -1456,70 +1549,31 @@ export class Unit {
             );
         }
 
-        const size = this.radius * 2.35;
-        const rot = this.angle + Math.PI / 2;
+        const size = this.radius * 2.4;
 
         if (this.isZombie || isZombieUnit(this.id)) {
-            // Vẽ 14 Loại Zombie & Boss góc nhìn Front-Top View thấy rõ mặt (không xoay ngược)
             const zScaleSize = 34 * (this.spec.scale || 1.0);
             drawZombieArt(ctx, this.id, drawX, drawY, zScaleSize, game.timeSec + this.auraPhase);
-        } else if (isCustomArtUnit(this.id)) {
-            const customRot = this.id === 'railgun_walker' ? rot : 0;
-            drawCustomUnitArt(ctx, this.id, drawX, drawY, size * 1.1, this.team, game.timeSec + this.auraPhase, customRot);
-
-            if (this.id === 'mecha_paladin') {
-                ctx.save();
-                const shieldX = drawX + Math.cos(this.angle) * (this.radius + 4);
-                const shieldY = drawY + Math.sin(this.angle) * (this.radius + 4);
-                ctx.translate(shieldX, shieldY);
-                ctx.rotate(this.angle);
-                ctx.strokeStyle = 'rgba(0, 242, 254, 0.85)';
-                ctx.lineWidth = 2.4;
-                ctx.beginPath();
-                ctx.arc(0, 0, 11, -Math.PI * 0.42, Math.PI * 0.42);
-                ctx.stroke();
-                ctx.restore();
-            }
         } else {
-            const row = this.team === 'blue' ? 7 : 8;
-            const col = this.spec.spriteCol ?? 16;
-            const drewSprite =
-                atlas.ready &&
-                atlas.draw(ctx, col, row, drawX, drawY, size, size, {
-                    rotation: rot
-                });
-
-            if (!drewSprite) {
-                ctx.translate(drawX, drawY);
-                ctx.rotate(this.angle);
-                ctx.fillStyle = this.team === 'blue' ? '#0284c7' : '#dc2626';
-                ctx.strokeStyle = '#0f172a';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.roundRect(-this.radius, -this.radius * 0.75, this.radius * 2, this.radius * 1.5, 4);
-                ctx.fill();
-                ctx.stroke();
-                ctx.fillStyle = '#fde047';
-                ctx.fillRect(2, -2.5, this.radius, 5);
-            }
+            // Vẽ 100% Procedural Canvas 2D xoay mượt mọi góc 0 -> 2π
+            drawUnitArt(
+                ctx,
+                this.id,
+                drawX,
+                drawY,
+                size,
+                this.team,
+                game.timeSec + this.auraPhase,
+                this.turretAngle,
+                {
+                    walkCycle: this.walkCycle,
+                    rotorAngle: this.rotorAngle,
+                    recoilOffset: this.recoilOffset
+                }
+            );
         }
 
         ctx.restore();
-
-        if (this.isAir) {
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            ctx.rotate(this.rotorAngle);
-            ctx.strokeStyle = 'rgba(248, 250, 252, 0.75)';
-            ctx.lineWidth = 2.2;
-            ctx.beginPath();
-            ctx.moveTo(-16, 0);
-            ctx.lineTo(16, 0);
-            ctx.moveTo(0, -16);
-            ctx.lineTo(0, 16);
-            ctx.stroke();
-            ctx.restore();
-        }
 
         if (this.chillTimer > 0 && !this.spec.ccImmune) {
             ctx.save();
@@ -1533,7 +1587,6 @@ export class Unit {
             ctx.restore();
         }
 
-        // Vòng độc tố axit xanh trên Tower bị Zombie Phun Axit trúng
         if (this.acidSlowTimer > 0) {
             ctx.save();
             ctx.strokeStyle = '#4ade80';
@@ -1564,7 +1617,6 @@ export class Unit {
             ctx.restore();
         }
 
-        // Huy hiệu Sao trong trận nếu đơn vị được Roll nâng sao
         if (this.team === 'blue' && (this.spec.matchStars || 1) > 1) {
             ctx.save();
             ctx.font = '900 9px sans-serif';
@@ -1574,7 +1626,7 @@ export class Unit {
             ctx.restore();
         }
 
-        if (this.hp < this.maxHp || this.isBossUnit) {
+        if (this.hp < this.maxHp || this.shield > 0 || this.isBossUnit) {
             const bw = Math.max(20, this.radius * 1.7);
             const bh = this.isBossUnit ? 6 : 4;
             const bx = drawX - bw / 2;
@@ -1585,21 +1637,29 @@ export class Unit {
                 ? (isDemonRarity(this.spec.rarityId) ? '#d946ef' : (isMasterRarity(this.spec.rarityId) ? '#00f2fe' : '#22c55e'))
                 : (this.isBossUnit ? '#f97316' : '#ef4444');
             ctx.fillRect(bx, by, bw * Math.max(0, this.hp / this.maxHp), bh);
+
+            if (this.shield > 0 && this.maxShield > 0) {
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillRect(bx, by - 2.5, bw * Math.min(1, this.shield / this.maxShield), 2);
+            }
         }
     }
 }
 
 export function tryTriggerNecromancerSoulHarvest(deadEnemy) {
     if (!deadEnemy || deadEnemy.team !== 'red') return;
+    const treeB = getAncientSkillTreeBonuses();
 
     for (const u of game.units) {
         if (u.dead || u.team !== 'blue' || !u.spec.isNecromancer) continue;
         const dist = Math.hypot(u.x - deadEnemy.x, u.y - deadEnemy.y);
         if (dist <= (u.spec.soulHarvestRadius || 135)) {
+            const baseCap = (u.spec.maxSkeletons || 4) + (treeB.extraSkeletonCap || 0);
+            const maxSkelCap = treeB.void_lord ? baseCap * 2 : baseCap;
             const activeSkels = game.units.filter(
                 s => !s.dead && s.team === 'blue' && s.id === 'skeleton' && s.ownerNecroUid === u.uid
             ).length;
-            if (activeSkels < (u.spec.maxSkeletons || 4)) {
+            if (activeSkels < maxSkelCap) {
                 sfx.play('summon');
                 const skel = spawnUnit('blue', 'skeleton', deadEnemy.x, deadEnemy.y, u.spec.rarityId);
                 if (skel) {
@@ -1631,6 +1691,7 @@ export class Projectile {
         this.projType = opts.projType || 'shell';
         this.isRocket = !!opts.isRocket;
         this.owner = opts.owner || null;
+        this.forceBurnDps = opts.forceBurnDps || 0;
 
         const totalDist = Math.max(10, Math.hypot(this.targetX - this.startX, this.targetY - this.startY));
         this.totalTime = totalDist / this.speed;
@@ -1670,6 +1731,7 @@ export class Projectile {
         if (
             this.isRocket ||
             this.projType === 'fireball' ||
+            this.projType === 'meteor' ||
             this.projType === 'ice_shard' ||
             this.projType === 'dark_orb' ||
             this.projType === 'acid_glob' ||
@@ -1679,7 +1741,7 @@ export class Projectile {
             this.smokeTimer -= dt;
             if (this.smokeTimer <= 0) {
                 let trailCol = 'rgba(226, 232, 240, 0.75)';
-                if (this.projType === 'fireball') trailCol = '#f97316';
+                if (this.projType === 'fireball' || this.projType === 'meteor') trailCol = '#f97316';
                 else if (this.projType === 'ice_shard') trailCol = '#38bdf8';
                 else if (this.projType === 'dark_orb') trailCol = '#a855f7';
                 else if (this.projType === 'acid_glob') trailCol = '#4ade80';
@@ -1708,7 +1770,7 @@ export class Projectile {
     detonate() {
         this.done = true;
         const ownerSpec = this.owner?.spec || {};
-        const hasNapalm = (ownerSpec.burnDps || 0) > 0;
+        const hasNapalm = (ownerSpec.burnDps || 0) > 0 || this.forceBurnDps > 0;
         const hasChill = (ownerSpec.chillDuration || 0) > 0;
         const hasEmp = (ownerSpec.stunChance || 0) > 0 && Math.random() < ownerSpec.stunChance;
         const stunDur = ownerSpec.stunDuration || 1.2;
@@ -1730,8 +1792,12 @@ export class Projectile {
                 if (d <= this.splash) {
                     const falloff = 1 - (d / this.splash) * 0.35;
                     applyDamageToTargetObject(u, this.damage * falloff, this.owner, true);
-                    if (hasEmp && !u.spec?.ccImmune) {
-                        u.stunTimer = Math.max(u.stunTimer, stunDur);
+                    if (this.forceBurnDps > 0 && !u.dead) {
+                        u.burnTimer = Math.max(u.burnTimer, 3.0);
+                        u.burnDps = Math.max(u.burnDps, this.forceBurnDps);
+                    }
+                    if (hasEmp) {
+                        u.applyStatusEffect('stun', stunDur);
                     }
                 }
             }
@@ -1771,7 +1837,7 @@ export class Projectile {
             this.projType
         );
         if (sprite) {
-            ctx.drawImage(sprite, this.x - 10, this.y - 10);
+            ctx.drawImage(sprite, this.x - sprite.width / 2, this.y - sprite.height / 2);
         }
     }
 }
@@ -1800,21 +1866,20 @@ export function applyDamageToTargetObject(target, dmg, attacker = null, isRanged
             target.burnTimer = Math.max(target.burnTimer, ownerSpec.burnDuration || 3.0);
             target.burnDps = Math.max(target.burnDps, ownerSpec.burnDps);
         }
-        if (ownerSpec.chillDuration > 0 && !target.dead && !target.spec?.ccImmune) {
-            target.chillTimer = Math.max(target.chillTimer, ownerSpec.chillDuration);
-            target.chillSlowPct = ownerSpec.chillSlowPct || 0.55;
+        if (ownerSpec.chillDuration > 0 && !target.dead) {
+            target.applyStatusEffect('chill', ownerSpec.chillDuration, ownerSpec.chillSlowPct || 0.55);
         }
         if (ownerSpec.acidDuration > 0 && !target.dead) {
-            target.acidSlowTimer = Math.max(target.acidSlowTimer, ownerSpec.acidDuration);
+            target.applyStatusEffect('acid', ownerSpec.acidDuration);
         }
-        if (ownerSpec.stunChance > 0 && !target.dead && !target.spec?.ccImmune && Math.random() < ownerSpec.stunChance) {
-            target.stunTimer = Math.max(target.stunTimer, ownerSpec.stunDuration || 1.2);
+        if (ownerSpec.stunChance > 0 && !target.dead && Math.random() < ownerSpec.stunChance) {
+            target.applyStatusEffect('stun', ownerSpec.stunDuration || 1.2);
         }
     }
 }
 
 // ============================================================================
-// 7. Ụ PHÁO PHÒNG THỦ CĂN CỨ XANH (TÍCH HỢP TALENT PHÁO ĐÀI BẤT TỬ +8%/CẤP)
+// 7. Ụ PHÁO PHÒNG THỦ CĂN CỨ XANH & KỸ NĂNG ĐẶC BIỆT BÃO THIÊN THẠCH
 // ============================================================================
 export function updateBaseTurret(dt) {
     if (!game.playerBase || game.playerBase.hp <= 0) return;
@@ -1825,7 +1890,8 @@ export function updateBaseTurret(dt) {
     const lv = Math.max(1, Number(turretState.level) || 1);
     const lvMult = 1 + (lv - 1) * 0.15;
     const bastionLv = Number(metaState?.metaTalents?.immortal_bastion) || 0;
-    const bastionDmgMult = 1 + bastionLv * 0.08;
+    const treeB = getAncientSkillTreeBonuses();
+    const bastionDmgMult = 1 + bastionLv * 0.08 + (treeB.turretDmgPct || 0);
     const mapRangeMult = getActiveMapConfig().rangeMult || 1.0;
 
     const effDamage = Math.round(cfg.baseDamage * lvMult * bastionDmgMult);
@@ -1890,10 +1956,8 @@ export function updateBaseTurret(dt) {
                 ttl: 0.12
             });
             tUnit.takeDamage(effDamage, null, true, false);
-            if (!tUnit.spec?.ccImmune) {
-                tUnit.stunTimer = Math.max(tUnit.stunTimer, cfg.stunDuration || 0.65);
-                tUnit.chillTimer = Math.max(tUnit.chillTimer, cfg.chillDuration || 1.8);
-            }
+            tUnit.applyStatusEffect('stun', cfg.stunDuration || 0.65);
+            tUnit.applyStatusEffect('chill', cfg.chillDuration || 1.8, 0.55);
             particlePool.spawn(tUnit.x, tUnit.y, 0, 0, 4.5, '#00f2fe', 2.8, 'circle');
             prevX = tUnit.x;
             prevY = tUnit.y;
@@ -1914,13 +1978,66 @@ export function updateBaseTurret(dt) {
     }
 }
 
+/**
+ * Kỹ năng Đặc Biệt Mốc 10 Nhánh Hỏa Lực: Bão Thiên Thạch (Mỗi 14 giây gọi 3 thiên thạch)
+ */
+export function triggerMeteorStormSkill() {
+    const redUnits = game.units.filter(u => u.team === 'red' && !u.dead);
+    if (redUnits.length === 0 && (!game.raidBoss || game.raidBoss.hp <= 0)) return;
+
+    sfx.play('airstrike');
+    const meteorDmg = 320 + game.wave * 35 + game.currentLevel * 20;
+
+    for (let i = 0; i < 3; i++) {
+        let tx = LOGICAL_WIDTH / 2 + (i - 1) * 65;
+        let ty = PLAYFIELD_HEIGHT * 0.42;
+
+        if (redUnits.length > 0) {
+            const targetUnit = redUnits[i % redUnits.length];
+            tx = targetUnit.x + (Math.random() - 0.5) * 26;
+            ty = targetUnit.y + (Math.random() - 0.5) * 26;
+        } else if (game.raidBoss) {
+            tx = game.raidBoss.x + (i - 1) * 32;
+            ty = game.raidBoss.y + 15;
+        }
+
+        game.projectiles.push(
+            new Projectile({
+                team: 'blue',
+                x: Math.max(20, Math.min(LOGICAL_WIDTH - 20, tx - 65)),
+                y: Math.max(10, ty - 220),
+                targetX: tx,
+                targetY: ty,
+                speed: 340,
+                damage: meteorDmg,
+                splash: 62,
+                arcHeight: 15,
+                projType: 'meteor',
+                forceBurnDps: 45
+            })
+        );
+    }
+    spawnFloatingText(LOGICAL_WIDTH / 2, 132, '☄️ BÃO THIÊN THẠCH!', '#fb923c', 15);
+}
+
 export function damageBase(baseObj, rawDmg) {
     if (!baseObj || baseObj.hp <= 0 || game.gameOver) return;
-    const dmg = Math.max(1, Math.round(rawDmg));
-    baseObj.hp = Math.max(0, baseObj.hp - dmg);
+    let dmg = Math.max(1, Math.round(rawDmg));
     baseObj.hitFlash = 0.15;
 
-    // Gây sát thương lên Căn Cứ Đỏ cũng cộng EXP lên cấp trong trận
+    // Khiên Phản Chấn Vĩnh Cửu của Căn Cứ Xanh hấp thụ sát thương trước
+    if (baseObj === game.playerBase && (baseObj.shield || 0) > 0) {
+        const absorbed = Math.min(baseObj.shield, dmg);
+        baseObj.shield -= absorbed;
+        dmg -= absorbed;
+        if (dmg <= 0) {
+            updateBaseHpHUD();
+            return;
+        }
+    }
+
+    baseObj.hp = Math.max(0, baseObj.hp - dmg);
+
     if (baseObj === game.enemyBase) {
         grantBattleExp(Math.max(1, Math.floor(dmg * 0.08)));
     }
@@ -1936,9 +2053,9 @@ export function damageBase(baseObj, rawDmg) {
     }
 }
 
-export function spawnUnit(team, unitId, prefX, prefY, customRarityId = null) {
+export function spawnUnit(team, unitId, prefX, prefY, customRarityId = null, exactPref = false) {
     const spec = getEffectiveUnitStats(unitId, team, customRarityId);
-    const validPt = nav.findValidSpawnPoint(team, spec, prefX, prefY);
+    const validPt = nav.findValidSpawnPoint(team, spec, prefX, prefY, exactPref);
     const u = new Unit(team, unitId, validPt.x, validPt.y, customRarityId);
     game.units.push(u);
 
@@ -1954,7 +2071,7 @@ export function spawnUnit(team, unitId, prefX, prefY, customRarityId = null) {
 export function spawnZombie(zombieId, prefX, prefY) {
     const zSpec = ZOMBIE_BY_ID[zombieId] || ZOMBIE_CATALOG[0];
     const x = Math.max(30, Math.min(LOGICAL_WIDTH - 30, prefX));
-    const y = Math.max(28, Math.min(TD_GRID_TOP_Y - 12, prefY));
+    const y = Math.max(24, Math.min(TD_GRID_TOP_Y + 8, prefY));
     const z = new Unit('red', zSpec.id, x, y);
     game.units.push(z);
     return z;
@@ -1962,7 +2079,6 @@ export function spawnZombie(zombieId, prefX, prefY) {
 
 export function launchAirstrike(team, targetY) {
     sfx.play('airstrike');
-    // Tự động tính sức mạnh Không Kích theo trung bình các đơn vị đang có trên Deck
     let sumMult = 0;
     let countUnits = 0;
     const activeIds = (game.deckIds || []).filter(id => id && id !== 'airstrike' && UNIT_BY_ID[id]);
@@ -1989,18 +2105,61 @@ export function launchAirstrike(team, targetY) {
 }
 
 // ============================================================================
-// 8. HỆ THỐNG EXP LÊN CẤP TRONG TRẬN, ROLL 3/6 THẺ & 1 LẦN REROLL
+// 8. HỆ THỐNG TÍCH LŨY CẤP ĐỘ TRẬN, NÚT NỔI LEVEL UP (+N) & CHUỖI NÂNG CẤP LIÊN TIẾP
 // ============================================================================
-export function grantBattleExp(amount) {
+export function updateFloatingLevelUpButtonUI() {
+    const btn = document.getElementById('btn-battle-levelup-notify');
+    const badge = document.getElementById('battle-levelup-badge');
+    if (!btn) return;
+
+    const count = Math.max(0, Math.floor(Number(game.pendingLevelUps) || 0));
+    if (count > 0 && game.running && !game.gameOver) {
+        btn.classList.remove('hidden');
+        if (badge) badge.textContent = `+${count}`;
+    } else {
+        btn.classList.add('hidden');
+    }
+}
+
+export function grantBattleExp(rawAmount) {
     if (!game.running || game.gameOver) return;
     if (game.battleMode === 'auto_battler') return;
 
-    game.battleExp += Math.max(1, Math.round(amount));
-    if (game.battleExp >= game.battleNextExp && !game.isRollModalOpen && !game.awaitingMutationChoice) {
+    const treeB = getAncientSkillTreeBonuses();
+    const expMult = 1 + (treeB.expGainPct || 0);
+    game.battleExp += Math.max(1, Math.round(rawAmount * expMult));
+
+    let leveledUpCount = 0;
+    while (game.battleExp >= game.battleNextExp) {
         game.battleExp -= game.battleNextExp;
         game.battleLv++;
         game.battleNextExp = Math.round(35 + game.battleLv * 18);
-        triggerBattleLevelUpRoll();
+        game.pendingLevelUps = (game.pendingLevelUps || 0) + 1;
+        leveledUpCount++;
+    }
+
+    if (leveledUpCount > 0) {
+        sfx.play('levelup');
+        triggerHaptic(20);
+        spawnFloatingText(
+            62,
+            135,
+            `⬆️ ĐẠT BATTLE LV.${game.battleLv} (+${game.pendingLevelUps} NÂNG CẤP)!`,
+            '#fde047',
+            13
+        );
+        updateFloatingLevelUpButtonUI();
+
+        // Nếu đang bật AUTO-PLAY thì tự động nâng cấp luôn
+        if (game.autoPlay) {
+            while (game.pendingLevelUps > 0) {
+                game.pendingLevelUps--;
+                const rollCount = game.battleMode === 'challenge' ? CHALLENGE_DECK_SLOTS : 3;
+                const cands = generateRollCandidates(rollCount);
+                if (cands[0]) applyRolledUnitSelection(cands[0].id);
+            }
+            updateFloatingLevelUpButtonUI();
+        }
     }
 }
 
@@ -2024,20 +2183,24 @@ export function executeDraftReroll() {
     renderBattleRollModal();
 }
 
-export function triggerBattleLevelUpRoll() {
-    const isChallenge = game.battleMode === 'challenge';
-    const rollCount = isChallenge ? CHALLENGE_DECK_SLOTS : 3;
-    game.currentRollCandidates = generateRollCandidates(rollCount);
+/**
+ * Người chơi chủ động bấm nút LEVEL UP (+N) bên trái để nâng một thể liên tiếp các cấp tích lũy
+ */
+export function openBattleLevelUpChain() {
+    if (!game.running || game.gameOver || game.pendingLevelUps <= 0) return;
 
-    if (game.autoPlay) {
-        const pick = game.currentRollCandidates[0];
-        if (pick) applyRolledUnitSelection(pick.id);
-        return;
+    // Tích dồn từ 3 cấp trở lên tặng thêm +1 lượt Reroll miễn phí
+    if (game.pendingLevelUps >= 3) {
+        game.rerollsLeft += 1;
     }
 
     game.paused = true;
     game.isRollModalOpen = true;
     sfx.play('upgrade');
+    triggerHaptic(25);
+
+    const rollCount = game.battleMode === 'challenge' ? CHALLENGE_DECK_SLOTS : 3;
+    game.currentRollCandidates = generateRollCandidates(rollCount);
     renderBattleRollModal();
 }
 
@@ -2047,9 +2210,7 @@ function applyRolledUnitSelection(unitId) {
     const existingIdx = game.deckIds.slice(0, maxUnitSlots).indexOf(normId);
 
     if (existingIdx >= 0) {
-        // Nâng Sao chiến đấu (+22% HP & DMG trong trận)
         game.battleUnitStars[normId] = (game.battleUnitStars[normId] || 1) + 1;
-        // Nếu đang ở Challenge, nâng cấp luôn các Tower cùng loại đang đứng trên sân
         if (game.battleMode === 'challenge') {
             for (const u of game.units) {
                 if (!u.dead && u.team === 'blue' && u.id === normId) {
@@ -2069,7 +2230,6 @@ function applyRolledUnitSelection(unitId) {
             15
         );
     } else {
-        // Tìm ô trống trong Deck; nếu đầy thì nâng Sao cho ô đầu tiên hoặc cộng Xăng
         let emptyIdx = -1;
         for (let i = 0; i < maxUnitSlots; i++) {
             if (!game.deckIds[i]) {
@@ -2088,7 +2248,6 @@ function applyRolledUnitSelection(unitId) {
                 15
             );
         } else {
-            // Nếu Deck đã đầy, thay thế ô có sao thấp nhất hoặc cộng +5 Xăng
             game.deckIds[0] = normId;
             game.battleUnitStars[normId] = 1;
             spawnFloatingText(
@@ -2109,6 +2268,7 @@ function applyRolledUnitSelection(unitId) {
 export function renderBattleRollModal() {
     const draftModal = document.getElementById('draft-modal');
     const badgeEl = document.getElementById('draft-badge-text');
+    const queuePillEl = document.getElementById('draft-queue-pill');
     const titleEl = document.getElementById('draft-title');
     const subEl = document.getElementById('draft-subtitle');
     const rerollBtn = document.getElementById('btn-draft-reroll');
@@ -2119,12 +2279,20 @@ export function renderBattleRollModal() {
     const maxUnitSlots = isChallenge ? CHALLENGE_DECK_SLOTS : 4;
 
     if (badgeEl) badgeEl.textContent = `BATTLE LV.${game.battleLv}`;
+    if (queuePillEl) {
+        if (game.pendingLevelUps > 1) {
+            queuePillEl.classList.remove('hidden');
+            queuePillEl.textContent = `Còn ${game.pendingLevelUps} lượt nâng cấp`;
+        } else {
+            queuePillEl.classList.add('hidden');
+        }
+    }
     if (titleEl) titleEl.textContent = isChallenge ? 'ROLL 6 TOWER PHÒNG THỦ' : 'CHỌN CHI VIỆN QUÂN ĐỘI';
     if (subEl) subEl.textContent = 'Chọn 1 đơn vị để thêm vào Deck hoặc tăng Sao (+22% HP & DMG)';
 
     if (rerollBtn) {
         rerollBtn.style.display = 'inline-flex';
-        rerollBtn.textContent = `🎲 REROLL (${game.rerollsLeft}/1)`;
+        rerollBtn.textContent = `🎲 REROLL (${game.rerollsLeft})`;
         rerollBtn.disabled = game.rerollsLeft <= 0;
         rerollBtn.onclick = () => executeDraftReroll();
     }
@@ -2135,7 +2303,7 @@ export function renderBattleRollModal() {
     game.currentRollCandidates.forEach(u => {
         const sp = getEffectiveUnitStats(u.id, 'blue');
         const rCfg = RARITY_CONFIG[sp.rarityId] || RARITY_CONFIG.common;
-        const spriteUrl = getUnitSpriteDataURL(u, 7);
+        const spriteUrl = getUnitSpriteDataURL(u, 'blue');
         const inDeck = game.deckIds.slice(0, maxUnitSlots).includes(u.id);
         const curStars = game.battleUnitStars[u.id] || 1;
 
@@ -2152,9 +2320,20 @@ export function renderBattleRollModal() {
             triggerHaptic(20);
             sfx.play('upgrade');
             applyRolledUnitSelection(u.id);
-            game.isRollModalOpen = false;
-            game.paused = false;
-            draftModal.classList.remove('active');
+
+            game.pendingLevelUps = Math.max(0, (game.pendingLevelUps || 1) - 1);
+            updateFloatingLevelUpButtonUI();
+
+            if (game.pendingLevelUps > 0) {
+                // Roll ngay lượt nâng cấp tiếp theo trong chuỗi
+                const nextRollCount = isChallenge ? CHALLENGE_DECK_SLOTS : 3;
+                game.currentRollCandidates = generateRollCandidates(nextRollCount);
+                renderBattleRollModal();
+            } else {
+                game.isRollModalOpen = false;
+                game.paused = false;
+                draftModal.classList.remove('active');
+            }
         });
         container.appendChild(card);
     });
@@ -2213,17 +2392,18 @@ export function triggerCommanderSkill(rawSkillKey, targetX = null, targetY = nul
     if (!skillKey || game.tacticCooldowns[skillKey] > 0) return;
 
     const logiLv = Number(metaState?.metaTalents?.optimal_logistics) || 0;
-    const cdReduction = logiLv * 0.03; // -3%/cấp, tối đa -30%
+    const treeB = getAncientSkillTreeBonuses();
+    const cdReduction = Math.min(0.65, logiLv * 0.03 + (treeB.tacticCdPct || 0));
     const baseCd = game.tacticMaxCooldowns[skillKey] || 16;
-    game.tacticCooldowns[skillKey] = Math.max(5, baseCd * (1 - cdReduction));
+    game.tacticCooldowns[skillKey] = Math.max(4, baseCd * (1 - cdReduction));
 
     triggerHaptic(25);
 
     if (skillKey === 'airdrop') {
         sfx.play('spawn');
-        const dropX = targetX ?? LOGICAL_WIDTH / 2;
-        const dropY = targetY ?? Math.max(190, PLAYFIELD_HEIGHT * 0.52);
-        const healRatio = COMMANDER_TACTICS.airdrop?.healRatio ?? 0.40;
+        const dropX = targetX ?? (game.rallyPoint.active ? game.rallyPoint.x : LOGICAL_WIDTH / 2);
+        const dropY = targetY ?? (game.rallyPoint.active ? game.rallyPoint.y : Math.max(190, PLAYFIELD_HEIGHT * 0.52));
+        const healRatio = (COMMANDER_TACTICS.airdrop?.healRatio ?? 0.40) * (1 + (treeB.healBonusPct || 0));
         const buffDur = COMMANDER_TACTICS.airdrop?.buffDuration ?? 6.0;
 
         for (const u of game.units) {
@@ -2246,7 +2426,7 @@ export function triggerCommanderSkill(rawSkillKey, targetX = null, targetY = nul
                 });
             });
         }
-        spawnFloatingText(dropX, dropY - 28, '🪂 CHI VIỆN DÙ [Q] & HỒI 40% HP!', '#4ade80', 14);
+        spawnFloatingText(dropX, dropY - 28, '🪂 CHI VIỆN DÙ [Q] & HỒI HP!', '#4ade80', 14);
     } else if (skillKey === 'minefield') {
         sfx.play('upgrade');
         const rowY = targetY ?? PLAYFIELD_HEIGHT * 0.55;
@@ -2277,7 +2457,7 @@ export function triggerCommanderSkill(rawSkillKey, targetX = null, targetY = nul
         const empY = targetY ?? PLAYFIELD_HEIGHT * 0.42;
         const mapCfg = getActiveMapConfig();
         const extraStun = mapCfg.empExtraStunSec || 0;
-        const stunDur = (COMMANDER_TACTICS.emp?.stunDuration ?? 4.0) + extraStun;
+        const stunDur = ((COMMANDER_TACTICS.emp?.stunDuration ?? 4.0) + extraStun) * (1 + (treeB.ccDurationPct || 0));
         const empDmg = COMMANDER_TACTICS.emp?.empDamage ?? 48;
         const bossEmpDmg = COMMANDER_TACTICS.emp?.bossEmpDamage ?? 180;
 
@@ -2285,9 +2465,7 @@ export function triggerCommanderSkill(rawSkillKey, targetX = null, targetY = nul
 
         for (const u of game.units) {
             if (u.team === 'red' && !u.dead) {
-                if (!u.spec?.ccImmune) {
-                    u.stunTimer = Math.max(u.stunTimer, stunDur);
-                }
+                u.applyStatusEffect('stun', stunDur);
                 u.takeDamage(empDmg);
             }
         }
@@ -2663,12 +2841,14 @@ export function triggerRoguelikeMutationDraft() {
 
     const draftModal = document.getElementById('draft-modal');
     const badgeEl = document.getElementById('draft-badge-text');
+    const queuePillEl = document.getElementById('draft-queue-pill');
     const titleEl = document.getElementById('draft-title');
     const subEl = document.getElementById('draft-subtitle');
     const rerollBtn = document.getElementById('btn-draft-reroll');
     const container = document.getElementById('draft-cards-container');
 
     if (rerollBtn) rerollBtn.style.display = 'none';
+    if (queuePillEl) queuePillEl.classList.add('hidden');
 
     if (draftModal && container) {
         if (badgeEl) badgeEl.textContent = `ĐỘT BIẾN WAVE ${game.wave}`;

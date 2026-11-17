@@ -1119,12 +1119,12 @@
 }
 
 /* ============================================================================
-   6. TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ - NGỌC TRAI TRẮNG)
+   6. TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY - 40 KỸ NĂNG)
    ============================================================================ */
 #tab-skilltree {
     background:
-        radial-gradient(circle at 50% 25%, rgba(56, 189, 248, 0.22) 0%, transparent 55%),
-        linear-gradient(180deg, #064e3b 0%, #022c22 55%, #090d16 100%);
+        radial-gradient(circle at 50% 78%, rgba(16, 185, 129, 0.25) 0%, transparent 62%),
+        linear-gradient(180deg, #042f2e 0%, #022c22 50%, #090d16 100%);
 }
 
 .skilltree-top-banner {
@@ -1137,15 +1137,53 @@
     flex-shrink: 0;
 }
 
-.skilltree-canvas-stage {
+.skilltree-branch-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 5px 8px;
+    background: rgba(15, 23, 42, 0.92);
+    border-bottom: 2px solid #0f172a;
+    flex-shrink: 0;
+}
+
+.st-branch-jump-btn {
+    padding: 3.5px 2px;
+    border-radius: 8px;
+    border: 1.5px solid #334155;
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 8.5px;
+    font-weight: 900;
+    text-align: center;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.st-branch-jump-btn.active {
+    border-color: #fde047;
+    background: #065f46;
+    color: #ffffff;
+}
+
+.skilltree-scroll-viewport {
     flex: 1;
+    overflow: auto;
     position: relative;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 10px 8px 10px;
+    cursor: grab;
+    touch-action: pan-x pan-y;
+}
+
+.skilltree-scroll-viewport:active {
+    cursor: grabbing;
+}
+
+.skilltree-canopy-world {
+    position: relative;
+    width: 720px;
+    height: 760px;
+    margin: 0 auto;
 }
 
 .skilltree-svg-bg {
@@ -1157,64 +1195,84 @@
     z-index: 1;
 }
 
-.skilltree-tier-row {
-    position: relative;
+.skilltree-nodes-layer {
+    position: absolute;
+    inset: 0;
     z-index: 2;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    gap: 8px;
 }
 
-.st-node-btn {
-    position: relative;
-    width: 82px;
-    padding: 6px 4px;
+.st-tree-node {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
     background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     border: 3px solid #475569;
-    border-radius: 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 0 #020617;
     transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    padding: 2px;
 }
 
-.st-node-btn:active {
-    transform: scale(0.95) translateY(2px);
+.st-tree-node:active {
+    transform: translate(-50%, -50%) scale(0.92);
 }
 
-.st-node-btn.unlocked {
+.st-tree-node.unlocked {
     border-color: #38bdf8;
 }
 
-.st-node-btn.leveled {
+.st-tree-node.leveled {
     border-color: #4ade80;
     background: linear-gradient(180deg, #065f46 0%, #0f172a 100%);
-    box-shadow: 0 4px 0 #020617, 0 0 12px rgba(74, 222, 128, 0.45);
+    box-shadow: 0 4px 0 #020617, 0 0 12px rgba(74, 222, 128, 0.55);
 }
 
-.st-node-btn.selected-node {
+.st-tree-node.selected-node {
     outline: 3px solid #fde047;
-    transform: translateY(-2px);
+    z-index: 5;
 }
 
-.st-node-btn.locked {
+.st-tree-node.locked {
     opacity: 0.55;
-    filter: grayscale(70%);
+    filter: grayscale(75%);
 }
 
-.st-crown-node {
-    width: 104px;
+/* Nút thứ 10 của mỗi nhánh: Kỹ Năng Đặc Biệt (Keystone) */
+.st-tree-node.special-keystone {
+    width: 68px;
+    height: 68px;
+    border-width: 3.5px;
     border-color: #facc15;
+    background: radial-gradient(circle, #78350f 0%, #1e1b4b 75%, #090d16 100%);
+    box-shadow: 0 5px 0 #020617, 0 0 18px rgba(250, 204, 21, 0.65);
+}
+
+.st-tree-node.special-keystone.leveled {
+    border-color: #00f2fe;
+    background: radial-gradient(circle, #065f46 0%, #0284c7 65%, #090d16 100%);
+    box-shadow: 0 5px 0 #020617, 0 0 24px rgba(0, 242, 254, 0.9);
+}
+
+.st-node-lv-tag {
+    font-family: var(--font-pixel, monospace);
+    font-size: 11px;
+    line-height: 1;
+    color: #fde047;
+    background: rgba(2, 6, 23, 0.85);
+    padding: 0 4px;
+    border-radius: 999px;
+    margin-top: 1px;
 }
 
 .skilltree-inspector-dock {
     position: relative;
-    z-index: 3;
+    z-index: 4;
     background: #0f172a;
     border-top: 3px solid #38bdf8;
     padding: 8px 10px;

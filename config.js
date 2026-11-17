@@ -1,14 +1,15 @@
 /* ============================================================================
    TINY BATTLE - CORE CONFIGURATION & CATALOGS (js/config.js)
    Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100%)
-   Quy mô: 45 Maps • 17 Binh Chủng • 14 Zombie & Boss • 41 Rarity • Cây Cổ Thụ
+   Quy mô: 45 Maps Riêng Biệt • 18 Binh Chủng Tự Vẽ • 14 Zombie & Boss •
+           41 Bậc Độ Hiếm • Cây Cổ Thụ 4 Nhánh (40 Kỹ Năng & 4 Kỹ Năng Đặc Biệt)
    ============================================================================ */
 
 export const STORAGE_KEY = 'tiny_battle_meta_save_v3';
 export const META_SAVE_KEY = STORAGE_KEY;
 export const ADMIN_PASSWORD = 'HUNGADMINDZ';
 
-/* 0. HẰNG SỐ ĐỘNG CƠ CANVAS, LƯỚI ĐỊA HÌNH FLOW-FIELD, LƯỚI TD 7 CỘT & NÂNG CẤP XĂNG */
+/* 0. HẰNG SỐ ĐỘNG CƠ CANVAS, LƯỚI ĐỊA HÌNH FLOW-FIELD, LƯỚI TD 7x11 FULL MAP & XĂNG */
 export const LOGICAL_WIDTH = 420;
 export const LOGICAL_HEIGHT = 840;
 export const BOTTOM_UI_HEIGHT = 126;
@@ -28,14 +29,15 @@ export const T_WATER = 2;
 export const T_BRIDGE = 3;
 export const T_OBSTACLE = 4;
 
-// Hằng số chế độ CHALLENGE (Tower Defense 20 Wave Zombie - Lưới ô vuông 7 cột x 9 hàng)
+// Hằng số chế độ CHALLENGE (Tower Defense 20 Wave Zombie - Lưới ô vuông 7x11 Full Toàn Map)
 export const CHALLENGE_MAX_WAVES = 20;
 export const CHALLENGE_DECK_SLOTS = 6;
-export const CHALLENGE_COOLDOWN_MULT = 3.0; // Tăng hồi chiêu đặt Tower gấp 3.0 lần (Hardcore)
+export const CHALLENGE_COOLDOWN_MULT = 3.0;     // Tăng hồi chiêu đặt Tower gấp 3.0 lần (Hardcore)
+export const CHALLENGE_RELOCATE_HOLD_SEC = 3.0; // Nhấn giữ 3.0 giây lên Tower để nhấc và đổi vị trí
 export const TD_GRID_COLS = 7;
-export const TD_CELL_SIZE = 60;             // 420px / 7 cột = 60x60px mỗi ô vuông
-export const TD_GRID_TOP_Y = 72;            // Vùng trên 0..72px dành cho Zombie xuất quân
-export const TD_GRID_ROWS = 9;              // 9 hàng * 60px = 540px (y: 72 -> 612px, đáy 612..714px là Căn Cứ Xanh)
+export const TD_CELL_SIZE = 60;                 // 420px / 7 cột = 60x60px mỗi ô vuông
+export const TD_GRID_TOP_Y = 48;                // Phủ toàn bộ sân từ y = 48px đến y = 708px (11 hàng * 60px = 660px)
+export const TD_GRID_ROWS = 11;
 
 export const BATTLE_SPEED_MULTIPLIERS = [1, 2, 4];
 
@@ -47,7 +49,7 @@ export const GAS_UPGRADE_LEVELS = [
     { interval: 1.1, cost: 0,  label: 'MAX' }
 ];
 
-/* 1. HỆ THỐNG 41 BẬC ĐỘ HIẾM ĐÃ CÂN BẰNG LẠI (COMMON 1.0x ➔ MASTER +8 120x ➔ DEMON +10 777x) */
+/* 1. HỆ THỐNG 41 BẬC ĐỘ HIẾM (COMMON 1.0x ➔ MASTER +8 120x ➔ DEMON +10 777x) */
 export const RARITY_ORDER = [
     'common', 'uncommon', 'rare',
     'epic', 'epic1', 'epic2',
@@ -120,10 +122,10 @@ export function isDemonRarity(rarityId) {
     return !!(r && r.rank >= 30 && r.rank <= 40);
 }
 
-/* 2. CẤU HÌNH ĐỘ KHÓ (ĐÃ TĂNG ĐỘ KHÓ 45 MAP) VÀ CHẾ ĐỘ CHIẾN ĐẤU */
+/* 2. CẤU HÌNH ĐỘ KHÓ (45 MAP) VÀ CHẾ ĐỘ CHIẾN ĐẤU */
 export const DIFFICULTY_ORDER = ['easy', 'difficult'];
 export const BATTLE_MODE_ORDER = ['destroy', 'survival'];
-export const MAP_ENEMY_SCALE_PER_LEVEL = 0.095; // Tăng +9.5%/map thay vì +5.5%
+export const MAP_ENEMY_SCALE_PER_LEVEL = 0.095;
 
 export const DIFFICULTY_CONFIG = {
     easy:      { id: 'easy',      name: 'Dễ',  shortLabel: 'DỄ',  statMult: 1.20, baseHpMult: 1.25, medalReward: 0 },
@@ -162,9 +164,9 @@ export function calcChallengeEntryCostCoins(mapLv) {
     return 5000 + (m - 1) * 1500;
 }
 
-export function calcChallengeRewards(mapLv, ancientHeartLv = 0) {
+export function calcChallengeRewards(mapLv, pearlBonusPct = 0) {
     const m = Math.max(1, Number(mapLv) || 1);
-    const pearlMult = 1 + (Math.max(0, Number(ancientHeartLv) || 0) * 0.25);
+    const pearlMult = 1 + Math.max(0, Number(pearlBonusPct) || 0);
     const pearls = Math.max(10, Math.round((12 + m * 3) * pearlMult));
     const gems = 250 + m * 35;
     const coins = 12000 + m * 3500;
@@ -298,7 +300,7 @@ Object.defineProperties(COMMANDER_TACTICS, {
     blitz:     { value: COMMANDER_TACTICS.blitzkrieg, enumerable: false }
 });
 
-/* 6. CÂY KỸ NĂNG BỊ ĐỘNG LOBBY (6 NHÁNH META-TALENTS - MAX LV.10 | GIÁ KHỞI ĐIỂM 5 🎖️, +4 🎖️/CẤP) */
+/* 6. CÂY KỸ NĂNG BỊ ĐỘNG LOBBY (6 NHÁNH META-TALENTS - MAX LV.10 | DÙNG 🎖️ HUY CHƯƠNG) */
 export const META_TALENTS = {
     oil_refining: {
         id: 'oil_refining',
@@ -430,100 +432,342 @@ Object.defineProperties(UNIT_CHIPS, {
     overclock_servo: { value: UNIT_CHIPS.overclock_core, enumerable: false }
 });
 
-/* 8. CÂY KỸ NĂNG CỔ THỤ (SKILL TREE - DÙNG ⚪ NGỌC TRAI TRẮNG) */
+/* 8. CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY (40 KỸ NĂNG & 4 KỸ NĂNG ĐẶC BIỆT MỐC 10 - DÙNG ⚪ NGỌC TRAI TRẮNG) */
+export const SKILL_TREE_BRANCHES = [
+    { id: 'firepower', name: '🔥 Hỏa Lực & Nguyên Tố', shortName: '🔥 HỎA LỰC', color: '#f97316', rootX: 110 },
+    { id: 'fortress',  name: '🛡️ Pháo Đài & Sinh Mệnh', shortName: '🛡️ PHÁO ĐÀI', color: '#38bdf8', rootX: 275 },
+    { id: 'summon',    name: '💀 Triệu Hồi & Khống Chế', shortName: '💀 TRIỆU HỒI', color: '#c084fc', rootX: 445 },
+    { id: 'economy',   name: '⛽ Kinh Tế & Hậu Cần',    shortName: '⛽ KINH TẾ',  color: '#4ade80', rootX: 610 }
+];
+
 export const ANCIENT_SKILL_TREE = {
-    vital_roots: {
-        id: 'vital_roots',
-        tier: 1,
-        tierName: 'Rễ Cây',
-        name: 'Rễ Sinh Mệnh',
-        icon: '💚',
-        maxLevel: 5,
-        baseCost: 5,
-        costStep: 1, // 5, 6, 7, 8, 9 (tầm 5 - 10 Ngọc Trai)
-        requires: [],
-        desc: '+12%/cấp HP tối đa cho toàn bộ đơn vị và Tower.',
-        getEffectText(lv) { return `HP Toàn Quân & Tower: +${lv * 12}%`; }
+    // ==================== NHÁNH 1: HỎA LỰC & NGUYÊN TỐ (10 KỸ NĂNG) ====================
+    fp_1: {
+        id: 'fp_1', branch: 'firepower', order: 1, x: 110, y: 610,
+        name: 'Cường Hóa Đạn Đạo', icon: '🔫', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
+        statType: 'physDmgPct', perLevel: 0.08,
+        desc: '+8%/cấp Sát thương vật lý cho toàn bộ đơn vị và Tower.',
+        getEffectText(lv) { return `DMG Vật Lý: +${lv * 8}%`; }
     },
-    supply_roots: {
-        id: 'supply_roots',
-        tier: 1,
-        tierName: 'Rễ Cây',
-        name: 'Rễ Tiếp Tế',
-        icon: '⛽',
-        maxLevel: 5,
-        baseCost: 6,
-        costStep: 1, // 6, 7, 8, 9, 10 (tầm 5 - 10 Ngọc Trai)
-        requires: [],
-        desc: '+1 Xăng khởi đầu trận và +6%/cấp tốc độ hồi Xăng.',
-        getEffectText(lv) { return `Xăng đầu trận: +${lv} | Tốc hồi Xăng: +${lv * 6}%`; }
+    fp_2: {
+        id: 'fp_2', branch: 'firepower', order: 2, x: 75, y: 540,
+        name: 'Tâm Nhãn Xạ Thủ', icon: '🎯', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['fp_1'],
+        statType: 'critChance', perLevel: 0.025,
+        desc: '+2.5%/cấp Tỷ lệ Bạo kích (gây 1.75x sát thương).',
+        getEffectText(lv) { return `Tỷ lệ Bạo kích: +${(lv * 2.5).toFixed(1)}%`; }
     },
-    iron_trunk: {
-        id: 'iron_trunk',
-        tier: 2,
-        tierName: 'Thân Cây',
-        name: 'Thân Cương Thiết',
-        icon: '⚙️',
-        maxLevel: 5,
-        baseCost: 15,
-        costStep: 2, // 15, 17, 19, 21, 23 (tầm 15 - 25 Ngọc Trai)
-        requires: ['vital_roots'],
-        desc: '+15%/cấp Sát thương vật lý & tốc độ bắn cho bộ binh, cơ giới và Tower.',
-        getEffectText(lv) { return `DMG Vật Lý & Tốc Bắn: +${lv * 15}%`; }
+    fp_3: {
+        id: 'fp_3', branch: 'firepower', order: 3, x: 145, y: 540,
+        name: 'Nguyên Tố Bùng Nổ', icon: '🔥', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['fp_1'],
+        statType: 'elemDmgPct', perLevel: 0.10,
+        desc: '+10%/cấp Sát thương nguyên tố (Lửa, Băng, Ám, Railgun).',
+        getEffectText(lv) { return `DMG Nguyên Tố: +${lv * 10}%`; }
     },
-    arcane_trunk: {
-        id: 'arcane_trunk',
-        tier: 2,
-        tierName: 'Thân Cây',
-        name: 'Thân Ma Thuật',
-        icon: '🔮',
-        maxLevel: 5,
-        baseCost: 15,
-        costStep: 2, // 15, 17, 19, 21, 23 (tầm 15 - 25 Ngọc Trai)
-        requires: ['supply_roots'],
-        desc: '+18%/cấp Sát thương nguyên tố (Lửa, Băng, Điện, Ám) và kéo dài thời gian khống chế.',
-        getEffectText(lv) { return `DMG Nguyên Tố: +${lv * 18}% | Khống chế: +${lv * 12}%`; }
+    fp_4: {
+        id: 'fp_4', branch: 'firepower', order: 4, x: 75, y: 465,
+        name: 'Cò Súng Tự Động', icon: '⚡', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['fp_2'],
+        statType: 'fireRatePct', perLevel: 0.07,
+        desc: '+7%/cấp Tốc độ bắn cho toàn bộ đơn vị và Tower.',
+        getEffectText(lv) { return `Tốc độ bắn: +${lv * 7}%`; }
     },
-    undead_slayer: {
-        id: 'undead_slayer',
-        tier: 3,
-        tierName: 'Cành Nhánh',
-        name: 'Cành Săn Xác Sống',
-        icon: '🗡️',
-        maxLevel: 5,
-        baseCost: 35,
-        costStep: 4, // 35, 39, 43, 47, 51 (tầm 35 - 50 Ngọc Trai)
-        requires: ['iron_trunk'],
-        desc: '+25%/cấp sát thương gây ra lên toàn bộ Zombie & Boss trong chế độ CHALLENGE.',
-        getEffectText(lv) { return `Sát thương diệt Zombie & Boss: +${lv * 25}%`; }
+    fp_5: {
+        id: 'fp_5', branch: 'firepower', order: 5, x: 145, y: 465,
+        name: 'Đầu Đạn Xuyên Giáp', icon: '💥', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['fp_3'],
+        statType: 'allDmgPct', perLevel: 0.07,
+        desc: '+7%/cấp Tổng sát thương đầu ra cho mọi binh chủng.',
+        getEffectText(lv) { return `Tổng Sát Thương: +${lv * 7}%`; }
     },
-    elite_lineage: {
-        id: 'elite_lineage',
-        tier: 3,
-        tierName: 'Cành Nhánh',
-        name: 'Cành Tinh Anh',
-        icon: '⚡',
-        maxLevel: 5,
-        baseCost: 35,
-        costStep: 4, // 35, 39, 43, 47, 51
-        requires: ['arcane_trunk'],
-        desc: 'Giảm 15% thời gian hồi chiêu đặt Tower/gọi quân và tăng +8% tỷ lệ chí mạng.',
-        getEffectText(lv) { return `Hồi chiêu: -${lv * 3}% (tối đa 15%) | Bạo kích: +${(lv * 1.6).toFixed(1)}% (tối đa +8%)`; }
+    fp_6: {
+        id: 'fp_6', branch: 'firepower', order: 6, x: 75, y: 390,
+        name: 'Thuốc Nổ Cấp Cao', icon: '💣', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['fp_4'],
+        statType: 'splashBonus', perLevel: 6,
+        desc: '+6px/cấp Bán kính nổ lan cho đạn pháo, tên lửa & phép thuật.',
+        getEffectText(lv) { return `Bán kính nổ lan: +${lv * 6}px`; }
     },
-    ancient_heart: {
-        id: 'ancient_heart',
-        tier: 4,
-        tierName: 'Ngọn Cây Tối Thượng',
-        name: 'Trái Tim Cổ Thụ',
-        icon: '💖',
-        maxLevel: 3,
-        baseCost: 80,
-        costStep: 20, // 80, 100, 120 (80 - 120 Ngọc Trai)
-        requires: ['undead_slayer', 'elite_lineage'],
-        desc: 'Toàn bộ quân & Tower tự hồi 2% HP mỗi giây, đồng thời tăng +25%/cấp lượng Ngọc Trai nhận được khi thắng CHALLENGE.',
-        getEffectText(lv) { return `Hồi phục: ${lv > 0 ? '2% HP/s' : '0%'} | Thưởng Ngọc Trai: +${lv * 25}%`; }
+    fp_7: {
+        id: 'fp_7', branch: 'firepower', order: 7, x: 145, y: 390,
+        name: 'Ngọn Lửa Vĩnh Cửu', icon: '🌋', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['fp_5'],
+        statType: 'burnBonusPct', perLevel: 0.25,
+        desc: '+25%/cấp Sát thương thiêu đốt theo thời gian (Burn DPS).',
+        getEffectText(lv) { return `Hiệu quả Thiêu Đốt: +${lv * 25}%`; }
+    },
+    fp_8: {
+        id: 'fp_8', branch: 'firepower', order: 8, x: 75, y: 315,
+        name: 'Nòng Pháo Viễn Trinh', icon: '🔭', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['fp_6'],
+        statType: 'rangeBonus', perLevel: 8,
+        desc: '+8px/cấp Tầm bắn xa cho toàn bộ đơn vị và Tower.',
+        getEffectText(lv) { return `Tầm bắn cộng thêm: +${lv * 8}px`; }
+    },
+    fp_9: {
+        id: 'fp_9', branch: 'firepower', order: 9, x: 145, y: 315,
+        name: 'Cuồng Nộ Chiến Trường', icon: '💢', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['fp_7'],
+        statType: 'allDmgPct', perLevel: 0.12,
+        desc: '+12%/cấp Sát thương toàn diện trước thềm sức mạnh tối thượng.',
+        getEffectText(lv) { return `Sát Thương Tinh Anh: +${lv * 12}%`; }
+    },
+    fp_10: {
+        id: 'fp_10', branch: 'firepower', order: 10, x: 110, y: 215, isKeystone: true,
+        name: '🌪️ BÃO THIÊN THẠCH (ĐẶC BIỆT)', icon: '☄️', maxLevel: 1, baseCost: 180, costStep: 0, requires: ['fp_8', 'fp_9'],
+        specialKey: 'meteor_storm',
+        desc: '[KỸ NĂNG ĐẶC BIỆT] Cứ mỗi 14 giây trong trận, tự động gọi 3 thiên thạch giáng xuống cụm địch đông nhất gây nổ lan 320 DMG & thiêu đốt!',
+        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Gọi 3 Thiên Thạch mỗi 14s!' : 'Chưa mở khóa (Cần 180 ⚪)'; }
+    },
+
+    // ==================== NHÁNH 2: PHÁO ĐÀI & SINH MỆNH (10 KỸ NĂNG) ====================
+    ft_1: {
+        id: 'ft_1', branch: 'fortress', order: 1, x: 275, y: 610,
+        name: 'Rễ Sinh Mệnh', icon: '💚', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
+        statType: 'hpPct', perLevel: 0.10,
+        desc: '+10%/cấp Máu (HP) tối đa cho toàn bộ đơn vị và Tower.',
+        getEffectText(lv) { return `HP Toàn Quân & Tower: +${lv * 10}%`; }
+    },
+    ft_2: {
+        id: 'ft_2', branch: 'fortress', order: 2, x: 240, y: 540,
+        name: 'Giáp Composite', icon: '🛡️', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['ft_1'],
+        statType: 'armorPct', perLevel: 0.03,
+        desc: '+3%/cấp Giảm sát thương nhận vào cho toàn quân Xanh.',
+        getEffectText(lv) { return `Giảm Sát Thương: +${lv * 3}%`; }
+    },
+    ft_3: {
+        id: 'ft_3', branch: 'fortress', order: 3, x: 310, y: 540,
+        name: 'Tường Thành Kiên Cố', icon: '🏰', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['ft_1'],
+        statType: 'baseHpPct', perLevel: 0.15,
+        desc: '+15%/cấp Máu tối đa cho Căn Cứ Xanh.',
+        getEffectText(lv) { return `HP Căn Cứ Xanh: +${lv * 15}%`; }
+    },
+    ft_4: {
+        id: 'ft_4', branch: 'fortress', order: 4, x: 240, y: 465,
+        name: 'Huyết Thanh Tái Tạo', icon: '💉', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['ft_2'],
+        statType: 'hpRegenPct', perLevel: 0.006,
+        desc: 'Toàn bộ đơn vị và Tower tự hồi +0.6%/cấp HP mỗi giây.',
+        getEffectText(lv) { return `Hồi phục tự động: +${(lv * 0.6).toFixed(1)}% HP/s`; }
+    },
+    ft_5: {
+        id: 'ft_5', branch: 'fortress', order: 5, x: 310, y: 465,
+        name: 'Tháp Phòng Thủ Tự Động', icon: '🗼', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['ft_3'],
+        statType: 'turretDmgPct', perLevel: 0.14,
+        desc: '+14%/cấp Sát thương cho Ụ Pháo gắn trên Căn Cứ Xanh.',
+        getEffectText(lv) { return `DMG Ụ Pháo Căn Cứ: +${lv * 14}%`; }
+    },
+    ft_6: {
+        id: 'ft_6', branch: 'fortress', order: 6, x: 240, y: 390,
+        name: 'Linh Hồn Hấp Huyết', icon: '🩸', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['ft_4'],
+        statType: 'lifestealPct', perLevel: 0.04,
+        desc: 'Đơn vị phe Xanh hồi máu bằng +4%/cấp sát thương gây ra.',
+        getEffectText(lv) { return `Hút máu đòn đánh: +${lv * 4}%`; }
+    },
+    ft_7: {
+        id: 'ft_7', branch: 'fortress', order: 7, x: 310, y: 390,
+        name: 'Phúc Lành Thánh Quang', icon: '✨', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['ft_5'],
+        statType: 'healBonusPct', perLevel: 0.18,
+        desc: '+18%/cấp Hiệu quả hồi máu của Mục Sư & Chi Viện Dù.',
+        getEffectText(lv) { return `Hiệu quả Hồi Máu: +${lv * 18}%`; }
+    },
+    ft_8: {
+        id: 'ft_8', branch: 'fortress', order: 8, x: 240, y: 315,
+        name: 'Kháng Hiệu Ứng Bất Lợi', icon: '💠', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['ft_6'],
+        statType: 'ccResistPct', perLevel: 0.15,
+        desc: 'Giảm -15%/cấp thời gian bị Choáng, Đóng Băng & Axit làm chậm.',
+        getEffectText(lv) { return `Kháng Khống Chế: -${lv * 15}% thời gian`; }
+    },
+    ft_9: {
+        id: 'ft_9', branch: 'fortress', order: 9, x: 310, y: 315,
+        name: 'Thân Thể Bất Hoại', icon: '🦾', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['ft_7'],
+        statType: 'hpPct', perLevel: 0.15,
+        desc: '+15%/cấp HP tối đa toàn diện bảo vệ tiền tuyến.',
+        getEffectText(lv) { return `HP Bất Hoại: +${lv * 15}%`; }
+    },
+    ft_10: {
+        id: 'ft_10', branch: 'fortress', order: 10, x: 275, y: 215, isKeystone: true,
+        name: '🛡️ KHIÊN PHẢN CHẤN VĨNH CỬU (ĐẶC BIỆT)', icon: '🔰', maxLevel: 1, baseCost: 180, costStep: 0, requires: ['ft_8', 'ft_9'],
+        specialKey: 'eternal_shield',
+        desc: '[KỸ NĂNG ĐẶC BIỆT] Căn Cứ Xanh và toàn bộ Tower nhận lớp Khiên Năng Lượng bằng 25% HP tối đa, tự động hồi đầy sau mỗi Wave!',
+        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Khiên 25% HP hồi đầy mỗi Wave!' : 'Chưa mở khóa (Cần 180 ⚪)'; }
+    },
+
+    // ==================== NHÁNH 3: TRIỆU HỒI & KHỐNG CHẾ (10 KỸ NĂNG) ====================
+    sm_1: {
+        id: 'sm_1', branch: 'summon', order: 1, x: 445, y: 610,
+        name: 'Cành Săn Xác Sống', icon: '🗡️', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
+        statType: 'zombieDmgPct', perLevel: 0.18,
+        desc: '+18%/cấp Sát thương gây lên toàn bộ Zombie & Boss trong CHALLENGE.',
+        getEffectText(lv) { return `DMG Diệt Zombie & Boss: +${lv * 18}%`; }
+    },
+    sm_2: {
+        id: 'sm_2', branch: 'summon', order: 2, x: 410, y: 540,
+        name: 'Hàn Băng Vĩnh Cửu', icon: '❄️', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['sm_1'],
+        statType: 'ccDurationPct', perLevel: 0.12,
+        desc: '+12%/cấp Thời gian Đóng Băng & Làm Choáng kẻ địch.',
+        getEffectText(lv) { return `Thời gian Khống Chế: +${lv * 12}%`; }
+    },
+    sm_3: {
+        id: 'sm_3', branch: 'summon', order: 3, x: 480, y: 540,
+        name: 'Cành Tinh Anh', icon: '⏱️', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['sm_1'],
+        statType: 'cdReductionPct', perLevel: 0.03,
+        desc: 'Giảm -3%/cấp thời gian hồi chiêu đặt Tower & gọi quân.',
+        getEffectText(lv) { return `Giảm Hồi Chiêu Quân: -${lv * 3}%`; }
+    },
+    sm_4: {
+        id: 'sm_4', branch: 'summon', order: 4, x: 410, y: 465,
+        name: 'Tụ Điện Cao Áp', icon: '⚡', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['sm_2'],
+        statType: 'stunChanceBonus', perLevel: 0.03,
+        desc: '+3%/cấp Tỷ lệ đòn đánh thường gây Choáng điện từ (1.0s).',
+        getEffectText(lv) { return `Tỷ lệ Choáng Thêm: +${lv * 3}%`; }
+    },
+    sm_5: {
+        id: 'sm_5', branch: 'summon', order: 5, x: 480, y: 465,
+        name: 'Xương Cốt Cương Thiết', icon: '💀', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['sm_3'],
+        statType: 'skeletonStatPct', perLevel: 0.25,
+        desc: '+25%/cấp HP & Sát thương cho Chiến Binh Xương triệu hồi.',
+        getEffectText(lv) { return `Sức mạnh Chiến Binh Xương: +${lv * 25}%`; }
+    },
+    sm_6: {
+        id: 'sm_6', branch: 'summon', order: 6, x: 410, y: 390,
+        name: 'Chiến Thuật Chỉ Huy', icon: '🎖️', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['sm_4'],
+        statType: 'tacticCdPct', perLevel: 0.05,
+        desc: 'Giảm -5%/cấp thời gian hồi 4 kỹ năng Chỉ huy [Q/W/E/R].',
+        getEffectText(lv) { return `Hồi chiêu Q/W/E/R: -${lv * 5}%`; }
+    },
+    sm_7: {
+        id: 'sm_7', branch: 'summon', order: 7, x: 480, y: 390,
+        name: 'Binh Đoàn Vong Linh', icon: '👻', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['sm_5'],
+        statType: 'extraSkeletonCap', perLevel: 1,
+        desc: '+1/cấp Giới hạn Chiến Binh Xương tối đa của mỗi Pháp Sư Chiêu Hồn.',
+        getEffectText(lv) { return `Giới hạn Xương: +${lv} con`; }
+    },
+    sm_8: {
+        id: 'sm_8', branch: 'summon', order: 8, x: 410, y: 315,
+        name: 'Bước Chân Thần Tốc', icon: '👟', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['sm_6'],
+        statType: 'moveSpeedPct', perLevel: 0.06,
+        desc: '+6%/cấp Tốc độ di chuyển cho toàn bộ đơn vị trên chiến trường.',
+        getEffectText(lv) { return `Tốc độ di chuyển: +${lv * 6}%`; }
+    },
+    sm_9: {
+        id: 'sm_9', branch: 'summon', order: 9, x: 480, y: 315,
+        name: 'Áp Đảo Bóng Tối', icon: '🌑', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['sm_7'],
+        statType: 'zombieDmgPct', perLevel: 0.25,
+        desc: '+25%/cấp Sát thương kết liễu Zombie & Boss.',
+        getEffectText(lv) { return `Sát Thương Hư Không: +${lv * 25}%`; }
+    },
+    sm_10: {
+        id: 'sm_10', branch: 'summon', order: 10, x: 445, y: 215, isKeystone: true,
+        name: '💀 LÃNH CHÚA HƯ KHÔNG (ĐẶC BIỆT)', icon: '👑', maxLevel: 1, baseCost: 200, costStep: 0, requires: ['sm_8', 'sm_9'],
+        specialKey: 'void_lord',
+        desc: '[KỸ NĂNG ĐẶC BIỆT] Nhân đôi giới hạn Chiến Binh Xương, đồng thời mỗi khi lính Xanh hy sinh có 25% tỷ lệ hồi sinh ngay thành Chiến Binh Xương!',
+        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Xương x2 & 25% Hồi sinh Xương!' : 'Chưa mở khóa (Cần 200 ⚪)'; }
+    },
+
+    // ==================== NHÁNH 4: KINH TẾ & HẬU CẦN (10 KỸ NĂNG) ====================
+    ec_1: {
+        id: 'ec_1', branch: 'economy', order: 1, x: 610, y: 610,
+        name: 'Rễ Tiếp Tế', icon: '⛽', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
+        statType: 'startGasFlat', perLevel: 1,
+        desc: '+1 Xăng khởi đầu ngay khi vừa bước vào mọi trận đấu.',
+        getEffectText(lv) { return `Xăng khởi đầu trận: +${lv}`; }
+    },
+    ec_2: {
+        id: 'ec_2', branch: 'economy', order: 2, x: 575, y: 540,
+        name: 'Bơm Áp Suất Cao', icon: '⚡', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['ec_1'],
+        statType: 'gasRegenPct', perLevel: 0.05,
+        desc: '+5%/cấp Tốc độ hồi phục Xăng tự động trong trận.',
+        getEffectText(lv) { return `Tốc độ hồi Xăng: +${lv * 5}%`; }
+    },
+    ec_3: {
+        id: 'ec_3', branch: 'economy', order: 3, x: 645, y: 540,
+        name: 'Khai Thác Vàng Ròng', icon: '🪙', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['ec_1'],
+        statType: 'goldBonusPct', perLevel: 0.10,
+        desc: '+10%/cấp Lượng Vàng nhận được sau mỗi trận chiến.',
+        getEffectText(lv) { return `Thưởng Vàng Chiến Dịch: +${lv * 10}%`; }
+    },
+    ec_4: {
+        id: 'ec_4', branch: 'economy', order: 4, x: 575, y: 465,
+        name: 'Sổ Tay Kinh Nghiệm', icon: '📘', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['ec_2'],
+        statType: 'expGainPct', perLevel: 0.12,
+        desc: '+12%/cấp EXP nhận được khi hạ địch để tích lũy LEVEL UP nhanh hơn.',
+        getEffectText(lv) { return `Tốc độ nhận EXP trận: +${lv * 12}%`; }
+    },
+    ec_5: {
+        id: 'ec_5', branch: 'economy', order: 5, x: 645, y: 465,
+        name: 'Kho Báu Ngọc Trai', icon: '⚪', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['ec_3'],
+        statType: 'pearlBonusPct', perLevel: 0.15,
+        desc: '+15%/cấp Lượng Ngọc Trai Trắng nhận được khi vượt ải CHALLENGE.',
+        getEffectText(lv) { return `Thưởng Ngọc Trai Trắng: +${lv * 15}%`; }
+    },
+    ec_6: {
+        id: 'ec_6', branch: 'economy', order: 6, x: 575, y: 390,
+        name: 'Tái Chế Khí Tài', icon: '♻️', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['ec_4'],
+        statType: 'deathGasRefundPct', perLevel: 0.04,
+        desc: 'Hoàn lại thêm +4%/cấp chi phí Xăng khi đơn vị phe Xanh hy sinh.',
+        getEffectText(lv) { return `Hoàn Xăng hy sinh: +${lv * 4}%`; }
+    },
+    ec_7: {
+        id: 'ec_7', branch: 'economy', order: 7, x: 645, y: 390,
+        name: 'Bình Chứa Mở Rộng', icon: '🛢️', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['ec_5'],
+        statType: 'maxGasFlat', perLevel: 2,
+        desc: '+2/cấp Giới hạn dự trữ Xăng tối đa trong trận.',
+        getEffectText(lv) { return `Trần Xăng tối đa: +${lv * 2}`; }
+    },
+    ec_8: {
+        id: 'ec_8', branch: 'economy', order: 8, x: 575, y: 315,
+        name: 'Chiến Lợi Phẩm Nóng', icon: '💰', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['ec_6'],
+        statType: 'killGasChance', perLevel: 0.04,
+        desc: '+4%/cấp Tỷ lệ nhận ngay +0.5 Xăng mỗi khi tiêu diệt 1 kẻ địch.',
+        getEffectText(lv) { return `Tỷ lệ rơi Xăng khi diệt địch: +${lv * 4}%`; }
+    },
+    ec_9: {
+        id: 'ec_9', branch: 'economy', order: 9, x: 645, y: 315,
+        name: 'Tiếp Vận Siêu Tốc', icon: '🚀', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['ec_7'],
+        statType: 'gasRegenPct', perLevel: 0.10,
+        desc: '+10%/cấp Tốc độ hồi phục Xăng cực đại.',
+        getEffectText(lv) { return `Tốc hồi Xăng Tinh Anh: +${lv * 10}%`; }
+    },
+    ec_10: {
+        id: 'ec_10', branch: 'economy', order: 10, x: 610, y: 215, isKeystone: true,
+        name: '⚛️ LÒ PHẢN ỨNG VÔ CỰC (ĐẶC BIỆT)', icon: '🔋', maxLevel: 1, baseCost: 220, costStep: 0, requires: ['ec_8', 'ec_9'],
+        specialKey: 'infinite_reactor',
+        desc: '[KỸ NĂNG ĐẶC BIỆT] Tăng giới hạn Xăng tối đa lên 30 và cứ mỗi khi tiêu tốn đủ 5 Xăng sẽ hoàn lại ngay 1 Xăng tức thì!',
+        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Trần 30 Xăng & Hoàn 1⛽ mỗi 5⛽ tiêu!' : 'Chưa mở khóa (Cần 220 ⚪)'; }
     }
 };
+
+// Sơ đồ các đoạn nối hình Cây Cổ Thụ Tự Nhiên (Gốc -> Thân -> Tỏa 4 Nhánh Độc Lập, không giao chéo)
+export const ANCIENT_TREE_BRANCH_LINES = [
+    // Gốc & Thân cây trung tâm (y: 745 -> 665)
+    { from: { x: 360, y: 745 }, to: { x: 360, y: 675 }, reqNode: null },
+    // 4 Cành chính tỏa ngang từ thân cây ra 4 nhánh độc lập
+    { from: { x: 360, y: 675 }, to: { x: 110, y: 610 }, reqNode: 'fp_1' },
+    { from: { x: 360, y: 675 }, to: { x: 275, y: 610 }, reqNode: 'ft_1' },
+    { from: { x: 360, y: 675 }, to: { x: 445, y: 610 }, reqNode: 'sm_1' },
+    { from: { x: 360, y: 675 }, to: { x: 610, y: 610 }, reqNode: 'ec_1' },
+
+    // Nhánh 1: Hỏa Lực
+    { from: 'fp_1', to: 'fp_2' }, { from: 'fp_1', to: 'fp_3' },
+    { from: 'fp_2', to: 'fp_4' }, { from: 'fp_3', to: 'fp_5' },
+    { from: 'fp_4', to: 'fp_6' }, { from: 'fp_5', to: 'fp_7' },
+    { from: 'fp_6', to: 'fp_8' }, { from: 'fp_7', to: 'fp_9' },
+    { from: 'fp_8', to: 'fp_10' }, { from: 'fp_9', to: 'fp_10' },
+
+    // Nhánh 2: Pháo Đài
+    { from: 'ft_1', to: 'ft_2' }, { from: 'ft_1', to: 'ft_3' },
+    { from: 'ft_2', to: 'ft_4' }, { from: 'ft_3', to: 'ft_5' },
+    { from: 'ft_4', to: 'ft_6' }, { from: 'ft_5', to: 'ft_7' },
+    { from: 'ft_6', to: 'ft_8' }, { from: 'ft_7', to: 'ft_9' },
+    { from: 'ft_8', to: 'ft_10' }, { from: 'ft_9', to: 'ft_10' },
+
+    // Nhánh 3: Triệu Hồi
+    { from: 'sm_1', to: 'sm_2' }, { from: 'sm_1', to: 'sm_3' },
+    { from: 'sm_2', to: 'sm_4' }, { from: 'sm_3', to: 'sm_5' },
+    { from: 'sm_4', to: 'sm_6' }, { from: 'sm_5', to: 'sm_7' },
+    { from: 'sm_6', to: 'sm_8' }, { from: 'sm_7', to: 'sm_9' },
+    { from: 'sm_8', to: 'sm_10' }, { from: 'sm_9', to: 'sm_10' },
+
+    // Nhánh 4: Kinh Tế
+    { from: 'ec_1', to: 'ec_2' }, { from: 'ec_1', to: 'ec_3' },
+    { from: 'ec_2', to: 'ec_4' }, { from: 'ec_3', to: 'ec_5' },
+    { from: 'ec_4', to: 'ec_6' }, { from: 'ec_5', to: 'ec_7' },
+    { from: 'ec_6', to: 'ec_8' }, { from: 'ec_7', to: 'ec_9' },
+    { from: 'ec_8', to: 'ec_10' }, { from: 'ec_9', to: 'ec_10' }
+];
 
 export function getSkillTreeNodeCost(nodeId, currentLv) {
     const node = ANCIENT_SKILL_TREE[nodeId];
@@ -532,7 +776,7 @@ export function getSkillTreeNodeCost(nodeId, currentLv) {
     return node.baseCost + lv * node.costStep;
 }
 
-/* 9. DANH MỤC 17 BINH CHỦNG & KHÔNG KÍCH + CHIẾN BINH XƯƠNG */
+/* 9. DANH MỤC 17 BINH CHỦNG + KHÔNG KÍCH + CHIẾN BINH XƯƠNG (100% TỰ VẼ CANVAS 2D) */
 export const UNIT_CATALOG = [
     {
         id: 'infantry',
@@ -553,7 +797,6 @@ export const UNIT_CATALOG = [
         atkSpeed: 0.85,
         radius: 11,
         attackType: 'beam',
-        spriteCol: 16,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -578,7 +821,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'rocket_short',
         projSpeed: 250,
-        spriteCol: 17,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -600,7 +842,6 @@ export const UNIT_CATALOG = [
         atkSpeed: 0.50,
         radius: 11,
         attackType: 'beam',
-        spriteCol: 16,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -621,7 +862,6 @@ export const UNIT_CATALOG = [
         atkSpeed: 1.65,
         radius: 14,
         attackType: 'beam',
-        spriteCol: 5,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -644,7 +884,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'shell',
         projSpeed: 270,
-        spriteCol: 7,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -669,7 +908,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'shell',
         projSpeed: 250,
-        spriteCol: 8,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -694,7 +932,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'arc_missile',
         projSpeed: 235,
-        spriteCol: 9,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -720,7 +957,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'air_missile',
         projSpeed: 280,
-        spriteCol: 11,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -742,7 +978,6 @@ export const UNIT_CATALOG = [
         atkSpeed: 1.45,
         radius: 14,
         attackType: 'beam',
-        spriteCol: 13,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -768,7 +1003,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'shell',
         projSpeed: 255,
-        spriteCol: 14,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -794,7 +1028,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'arc_missile',
         projSpeed: 230,
-        spriteCol: 15,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -805,7 +1038,6 @@ export const UNIT_CATALOG = [
         category: 'infantry',
         element: 'elemental',
         isWalker: true,
-        isCustomArt: true,
         cost: 4,
         cooldown: 3.5,
         hp: 190,
@@ -823,7 +1055,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'fireball',
         projSpeed: 245,
-        spriteCol: 17,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -834,7 +1065,6 @@ export const UNIT_CATALOG = [
         category: 'infantry',
         element: 'elemental',
         isWalker: true,
-        isCustomArt: true,
         cost: 4,
         cooldown: 3.8,
         hp: 205,
@@ -852,7 +1082,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'ice_shard',
         projSpeed: 255,
-        spriteCol: 16,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -865,7 +1094,6 @@ export const UNIT_CATALOG = [
         isWalker: true,
         isHealer: true,
         healTargetsCount: 2,
-        isCustomArt: true,
         cost: 3,
         cooldown: 3.2,
         hp: 220,
@@ -877,7 +1105,6 @@ export const UNIT_CATALOG = [
         atkSpeed: 1.00,
         radius: 11,
         attackType: 'heal_beam',
-        spriteCol: 16,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -891,7 +1118,6 @@ export const UNIT_CATALOG = [
         isNecromancer: true,
         soulHarvestRadius: 135,
         maxSkeletons: 4,
-        isCustomArt: true,
         cost: 6,
         cooldown: 5.5,
         hp: 280,
@@ -907,7 +1133,6 @@ export const UNIT_CATALOG = [
         attackType: 'projectile',
         projType: 'dark_orb',
         projSpeed: 245,
-        spriteCol: 17,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -917,7 +1142,6 @@ export const UNIT_CATALOG = [
         role: 'Khiên Lục Giác (-35% Đạn Xa)',
         category: 'vehicle',
         element: 'elemental',
-        isCustomArt: true,
         rangedShieldReductionPct: 0.35,
         cost: 7,
         cooldown: 5.8,
@@ -930,7 +1154,6 @@ export const UNIT_CATALOG = [
         atkSpeed: 0.85,
         radius: 17,
         attackType: 'beam',
-        spriteCol: 9,
         sockets: [null, null],
         defaultChips: [null, null]
     },
@@ -940,7 +1163,6 @@ export const UNIT_CATALOG = [
         role: 'Bắn Xuyên Tuyến & Làm Choáng',
         category: 'vehicle',
         element: 'elemental',
-        isCustomArt: true,
         isRailgunLine: true,
         lineStunDuration: 0.8,
         cost: 8,
@@ -954,7 +1176,6 @@ export const UNIT_CATALOG = [
         atkSpeed: 0.42,
         radius: 16,
         attackType: 'railgun_line',
-        spriteCol: 8,
         sockets: [null, null],
         defaultChips: [null, null]
     }
@@ -968,7 +1189,6 @@ export const SKELETON_SUMMON_SPEC = {
     element: 'elemental',
     isWalker: true,
     isSummonedSkeleton: true,
-    isCustomArt: true,
     cost: 0,
     cooldown: 1.0,
     hp: 165,
@@ -980,7 +1200,6 @@ export const SKELETON_SUMMON_SPEC = {
     atkSpeed: 1.25,
     radius: 10,
     attackType: 'beam',
-    spriteCol: 16,
     sockets: [null, null],
     defaultChips: [null, null]
 };
@@ -1004,7 +1223,6 @@ export const AIRSTRIKE_SPEC = {
     fireRate: 1.0,
     atkSpeed: 1.0,
     splash: 52,
-    spriteCol: 10,
     sockets: [null, null],
     defaultChips: [null, null]
 };
@@ -1426,229 +1644,144 @@ export const RAID_BOSS_CONFIG = {
     hullHp: 12000
 };
 
-/* 17. KHỞI TẠO 45 BẢN ĐỒ CHIẾN THUẬT */
-const BASE_15_MAPS_SPEC = [
-    { id: 1,  name: 'CẦU QUA SÔNG',            theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Sông lớn cắt ngang chiến trường. Quân bộ phải qua cầu đá chiến lược ở chính giữa.' },
-    { id: 2,  name: 'ĐƯỜNG ĐÈO CHỮ S',         theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Đường nhựa chữ S uốn lượn xuyên rừng thông và vách núi đá hiểm trở.' },
-    { id: 3,  name: 'ĐÔ THỊ PHỐ THỊ',          theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Khu đô thị bàn cờ với nhiều tòa nhà cao tầng chắn tầm nhìn pháo binh.' },
-    { id: 4,  name: 'PHÁO ĐÀI GIỮA HỒ',        theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Hồ nước rộng bao quanh pháo đài cổ giữa đảo, nối liền bằng 2 cầu Bắc - Nam.' },
-    { id: 5,  name: 'MÊ CUNG RỪNG GIÀ',        theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Nhiều nhánh đường mòn đan xen giữa rừng rậm, thích hợp đánh bọc sườn.' },
-    { id: 6,  name: 'KHU CÔNG NGHIỆP',         theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Tổ hợp nhà máy công nghiệp nặng với các tuyến đường vận tải bọc thép.' },
-    { id: 7,  name: 'HẺM NÚI SONG HỒ',         theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Đường đèo uốn lượn kẹp giữa 2 hồ nước sâu và dãy núi đá sát hai bên sườn.' },
-    { id: 8,  name: 'ĐÈO ĐÁ HIỂM TRỞ',         theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Dãy núi đá khổng lồ chắn ngang, ép hai phe giao tranh tại khe đèo hẹp.' },
-    { id: 9,  name: 'VÒNG XOAY THỊ TRẤN',      theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Hai bùng binh giao thông lớn chia nhánh bao quanh cụm dân cư trung tâm.' },
-    { id: 10, name: 'BÃI BIỂN ĐỔ BỘ',          theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Bờ biển sóng vỗ bên trái cho phép Hải quân pháo kích yểm trợ Lục quân trên cát.' },
-    { id: 11, name: 'CĂN CỨ TÊN LỬA',          theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Khu phức hợp quân sự đối xứng với đại lộ lớn, trạm radar và hầm phóng tên lửa.' },
-    { id: 12, name: 'THÀNH CỔ BAO VÂY',        theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Tường thành đá kiên cố bao bọc pháo đài trung tâm cùng vành đai đường nhựa.' },
-    { id: 13, name: 'QUẦN ĐẢO ĐA CẦU',         theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Hệ thống kênh rạch chia cắt chiến trường thành nhiều đảo nhỏ nối bằng 5 cây cầu.' },
-    { id: 14, name: 'BÙNG BINH ĐẦM LẦY',       theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Đường nhựa vòng tròn lớn bao quanh hồ nước trung tâm và rừng cây rậm rạp.' },
-    { id: 15, name: 'PHÒNG TUYẾN TRƯỜNG THÀNH', theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Hai dải tường thành đá cổ chắn ngang tiền tuyến với 3 cổng vòm chiến lược.' }
-];
+/* 17. DANH MỤC 45 BẢN ĐỒ RIÊNG BIỆT (1–15 CỔ ĐIỂN, 16–30 BIẾN THỂ CHIẾN THUẬT, 31–45 QUẦN XÃ ĐỘC BẢN) */
+const ALL_45_MAPS_SPEC = [
+    // --- MAPS 1 - 15 ---
+    { id: 1,  name: 'CẦU QUA SÔNG',              theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Sông lớn cắt ngang chiến trường. Quân bộ phải qua cầu đá chiến lược ở chính giữa.' },
+    { id: 2,  name: 'ĐƯỜNG ĐÈO CHỮ S',           theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Đường nhựa chữ S uốn lượn xuyên rừng thông và vách núi đá hiểm trở.' },
+    { id: 3,  name: 'ĐÔ THỊ PHỐ THỊ',            theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Khu đô thị bàn cờ với nhiều tòa nhà cao tầng chắn tầm nhìn pháo binh.' },
+    { id: 4,  name: 'PHÁO ĐÀI GIỮA HỒ',          theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Hồ nước rộng bao quanh pháo đài cổ giữa đảo, nối liền bằng 2 cầu Bắc - Nam.' },
+    { id: 5,  name: 'MÊ CUNG RỪNG GIÀ',          theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Nhiều nhánh đường mòn đan xen giữa rừng rậm, thích hợp đánh bọc sườn.' },
+    { id: 6,  name: 'KHU CÔNG NGHIỆP',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Tổ hợp nhà máy công nghiệp nặng với các tuyến đường vận tải bọc thép.' },
+    { id: 7,  name: 'HẺM NÚI SONG HỒ',           theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Đường đèo uốn lượn kẹp giữa 2 hồ nước sâu và dãy núi đá sát hai bên sườn.' },
+    { id: 8,  name: 'ĐÈO ĐÁ HIỂM TRỞ',           theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Dãy núi đá khổng lồ chắn ngang, ép hai phe giao tranh tại khe đèo hẹp.' },
+    { id: 9,  name: 'VÒNG XOAY THỊ TRẤN',        theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Hai bùng binh giao thông lớn chia nhánh bao quanh cụm dân cư trung tâm.' },
+    { id: 10, name: 'BÃI BIỂN ĐỔ BỘ',            theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Bờ biển sóng vỗ bên trái cho phép Hải quân pháo kích yểm trợ Lục quân trên cát.' },
+    { id: 11, name: 'CĂN CỨ TÊN LỬA',            theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Khu phức hợp quân sự đối xứng với đại lộ lớn, trạm radar và hầm phóng tên lửa.' },
+    { id: 12, name: 'THÀNH CỔ BAO VÂY',          theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Tường thành đá kiên cố bao bọc pháo đài trung tâm cùng vành đai đường nhựa.' },
+    { id: 13, name: 'QUẦN ĐẢO ĐA CẦU',           theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Hệ thống kênh rạch chia cắt chiến trường thành nhiều đảo nhỏ nối bằng 5 cây cầu.' },
+    { id: 14, name: 'BÙNG BINH ĐẦM LẦY',         theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Đường nhựa vòng tròn lớn bao quanh hồ nước trung tâm và rừng cây rậm rạp.' },
+    { id: 15, name: 'PHÒNG TUYẾN TRƯỜNG THÀNH',   theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Hai dải tường thành đá cổ chắn ngang tiền tuyến với 3 cổng vòm chiến lược.' },
 
-const UNIQUE_31_TO_45_MAPS_SPEC = [
+    // --- MAPS 16 - 30 (BIẾN THỂ ĐỊA HÌNH CHIẾN THUẬT RIÊNG BIỆT) ---
+    { id: 16, name: 'CẦU ĐÔI HẺM NÚI',           theme: 'brown_earth', hasWater: true,  hasCoastFoam: false, desc: 'Hẻm núi đất nâu bị chia cắt bởi sông sâu với 2 cây cầu sắt ở hai cánh trái - phải.' },
+    { id: 17, name: 'ĐÈO ZIGZAG CAO NGUYÊN',     theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Con đường đất đỏ gấp khúc 4 tầng len lỏi qua các mỏm đá cao nguyên dựng đứng.' },
+    { id: 18, name: 'PHẾ TÍCH THỦ ĐÔ',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Đại lộ chính bị sụp đổ buộc quân đội chia làm hai cánh vòng qua các khối nhà đổ nát.' },
+    { id: 19, name: 'PHÁO ĐÀI SONG ĐẢO',         theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Hai hòn đảo pháo đài nằm song song giữa hồ lớn nối với đất liền qua 4 cầu gỗ.' },
+    { id: 20, name: 'RỪNG THÔNG SƯƠNG MÙ',       theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Ba lối mòn độc đạo xuyên rừng thông cổ thụ tạo điểm phục kích lý tưởng cho pháo binh.' },
+    { id: 21, name: 'NHÀ MÁY LỌC DẦU',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Các bồn chứa nhiên liệu khổng lồ xếp so le tạo mê cung giao tranh tầm gần.' },
+    { id: 22, name: 'THUNG LŨNG TAM HỒ',         theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Ba hồ nước xếp hình tam giác ép đường hành quân uốn lượn theo hình chữ W.' },
+    { id: 23, name: 'CỬA ẢI THIẾT MÔN',          theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Vách núi đá đỏ khép chặt tạo thành 2 cửa ải hẹp ở tiền tuyến.' },
+    { id: 24, name: 'GIAO LỘ BỐN HƯỚNG',         theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Bùng binh trung tâm khổng lồ tỏa ra 4 tuyến cao tốc hướng thẳng tới hai căn cứ.' },
+    { id: 25, name: 'BÁN ĐẢO HẢI CẢNG',          theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Biển lớn bao bọc cả hai sườn trái - phải, chừa lại dải đất liền hẹp ở chính giữa.' },
+    { id: 26, name: 'KHO VŨ KHÍ NGẦM',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Hệ thống boong-ke bê tông kiên cố chia chiến trường thành 3 hành lang tác chiến.' },
+    { id: 27, name: 'THÀNH TRÌ BA LỚP',          theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Ba lớp tường thành đồng tâm bảo vệ trung tâm chỉ huy với các lối mở so le.' },
+    { id: 28, name: 'ĐỒNG BẰNG CHÂU THỔ',       theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Dòng sông chẻ làm ba nhánh đổ ra biển cùng 6 cây cầu gỗ bắc ngang.' },
+    { id: 29, name: 'HỒ NƯỚC THIÊNG',            theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Hồ nước tròn lớn ở trung tâm với 2 cầu vượt chéo nối hai bờ Đông - Tây.' },
+    { id: 30, name: 'CHIẾN HÀO BIÊN GIỚI',       theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Hệ thống chiến hào và ụ bê tông dày đặc trải dài khắp vùng đất biên giới.' },
+
+    // --- MAPS 31 - 45 (15 QUẦN XÃ ĐỘC BẢN VỚI CƠ CHẾ MÔI TRƯỜNG RIÊNG) ---
     {
-        id: 31,
-        name: 'MIỆNG NÚI LỬA OBSIDIAN',
-        theme: 'obsidian_volcano',
-        biome: 'obsidian_volcano',
-        hasWater: false,
-        hasLava: true,
-        hasCoastFoam: false,
+        id: 31, name: 'MIỆNG NÚI LỬA OBSIDIAN', theme: 'obsidian_volcano', biome: 'obsidian_volcano',
+        hasWater: false, hasLava: true, hasCoastFoam: false,
         mechanicTag: '🌋 Dung nham chặn Thủy & Lục quân (Chỉ qua cầu thép hoặc Không quân)',
         desc: 'Đá bazan đen rực lửa với 2 hồ dung nham sôi sục hai cánh; Lục quân phải tiến qua cầu thép trung tâm.'
     },
     {
-        id: 32,
-        name: 'CHẢO LỬA DUNG NHAM KÉP',
-        theme: 'twin_lava_crater',
-        biome: 'twin_lava_crater',
-        hasWater: false,
-        hasLava: true,
-        hasCoastFoam: false,
-        scorchDurationMult: 2.0,
+        id: 32, name: 'CHẢO LỬA DUNG NHAM KÉP', theme: 'twin_lava_crater', biome: 'twin_lava_crater',
+        hasWater: false, hasLava: true, hasCoastFoam: false, scorchDurationMult: 2.0,
         mechanicTag: '🔥 Vệt cháy nổ trên cầu sắt tồn tại lâu gấp đôi',
         desc: 'Sông dung nham chữ X chia cắt chiến trường với 2 cầu sắt hai bên sườn; vệt cháy nổ tồn tại lâu gấp 2 lần.'
     },
     {
-        id: 33,
-        name: 'LÃNH NGUYÊN BĂNG GIÁ',
-        theme: 'frozen_tundra',
-        biome: 'frozen_tundra',
-        hasWater: false,
-        hasCoastFoam: false,
-        vehicleIceSpeedBonus: 0.35,
+        id: 33, name: 'LÃNH NGUYÊN BĂNG GIÁ', theme: 'frozen_tundra', biome: 'frozen_tundra',
+        hasWater: false, hasCoastFoam: false, vehicleIceSpeedBonus: 0.35,
         mechanicTag: '❄️ Vùng băng trung tâm tăng +35% tốc chạy cho Xe cơ giới',
         desc: 'Mặt tuyết trắng xanh và hồ băng đóng cứng ở trung tâm giúp Xe cơ giới trượt nhanh hơn +35% tốc độ.'
     },
     {
-        id: 34,
-        name: 'VỊNH BĂNG TAN BẮC CỰC',
-        theme: 'arctic_iceberg_bay',
-        biome: 'arctic_iceberg_bay',
-        hasWater: true,
-        hasCoastFoam: true,
+        id: 34, name: 'VỊNH BĂNG TAN BẮC CỰC', theme: 'arctic_iceberg_bay', biome: 'arctic_iceberg_bay',
+        hasWater: true, hasCoastFoam: true,
         mechanicTag: '🧊 Tảng băng trôi trên biển buộc Thủy quân lạng lách',
         desc: 'Mặt biển Bắc Cực với nhiều tảng băng trôi nổi rải rác, tạo địa hình luồn lách chiến thuật cho Thủy quân.'
     },
     {
-        id: 35,
-        name: 'SA MẠC BÃO CÁT SAHARA',
-        theme: 'sahara_sandstorm',
-        biome: 'sahara_sandstorm',
-        hasWater: false,
-        hasCoastFoam: false,
-        rangeMult: 0.80,
+        id: 35, name: 'SA MẠC BÃO CÁT SAHARA', theme: 'sahara_sandstorm', biome: 'sahara_sandstorm',
+        hasWater: false, hasCoastFoam: false, rangeMult: 0.80,
         mechanicTag: '🌪️ Bão cát sa mạc làm giảm -20% tầm bắn toàn bộ đơn vị',
         desc: 'Cồn cát vàng uốn lượn quanh ốc đảo nhỏ góc phải; bão cát mù mịt làm giảm 20% tầm bắn của mọi đơn vị.'
     },
     {
-        id: 36,
-        name: 'HẺM NÚI KIM TỰ THÁP',
-        theme: 'pyramid_canyon',
-        biome: 'pyramid_canyon',
-        hasWater: false,
-        hasCoastFoam: false,
+        id: 36, name: 'HẺM NÚI KIM TỰ THÁP', theme: 'pyramid_canyon', biome: 'pyramid_canyon',
+        hasWater: false, hasCoastFoam: false,
         mechanicTag: '🔺 3 Kim Tự Tháp chia chiến trường thành 4 hành lang hẹp',
         desc: 'Địa hình đá đỏ cổ đại với 3 khối Kim Tự Tháp bậc thang sừng sững chia cắt tiền tuyến thành 4 lối đi hẹp.'
     },
     {
-        id: 37,
-        name: 'ĐẦM LẦY ĐỘC TỐ NEON',
-        theme: 'neon_toxic_swamp',
-        biome: 'neon_toxic_swamp',
-        hasWater: false,
-        hasToxicSwamp: true,
-        hasCoastFoam: false,
-        swampInfantryDotPct: 0.015,
+        id: 37, name: 'ĐẦM LẦY ĐỘC TỐ NEON', theme: 'neon_toxic_swamp', biome: 'neon_toxic_swamp',
+        hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
         mechanicTag: '☣️ Bộ binh đi ngoài cầu gỗ bị rút 1.5% HP/giây bởi độc tố',
         desc: 'Đầm lầy tím thẫm chứa hồ axit xanh lục phát sáng; bộ binh đi ngoài đường cầu gỗ bị mất 1.5% HP mỗi giây.'
     },
     {
-        id: 38,
-        name: 'TRẠM KHÔNG GIAN QUỸ ĐẠO',
-        theme: 'orbital_station',
-        biome: 'orbital_station',
-        hasWater: false,
-        hasCoastFoam: false,
-        moveSpeedMult: 1.20,
-        projSpeedMult: 1.20,
+        id: 38, name: 'TRẠM KHÔNG GIAN QUỸ ĐẠO', theme: 'orbital_station', biome: 'orbital_station',
+        hasWater: false, hasCoastFoam: false, moveSpeedMult: 1.20, projSpeedMult: 1.20,
         mechanicTag: '🛰️ Trọng lực thấp: +20% tốc độ di chuyển & +20% tốc độ đạn',
         desc: 'Sàn kim loại công nghệ cao lơ lửng ngoài vũ trụ; môi trường trọng lực thấp tăng 20% tốc chạy và tốc độ đạn.'
     },
     {
-        id: 39,
-        name: 'LÒ PHẢN ỨNG HẠT NHÂN',
-        theme: 'nuclear_reactor',
-        biome: 'nuclear_reactor',
-        hasWater: false,
-        hasCoastFoam: false,
-        empExtraStunSec: 1.5,
+        id: 39, name: 'LÒ PHẢN ỨNG HẠT NHÂN', theme: 'nuclear_reactor', biome: 'nuclear_reactor',
+        hasWater: false, hasCoastFoam: false, empExtraStunSec: 1.5,
         mechanicTag: '⚛️ Cộng hưởng từ trường: Kỹ năng [E] Xung EMP +1.5s làm choáng',
         desc: 'Tổ hợp nhà máy hạt nhân với lõi năng lượng Cyan trung tâm giúp kỹ năng [E] Xung EMP tăng thêm 1.5 giây tê liệt.'
     },
     {
-        id: 40,
-        name: 'CẢNG TÀU NGẦM BÍ MẬT',
-        theme: 'submarine_harbor',
-        biome: 'submarine_harbor',
-        hasWater: true,
-        hasCoastFoam: true,
+        id: 40, name: 'CẢNG TÀU NGẦM BÍ MẬT', theme: 'submarine_harbor', biome: 'submarine_harbor',
+        hasWater: true, hasCoastFoam: true,
         mechanicTag: '⚓ Vịnh nước chữ U 70% diện tích tối ưu đại chiến Hải quân',
         desc: '70% diện tích là vịnh biển sâu hình chữ U bao bọc cầu cảng chữ T ở giữa, lý tưởng cho hạm đội Hải quân.'
     },
     {
-        id: 41,
-        name: 'THUNG LŨNG HOA ANH ĐÀO',
-        theme: 'sakura_valley',
-        biome: 'sakura_valley',
-        hasWater: true,
-        hasCoastFoam: false,
+        id: 41, name: 'THUNG LŨNG HOA ANH ĐÀO', theme: 'sakura_valley', biome: 'sakura_valley',
+        hasWater: true, hasCoastFoam: false,
         mechanicTag: '🌸 Suối ngọc bích uốn lượn với 3 cầu gỗ cổ truyền',
         desc: 'Thung lũng cỏ xanh ngọc điểm xuyết rừng hoa anh đào hồng phấn và dòng suối trong vắt bắc ngang 3 cây cầu gỗ.'
     },
     {
-        id: 42,
-        name: 'PHÁO ĐÀI BÁT QUÁI CỔ ĐẠI',
-        theme: 'bagua_fortress',
-        biome: 'bagua_fortress',
-        hasWater: true,
-        hasCoastFoam: false,
+        id: 42, name: 'PHÁO ĐÀI BÁT QUÁI CỔ ĐẠI', theme: 'bagua_fortress', biome: 'bagua_fortress',
+        hasWater: true, hasCoastFoam: false,
         mechanicTag: '☯️ Thành đá bát giác 4 cổng bao quanh bởi hào nước',
         desc: 'Trận đồ tường đá bát giác cổ đại mở 4 cổng Tứ Tượng, bao bọc bởi hào nước sâu và các cây cầu treo.'
     },
     {
-        id: 43,
-        name: 'SÂN BAY QUÂN SỰ DÃ CHIẾN',
-        theme: 'military_airfield',
-        biome: 'military_airfield',
-        hasWater: false,
-        hasCoastFoam: false,
-        airCooldownMult: 0.75,
+        id: 43, name: 'SÂN BAY QUÂN SỰ DÃ CHIẾN', theme: 'military_airfield', biome: 'military_airfield',
+        hasWater: false, hasCoastFoam: false, airCooldownMult: 0.75,
         mechanicTag: '✈️ Đường băng dã chiến: Giảm -25% hồi chiêu Trực thăng & Không kích',
         desc: 'Đường băng bê tông kẻ sọc vàng đen xuyên tâm giúp giảm 25% thời gian hồi chiêu cho Trực thăng và Không kích.'
     },
     {
-        id: 44,
-        name: 'RUỘNG BẬC THANG VÙNG CAO',
-        theme: 'highland_terraces',
-        biome: 'highland_terraces',
-        hasWater: false,
-        hasCoastFoam: false,
+        id: 44, name: 'RUỘNG BẬC THANG VÙNG CAO', theme: 'highland_terraces', biome: 'highland_terraces',
+        hasWater: false, hasCoastFoam: false,
         mechanicTag: '🌾 Các tầng bậc thang xanh-vàng nối bằng dốc đá hẹp',
         desc: 'Những thửa ruộng bậc thang xanh - vàng óng ả xếp tầng ngang bản đồ, nối với nhau qua các con dốc đá chiến lược.'
     },
     {
-        id: 45,
-        name: 'ĐẤU TRƯỜNG TẬN THẾ (ABYSS GATE)',
-        theme: 'abyss_gate',
-        biome: 'abyss_gate',
-        hasWater: false,
-        hasLava: true,
-        hasCoastFoam: false,
-        gasRateMult: 1.30,
+        id: 45, name: 'ĐẤU TRƯỜNG TẬN THẾ (ABYSS GATE)', theme: 'abyss_gate', biome: 'abyss_gate',
+        hasWater: false, hasLava: true, hasCoastFoam: false, gasRateMult: 1.30,
         mechanicTag: '😈 Cổng Ma Giới: Tốc độ hồi Xăng của cả 2 phe tăng +30%',
         desc: 'Mặt đất nứt nẻ ánh tím hắc ám với 2 cổng Ma Giới và cầu pha lê; năng lượng Hư Không tăng 30% tốc nạp Xăng.'
     }
 ];
 
 export function buildAllMapsData() {
-    const maps = [];
-    for (let i = 1; i <= 30; i++) {
-        const baseSpec = BASE_15_MAPS_SPEC[(i - 1) % 15];
-        const isVeteran = i > 15;
-        const useBrownTheme = isVeteran
-            ? (i % 2 === 0 || baseSpec.theme === 'brown_earth')
-            : (baseSpec.theme === 'brown_earth');
-
-        maps.push({
-            id: i,
-            level: i,
-            baseTemplateId: baseSpec.id,
-            name: isVeteran ? `${baseSpec.name} II` : baseSpec.name,
-            theme: useBrownTheme ? 'brown_earth' : 'grass',
-            biome: useBrownTheme ? 'brown_earth' : 'grass',
-            hasWater: baseSpec.hasWater,
-            hasLava: false,
-            hasToxicSwamp: false,
-            hasCoastFoam: baseSpec.hasCoastFoam,
-            mechanicTag: null,
-            desc: baseSpec.desc,
-            enemyBaseHp: 260 + i * 48,
-            playerBaseHp: 250,
-            startingGas: 6
-        });
-    }
-
-    for (let idx = 0; idx < UNIQUE_31_TO_45_MAPS_SPEC.length; idx++) {
-        const spec = UNIQUE_31_TO_45_MAPS_SPEC[idx];
+    return ALL_45_MAPS_SPEC.map(spec => {
         const i = spec.id;
-        maps.push({
+        return {
             id: i,
             level: i,
-            baseTemplateId: i,
             name: spec.name,
             theme: spec.theme,
-            biome: spec.biome,
+            biome: spec.biome || spec.theme,
             hasWater: !!spec.hasWater,
             hasLava: !!spec.hasLava,
             hasToxicSwamp: !!spec.hasToxicSwamp,
@@ -1664,13 +1797,11 @@ export function buildAllMapsData() {
             gasRateMult: spec.gasRateMult || 1.0,
             mechanicTag: spec.mechanicTag || null,
             desc: spec.desc,
-            enemyBaseHp: 280 + i * 52,
-            playerBaseHp: 260,
+            enemyBaseHp: 260 + i * 50,
+            playerBaseHp: 250 + Math.floor(i / 5) * 10,
             startingGas: 6
-        });
-    }
-
-    return maps;
+        };
+    });
 }
 
 export const LEVELS = buildAllMapsData();
