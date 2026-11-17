@@ -1,10 +1,11 @@
 /* ============================================================================
-   TINY BATTLE - MODALS & POPUPS STYLES
-   Bright Modals, Admin/Settings, Refund, Gacha, Talents, Chips, Wheel & Arcade
+   TINY BATTLE - MODALS & POPUPS STYLES (css/modals.css)
+   Bright Modals, Admin/Settings, Refund, Gacha, 6-Branch Talents, Chips (Slot 2),
+   Sandbox Review, Lucky Wheel (Skip Spin + History), Turrets, Index & Arcade
    ============================================================================ */
 
 /* ============================================================================
-   MODALS / POPUPS PHONG CÁCH SÁNG (BRIGHT MOBILE MODALS)
+   1. MODALS / POPUPS PHONG CÁCH SÁNG (BRIGHT MOBILE MODALS)
    ============================================================================ */
 .bright-modal-overlay {
     position: absolute;
@@ -130,7 +131,7 @@
 }
 
 /* ============================================================================
-   MODAL CÀI ĐẶT, ADMIN MODE & DANGER ZONE (RESET ACCOUNT)
+   2. MODAL CÀI ĐẶT, ADMIN MODE & DANGER ZONE (RESET ACCOUNT)
    ============================================================================ */
 .settings-status-card {
     background: #e2e8f0;
@@ -216,7 +217,7 @@
 }
 
 /* ============================================================================
-   MODAL HOÀN LẠI CẤP ĐỘ (LEVEL REFUND MODAL)
+   3. MODAL HOÀN LẠI CẤP ĐỘ (LEVEL REFUND MODAL)
    ============================================================================ */
 .refund-summary-card {
     background: #ffffff;
@@ -255,7 +256,7 @@
 }
 
 .refund-lv-val {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 21px;
     margin-top: 1px;
 }
@@ -274,7 +275,7 @@
     border-radius: 10px;
     background: #fffbeb;
     color: #0f172a;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 19px;
     text-align: center;
     outline: none;
@@ -301,12 +302,12 @@
     color: #fde047;
     padding: 3px 10px;
     border-radius: 999px;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 18px;
 }
 
 /* ============================================================================
-   MODAL XÁC NHẬN & KẾT QUẢ MỞ RƯƠNG GACHA, GIFTCODE, NHIỆM VỤ
+   4. MODAL XÁC NHẬN & KẾT QUẢ MỞ RƯƠNG GACHA, GIFTCODE, NHIỆM VỤ
    ============================================================================ */
 .gacha-confirm-summary-card {
     background: #ffffff;
@@ -344,7 +345,7 @@
     color: #fde047;
     padding: 3px 10px;
     border-radius: 999px;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 18px;
 }
 
@@ -447,7 +448,7 @@
 }
 
 /* ============================================================================
-   CHI TIẾT NÂNG CẤP TƯỚNG, CHỌN ĐỘI HÌNH 4 Ô, BULK LEVEL UP & KHE CHIP
+   5. CHI TIẾT NÂNG CẤP TƯỚNG, BULK LEVEL UP & KHE CHIP (MỞ KHE 2 = 500 💎)
    ============================================================================ */
 .upg-unit-preview-row {
     display: flex;
@@ -473,7 +474,7 @@
 .upg-lv-pill {
     background: #0f172a;
     color: #fde047;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 15px;
     padding: 1.5px 7px;
     border-radius: 999px;
@@ -501,7 +502,6 @@
     color: #475569;
 }
 
-/* Chọn đội hình chiến đấu (4 Ô Quân) */
 .upg-deck-assign-box {
     margin-top: 8px;
     background: #e0f2fe;
@@ -606,7 +606,7 @@
     border-radius: 7px;
     padding: 2px 5px;
     color: #fde047;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 18px;
     text-align: center;
     outline: none;
@@ -671,7 +671,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 900;
     color: #0f172a;
     margin-bottom: 5px;
@@ -700,6 +700,12 @@
 .chip-slot-btn:hover {
     border-color: #0284c7;
     background: #f0f9ff;
+}
+
+.chip-slot-btn.locked-slot2 {
+    border-style: dashed;
+    border-color: #f59e0b;
+    background: #fffbeb;
 }
 
 .chip-slot-btn.equipped {
@@ -772,7 +778,7 @@
     display: grid;
     grid-template-columns: repeat(1, 1fr);
     gap: 6px;
-    max-height: 180px;
+    max-height: 195px;
     overflow-y: auto;
     margin-top: 8px;
 }
@@ -786,16 +792,59 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    cursor: pointer;
     box-shadow: 0 2px 0 #cbd5e1;
 }
 
 .chip-item-card.compatible {
     border-color: #16a34a;
+    background: #f0fdf4;
 }
 
 /* ============================================================================
-   CÂY KỸ NĂNG BỊ ĐỘNG CHỈ HUY (META-TALENTS MODAL)
+   6. PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal)
+   ============================================================================ */
+.sandbox-canvas-frame {
+    width: 100%;
+    background: #0f172a;
+    border: 3px solid #0f172a;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
+}
+
+.sandbox-canvas-frame canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.sandbox-rarity-strip {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin: 6px 0;
+}
+
+.sb-rarity-pill {
+    padding: 2.5px 7px;
+    border-radius: 999px;
+    border: 1.5px solid #0f172a;
+    font-size: 9px;
+    font-weight: 900;
+    color: #ffffff;
+    cursor: pointer;
+    text-shadow: 0 1px 0 #000000;
+    transition: transform 0.08s ease;
+}
+
+.sb-rarity-pill.active {
+    outline: 2.5px solid #fde047;
+    transform: scale(1.06);
+}
+
+/* ============================================================================
+   7. CÂY KỸ NĂNG BỊ ĐỘNG CHỈ HUY (6 NHÁNH META-TALENTS - MAX LV.10)
    ============================================================================ */
 .talents-header-summary,
 .talent-top-summary-bar {
@@ -825,7 +874,7 @@
     padding: 2px 9px;
     border-radius: 999px;
     border: 1.5px solid #fde047;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 16px;
 }
 
@@ -858,15 +907,15 @@
 }
 
 .talent-node-icon {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
     border-radius: 12px;
     border: 2.5px solid #0f172a;
     background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 22px;
     flex-shrink: 0;
     box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2);
 }
@@ -880,20 +929,20 @@
 }
 
 .talent-node-title {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 900;
     color: #0f172a;
 }
 
 .talent-node-desc {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
     color: #475569;
     line-height: 1.25;
 }
 
 .talent-node-stat-preview {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 14px;
     color: #0284c7;
     margin-top: 1px;
@@ -901,16 +950,16 @@
 
 .talent-level-pips {
     display: flex;
-    gap: 4px;
+    gap: 2.5px;
     margin-top: 4px;
 }
 
 .talent-pip {
-    width: 16px;
+    width: 11px;
     height: 6px;
     border-radius: 3px;
     background: #cbd5e1;
-    border: 1.5px solid #0f172a;
+    border: 1.2px solid #0f172a;
 }
 
 .talent-pip.active {
@@ -919,9 +968,9 @@
 }
 
 .talent-upgrade-btn {
-    padding: 6px 10px;
-    font-size: 10.5px;
-    min-width: 76px;
+    padding: 6px 9px;
+    font-size: 10px;
+    min-width: 74px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -929,20 +978,20 @@
 }
 
 .talent-cost-num {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 15px;
     color: #fef08a;
 }
 
 /* ============================================================================
-   VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal) & PITY BAR 0/100
+   8. VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal), SKIP SPIN & LỊCH SỬ JACKPOT
    ============================================================================ */
 .lucky-pity-box {
     background: #f3e8ff;
     border: 2.5px solid #0f172a;
     border-radius: 12px;
     padding: 7px 10px;
-    margin-bottom: 8px;
+    margin-bottom: 7px;
 }
 
 .lucky-pity-track {
@@ -958,6 +1007,22 @@
     height: 100%;
     background: linear-gradient(90deg, #00f2fe 0%, #a855f7 50%, #ec4899 100%);
     transition: width 0.25s ease;
+}
+
+.wheel-skip-toggle-bar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #f1f5f9;
+    border: 2px solid #0f172a;
+    border-radius: 999px;
+    padding: 3px 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 10.5px;
+    font-weight: 900;
+    color: #0f172a;
 }
 
 .lucky-wheel-stage {
@@ -1060,8 +1125,19 @@
     text-align: left;
 }
 
+.wheel-history-box {
+    background: #0f172a;
+    border: 2px solid #334155;
+    border-radius: 10px;
+    padding: 5px 8px;
+    margin-top: 6px;
+    text-align: left;
+    max-height: 70px;
+    overflow-y: auto;
+}
+
 /* ============================================================================
-   TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal)
+   9. TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal)
    ============================================================================ */
 .arcade-tabs-bar {
     display: grid;
@@ -1240,4 +1316,70 @@
     background: rgba(15, 23, 42, 0.65);
     padding: 1.5px 6px;
     border-radius: 999px;
+}
+
+/* ============================================================================
+   10. Ụ PHÁO CĂN CỨ XANH (#base-turret-modal) & SỔ TAY INDEX (#codex-modal)
+   ============================================================================ */
+.turret-option-card {
+    background: #ffffff;
+    border: 3px solid #0f172a;
+    border-radius: 14px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    box-shadow: 0 4px 0 #cbd5e1;
+}
+
+.turret-option-card.active-turret {
+    background: #ecfeff;
+    border-color: #0284c7;
+    box-shadow: 0 4px 0 #0284c7, 0 0 10px rgba(14, 165, 233, 0.35);
+}
+
+.codex-unit-row {
+    background: #ffffff;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
+    padding: 7px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-shadow: 0 3px 0 #cbd5e1;
+}
+
+.codex-milestones-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+}
+
+.codex-ms-btn {
+    padding: 3px 2px;
+    font-size: 8.5px;
+    font-weight: 900;
+    border-radius: 7px;
+    border: 1.5px solid #0f172a;
+    text-align: center;
+    cursor: pointer;
+}
+
+.codex-ms-btn.ms-locked {
+    background: #e2e8f0;
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.codex-ms-btn.ms-claimable {
+    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+    color: #ffffff;
+    animation: notifPulse 0.75s ease-in-out infinite alternate;
+}
+
+.codex-ms-btn.ms-claimed {
+    background: #0f172a;
+    color: #fde047;
+    cursor: default;
 }

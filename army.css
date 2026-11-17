@@ -1,56 +1,62 @@
 /* ============================================================================
-   TINY BATTLE - ARMY & 41 RARITY TIERS STYLES
-   Tab Army, Hero Showcase, Deck Builder, Merge Workbench & Rarity Effects
+   TINY BATTLE - ARMY, REVIEW SANDBOX, MERGE & 41 RARITY TIERS (css/army.css)
+   Tab Army, Hero Showcase, 3 Subviews (ARMY / REVIEW / MERGE), Chip Dots & 41 Tiers
    ============================================================================ */
 
 /* ============================================================================
-   TAB ARMY (QUÂN ĐỘI, DECK BUILDER, MERGE THỦ CÔNG & CASCADE AUTO MERGE O(1))
+   1. BỐ CỤC CHÍNH TAB ARMY & SÂN KHẤU HERO ĐẠI DIỆN
    ============================================================================ */
 .army-tab-layout {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 18%, rgba(56, 189, 248, 0.25) 0%, transparent 58%),
+        linear-gradient(180deg, #0f172a 0%, #1e293b 45%, #0f172a 100%);
 }
 
 .army-Hero-stage {
-    height: 154px;
+    height: 156px;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    background: radial-gradient(circle at 50% 62%, rgba(14, 165, 233, 0.22) 0%, transparent 72%);
 }
 
 .army-pedestal-circle {
     position: absolute;
     bottom: 18px;
-    width: 122px;
+    width: 124px;
     height: 32px;
-    background: rgba(15, 23, 42, 0.28);
+    background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.45) 0%, rgba(15, 23, 42, 0.65) 85%);
     border: 3px solid #0f172a;
     border-radius: 50%;
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55);
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Bệ đứng Hero tự đổi hào quang theo bậc Master / Demon */
 .army-pedestal-circle.pedestal-master {
-    background: radial-gradient(circle, rgba(0, 242, 254, 0.55) 0%, rgba(2, 132, 199, 0.35) 65%, rgba(15, 23, 42, 0.5) 100%);
+    background: radial-gradient(circle, rgba(0, 242, 254, 0.65) 0%, rgba(2, 132, 199, 0.42) 65%, rgba(15, 23, 42, 0.6) 100%);
     border-color: #00f2fe;
-    box-shadow: 0 0 18px #00f2fe, inset 0 0 12px #38bdf8;
+    box-shadow: 0 0 20px #00f2fe, inset 0 0 12px #38bdf8;
 }
 
 .army-pedestal-circle.pedestal-demon {
-    background: radial-gradient(circle, rgba(217, 70, 239, 0.6) 0%, rgba(126, 34, 206, 0.4) 65%, rgba(9, 0, 20, 0.7) 100%);
+    background: radial-gradient(circle, rgba(217, 70, 239, 0.68) 0%, rgba(126, 34, 206, 0.48) 65%, rgba(9, 0, 20, 0.78) 100%);
     border-color: #d946ef;
-    box-shadow: 0 0 22px #a855f7, 0 0 36px #7e22ce, inset 0 0 14px #f0abfc;
+    box-shadow: 0 0 24px #a855f7, 0 0 38px #7e22ce, inset 0 0 14px #f0abfc;
 }
 
 .army-showcase-canvas {
     width: 106px;
     height: 106px;
     z-index: 2;
-    filter: drop-shadow(0 6px 0 rgba(15, 23, 42, 0.55));
+    filter: drop-shadow(0 6px 0 rgba(15, 23, 42, 0.6));
 }
 
 .army-showcase-caption {
@@ -59,16 +65,24 @@
     align-items: center;
     gap: 6px;
     margin-top: 2px;
+    background: rgba(15, 23, 42, 0.75);
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(148, 163, 184, 0.35);
 }
 
 .showcase-unit-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 900;
     color: #ffffff;
-    -webkit-text-stroke: 1px #0f172a;
+    -webkit-text-stroke: 0.8px #0f172a;
     text-shadow: 0 2px 0 #0f172a;
+    letter-spacing: 0.4px;
 }
 
+/* ============================================================================
+   2. BẢNG QUẢN LÝ DƯỚI (3 NÚT CHẾ ĐỘ: ARMY / REVIEW / MERGE)
+   ============================================================================ */
 .army-bottom-panel {
     flex: 1;
     background: #334155;
@@ -79,25 +93,39 @@
 }
 
 .army-mode-header {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     align-items: center;
-    justify-content: space-between;
-    padding: 6px 10px;
+    gap: 6px;
+    padding: 6px 8px;
     background: #1e293b;
     border-bottom: 3px solid #0f172a;
     flex-shrink: 0;
 }
 
 .army-mode-btn {
-    padding: 5px 13px;
+    padding: 6px 6px;
     font-size: 11px;
-    background: #475569;
+    font-weight: 900;
+    background: linear-gradient(180deg, #475569 0%, #334155 100%);
     color: #cbd5e1;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
 }
 
 .army-mode-btn.active {
     background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+    color: #0f172a;
+    border-color: #0f172a;
+    text-shadow: none;
+    box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.45);
+}
+
+.army-mode-btn[data-mode="review"].active,
+#btn-mode-review.active {
+    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
     color: #ffffff;
+    text-shadow: 0 1px 0 #0f172a;
 }
 
 .army-panel-heading {
@@ -121,18 +149,20 @@
 }
 
 .army-cost-rule-banner {
-    background: rgba(15, 23, 42, 0.65);
+    background: rgba(15, 23, 42, 0.72);
     border: 1.5px solid #0f172a;
     color: #fef08a;
     font-size: 9.5px;
-    padding: 3px 8px;
+    font-weight: 700;
+    padding: 4px 8px;
     border-radius: 8px;
     text-align: center;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    line-height: 1.3;
     flex-shrink: 0;
 }
 
-/* Thanh chọn đội hình chiến đấu 4 Ô Quân + 1 Không Kích ngay tại Tab ARMY */
+/* Thanh chọn đội hình chiến đấu (Tương thích ngược nếu cần) */
 .army-deck-builder-strip {
     background: #1e293b;
     border: 2px solid #0f172a;
@@ -194,11 +224,12 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 7px;
     overflow-y: auto;
-    padding-bottom: 8px;
+    padding: 2px 1px 10px 1px;
+    align-content: start;
 }
 
 /* ============================================================================
-   THẺ TƯỚNG & HỆ THỐNG 41 BẬC ĐỘ HIẾM (COMMON -> SECRET +5 -> MASTER +8 -> DEMON +10)
+   3. THẺ TƯỚNG, CHẤM CHIP BỔ TRỢ & HỆ THỐNG 41 BẬC ĐỘ HIẾM
    ============================================================================ */
 .army-unit-card {
     position: relative;
@@ -213,10 +244,11 @@
     min-height: 92px;
     box-shadow: 0 3px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.35);
     transition: transform 0.08s ease, filter 0.12s ease;
+    overflow: hidden;
 }
 
 .army-unit-card:hover {
-    filter: brightness(1.05);
+    filter: brightness(1.06);
 }
 
 .army-unit-card:active {
@@ -233,6 +265,46 @@
     filter: grayscale(75%);
 }
 
+/* Chấm trạng thái 2 Khe Chip gắn trên góc trái thẻ binh chủng */
+.card-socket-dots {
+    position: absolute;
+    left: 4px;
+    bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5px;
+    z-index: 4;
+}
+
+.socket-dot {
+    width: 6.5px;
+    height: 6.5px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.78);
+    border: 1.2px solid #cbd5e1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.socket-dot.chip-napalm {
+    background: #f97316;
+    border-color: #fef08a;
+}
+
+.socket-dot.chip-radar {
+    background: #38bdf8;
+    border-color: #e0f2fe;
+}
+
+.socket-dot.chip-armor {
+    background: #c084fc;
+    border-color: #fae8ff;
+}
+
+.socket-dot.chip-overclock {
+    background: #4ade80;
+    border-color: #dcfce7;
+}
+
 /* Badge số lượng gộp khi mở số lượng lớn rương */
 .card-qty-badge {
     position: absolute;
@@ -243,7 +315,7 @@
     border: 1.5px solid #fde047;
     border-radius: 999px;
     padding: 0.5px 5px;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 13px;
     line-height: 1.05;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.75);
@@ -260,60 +332,60 @@
     border-color: #0f172a;
 }
 
-/* 2. Uncommon (Rank 1 - 1.25x) */
+/* 2. Uncommon (Rank 1 - 1.20x) */
 .rarity-uncommon {
     background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
     border-color: #0f172a;
 }
 
-/* 3. Rare (Rank 2 - 1.55x) */
+/* 3. Rare (Rank 2 - 1.42x) */
 .rarity-rare {
     background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
     border-color: #0f172a;
 }
 
-/* 4. Epic (Rank 3 - 1.9x) */
+/* 4. Epic (Rank 3 - 1.65x) */
 .rarity-epic {
     background: linear-gradient(180deg, #c084fc 0%, #7e22ce 100%);
     border-color: #0f172a;
 }
 
-/* 5. Epic +1 (Rank 4 - 2.3x) */
+/* 5. Epic +1 (Rank 4 - 1.88x) */
 .rarity-epic1 {
     background: linear-gradient(180deg, #d8b4fe 0%, #9333ea 100%);
     border-color: #f0abfc;
     box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(192, 132, 252, 0.7);
 }
 
-/* 6. Epic +2 (Rank 5 - 2.75x) */
+/* 6. Epic +2 (Rank 5 - 2.15x) */
 .rarity-epic2 {
     background: linear-gradient(180deg, #f0abfc 0%, #a21caf 100%);
     border-color: #fde047;
     box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.75);
 }
 
-/* 7. Legendary (Rank 6 - 3.4x) */
+/* 7. Legendary (Rank 6 - 2.60x) */
 .rarity-legendary {
     background: linear-gradient(180deg, #fde047 0%, #ea580c 100%);
     border-color: #fef08a;
     box-shadow: 0 3px 0 #0f172a, 0 0 12px rgba(245, 158, 11, 0.85);
 }
 
-/* 8. Legendary +1 (Rank 7 - 4.2x) */
+/* 8. Legendary +1 (Rank 7 - 3.05x) */
 .rarity-legendary1 {
     background: linear-gradient(180deg, #fef08a 0%, #f59e0b 45%, #c2410c 100%);
     border-color: #fde047;
     box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(251, 191, 36, 0.9);
 }
 
-/* 9. Legendary +2 (Rank 8 - 5.2x) */
+/* 9. Legendary +2 (Rank 8 - 3.55x) */
 .rarity-legendary2 {
     background: linear-gradient(180deg, #fef9c3 0%, #fbbf24 40%, #b45309 100%);
     border-color: #ffffff;
     box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(250, 204, 21, 0.95);
 }
 
-/* 10. Legendary +3 (Rank 9 - 6.4x) */
+/* 10. Legendary +3 (Rank 9 - 4.10x) */
 .rarity-legendary3 {
     background: linear-gradient(180deg, #ffffff 0%, #facc15 35%, #ea580c 85%, #9a3412 100%);
     border-color: #fef08a;
@@ -329,35 +401,35 @@
     }
 }
 
-/* 11. Mythic (Rank 10 - 8.0x) */
+/* 11. Mythic (Rank 10 - 5.00x) */
 .rarity-mythic {
     background: linear-gradient(180deg, #fb7185 0%, #e11d48 50%, #881337 100%);
     border-color: #fda4af;
     box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(225, 29, 72, 0.9);
 }
 
-/* 12. Mythic +1 (Rank 11 - 10.0x) */
+/* 12. Mythic +1 (Rank 11 - 5.90x) */
 .rarity-mythic1 {
     background: linear-gradient(180deg, #fda4af 0%, #f43f5e 45%, #9f1239 100%);
     border-color: #fecdd3;
     box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(244, 63, 94, 0.95);
 }
 
-/* 13. Mythic +2 (Rank 12 - 12.5x) */
+/* 13. Mythic +2 (Rank 12 - 6.90x) */
 .rarity-mythic2 {
     background: linear-gradient(180deg, #fecdd3 0%, #ef4444 45%, #991b1b 90%, #450a0a 100%);
     border-color: #fde047;
     box-shadow: 0 3px 0 #0f172a, 0 0 18px rgba(239, 68, 68, 1);
 }
 
-/* 14. Mythic +3 (Rank 13 - 15.5x) */
+/* 14. Mythic +3 (Rank 13 - 8.00x) */
 .rarity-mythic3 {
     background: linear-gradient(180deg, #fde047 0%, #ef4444 40%, #b91c1c 85%, #450a0a 100%);
     border-color: #fef08a;
     animation: mythicCrimsonPulse 1.6s ease-in-out infinite alternate;
 }
 
-/* 15. Mythic +4 (Rank 14 - 19.0x) */
+/* 15. Mythic +4 (Rank 14 - 9.20x) */
 .rarity-mythic4 {
     background: linear-gradient(135deg, #fef08a 0%, #f97316 25%, #dc2626 60%, #7f1d1d 100%);
     border-color: #ffffff;
@@ -398,7 +470,7 @@
     }
 }
 
-/* 16. Secret (Rank 15 - 24.0x) */
+/* 16. Secret (Rank 15 - 11.50x) */
 .rarity-secret {
     background: linear-gradient(135deg, #000000 0%, #090d16 35%, #1e1b4b 50%, #090d16 65%, #000000 100%);
     background-size: 240% 240%;
@@ -406,7 +478,7 @@
     animation: secretBlackGlowPulse 2s ease-in-out infinite alternate;
 }
 
-/* 17. Secret +1 (Rank 16 - 30.0x) */
+/* 17. Secret +1 (Rank 16 - 13.80x) */
 .rarity-secret1 {
     background: linear-gradient(135deg, #000000 0%, #0a0a0a 30%, #27272a 50%, #09090b 70%, #000000 100%);
     background-size: 240% 240%;
@@ -414,7 +486,7 @@
     animation: secretBlackGlowPulse 1.85s ease-in-out infinite alternate;
 }
 
-/* 18. Secret +2 (Rank 17 - 38.0x) */
+/* 18. Secret +2 (Rank 17 - 16.40x) */
 .rarity-secret2 {
     background: linear-gradient(135deg, #000000 0%, #020617 28%, #1e293b 50%, #020617 72%, #000000 100%);
     background-size: 240% 240%;
@@ -422,7 +494,7 @@
     animation: secretBlackGlowPulse 1.7s ease-in-out infinite alternate;
 }
 
-/* 19. Secret +3 (Rank 18 - 48.0x) */
+/* 19. Secret +3 (Rank 18 - 19.30x) */
 .rarity-secret3 {
     background: linear-gradient(135deg, #000000 0%, #111827 25%, #31102f 50%, #090d16 75%, #000000 100%);
     background-size: 240% 240%;
@@ -430,7 +502,7 @@
     animation: secretBlackGlowPulse 1.55s ease-in-out infinite alternate;
 }
 
-/* 20. Secret +4 (Rank 19 - 60.0x) */
+/* 20. Secret +4 (Rank 19 - 22.50x) */
 .rarity-secret4 {
     background: linear-gradient(135deg, #000000 0%, #09090b 22%, #2e1065 50%, #09090b 78%, #000000 100%);
     background-size: 240% 240%;
@@ -438,7 +510,7 @@
     animation: secretBlackGlowPulse 1.4s ease-in-out infinite alternate;
 }
 
-/* 21. Secret +5 (Rank 20 - 75.0x) */
+/* 21. Secret +5 (Rank 20 - 26.00x) */
 .rarity-secret5 {
     background: linear-gradient(135deg, #000000 0%, #050505 20%, #18181b 45%, #3f3f46 50%, #18181b 55%, #050505 80%, #000000 100%);
     background-size: 260% 260%;
@@ -448,7 +520,7 @@
 }
 
 /* ============================================================================
-   CHUỖI 9 BẬC MASTER (RANK 21 -> 29 | master -> master8)
+   CHUỖI 9 BẬC MASTER (RANK 21 -> 29 | master -> master8 | 33.0x -> 120.0x)
    Màu chủ đạo: Xanh nước biển đại dương rực lửa (Aqua Ocean Flame)
    ============================================================================ */
 @keyframes masterAquaFlamePulse {
@@ -566,7 +638,7 @@
 }
 
 /* ============================================================================
-   CHUỖI 11 BẬC DEMON (RANK 30 -> 40 | demon -> demon10)
+   CHUỖI 11 BẬC DEMON (RANK 30 -> 40 | demon -> demon10 | 155.0x -> 777.0x)
    Màu chủ đạo: Tím Hắc Ám Ma Giới (Abyssal Demon Purple Aura)
    ============================================================================ */
 @keyframes demonPurpleAbyssPulse {
@@ -694,7 +766,7 @@
     outline: 2px solid #f0abfc;
 }
 
-/* Demon +10: Bậc Tối Thượng 7777.0x */
+/* Demon +10: Bậc Tối Thượng 777.0x */
 .rarity-demon10 {
     background: linear-gradient(135deg, #090014 0%, #3b0764 15%, #9333ea 34%, #d946ef 45%, #ffffff 50%, #f0abfc 55%, #7e22ce 75%, #090014 100%);
     background-size: 300% 300%;
@@ -784,7 +856,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 13px;
     color: #ffffff;
     text-shadow: 0 1px 0 #0f172a;
@@ -796,7 +868,7 @@
     color: #fde047;
     padding: 0 4px;
     border-radius: 4px;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 12px;
     flex-shrink: 0;
     border: 1px solid rgba(254, 240, 138, 0.35);
@@ -843,10 +915,14 @@
     text-align: center;
     line-height: 1.1;
     margin-top: 2px;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ============================================================================
-   GIAO DIỆN BÀN GHÉP TƯỚNG (MERGE WORKBENCH + AUTO MERGE)
+   4. GIAO DIỆN BÀN GHÉP TƯỚNG (MERGE WORKBENCH + AUTO MERGE)
    ============================================================================ */
 .merge-workbench {
     display: flex;
@@ -928,4 +1004,9 @@
     text-align: center;
     margin: 4px 0;
     flex-shrink: 0;
+}
+
+.merge-inv-scroll {
+    flex: 1;
+    overflow-y: auto;
 }

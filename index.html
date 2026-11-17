@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Battle - Mobile Meta-Game & Tactical RTS (45 Maps, 17 Units & 41 Rarity Tiers)</title>
+    <title>Tiny Battle - Tactical RTS, Zombie TD & Meta-Game (45 Maps, 17 Units & 41 Rarity Tiers)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;0,800;1,700&family=VT323&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700&family=VT323&display=swap" rel="stylesheet">
 
     <!-- HỆ THỐNG NẠP CSS THÔNG MINH: TỰ ĐỘNG FALLBACK NẾU ĐẶT FILE CSS Ở THƯ MỤC GỐC HOẶC TRONG css/ -->
     <link rel="stylesheet" href="css/base.css" onerror="this.onerror=null;this.href='base.css';">
@@ -15,8 +15,231 @@
     <link rel="stylesheet" href="css/battle.css" onerror="this.onerror=null;this.href='battle.css';">
     <link rel="stylesheet" href="css/responsive.css" onerror="this.onerror=null;this.href='responsive.css';">
 
-    <!-- STYLE ĐỒNG BỘ CHO CÁC TÍNH NĂNG MỚI (SYNERGY HUD, BASE TURRET, CODEX, SKIP SPIN & AUTO-BATTLER SELECTION) -->
+    <!-- STYLE ĐỒNG BỘ CHO TOÀN BỘ TÍNH NĂNG MỚI (5 TABS, WHITE PEARL, CHALLENGE, SKILL TREE, SANDBOX & BASE HP HUD) -->
     <style>
+        /* Top Bar 4 loại tiền tệ gọn gàng trên màn hình dọc 420px */
+        .lobby-top-bar {
+            padding: 5px 6px !important;
+            gap: 4px;
+        }
+        .player-name-text {
+            max-width: 64px !important;
+            font-size: 11px !important;
+        }
+        .currency-group {
+            gap: 3px !important;
+            flex-wrap: nowrap;
+        }
+        .currency-pill {
+            min-width: 44px !important;
+            padding: 2.5px 5.5px 2.5px 4px !important;
+            gap: 2.5px !important;
+        }
+        .currency-pill.pearl-pill {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border-color: #e2e8f0;
+            box-shadow: 0 0 8px rgba(248, 250, 252, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+        }
+        .currency-icon {
+            font-size: 11.5px !important;
+        }
+        .currency-val {
+            font-size: 14.5px !important;
+        }
+
+        /* Thanh điều hướng dưới đáy 5 Tab */
+        .lobby-bottom-nav.five-tabs {
+            grid-template-columns: repeat(5, 1fr) !important;
+        }
+        .lobby-bottom-nav.five-tabs .nav-tab-btn {
+            border-right-width: 2px;
+            padding: 2px 1px;
+        }
+        .lobby-bottom-nav.five-tabs .nav-tab-icon {
+            font-size: 18px;
+        }
+        .lobby-bottom-nav.five-tabs .nav-tab-label {
+            font-size: 8.5px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+        .nav-tab-btn[data-tab="challenge"].active {
+            background: linear-gradient(180deg, #fb7185 0%, #be123c 100%);
+            color: #ffffff;
+        }
+        .nav-tab-btn[data-tab="skilltree"].active {
+            background: linear-gradient(180deg, #4ade80 0%, #15803d 100%);
+            color: #ffffff;
+        }
+
+        /* Cột Sidebar 4 nút bên phải màn hình Battle (INDEX -> CODE -> CHIP MOD -> MINI-GAME) */
+        .battle-side-column.four-btns {
+            gap: 5px;
+        }
+        .battle-side-column.four-btns .side-feature-btn {
+            width: 58px;
+            height: 46px;
+            border-radius: 12px;
+        }
+        .battle-side-column.four-btns .side-btn-icon {
+            font-size: 16px;
+        }
+        .battle-side-column.four-btns .side-btn-text {
+            font-size: 8px;
+            margin-top: 1px;
+        }
+        .side-feature-btn.index-feature-btn {
+            background: linear-gradient(180deg, #f3e8ff 0%, #c084fc 100%);
+            border-color: #0f172a;
+        }
+
+        /* Thanh công cụ nhanh Ụ Pháo Căn Cứ ở Sảnh */
+        .lobby-quick-utility-bar.single-center {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 356px;
+            margin-top: 2px;
+        }
+        .quick-utility-pill {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 4px 14px;
+            border-radius: 10px;
+            border: 2px solid #0f172a;
+            font-size: 10px;
+            font-weight: 900;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 3px 0 #0f172a;
+            text-shadow: 0 1px 0 #0f172a;
+            transition: transform 0.08s ease, filter 0.12s ease;
+        }
+        .quick-utility-pill:active {
+            transform: scale(0.96) translateY(2px);
+            box-shadow: 0 1px 0 #0f172a;
+        }
+        .utility-turret-btn {
+            background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
+        }
+
+        /* Cửa hàng Chip Mod trong Tab SHOP */
+        .shop-chips-card {
+            background: #1e293b;
+            border: 3.5px solid #0f172a;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 0 rgba(15, 23, 42, 0.65);
+            flex-shrink: 0;
+        }
+        .shop-chips-header {
+            background: linear-gradient(90deg, #0284c7 0%, #0ea5e9 100%);
+            padding: 6px 12px;
+            border-bottom: 2.5px solid #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 900;
+            color: #ffffff;
+            text-shadow: 0 2px 0 #0f172a;
+        }
+        .shop-chips-list {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+        .shop-chip-item-row {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 7px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        /* Thanh HP 2 Căn Cứ Xanh & Đỏ trên HUD trong trận */
+        .base-hp-hud-strip {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-top: 2px;
+            width: 248px;
+        }
+        .base-hp-box {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1.5px solid #475569;
+            border-radius: 7px;
+            padding: 2px 5px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+        }
+        .base-hp-box.blue-base-box {
+            border-color: #38bdf8;
+        }
+        .base-hp-box.red-base-box {
+            border-color: #fb7185;
+        }
+        .base-hp-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 9px;
+            font-weight: 900;
+            line-height: 1.1;
+            margin-bottom: 2px;
+        }
+        .base-hp-track {
+            width: 100%;
+            height: 5px;
+            background: #020617;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        .base-hp-fill {
+            height: 100%;
+            background: #22c55e;
+            transition: width 0.12s ease, background-color 0.2s ease;
+        }
+        .base-hp-fill.hp-warn {
+            background: #facc15;
+        }
+        .base-hp-fill.hp-danger {
+            background: #ef4444;
+            animation: bossPulse 0.35s ease-in-out infinite alternate;
+        }
+
+        /* Deck 6 Ô trong chế độ CHALLENGE Tower Defense */
+        .battle-deck-slots.challenge-6-slots {
+            grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+            gap: 2.5px !important;
+        }
+        .battle-deck-slots.challenge-6-slots .unit-card-name {
+            font-size: 7.5px;
+        }
+        .battle-deck-slots.challenge-6-slots .unit-card-art {
+            width: 34px;
+            height: 34px;
+        }
+        .battle-deck-slots.challenge-6-slots .unit-card-art img {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* Lưới 6 thẻ Roll trong chế độ Challenge */
+        .draft-cards-grid.six-cards {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+        }
+        .draft-cards-grid.six-cards .draft-card {
+            min-height: 132px;
+            padding: 5px 4px;
+        }
+
         /* Ô quân đang được chọn để đặt trong chế độ Auto-Battler */
         .unit-btn.ab-selected-slot {
             outline: 3.5px solid #fde047 !important;
@@ -24,6 +247,7 @@
             transform: translateY(-4px);
             box-shadow: 0 6px 0 #0f172a, 0 0 18px rgba(250, 204, 21, 0.95) !important;
         }
+
         /* Thanh hiển thị Cộng Hưởng Đội Hình (In-Battle Synergy) trên HUD */
         .hud-synergy-strip {
             display: flex;
@@ -58,41 +282,188 @@
             background: linear-gradient(90deg, #4c1d95 0%, #9333ea 100%);
             border-color: #f0abfc;
         }
-        /* Thanh công cụ nhanh Pháo Đài Căn Cứ & Codex ở Sảnh */
-        .lobby-quick-utility-bar {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 6px;
-            width: 100%;
-            max-width: 356px;
-            margin-top: 2px;
+
+        /* ====================================================================
+           TAB 4: CHALLENGE (TOWER DEFENSE 20 WAVE ZOMBIE - LỘ TRÌNH DỌC 45 MAP)
+           ==================================================================== */
+        #tab-challenge {
+            background:
+                radial-gradient(circle at 50% 15%, rgba(225, 29, 72, 0.28) 0%, transparent 55%),
+                linear-gradient(180deg, #1f1024 0%, #090d16 100%);
         }
-        .quick-utility-pill {
+        .challenge-header-banner {
+            background: linear-gradient(90deg, #881337 0%, #be123c 50%, #881337 100%);
+            border-bottom: 3.5px solid #0f172a;
+            padding: 8px 12px;
+            text-align: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+        }
+        .challenge-roadmap-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 14px 24px 14px;
+            position: relative;
+        }
+        .challenge-roadmap-list {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-left: 24px;
+        }
+        .challenge-roadmap-list::before {
+            content: '';
+            position: absolute;
+            top: 16px;
+            bottom: 16px;
+            left: 11px;
+            width: 4px;
+            background: linear-gradient(180deg, #f43f5e 0%, #a855f7 50%, #38bdf8 100%);
+            border-radius: 999px;
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.65);
+        }
+        .challenge-stage-node {
+            position: relative;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 3px solid #334155;
+            border-radius: 16px;
+            padding: 9px 10px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 5px;
-            padding: 4px 8px;
-            border-radius: 10px;
-            border: 2px solid #0f172a;
-            font-size: 10px;
-            font-weight: 900;
-            color: #ffffff;
+            justify-content: space-between;
+            gap: 8px;
+            box-shadow: 0 5px 0 #020617;
+            transition: transform 0.1s ease, border-color 0.15s ease;
+        }
+        .challenge-stage-node::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #475569;
+            border: 3px solid #0f172a;
+            z-index: 2;
+        }
+        .challenge-stage-node.unlocked {
+            border-color: #fb7185;
+        }
+        .challenge-stage-node.unlocked::before {
+            background: #f43f5e;
+            box-shadow: 0 0 10px #f43f5e;
+        }
+        .challenge-stage-node.cleared {
+            border-color: #4ade80;
+            background: linear-gradient(180deg, #064e3b 0%, #0f172a 100%);
+        }
+        .challenge-stage-node.cleared::before {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+        .challenge-stage-node.locked {
+            opacity: 0.58;
+            filter: grayscale(65%);
+        }
+
+        /* ====================================================================
+           TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ - DÙNG NGỌC TRAI TRẮNG)
+           ==================================================================== */
+        #tab-skilltree {
+            background:
+                radial-gradient(circle at 50% 25%, rgba(56, 189, 248, 0.22) 0%, transparent 55%),
+                linear-gradient(180deg, #064e3b 0%, #022c22 55%, #090d16 100%);
+        }
+        .skilltree-top-banner {
+            background: linear-gradient(90deg, #065f46 0%, #047857 50%, #065f46 100%);
+            border-bottom: 3px solid #0f172a;
+            padding: 7px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .skilltree-canvas-stage {
+            flex: 1;
+            position: relative;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 10px 8px 10px;
+        }
+        .skilltree-svg-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .skilltree-tier-row {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            gap: 8px;
+        }
+        .st-node-btn {
+            position: relative;
+            width: 82px;
+            padding: 6px 4px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 3px solid #475569;
+            border-radius: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
             cursor: pointer;
-            box-shadow: 0 3px 0 #0f172a;
-            text-shadow: 0 1px 0 #0f172a;
-            transition: transform 0.08s ease, filter 0.12s ease;
+            box-shadow: 0 4px 0 #020617;
+            transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .quick-utility-pill:active {
-            transform: scale(0.96) translateY(2px);
-            box-shadow: 0 1px 0 #0f172a;
+        .st-node-btn:active {
+            transform: scale(0.95) translateY(2px);
         }
-        .utility-turret-btn {
-            background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
+        .st-node-btn.unlocked {
+            border-color: #38bdf8;
         }
-        .utility-codex-btn {
-            background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
+        .st-node-btn.leveled {
+            border-color: #4ade80;
+            background: linear-gradient(180deg, #065f46 0%, #0f172a 100%);
+            box-shadow: 0 4px 0 #020617, 0 0 12px rgba(74, 222, 128, 0.45);
         }
+        .st-node-btn.selected-node {
+            outline: 3px solid #fde047;
+            transform: translateY(-2px);
+        }
+        .st-node-btn.locked {
+            opacity: 0.55;
+            filter: grayscale(70%);
+        }
+        .st-crown-node {
+            width: 104px;
+            border-color: #facc15;
+        }
+        .skilltree-inspector-dock {
+            position: relative;
+            z-index: 3;
+            background: #0f172a;
+            border-top: 3px solid #38bdf8;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
         /* Thẻ chọn Ụ Pháo Căn Cứ Xanh */
         .turret-option-card {
             background: #ffffff;
@@ -110,7 +481,8 @@
             border-color: #0284c7;
             box-shadow: 0 4px 0 #0284c7, 0 0 10px rgba(14, 165, 233, 0.35);
         }
-        /* Sổ tay Codex & Mốc sưu tầm */
+
+        /* Sổ tay INDEX (Codex) & Mốc sưu tầm */
         .codex-unit-row {
             background: #ffffff;
             border: 2.5px solid #0f172a;
@@ -150,7 +522,8 @@
             color: #fde047;
             cursor: default;
         }
-        /* Lịch sử nổ Jackpot Vòng Quay */
+
+        /* Lịch sử nổ Jackpot Vòng Quay & Skip Spin */
         .wheel-history-box {
             background: #0f172a;
             border: 2px solid #334155;
@@ -176,6 +549,37 @@
             font-weight: 900;
             color: #0f172a;
         }
+
+        /* Sandbox Shooting Range Canvas trong Modal Review */
+        .sandbox-canvas-frame {
+            width: 100%;
+            background: #0f172a;
+            border: 3px solid #0f172a;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.75);
+        }
+        .sandbox-rarity-strip {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 4px;
+            margin: 6px 0;
+        }
+        .sb-rarity-pill {
+            padding: 2.5px 7px;
+            border-radius: 999px;
+            border: 1.5px solid #0f172a;
+            font-size: 9px;
+            font-weight: 900;
+            color: #ffffff;
+            cursor: pointer;
+            text-shadow: 0 1px 0 #000000;
+        }
+        .sb-rarity-pill.active {
+            outline: 2.5px solid #fde047;
+            transform: scale(1.06);
+        }
     </style>
 </head>
 <body>
@@ -187,7 +591,7 @@
         <!-- ============================================================== -->
         <div id="lobby-wrapper" class="lobby-wrapper active">
 
-            <!-- 1. TOP BAR: AVATAR + TÊN + NÚT SETTING ADMIN (TRÁI) | MEDALS + GEMS + COINS (PHẢI) -->
+            <!-- 1. TOP BAR: AVATAR + TÊN + SETTING | NGỌC TRAI TRẮNG + MEDALS + GEMS + COINS -->
             <div class="lobby-top-bar">
                 <div class="profile-settings-group">
                     <div id="btn-edit-name" class="player-profile-pill" title="Đổi tên nhân vật">
@@ -200,15 +604,19 @@
                         </div>
                     </div>
 
-                    <!-- Nút Setting (Cài đặt & Chế độ Admin) ngay cạnh Profile -->
                     <button id="btn-open-settings" class="btn-settings-gear" title="Cài đặt & Chế độ Admin">
                         <span class="gear-icon">⚙️</span>
                     </button>
                 </div>
 
                 <div class="currency-group">
-                    <!-- Medals / Stars (Huy chương nâng Cây Bị Động Chỉ Huy & Ụ Pháo Căn Cứ) -->
-                    <div id="medals-pill-box" class="currency-pill medal-pill" title="Huy chương Chiến dịch (Nâng Cây Bị Động & Pháo Đài)">
+                    <!-- Ngọc Trai Trắng (White Pearl - Nâng Cây Kỹ Năng Cổ Thụ) -->
+                    <div id="pearls-pill-box" class="currency-pill pearl-pill" title="Ngọc Trai Trắng (Kiếm từ Challenge & nâng Cây Kỹ Năng Cổ Thụ)">
+                        <span class="currency-icon">⚪</span>
+                        <span id="pearls-count-display" class="currency-val vt323-num">0</span>
+                    </div>
+                    <!-- Huy chương (Medals) -->
+                    <div id="medals-pill-box" class="currency-pill medal-pill" title="Huy chương Chiến dịch (Nâng Cây Bị Động Talents)">
                         <span class="currency-icon medal-icon">🎖️</span>
                         <span id="medals-count-display" class="currency-val medal-currency-val">0</span>
                     </div>
@@ -225,19 +633,19 @@
                 </div>
             </div>
 
-            <!-- 2. MAIN CONTENT VIEW (CHỨA 3 TAB: SHOP - BATTLE - ARMY) -->
+            <!-- 2. MAIN CONTENT VIEW (CHỨA 5 TAB: SHOP - ARMY - BATTLE - CHALLENGE - SKILL TREE) -->
             <div class="lobby-main-content">
 
-                <!-- ==================== TAB 1: SHOP (GACHA CRATES - SIÊU TỐC 1 TỶ RƯƠNG) ==================== -->
+                <!-- ==================== TAB 1: SHOP (GACHA CRATES + CỬA HÀNG CHIP) ==================== -->
                 <div id="tab-shop" class="lobby-tab-pane">
                     <div class="shop-scroll-area">
                         <div class="shop-banner-ribbon">
-                            <span>GACHA 17 BINH CHỦNG & TIẾP TẾ QUÂN ĐỘI</span>
+                            <span>GACHA 17 BINH CHỦNG & CỬA HÀNG CHIP</span>
                         </div>
 
                         <div class="shop-discount-notice">
-                            🔥 <b>MỞ RƯƠNG SIÊU TỐC O(1):</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> khi mở số lượng tùy chỉnh (Tối đa <b class="text-emerald-300">1,000,000,000 (1 Tỷ) rương</b>/lần trong <b class="text-sky-300">&lt; 0.05 giây</b>)! <br/>
-                            <span class="text-[10px] text-rose-300 font-bold">✨ Đầy đủ <b>17 Binh Chủng</b> (kể cả Phù Thủy Lửa, Pháp Sư Băng, Mục Sư, Chiêu Hồn, Mecha Paladin, Railgun) & <b>41 Bậc Độ Hiếm</b> lên tới <b>Master +8 (600x) & Demon +10 (7777x)</b>!</span>
+                            🔥 <b>MỞ RƯƠNG SIÊU TỐC O(1):</b> Giảm ngay <b class="text-amber-300">10%</b> tổng chi phí cho mỗi cụm <b>10 rương</b> (Tối đa <b class="text-emerald-300">1,000,000,000 (1 Tỷ) rương</b>/lần trong <b class="text-sky-300">< 0.05s</b>)! <br/>
+                            <span class="text-[10px] text-rose-300 font-bold">✨ Đầy đủ <b>17 Binh Chủng</b> & <b>41 Bậc Độ Hiếm</b> lên tới <b>Master +8 (120x) & Demon +10 (777x)</b>!</span>
                         </div>
 
                         <!-- RƯƠNG 1: LEGENDARY CRATE -->
@@ -277,7 +685,6 @@
                                     </button>
                                 </div>
 
-                                <!-- Khu vực nhập số lượng rương Legendary tùy chỉnh (Tối đa 1 Tỷ rương) -->
                                 <div class="crate-custom-row">
                                     <div class="custom-input-wrap">
                                         <span class="custom-input-label">Số lượng (≤1B):</span>
@@ -297,7 +704,6 @@
                                     </button>
                                 </div>
 
-                                <!-- Nút chọn nhanh số lượng lớn: [1K], [1M], [100M], [1B (1 Tỷ)] -->
                                 <div class="crate-preset-qty-row">
                                     <span class="preset-row-label">Chọn nhanh:</span>
                                     <button type="button" id="btn-leg-preset-1k" data-target-input="input-custom-leg-count" data-crate="legendary" data-qty="1000" class="btn-3d btn-3d-slate crate-preset-qty-btn vt323-num">[1K]</button>
@@ -345,7 +751,6 @@
                                     </button>
                                 </div>
 
-                                <!-- Khu vực nhập số lượng rương Epic tùy chỉnh (Tối đa 1 Tỷ rương) -->
                                 <div class="crate-custom-row">
                                     <div class="custom-input-wrap">
                                         <span class="custom-input-label">Số lượng (≤1B):</span>
@@ -365,7 +770,6 @@
                                     </button>
                                 </div>
 
-                                <!-- Nút chọn nhanh số lượng lớn: [1K], [1M], [100M], [1B (1 Tỷ)] -->
                                 <div class="crate-preset-qty-row">
                                     <span class="preset-row-label">Chọn nhanh:</span>
                                     <button type="button" id="btn-epic-preset-1k" data-target-input="input-custom-epic-count" data-crate="epic" data-qty="1000" class="btn-3d btn-3d-slate crate-preset-qty-btn vt323-num">[1K]</button>
@@ -376,7 +780,16 @@
                             </div>
                         </div>
 
-                        <!-- BẢNG TRA CỨU NHANH 41 BẬC ĐỘ HIẾM (COMMON ➔ MASTER +8 ➔ DEMON +10) -->
+                        <!-- CỬA HÀNG CHIP BỔ TRỢ (MUA CHIP BẰNG 2,500 🪙 HOẶC 150 💎) -->
+                        <div id="shop-chips-section" class="shop-chips-card">
+                            <div class="shop-chips-header">
+                                <span>🔌 CỬA HÀNG CHIP BỔ TRỢ</span>
+                                <span class="text-[9.5px] text-amber-200 font-bold">2,500 🪙 hoặc 150 💎 / viên</span>
+                            </div>
+                            <div id="shop-chips-list" class="shop-chips-list"></div>
+                        </div>
+
+                        <!-- BẢNG TRA CỨU 41 BẬC ĐỘ HIẾM ĐÃ CÂN BẰNG -->
                         <div class="shop-rarity-encyclopedia-card">
                             <div class="shop-encyclopedia-header">
                                 <span>🌌 BẢNG HỆ SỐ SỨC MẠNH 41 BẬC ĐỘ HIẾM (RANK 0 ➔ 40)</span>
@@ -384,29 +797,105 @@
                             <div class="shop-encyclopedia-body">
                                 <div class="rarity-tier-group-row">
                                     <span class="rarity-badge rarity-common">Common (1.0x)</span>
-                                    <span class="rarity-badge rarity-uncommon">Uncommon (1.25x)</span>
-                                    <span class="rarity-badge rarity-rare">Rare (1.55x)</span>
-                                    <span class="rarity-badge rarity-epic">Epic ➔ +2 (1.9x - 2.75x)</span>
+                                    <span class="rarity-badge rarity-uncommon">Uncommon (1.20x)</span>
+                                    <span class="rarity-badge rarity-rare">Rare (1.42x)</span>
+                                    <span class="rarity-badge rarity-epic">Epic ➔ +2 (1.65x - 2.15x)</span>
                                 </div>
                                 <div class="rarity-tier-group-row">
-                                    <span class="rarity-badge rarity-legendary">Legendary ➔ +3 (3.4x - 6.4x)</span>
-                                    <span class="rarity-badge rarity-mythic">Mythic ➔ +4 (8.0x - 19.0x)</span>
-                                    <span class="rarity-badge rarity-secret">Secret ➔ +5 (24.0x - 75.0x)</span>
+                                    <span class="rarity-badge rarity-legendary">Legendary ➔ +3 (2.60x - 4.10x)</span>
+                                    <span class="rarity-badge rarity-mythic">Mythic ➔ +4 (5.00x - 9.20x)</span>
+                                    <span class="rarity-badge rarity-secret">Secret ➔ +5 (11.5x - 26.0x)</span>
                                 </div>
                                 <div class="rarity-tier-group-row">
-                                    <span class="rarity-badge rarity-master">🌊 MASTER ➔ +8 (95.0x - 600.0x)</span>
-                                    <span class="rarity-badge rarity-demon">😈 DEMON ➔ +10 (750.0x - 7777.0x)</span>
+                                    <span class="rarity-badge rarity-master">🌊 MASTER ➔ +8 (33.0x - 120.0x)</span>
+                                    <span class="rarity-badge rarity-demon">😈 DEMON ➔ +10 (155.0x - 777.0x)</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- ==================== TAB 2: BATTLE (MÀN HÌNH CHÍNH GIỮA - 45 MAPS) ==================== -->
+                <!-- ==================== TAB 2: ARMY (17 BINH CHỦNG, REVIEW SANDBOX & MERGE 41 BẬC) ==================== -->
+                <div id="tab-army" class="lobby-tab-pane">
+                    <div class="army-tab-layout">
+
+                        <!-- Nửa trên: Nhân vật đại diện ở chính giữa -->
+                        <div class="army-Hero-stage">
+                            <div class="army-pedestal-circle"></div>
+                            <canvas id="army-hero-showcase" width="128" height="128" class="army-showcase-canvas pixel-art"></canvas>
+                            <div class="army-showcase-caption">
+                                <span id="army-showcase-name" class="showcase-unit-name">BỘ BINH</span>
+                                <span id="army-showcase-rarity" class="rarity-badge rarity-common">COMMON</span>
+                            </div>
+                        </div>
+
+                        <!-- Nửa dưới: Quản lý quân (ARMY), Bắn thử (REVIEW) & Ghép tướng (MERGE) -->
+                        <div class="army-bottom-panel">
+                            <div class="army-mode-header">
+                                <button id="btn-mode-army" class="btn-3d army-mode-btn active">
+                                    ⚔️ ARMY
+                                </button>
+                                <button id="btn-mode-review" class="btn-3d army-mode-btn">
+                                    👁️ REVIEW
+                                </button>
+                                <button id="btn-mode-merge" class="btn-3d army-mode-btn">
+                                    ✨ MERGE
+                                </button>
+                            </div>
+
+                            <!-- Chế độ 1: ARMY -->
+                            <div id="army-list-view" class="army-subview active">
+                                <div class="army-cost-rule-banner">
+                                    🎲 <b>Chiến Dịch Roguelike:</b> Trong trận <b>BATTLE</b>, lên cấp sẽ <b>Roll ngẫu nhiên 3 Binh Chủng</b> từ kho của bạn (kèm 1 lượt <b>Reroll</b>)!
+                                </div>
+                                <div id="army-units-grid" class="army-cards-grid"></div>
+                            </div>
+
+                            <!-- Chế độ 2: REVIEW (Xem thông số & Bắn thử 17 Binh chủng trong Phòng Tập Sandbox) -->
+                            <div id="army-review-view" class="army-subview">
+                                <div class="army-cost-rule-banner" style="color:#7dd3fc;">
+                                    👁️ <b>BÁCH KHOA & BẮN THỬ:</b> Chạm vào bất kỳ <b>17 Binh Chủng</b> nào để xem chỉ số & mở <b>Phòng Tập Sandbox</b>!
+                                </div>
+                                <div id="army-review-grid" class="army-cards-grid"></div>
+                            </div>
+
+                            <!-- Chế độ 3: MERGE -->
+                            <div id="army-merge-view" class="army-subview">
+                                <div class="merge-workbench">
+                                    <div id="merge-slot-1" class="merge-slot" title="Bấm để bỏ chọn">
+                                        <span class="merge-slot-placeholder">+ THẺ 1</span>
+                                    </div>
+                                    <div class="merge-plus-symbol">+</div>
+                                    <div id="merge-slot-2" class="merge-slot" title="Bấm để bỏ chọn">
+                                        <span class="merge-slot-placeholder">+ THẺ 2</span>
+                                    </div>
+                                    <div class="merge-plus-symbol">➔</div>
+                                    <div id="merge-slot-result" class="merge-slot result-slot">
+                                        <span class="merge-slot-placeholder">KẾT QUẢ</span>
+                                    </div>
+                                    <div class="merge-btns-stack">
+                                        <button id="btn-execute-merge" class="btn-3d btn-3d-amber merge-action-btn" disabled>
+                                            MERGE
+                                        </button>
+                                        <button id="btn-auto-merge" class="btn-3d btn-3d-green auto-merge-action-btn" title="Tự động ghép dây chuyền siêu tốc O(1)">
+                                            ⚡ AUTO MERGE
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="merge-hint-text" class="merge-hint-bar">
+                                    Chọn 2 thẻ <b>cùng tên & cùng độ hiếm</b> hoặc bấm <b>⚡ AUTO MERGE</b> để ghép dây chuyền O(1) lên tới <b>Master +8 & Demon +10</b>!
+                                </div>
+                                <div id="merge-inventory-grid" class="army-cards-grid merge-inv-scroll"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ==================== TAB 3: BATTLE (MÀN HÌNH CHÍNH GIỮA - 45 MAPS) ==================== -->
                 <div id="tab-battle" class="lobby-tab-pane active">
                     <div class="battle-tab-layout">
 
-                        <!-- Tiêu đề Map & Điều hướng ◀ ▶ -->
                         <div class="battle-header-zone">
                             <div class="map-selector-row">
                                 <button id="btn-prev-stage" class="btn-3d btn-nav-arrow" title="Map trước">◀</button>
@@ -417,7 +906,7 @@
                                 <button id="btn-next-stage" class="btn-3d btn-nav-arrow" title="Map tiếp theo">▶</button>
                             </div>
 
-                            <!-- Cụm 1: Chọn 2 Độ khó: DỄ (Easy) & KHÓ (Difficult) -->
+                            <!-- Cụm 1: Chọn 2 Độ khó: DỄ & KHÓ -->
                             <div class="difficulty-selector-bar two-modes">
                                 <button id="diff-btn-easy" data-diff="easy" class="diff-pill-btn active">
                                     <span class="diff-icon">⚔️</span>
@@ -465,28 +954,23 @@
                                 </button>
                             </div>
 
-                            <!-- Cụm 4 Mới: Nút mở nhanh Ụ Pháo Căn Cứ Xanh & Sổ Tay Bách Khoa (CODEX) -->
-                            <div class="lobby-quick-utility-bar">
+                            <!-- Cụm 4: Nút mở nhanh Ụ Pháo Căn Cứ Xanh -->
+                            <div class="lobby-quick-utility-bar single-center">
                                 <button type="button" id="btn-open-turret-modal" class="quick-utility-pill utility-turret-btn" title="Nâng cấp & Đổi Ụ Pháo Bảo Vệ Căn Cứ Xanh">
-                                    <span>🗼 Ụ PHÁO:</span>
+                                    <span>🗼 Ụ PHÁO CĂN CỨ:</span>
                                     <span id="lobby-turret-short-label" class="text-amber-200">GATLING LV.1</span>
-                                </button>
-                                <button type="button" id="btn-open-codex" class="quick-utility-pill utility-codex-btn relative" title="Sổ Tay 17 Binh Chủng & Thưởng Mốc Độ Hiếm">
-                                    <span>📖 CODEX BÁCH KHOA</span>
-                                    <span id="codex-notif-dot" class="notif-badge hidden" style="width:16px;height:16px;font-size:11px;top:-4px;right:-4px;">!</span>
                                 </button>
                             </div>
 
-                            <!-- Thanh thông tin chế độ chơi & phần thưởng -->
                             <div id="diff-info-banner" class="diff-info-strip">
                                 Mục tiêu: <b>Phá hủy Căn cứ Đỏ</b> • Thưởng: <b class="text-amber-300 vt323-num">🪙 200 Coins</b>
                             </div>
                             <div id="diff-mode-mechanic-badge" class="diff-mechanic-substrip">
-                                💡 Thắng chế độ <b>KHÓ</b> nhận thêm <b class="text-amber-700">🎖️ Huy Chương</b> nâng cấp Cây Bị Động & Ụ Pháo!
+                                💡 Thắng chế độ <b>KHÓ</b> nhận thêm <b class="text-amber-700">🎖️ Huy Chương</b> nâng cấp 6 nhánh <b>TALENTS</b>!
                             </div>
                         </div>
 
-                        <!-- Khu vực Trung tâm: 2 Sidebar Trái/Phải (Mỗi bên 3 nút tính năng) + Khung Demo Map ở giữa -->
+                        <!-- Khu vực Trung tâm: Cột Trái (3 nút) | Map Demo | Cột Phải (4 nút: INDEX -> CODE -> CHIP MOD -> MINI-GAME) -->
                         <div class="battle-center-stage">
                             <!-- Left Sidebar: MISSION, TALENTS, VÒNG QUAY -->
                             <div class="battle-side-column">
@@ -496,13 +980,13 @@
                                     <span class="side-btn-text">MISSION</span>
                                 </button>
 
-                                <button id="btn-open-talents" class="side-feature-btn talent-feature-btn" title="Cây Kỹ Năng Bị Động Chỉ Huy">
-                                    <span id="talents-notif-badge" class="notif-badge" style="display: none;">!</span>
+                                <button id="btn-open-talents" class="side-feature-btn talent-feature-btn" title="Cây Kỹ Năng Bị Động Chỉ Huy (6 Nhánh)">
+                                    <span id="talents-notif-badge" class="notif-badge hidden">!</span>
                                     <span class="side-btn-icon">🎖️</span>
                                     <span class="side-btn-text">TALENTS</span>
                                 </button>
 
-                                <button id="btn-open-lucky-wheel" class="side-feature-btn wheel-feature-btn" title="Vòng Quay May Mắn - Nổ Jackpot Master / Demon">
+                                <button id="btn-open-lucky-wheel" class="side-feature-btn wheel-feature-btn" title="Vòng Quay May Mắn">
                                     <span id="wheel-notif-dot" class="notif-badge amber-notif">★</span>
                                     <span class="side-btn-icon">🎡</span>
                                     <span class="side-btn-text">VÒNG QUAY</span>
@@ -521,19 +1005,25 @@
                                 </p>
                             </div>
 
-                            <!-- Right Sidebar: CODE, CHIP MOD, MINI-GAME -->
-                            <div class="battle-side-column">
+                            <!-- Right Sidebar: INDEX -> CODE -> CHIP MOD -> MINI-GAME -->
+                            <div class="battle-side-column four-btns">
+                                <button id="btn-open-index" class="side-feature-btn index-feature-btn" title="Sổ Tay INDEX 17 Binh Chủng & Thưởng Mốc">
+                                    <span id="codex-notif-dot" class="notif-badge hidden">!</span>
+                                    <span class="side-btn-icon">📖</span>
+                                    <span class="side-btn-text">INDEX</span>
+                                </button>
+
                                 <button id="btn-open-code" class="side-feature-btn" title="Nhập Giftcode">
                                     <span class="side-btn-icon">🎁</span>
                                     <span class="side-btn-text">CODE</span>
                                 </button>
 
-                                <button id="btn-quick-army-chips" class="side-feature-btn chip-feature-btn" title="Gắn Chip / Ngọc Bổ Trợ Binh Chủng">
+                                <button id="btn-quick-army-chips" class="side-feature-btn chip-feature-btn" title="Gắn Chip / Mở Khe Chip 2">
                                     <span class="side-btn-icon">🔌</span>
                                     <span class="side-btn-text">CHIP MOD</span>
                                 </button>
 
-                                <button id="btn-open-minigames" class="side-feature-btn minigame-feature-btn" title="Trung Tâm 3 Mini-Game Giải Trí Cày Tài Nguyên">
+                                <button id="btn-open-minigames" class="side-feature-btn minigame-feature-btn" title="Trung Tâm 3 Mini-Game Giải Trí">
                                     <span class="notif-badge">🎮</span>
                                     <span class="side-btn-icon">🕹️</span>
                                     <span class="side-btn-text">MINI-GAME</span>
@@ -541,7 +1031,6 @@
                             </div>
                         </div>
 
-                        <!-- Nút START lớn ở dưới -->
                         <div class="battle-footer-zone">
                             <button id="btn-start-battle" class="btn-3d btn-start-huge">
                                 START
@@ -551,105 +1040,134 @@
                     </div>
                 </div>
 
-                <!-- ==================== TAB 3: ARMY (17 BINH CHỦNG, DECK BUILDER & MERGE 41 BẬC) ==================== -->
-                <div id="tab-army" class="lobby-tab-pane">
-                    <div class="army-tab-layout">
+                <!-- ==================== TAB 4: CHALLENGE (TOWER DEFENSE 20 WAVE ZOMBIE - LỘ TRÌNH DỌC 45 MAP) ==================== -->
+                <div id="tab-challenge" class="lobby-tab-pane">
+                    <div class="challenge-header-banner">
+                        <div class="text-sm font-black text-white tracking-wider drop-shadow">
+                            ☠️ THỦ THÀNH ZOMBIE 20 WAVE (HARDCORE TD)
+                        </div>
+                        <div class="text-[10px] font-bold text-rose-200 mt-0.5">
+                            Lưới 7 cột • Nhân vật đứng cố định làm Tower • Vượt 20 Wave nhận <b class="text-white">⚪ Ngọc Trai Trắng</b>!
+                        </div>
+                    </div>
+                    <div id="challenge-roadmap-scroll" class="challenge-roadmap-scroll">
+                        <div id="challenge-roadmap-list" class="challenge-roadmap-list"></div>
+                    </div>
+                </div>
 
-                        <!-- Nửa trên: Nhân vật đại diện ở chính giữa (Có Aura Master Xanh Biển / Demon Tím Hắc Ám) -->
-                        <div class="army-Hero-stage">
-                            <div class="army-pedestal-circle"></div>
-                            <canvas id="army-hero-showcase" width="128" height="128" class="army-showcase-canvas pixel-art"></canvas>
-                            <div class="army-showcase-caption">
-                                <span id="army-showcase-name" class="showcase-unit-name">BỘ BINH</span>
-                                <span id="army-showcase-rarity" class="rarity-badge rarity-common">COMMON</span>
-                            </div>
+                <!-- ==================== TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ - NGỌC TRAI TRẮNG) ==================== -->
+                <div id="tab-skilltree" class="lobby-tab-pane">
+                    <div class="skilltree-top-banner">
+                        <span class="text-xs font-black text-emerald-200 tracking-wide">🌳 CÂY KỸ NĂNG CỔ THỤ</span>
+                        <span class="text-[11px] font-black text-white bg-slate-900/80 px-2.5 py-0.5 rounded-full border border-slate-400">
+                            Hiện có: <b id="skilltree-pearls-balance" class="text-sky-300 vt323-num text-base">⚪ 0</b>
+                        </span>
+                    </div>
+
+                    <div id="skilltree-canvas-stage" class="skilltree-canvas-stage">
+                        <!-- Đường nhánh nối SVG phát sáng từ Rễ -> Thân -> Cành -> Ngọn -->
+                        <svg id="skilltree-branches-svg" class="skilltree-svg-bg" viewBox="0 0 380 430" preserveAspectRatio="none"></svg>
+
+                        <!-- Tầng 4: Ngọn Cây Tối Thượng -->
+                        <div class="skilltree-tier-row" data-tier="4">
+                            <button type="button" id="st-node-ancient_heart" data-st-id="ancient_heart" class="st-node-btn st-crown-node">
+                                <span class="text-[8px] font-black text-amber-300">👑 NGỌN CÂY</span>
+                                <span class="text-xl">💖</span>
+                                <span class="text-[9.5px] font-black text-white text-center leading-tight">Trái Tim Cổ Thụ</span>
+                                <span id="st-lv-ancient_heart" class="text-[10px] font-extrabold text-amber-300 vt323-num">LV.0/3</span>
+                            </button>
                         </div>
 
-                        <!-- Nửa dưới: Quản lý danh sách quân (ARMY) & Ghép tướng (MERGE) -->
-                        <div class="army-bottom-panel">
-                            <div class="army-mode-header">
-                                <button id="btn-mode-army" class="btn-3d army-mode-btn active">
-                                    ⚔️ ARMY
-                                </button>
-                                <span id="army-panel-title" class="army-panel-heading">QUÂN ĐỘI (17 BINH CHỦNG)</span>
-                                <button id="btn-mode-merge" class="btn-3d army-mode-btn">
-                                    ✨ MERGE
-                                </button>
-                            </div>
-
-                            <!-- Chế độ 1: ARMY (Thanh Deck 4 Ô Quân + 1 Không Kích & Danh sách 17 binh chủng) -->
-                            <div id="army-list-view" class="army-subview active">
-                                <div class="army-cost-rule-banner">
-                                    🔥 <b> Cộng Hưởng (Synergy):</b> <b>Phù Thủy Lửa + Pháp Sư Băng</b> (+25% DMG chuẩn) • <b>Mục Sư + Mecha Paladin</b> (+20% Hồi máu & +15% Giáp) • <b>Chiêu Hồn + Tướng Demon</b> (Xương x2 HP & DMG)!
-                                </div>
-
-                                <!-- Thanh Đội Hình Xuất Chiến (Custom Deck Selector 4 Ô Quân + 1 Không Kích) -->
-                                <div class="army-deck-builder-strip">
-                                    <div class="army-deck-strip-header">
-                                        <span>🛡️ ĐỘI HÌNH CHIẾN ĐẤU (4 Ô QUÂN + 1 KHÔNG KÍCH):</span>
-                                        <span class="text-[9px] text-amber-300 font-bold">Chạm ô để xem / đổi quân</span>
-                                    </div>
-                                    <div id="army-active-deck-bar" class="army-deck-slots-row">
-                                        <button type="button" id="army-deck-pill-0" data-deck-slot="0" class="army-deck-slot-pill">[Ô Đội Hình 1]: Bộ Binh</button>
-                                        <button type="button" id="army-deck-pill-1" data-deck-slot="1" class="army-deck-slot-pill">[Ô 2]: Lính Tên Lửa</button>
-                                        <button type="button" id="army-deck-pill-2" data-deck-slot="2" class="army-deck-slot-pill">[Ô 3]: Xe Humvee</button>
-                                        <button type="button" id="army-deck-pill-3" data-deck-slot="3" class="army-deck-slot-pill">[Ô 4]: Xe Tăng</button>
-                                        <div class="army-deck-slot-pill airstrike-fixed-pill" title="Ô 5 cố định: Không Kích Chiến Thuật">✈️ [Ô 5]: Không Kích</div>
-                                    </div>
-                                </div>
-
-                                <div id="army-units-grid" class="army-cards-grid"></div>
-                            </div>
-
-                            <!-- Chế độ 2: MERGE (Ghép 2 thẻ cùng loại & cùng độ hiếm + CASCADE AUTO MERGE O(1)) -->
-                            <div id="army-merge-view" class="army-subview">
-                                <div class="merge-workbench">
-                                    <div id="merge-slot-1" class="merge-slot" title="Bấm để bỏ chọn">
-                                        <span class="merge-slot-placeholder">+ THẺ 1</span>
-                                    </div>
-                                    <div class="merge-plus-symbol">+</div>
-                                    <div id="merge-slot-2" class="merge-slot" title="Bấm để bỏ chọn">
-                                        <span class="merge-slot-placeholder">+ THẺ 2</span>
-                                    </div>
-                                    <div class="merge-plus-symbol">➔</div>
-                                    <div id="merge-slot-result" class="merge-slot result-slot">
-                                        <span class="merge-slot-placeholder">KẾT QUẢ</span>
-                                    </div>
-                                    <div class="merge-btns-stack">
-                                        <button id="btn-execute-merge" class="btn-3d btn-3d-amber merge-action-btn" disabled>
-                                            MERGE
-                                        </button>
-                                        <button id="btn-auto-merge" class="btn-3d btn-3d-green auto-merge-action-btn" title="Tự động ghép dây chuyền siêu tốc O(1) cho hàng tỷ thẻ lên tới Master +8 & Demon +10">
-                                            ⚡ AUTO MERGE
-                                        </button>
-                                    </div>
-                                </div>
-                                <div id="merge-hint-text" class="merge-hint-bar">
-                                    Chọn 2 thẻ <b>cùng tên & cùng độ hiếm</b> hoặc bấm <b>⚡ AUTO MERGE</b> để ghép dây chuyền O(1) lên tới <b>Master +8 (600x) & Demon +10 (7777x)</b>!
-                                </div>
-                                <!-- Kho thẻ đang sở hữu -->
-                                <div id="merge-inventory-grid" class="army-cards-grid merge-inv-scroll"></div>
-                            </div>
+                        <!-- Tầng 3: Các Cành Nhánh -->
+                        <div class="skilltree-tier-row" data-tier="3">
+                            <button type="button" id="st-node-undead_slayer" data-st-id="undead_slayer" class="st-node-btn">
+                                <span class="text-[8px] font-black text-rose-300">🌿 CÀNH TRÁI</span>
+                                <span class="text-lg">🗡️</span>
+                                <span class="text-[9px] font-black text-white text-center leading-tight">Săn Xác Sống</span>
+                                <span id="st-lv-undead_slayer" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
+                            </button>
+                            <button type="button" id="st-node-elite_lineage" data-st-id="elite_lineage" class="st-node-btn">
+                                <span class="text-[8px] font-black text-amber-300">🌿 CÀNH PHẢI</span>
+                                <span class="text-lg">⚡</span>
+                                <span class="text-[9px] font-black text-white text-center leading-tight">Cành Tinh Anh</span>
+                                <span id="st-lv-elite_lineage" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
+                            </button>
                         </div>
 
+                        <!-- Tầng 2: Phần Thân Cây -->
+                        <div class="skilltree-tier-row" data-tier="2">
+                            <button type="button" id="st-node-iron_trunk" data-st-id="iron_trunk" class="st-node-btn">
+                                <span class="text-[8px] font-black text-sky-300">🪵 THÂN TRÁI</span>
+                                <span class="text-lg">⚙️</span>
+                                <span class="text-[9px] font-black text-white text-center leading-tight">Thân Cương Thiết</span>
+                                <span id="st-lv-iron_trunk" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
+                            </button>
+                            <button type="button" id="st-node-arcane_trunk" data-st-id="arcane_trunk" class="st-node-btn">
+                                <span class="text-[8px] font-black text-purple-300">🪵 THÂN PHẢI</span>
+                                <span class="text-lg">🔮</span>
+                                <span class="text-[9px] font-black text-white text-center leading-tight">Thân Ma Thuật</span>
+                                <span id="st-lv-arcane_trunk" class="text-[10px] font-extrabold text-sky-300 vt323-num">LV.0/5</span>
+                            </button>
+                        </div>
+
+                        <!-- Tầng 1: Phần Rễ Cây (Mở khóa đầu tiên) -->
+                        <div class="skilltree-tier-row" data-tier="1">
+                            <button type="button" id="st-node-vital_roots" data-st-id="vital_roots" class="st-node-btn selected-node unlocked">
+                                <span class="text-[8px] font-black text-emerald-300">🌱 RỄ TRÁI</span>
+                                <span class="text-lg">💚</span>
+                                <span class="text-[9px] font-black text-white text-center leading-tight">Rễ Sinh Mệnh</span>
+                                <span id="st-lv-vital_roots" class="text-[10px] font-extrabold text-emerald-300 vt323-num">LV.0/5</span>
+                            </button>
+                            <button type="button" id="st-node-supply_roots" data-st-id="supply_roots" class="st-node-btn unlocked">
+                                <span class="text-[8px] font-black text-emerald-300">🌱 RỄ PHẢI</span>
+                                <span class="text-lg">⛽</span>
+                                <span class="text-[9px] font-black text-white text-center leading-tight">Rễ Tiếp Tế</span>
+                                <span id="st-lv-supply_roots" class="text-[10px] font-extrabold text-emerald-300 vt323-num">LV.0/5</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng chi tiết & Nâng cấp nhánh đang chọn -->
+                    <div class="skilltree-inspector-dock">
+                        <div class="flex-1 text-left">
+                            <div id="st-inspector-title" class="text-xs font-black text-emerald-300">🌱 Rễ Sinh Mệnh (LV.0/5)</div>
+                            <div id="st-inspector-desc" class="text-[9.5px] font-bold text-slate-300 leading-tight mt-0.5">
+                                +12%/cấp HP tối đa cho toàn bộ đơn vị và Tower.
+                            </div>
+                            <div id="st-inspector-req" class="text-[9px] font-extrabold text-amber-300 mt-0.5">
+                                Trạng thái: Sẵn sàng nâng cấp
+                            </div>
+                        </div>
+                        <button type="button" id="btn-upgrade-skilltree-node" class="btn-3d btn-3d-green px-3 py-2 text-[10.5px] flex flex-col items-center">
+                            <span>NÂNG CẤP</span>
+                            <span id="st-upgrade-cost-val" class="vt323-num text-sm text-amber-200">⚪ 5</span>
+                        </button>
                     </div>
                 </div>
 
             </div>
 
-            <!-- 3. BOTTOM NAVIGATION BAR: 3 TAB (SHOP - BATTLE - ARMY) -->
-            <div class="lobby-bottom-nav">
+            <!-- 3. BOTTOM NAVIGATION BAR: 5 TAB (SHOP - ARMY - BATTLE - CHALLENGE - SKILL TREE) -->
+            <div class="lobby-bottom-nav five-tabs">
                 <button class="nav-tab-btn" data-tab="shop">
                     <span class="nav-tab-icon">🏪</span>
                     <span class="nav-tab-label">SHOP</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="army">
+                    <span class="nav-tab-icon">⚔️</span>
+                    <span class="nav-tab-label">ARMY</span>
                 </button>
                 <button class="nav-tab-btn active" data-tab="battle">
                     <span class="nav-tab-icon">⭐</span>
                     <span class="nav-tab-label">BATTLE</span>
                 </button>
-                <button class="nav-tab-btn" data-tab="army">
-                    <span class="nav-tab-icon">⚒️</span>
-                    <span class="nav-tab-label">ARMY</span>
+                <button class="nav-tab-btn" data-tab="challenge">
+                    <span class="nav-tab-icon">☠️</span>
+                    <span class="nav-tab-label">CHALLENGE</span>
+                </button>
+                <button class="nav-tab-btn" data-tab="skilltree">
+                    <span class="nav-tab-icon">🌳</span>
+                    <span class="nav-tab-label">SKILL TREE</span>
                 </button>
             </div>
 
@@ -659,7 +1177,7 @@
         <!-- CÁC POPUP / MODAL CỦA HỆ THỐNG META-GAME                       -->
         <!-- ============================================================== -->
 
-        <!-- 1. POPUP ĐẶT TÊN NHÂN VẬT LẦN ĐẦU VÀO GAME -->
+        <!-- 1. POPUP ĐẶT TÊN NHÂN VẬT -->
         <div id="name-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header">
@@ -686,7 +1204,7 @@
             </div>
         </div>
 
-        <!-- 2. POPUP CÀI ĐẶT, QUYỀN ADMIN & RESET TÀI KHOẢN (SETTINGS / ADMIN MODAL) -->
+        <!-- 2. POPUP CÀI ĐẶT, QUYỀN ADMIN & RESET TÀI KHOẢN -->
         <div id="settings-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header settings-header-grad">
@@ -732,9 +1250,9 @@
                             👑 ĐANG KÍCH HOẠT ĐẶC QUYỀN ADMIN:
                         </div>
                         <ul class="text-[11px] font-bold text-slate-700 space-y-1 mb-3 pl-2">
-                            <li>• Kim cương (💎), Vàng (🪙) & Huy chương (🎖️) vô tận (<b>∞</b>)</li>
-                            <li>• Mở 1 Tỷ Rương, Quay Vòng Quay & Nâng cấp quân không tốn tài nguyên</li>
-                            <li>• Mở khóa toàn bộ <b>45/45 Map</b> & mọi Chip Bổ Trợ</li>
+                            <li>• Ngọc Trai (⚪), Huy chương (🎖️), Gems (💎) & Vàng (🪙) vô tận (<b>∞</b>)</li>
+                            <li>• Mở 1 Tỷ Rương, Mua Chip, Nâng Skill Tree & Talents miễn phí</li>
+                            <li>• Mở khóa toàn bộ <b>45/45 Map</b> Battle & Challenge</li>
                         </ul>
                         <button id="btn-Return-normal-mode" class="btn-3d btn-3d-rose w-full py-2.5 text-xs">
                             🔄 QUAY LẠI CHẾ ĐỘ NGƯỜI CHƠI THƯỜNG
@@ -753,7 +1271,7 @@
                     <div class="settings-danger-zone mt-3">
                         <div class="danger-zone-title">🚨 VÙNG NGUY HIỂM (DANGER ZONE)</div>
                         <p class="danger-zone-desc">
-                            Xóa toàn bộ tiến trình, tướng, vàng, kim cương và đưa game về trạng thái mặc định ban đầu.
+                            Xóa toàn bộ tiến trình, tướng, ngọc trai, vàng, kim cương và đưa game về trạng thái mặc định ban đầu.
                         </p>
                         <button id="btn-reset-account-data" class="btn-3d btn-3d-danger w-full py-2.5 mt-2 text-xs">
                             ⚠️ CÀI LẠI TOÀN BỘ TÀI KHOẢN (RESET DATA)
@@ -763,7 +1281,7 @@
             </div>
         </div>
 
-        <!-- 2B. POPUP XÁC NHẬN CÀI LẠI TÀI KHOẢN (RESET ACCOUNT CONFIRM MODAL) -->
+        <!-- 2B. POPUP XÁC NHẬN RESET TÀI KHOẢN -->
         <div id="reset-confirm-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header danger-header-grad">
@@ -773,7 +1291,7 @@
                 <div class="bright-modal-body text-center">
                     <div class="danger-warning-icon-box">⚠️</div>
                     <p class="text-xs font-extrabold text-slate-800 leading-relaxed mb-3">
-                        Hành động này sẽ xóa toàn bộ vàng, gems, tướng, tiến trình mở khóa màn và đưa game về trạng thái ban đầu khi mới tải trang. Bạn có chắc chắn không?
+                        Hành động này sẽ xóa toàn bộ vàng, gems, ngọc trai trắng, tướng, tiến trình mở khóa màn và đưa game về trạng thái ban đầu. Bạn có chắc chắn không?
                     </p>
                     <div class="flex gap-2 mt-4">
                         <button id="btn-cancel-reset-data" class="btn-3d btn-3d-slate flex-1 py-2.5 text-xs">
@@ -787,7 +1305,7 @@
             </div>
         </div>
 
-        <!-- 3. POPUP XÁC NHẬN MỞ RƯƠNG TÙY CHỈNH & TÍNH CHIẾT KHẤU (LÊN ĐẾN 1 TỶ RƯƠNG) -->
+        <!-- 3. POPUP XÁC NHẬN MỞ RƯƠNG TÙY CHỈNH -->
         <div id="gacha-confirm-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header">
@@ -910,7 +1428,7 @@
             </div>
         </div>
 
-        <!-- 7. POPUP KẾT QUẢ TỰ ĐỘNG GHÉP QUÂN DÂY CHUYỀN O(1) -->
+        <!-- 7. POPUP KẾT QUẢ AUTO MERGE O(1) -->
         <div id="auto-merge-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header">
@@ -929,7 +1447,7 @@
             </div>
         </div>
 
-        <!-- 8. POPUP CHI TIẾT, NÂNG CẤP VƯỢT CẤP (BULK LEVEL UP), CHỌN DECK, HOÀN CẤP & GẮN CHIP -->
+        <!-- 8. POPUP CHI TIẾT, NÂNG CẤP VƯỢT CẤP, HOÀN CẤP & KHE CHIP (MỞ KHE 2 = 500 GEMS) -->
         <div id="unit-upgrade-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header">
@@ -979,32 +1497,19 @@
                         </div>
                     </div>
 
-                    <!-- HỆ THỐNG CHỌN ĐỘI HÌNH CHIẾN ĐẤU (4 Ô QUÂN TRONG DECK) -->
-                    <div id="upg-deck-assign-section" class="upg-deck-assign-box">
-                        <div class="upg-deck-assign-header">
-                            <span>🛡️ GẮN TƯỚNG VÀO ĐỘI HÌNH CHIẾN ĐẤU (4 Ô QUÂN):</span>
-                        </div>
-                        <div id="upg-deck-slot-selector" class="upg-deck-btns-grid">
-                            <button type="button" id="btn-assign-deck-slot-0" data-deck-slot="0" class="btn-3d btn-3d-slate upg-deck-slot-btn">[Ô Đội Hình 1]</button>
-                            <button type="button" id="btn-assign-deck-slot-1" data-deck-slot="1" class="btn-3d btn-3d-slate upg-deck-slot-btn">[Ô 2]</button>
-                            <button type="button" id="btn-assign-deck-slot-2" data-deck-slot="2" class="btn-3d btn-3d-slate upg-deck-slot-btn">[Ô 3]</button>
-                            <button type="button" id="btn-assign-deck-slot-3" data-deck-slot="3" class="btn-3d btn-3d-slate upg-deck-slot-btn">[Ô 4]</button>
-                        </div>
-                    </div>
-
-                    <!-- HỆ THỐNG CHIP / NGỌC BỔ TRỢ BINH CHỦNG (2 KHE) -->
+                    <!-- HỆ THỐNG CHIP / NGỌC BỔ TRỢ BINH CHỦNG (KHE 1 MỞ SẴN, KHE 2 MỞ BẰNG 500 💎) -->
                     <div class="unit-sockets-section">
                         <div class="unit-sockets-header">
-                            <span>🔌 KHE CHIP / NGỌC BỔ TRỢ (2 KHE)</span>
+                            <span>🔌 KHE CHIP BỔ TRỢ (MỞ KHE 2: 500 💎)</span>
                             <span class="text-[9.5px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-400">
-                                Chạm khe để đổi Chip
+                                Dùng Chip từ Kho
                             </span>
                         </div>
                         <div id="unit-sockets-slots-row" class="unit-sockets-row"></div>
-                        <div id="chip-picker-drawer" class="chip-inventory-grid" style="display: none;"></div>
+                        <div id="chip-picker-drawer" class="chip-inventory-grid hidden"></div>
                     </div>
 
-                    <!-- CỤM ĐIỀU KHIỂN NÂNG CẤP HÀNG LOẠT (BULK LEVEL UP BAR: [+1], [+5], [+10], [MAX] & Ô NHẬP SỐ LEVEL TÙY Ý) -->
+                    <!-- CỤM ĐIỀU KHIỂN NÂNG CẤP HÀNG LOẠT -->
                     <div class="bulk-upgrade-control-box mt-2.5">
                         <div class="bulk-upg-top-row">
                             <div class="bulk-quick-btns-group">
@@ -1027,7 +1532,6 @@
                         </div>
                     </div>
 
-                    <!-- Cụm nút Nâng cấp Level & Mở Hoàn lại cấp -->
                     <div class="flex flex-col gap-2 mt-2.5">
                         <button id="btn-confirm-unit-upgrade" class="btn-3d btn-3d-green w-full py-2.5 flex items-center justify-center gap-2 text-sm">
                             <span id="upg-btn-action-label">⬆️ NÂNG +1 CẤP</span>
@@ -1043,7 +1547,54 @@
             </div>
         </div>
 
-        <!-- 9. POPUP HOÀN LẠI CẤP ĐỘ & NHẬN LẠI 100% VÀNG -->
+        <!-- 8B. POPUP REVIEW & PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal) -->
+        <div id="sandbox-review-modal" class="bright-modal-overlay">
+            <div class="bright-modal-box modal-wide">
+                <div class="bright-modal-header talents-header-grad">
+                    <h3 id="sb-modal-title" class="bright-modal-title">👁️ REVIEW & BẮN THỬ SANDBOX</h3>
+                    <button id="btn-close-sandbox-modal" class="bright-close-btn">✕</button>
+                </div>
+                <div class="bright-modal-body settings-modal-scroll text-center">
+                    <div class="flex items-center justify-between bg-slate-200 border-2 border-slate-900 rounded-xl px-3 py-1.5 mb-2">
+                        <div class="text-left">
+                            <div id="sb-unit-name" class="text-xs font-black text-slate-900">BỘ BINH (LV.1)</div>
+                            <div id="sb-unit-role" class="text-[10px] font-bold text-slate-600">Lính Xung Kích • Tầm 95px</div>
+                        </div>
+                        <span id="sb-unit-rarity-badge" class="rarity-badge rarity-common">COMMON (1.0x)</span>
+                    </div>
+
+                    <!-- Thanh chọn nhanh bậc Rarity để test sức mạnh -->
+                    <div id="sb-rarity-selector" class="sandbox-rarity-strip"></div>
+
+                    <!-- Sân khấu Canvas Phòng Tập Bắn Thử với Bia Tập Bắn HP vô hạn -->
+                    <div class="sandbox-canvas-frame">
+                        <canvas id="sandboxCanvas" width="340" height="205" class="pixel-art"></canvas>
+                    </div>
+
+                    <!-- Bảng đo thông số thực tế & DPS -->
+                    <div class="grid grid-cols-3 gap-1.5 mt-2 bg-slate-900 border-2 border-slate-700 rounded-xl p-2 text-white">
+                        <div>
+                            <div class="text-[9px] text-slate-400 font-bold">DMG / PHÁT</div>
+                            <div id="sb-stat-dmg" class="vt323-num text-lg text-amber-300">22</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] text-slate-400 font-bold">DPS TRUNG BÌNH</div>
+                            <div id="sb-stat-dps" class="vt323-num text-lg text-emerald-400">18.7</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] text-slate-400 font-bold">MÁU (HP) / TẦM</div>
+                            <div id="sb-stat-hp-range" class="vt323-num text-lg text-sky-300">150 / 95</div>
+                        </div>
+                    </div>
+
+                    <button type="button" id="btn-reset-sandbox-dps" class="btn-3d btn-3d-slate w-full py-1.5 mt-2 text-[11px]">
+                        🔄 ĐẶT LẠI BỘ ĐO DPS SANDBOX
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. POPUP HOÀN LẠI CẤP ĐỘ -->
         <div id="level-refund-modal" class="bright-modal-overlay">
             <div class="bright-modal-box">
                 <div class="bright-modal-header refund-header-grad">
@@ -1072,12 +1623,8 @@
                         </div>
 
                         <div class="refund-input-controls mt-3">
-                            <button id="btn-refund-lv-min" class="btn-3d btn-3d-slate px-2.5 py-1.5 text-[10px]" title="Về cấp 1">
-                                LV.1
-                            </button>
-                            <button id="btn-refund-lv-minus" class="btn-3d btn-3d-slate px-3 py-1.5 text-xs">
-                                -
-                            </button>
+                            <button id="btn-refund-lv-min" class="btn-3d btn-3d-slate px-2.5 py-1.5 text-[10px]">LV.1</button>
+                            <button id="btn-refund-lv-minus" class="btn-3d btn-3d-slate px-3 py-1.5 text-xs">-</button>
                             <input
                                 id="refund-target-level-input"
                                 type="number"
@@ -1086,12 +1633,8 @@
                                 value="1"
                                 class="refund-level-input vt323-num"
                             />
-                            <button id="btn-refund-lv-plus" class="btn-3d btn-3d-slate px-3 py-1.5 text-xs">
-                                +
-                            </button>
-                            <button id="btn-refund-lv-max" class="btn-3d btn-3d-slate px-2.5 py-1.5 text-[10px]" title="Giảm 1 cấp">
-                                -1 CẤP
-                            </button>
+                            <button id="btn-refund-lv-plus" class="btn-3d btn-3d-slate px-3 py-1.5 text-xs">+</button>
+                            <button id="btn-refund-lv-max" class="btn-3d btn-3d-slate px-2.5 py-1.5 text-[10px]">-1 CẤP</button>
                         </div>
 
                         <div class="refund-total-coins-box mt-3">
@@ -1116,11 +1659,11 @@
             </div>
         </div>
 
-        <!-- 10. POPUP CÂY KỸ NĂNG BỊ ĐỘNG CHỈ HUY -->
+        <!-- 10. POPUP CÂY KỸ NĂNG BỊ ĐỘNG CHỈ HUY (6 NHÁNH - MAX LV.10) -->
         <div id="talents-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header talents-header-grad">
-                    <h3 class="bright-modal-title">🎖️ CÂY BỊ ĐỘNG CHỈ HUY</h3>
+                    <h3 class="bright-modal-title">🎖️ CÂY BỊ ĐỘNG CHỈ HUY (6 NHÁNH)</h3>
                     <button id="btn-close-talents" data-close="talents-modal" class="bright-close-btn">✕</button>
                 </div>
                 <div class="bright-modal-body settings-modal-scroll">
@@ -1132,7 +1675,7 @@
                         <span id="modal-medals-count" class="currency-val medal-currency-val text-amber-300">0</span>
                     </div>
                     <p class="text-[10.5px] font-bold text-slate-600 text-center mb-2.5">
-                        Vượt qua mỗi màn ở độ khó <b class="text-rose-600">KHÓ (Difficult)</b> hoặc thắng <b class="text-amber-600">Raid Boss</b> để nhận <b>🎖️ Huy Chương</b> nâng cấp công nghệ vĩnh viễn!
+                        Nâng cấp <b>6 Nhánh Bị Động (Tối đa Lv.10)</b> bằng <b>🎖️ Huy Chương</b> (Khởi điểm 5 🎖️, tăng +4 🎖️/cấp)!
                     </p>
 
                     <div id="talents-list-container" class="talents-scroll-list"></div>
@@ -1149,7 +1692,7 @@
             </div>
         </div>
 
-        <!-- 11. POPUP VÒNG QUAY MAY MẮN (LUCKY SPIN WHEEL - SKIP SPIN 0.01S & LỊCH SỬ JACKPOT) -->
+        <!-- 11. POPUP VÒNG QUAY MAY MẮN -->
         <div id="lucky-wheel-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header wheel-header-grad">
@@ -1157,7 +1700,6 @@
                     <button id="btn-close-lucky-wheel" class="bright-close-btn">✕</button>
                 </div>
                 <div class="bright-modal-body settings-modal-scroll text-center">
-                    <!-- Thanh Điểm May Mắn (Pity Bar 0/100) -->
                     <div class="lucky-pity-box">
                         <div class="flex items-center justify-between text-[11px] font-black text-slate-800 mb-1">
                             <span>🍀 ĐIỂM MAY MẮN (PITY JACKPOT):</span>
@@ -1167,17 +1709,15 @@
                             <div id="lucky-pity-bar-fill" class="lucky-pity-fill" style="width: 0%"></div>
                         </div>
                         <p class="text-[9.5px] font-bold text-slate-600 mt-1">
-                            Mỗi lượt quay <b>+1 điểm</b>. Đạt <b>100/100 điểm</b> chắc chắn nổ ô <b>💠 JACKPOT</b> nhận tướng bậc <b class="text-sky-600">MASTER</b> hoặc <b class="text-purple-700">DEMON</b>!
+                            Mỗi lượt quay <b>+1 điểm</b>. Đạt <b>100/100 điểm</b> chắc chắn nổ ô <b>💠 JACKPOT</b> nhận tướng <b class="text-sky-600">MASTER</b> hoặc <b class="text-purple-700">DEMON</b>!
                         </p>
                     </div>
 
-                    <!-- Checkbox Bỏ qua hoạt ảnh (Skip Spin 0.01s) -->
                     <label class="wheel-skip-toggle-bar">
                         <input type="checkbox" id="chk-skip-wheel-anim" class="w-4 h-4 accent-amber-500 cursor-pointer" />
                         <span>⚡ Bỏ qua hoạt ảnh (Skip Spin - Nhận ngay 0.01s)</span>
                     </label>
 
-                    <!-- Khung Canvas Vòng Quay 8 Ô -->
                     <div class="lucky-wheel-stage">
                         <div class="lucky-wheel-pointer">▼</div>
                         <canvas id="luckyWheelCanvas" width="250" height="250" class="lucky-wheel-canvas"></canvas>
@@ -1186,12 +1726,10 @@
                         </button>
                     </div>
 
-                    <!-- Kết quả vừa quay -->
                     <div id="lucky-wheel-result-banner" class="lucky-wheel-result-strip">
                         Sẵn sàng quay thưởng! Chúc Chỉ Huy nổ hũ <b>MASTER / DEMON</b>!
                     </div>
 
-                    <!-- Danh sách 8 ô thưởng & tỷ lệ chuẩn -->
                     <div class="lucky-wheel-odds-grid">
                         <span>Ô 1: +25,000 Vàng 🪙 (30%)</span>
                         <span>Ô 2: +500 Gems 💎 (25%)</span>
@@ -1203,7 +1741,6 @@
                         <span class="text-fuchsia-700 font-black">Ô 8: MASTER / DEMON 💠 (0.5%)</span>
                     </div>
 
-                    <!-- Bảng Lịch Sử Nổ Jackpot Master / Demon gần nhất -->
                     <div class="wheel-history-box">
                         <div class="text-[10px] font-black text-amber-300 mb-1 flex items-center justify-between">
                             <span>💠 LỊCH SỬ NỔ HŨ JACKPOT (MASTER / DEMON):</span>
@@ -1214,7 +1751,6 @@
                         </div>
                     </div>
 
-                    <!-- Nút Quay x1, Quay x10 & Quay Tùy Chỉnh -->
                     <div class="flex gap-2 mt-2.5">
                         <button type="button" id="btn-spin-wheel-1" class="btn-3d btn-3d-yellow flex-1 py-2 text-xs">
                             <div>🎡 QUAY X1</div>
@@ -1246,7 +1782,7 @@
             </div>
         </div>
 
-        <!-- 12. POPUP TRUNG TÂM 3 MINI-GAME GIẢI TRÍ CÀY TÀI NGUYÊN (#minigame-arcade-modal) -->
+        <!-- 12. POPUP TRUNG TÂM 3 MINI-GAME GIẢI TRÍ -->
         <div id="minigame-arcade-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header arcade-header-grad">
@@ -1254,7 +1790,6 @@
                     <button id="btn-close-minigames" class="bright-close-btn">✕</button>
                 </div>
                 <div class="bright-modal-body settings-modal-scroll">
-                    <!-- Thanh chọn 3 Mini-Game -->
                     <div class="arcade-tabs-bar">
                         <button type="button" id="btn-mg-tab-mines" data-mg-tab="mines" class="arcade-tab-btn active">
                             💣 Đập Mìn 5x5
@@ -1267,10 +1802,10 @@
                         </button>
                     </div>
 
-                    <!-- MINI-GAME 1: ĐẬP MÌN CÔNG BINH (TACTICAL RADAR 5x5) -->
+                    <!-- MINI-GAME 1: ĐẬP MÌN CÔNG BINH -->
                     <div id="mg-pane-mines" class="arcade-game-pane active">
                         <div class="arcade-info-banner">
-                            <div>Lưới 25 ô gồm <b>20 Kho báu (Gems/Vàng/Huy chương)</b> & <b>5 Mìn chống tăng</b>. Mở trúng kho báu sẽ tăng hệ số nhân thưởng (<b>x1.2, x1.5, x2.0...</b>); rút thưởng bất cứ lúc nào trước khi đạp trúng mìn!</div>
+                            <div>Lưới 25 ô gồm <b>20 Kho báu</b> & <b>5 Mìn chống tăng</b>. Mở trúng kho báu sẽ tăng hệ số nhân thưởng; rút thưởng bất cứ lúc nào!</div>
                             <div class="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-300 text-xs font-black">
                                 <span>Hệ số: <b id="mg-mines-mult-badge" class="text-emerald-600 vt323-num text-base">x1.00</b></span>
                                 <span>Đã mở: <b id="mg-mines-safe-count" class="text-sky-600 vt323-num text-base">0/20</b></span>
@@ -1294,10 +1829,10 @@
                         </div>
                     </div>
 
-                    <!-- MINI-GAME 2: HỨNG TIẾP TẾ DÙ (AIRDROP CATCHER 30S) -->
+                    <!-- MINI-GAME 2: HỨNG TIẾP TẾ DÙ -->
                     <div id="mg-pane-catcher" class="arcade-game-pane">
                         <div class="arcade-info-banner">
-                            <div>Điều khiển xe <b>Humvee</b> trượt ngang hứng các thùng hàng <b>💎 Gems, 🪙 Vàng, 🎖️ Huy chương</b> rơi từ bầu trời và né các quả <b>💣 Bom Đỏ</b> trong 30 giây!</div>
+                            <div>Điều khiển xe <b>Humvee</b> trượt ngang hứng <b>💎 Gems, 🪙 Vàng, 🎖️ Huy chương</b> và né <b>💣 Bom Đỏ</b> trong 30 giây!</div>
                             <div class="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-300 text-xs font-black">
                                 <span>⏱️ Thời gian: <b id="mg-catcher-time" class="text-rose-600 vt323-num text-base">30.0s</b></span>
                                 <span>Chiến lợi phẩm: <b id="mg-catcher-score" class="text-emerald-600 vt323-num text-base">🪙 0 | 💎 0 | 🎖️ 0</b></span>
@@ -1317,10 +1852,10 @@
                         </div>
                     </div>
 
-                    <!-- MINI-GAME 3: ĐOÁN BÀI CHIẾN THUẬT (HIGH-LOW RARITY FLIP) -->
+                    <!-- MINI-GAME 3: ĐOÁN BÀI CHIẾN THUẬT -->
                     <div id="mg-pane-highlow" class="arcade-game-pane">
                         <div class="arcade-info-banner">
-                            <div>Hệ thống lật 1 thẻ bài có độ hiếm ngẫu nhiên (<b>Rank từ 0 đến 40</b>: Common ➔ Demon +10). Dự đoán thẻ tiếp theo có bậc <b>CAO HƠN (HIGHER)</b> hay <b>THẤP HƠN (LOWER)</b> để nhân đôi phần thưởng liên tiếp!</div>
+                            <div>Dự đoán thẻ tiếp theo có bậc <b>CAO HƠN (HIGHER)</b> hay <b>THẤP HƠN (LOWER)</b> để nhân đôi phần thưởng liên tiếp!</div>
                             <div class="flex items-center justify-between mt-1.5 pt-1 border-t border-slate-300 text-xs font-black">
                                 <span>🔥 Chuỗi thắng: <b id="mg-hl-streak" class="text-purple-700 vt323-num text-base">0</b></span>
                                 <span>Quỹ thưởng: <b id="mg-hl-pot" class="text-amber-600 vt323-num text-base">🪙 0 | 💎 0</b></span>
@@ -1371,7 +1906,7 @@
             </div>
         </div>
 
-        <!-- 13. POPUP NÂNG CẤP & CHUYỂN ĐỔI THÁP PHÒNG THỦ CĂN CỨ XANH (#base-turret-modal) -->
+        <!-- 13. POPUP NÂNG CẤP & CHUYỂN ĐỔI THÁP PHÒNG THỦ CĂN CỨ XANH -->
         <div id="base-turret-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header">
@@ -1384,7 +1919,7 @@
                             <span>🗼 Cấp độ Ụ Pháo Căn Cứ:</span>
                             <b id="turret-modal-level-val" class="text-amber-300 vt323-num text-lg">LV.1</b>
                         </div>
-                        <span id="turret-modal-stats-badge" class="talent-medal-count-badge">DMG: 28 • Tầm: 175</span>
+                        <span id="turret-modal-stats-badge" class="talent-medal-count-badge">DMG: 28 • Tầm: 185</span>
                     </div>
                     <p class="text-[10.5px] font-bold text-slate-600 text-center mb-2.5">
                         Chọn 1 trong 3 loại Ụ Pháo tự động bảo vệ Căn Cứ Xanh và nâng cấp sức mạnh vĩnh viễn!
@@ -1402,11 +1937,11 @@
             </div>
         </div>
 
-        <!-- 14. POPUP SỔ TAY BÁCH KHOA TOÀN THƯ 17 BINH CHỦNG & THƯỞNG MỐC SƯU TẦM (#codex-modal) -->
+        <!-- 14. POPUP SỔ TAY INDEX 17 BINH CHỦNG & THƯỞNG MỐC SƯU TẦM -->
         <div id="codex-modal" class="bright-modal-overlay">
             <div class="bright-modal-box modal-wide">
                 <div class="bright-modal-header talents-header-grad">
-                    <h3 class="bright-modal-title">📖 BÁCH KHOA 17 BINH CHỦNG & THƯỞNG MỐC</h3>
+                    <h3 class="bright-modal-title">📖 INDEX 17 BINH CHỦNG & THƯỞNG MỐC</h3>
                     <button id="btn-close-codex" class="bright-close-btn">✕</button>
                 </div>
                 <div class="bright-modal-body settings-modal-scroll">
@@ -1429,7 +1964,7 @@
         <!-- GIAO DIỆN CHIẾN ĐẤU TRONG TRẬN (IN-GAME BATTLE UI)             -->
         <!-- ============================================================== -->
 
-        <!-- BANNER CẢNH BÁO BOSS KHỔNG LỒ XUẤT HIỆN -->
+        <!-- BANNER CẢNH BÁO BOSS KHỔNG LỒ -->
         <div id="boss-warning-banner" class="boss-alert-banner hidden">
             <div class="boss-alert-inner">
                 <span class="boss-skull-icon">☠️</span>
@@ -1481,7 +2016,7 @@
             </div>
         </div>
 
-        <!-- GIAO DIỆN ĐẶT TRẬN TỰ ĐỘNG (AUTO-BATTLER: CHỌN Ô 1-4 & CHẠM THU HỒI QUÂN) -->
+        <!-- GIAO DIỆN ĐẶT TRẬN TỰ ĐỘNG (AUTO-BATTLER) -->
         <div id="autobattler-setup-bar" class="autobattler-prep-overlay">
             <div class="autobattler-deploy-zone">
                 <span id="autobattler-zone-hint" class="autobattler-zone-tag">
@@ -1504,17 +2039,22 @@
             </div>
         </div>
 
-        <!-- POPUP ROGUELIKE CHỌN 1 TRONG 3 THẺ BÀI TRONG TRẬN -->
+        <!-- POPUP ROLL CHỌN THẺ BÀI KHI LÊN CẤP TRONG TRẬN (KÈM NÚT 🎲 REROLL 1/1) -->
         <div id="draft-modal" class="draft-overlay">
             <div class="draft-board">
-                <div class="draft-badge" id="draft-badge-text">KHỞI ĐẦU TRẬN ĐẤU</div>
-                <h2 id="draft-title" class="draft-header-title">CHỌN QUÂN TIÊN PHONG</h2>
-                <p id="draft-subtitle" class="draft-header-sub">Chọn 1 trong 3 đơn vị dưới đây để đưa vào thanh điều khiển chiến đấu</p>
+                <div class="flex items-center justify-between px-1 mb-1">
+                    <div class="draft-badge mb-0" id="draft-badge-text">LÊN CẤP CHIẾN TRƯỜNG</div>
+                    <button type="button" id="btn-draft-reroll" class="btn-3d btn-3d-cyan px-2.5 py-1 text-[10px]">
+                        🎲 REROLL (1/1)
+                    </button>
+                </div>
+                <h2 id="draft-title" class="draft-header-title">CHỌN CHI VIỆN QUÂN ĐỘI</h2>
+                <p id="draft-subtitle" class="draft-header-sub">Chọn 1 đơn vị để đưa vào Deck hoặc nâng cấp sao cho quân hiện có</p>
                 <div id="draft-cards-container" class="draft-cards-grid"></div>
             </div>
         </div>
 
-        <!-- THANH HUD TRÊN CÙNG KHI ĐÁNH TRẬN (TÍCH HỢP HUY HIỆU SYNERGY, ⚡x1/x2/x4 & 🤖 AUTO-BATTLE) -->
+        <!-- THANH HUD TRÊN CÙNG KHI ĐÁNH TRẬN -->
         <div class="hud-top">
             <div class="flex flex-col gap-1">
                 <div class="flex items-center gap-1.5 bg-slate-900/90 border border-slate-600 px-2 py-0.5 rounded-full text-xs text-white shadow">
@@ -1525,12 +2065,13 @@
                     <img class="gas-inline-sprite w-3.5 h-3.5 pixel-art ml-0.5" alt="Gas" />
                     <span id="speed-indicator" class="gas-rate-val text-sm text-sky-300 leading-none">3.0s</span>
                 </div>
-                <!-- Thanh Kinh Nghiệm & Bộ đếm Wave -->
+
+                <!-- Thanh Kinh Nghiệm Cấp Độ Trận (BATTLE LV) & Bộ đếm Wave -->
                 <div class="flex items-center gap-1.5">
                     <div class="exp-bar-wrapper">
                         <div class="flex justify-between items-center text-[10px] font-extrabold px-1">
-                            <span id="battle-lv-label" class="text-amber-300 vt323-num text-sm leading-none">WAVE 1</span>
-                            <span id="battle-exp-label" class="text-sky-200 vt323-num text-sm leading-none">TIẾN ĐỘ</span>
+                            <span id="battle-lv-label" class="text-amber-300 vt323-num text-sm leading-none">BATTLE LV.1</span>
+                            <span id="battle-exp-label" class="text-sky-200 vt323-num text-sm leading-none">0/40 EXP</span>
                         </div>
                         <div class="exp-bar-track">
                             <div id="battle-exp-fill" class="exp-bar-fill" style="width: 0%"></div>
@@ -1541,7 +2082,30 @@
                         WAVE <span id="hud-wave-counter" class="wave-counter-val">1/10</span>
                     </div>
                 </div>
-                <!-- Dải Huy Hiệu Cộng Hưởng Đội Hình (In-Battle Synergy Badges) -->
+
+                <!-- Thanh Máu HP 2 Phe (Hiển thị rõ con số chính xác trong Phá Căn Cứ & Challenge) -->
+                <div id="base-hp-hud-strip" class="base-hp-hud-strip">
+                    <div class="base-hp-box blue-base-box">
+                        <div class="base-hp-label-row">
+                            <span class="text-sky-300">🏰 XANH</span>
+                            <span id="hud-blue-hp-text" class="vt323-num text-xs text-white">250/250</span>
+                        </div>
+                        <div class="base-hp-track">
+                            <div id="hud-blue-hp-bar" class="base-hp-fill" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    <div id="hud-red-base-box" class="base-hp-box red-base-box">
+                        <div class="base-hp-label-row">
+                            <span class="text-rose-300">🏯 ĐỎ</span>
+                            <span id="hud-red-hp-text" class="vt323-num text-xs text-white">255/255</span>
+                        </div>
+                        <div class="base-hp-track">
+                            <div id="hud-red-hp-bar" class="base-hp-fill" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dải Huy Hiệu Cộng Hưởng Đội Hình -->
                 <div id="hud-synergy-strip" class="hud-synergy-strip"></div>
             </div>
 
@@ -1560,12 +2124,11 @@
                         ⏸
                     </button>
                 </div>
-                <!-- Cụm tiện ích Tốc Độ Trận Đấu (#speed-mult-btn) & Tự Động Chiến Đấu (#auto-play-btn) -->
                 <div class="flex items-center gap-1">
                     <button id="speed-mult-btn" title="Chuyển đổi tốc độ trận đấu: ⚡x1 ➔ ⚡x2 ➔ ⚡x4" class="bg-amber-900/90 hover:bg-amber-800 text-amber-200 border border-amber-400 rounded-lg px-2 py-0.5 text-[10px] font-extrabold transition">
                         ⚡x1
                     </button>
-                    <button id="auto-play-btn" title="Tự động nâng máy phát xăng, tự gọi quân trong Deck và tự tung kỹ năng Q/W/E/R" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-500 rounded-lg px-2 py-0.5 text-[10px] font-extrabold transition">
+                    <button id="auto-play-btn" title="Tự động chiến đấu" class="bg-slate-900/90 hover:bg-slate-800 text-slate-300 border border-slate-500 rounded-lg px-2 py-0.5 text-[10px] font-extrabold transition">
                         🤖 AUTO: TẮT
                     </button>
                 </div>
@@ -1580,9 +2143,8 @@
             <button id="btn-cancel-tactic-aim" class="aim-cancel-btn">HỦY</button>
         </div>
 
-        <!-- THANH 4 KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG CỦA CHỈ HUY (ĐỒNG BỘ 16s / 18s / 22s / 24s) -->
+        <!-- THANH 4 KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG CỦA CHỈ HUY (Q/W/E/R) -->
         <div id="commander-tactics-bar" class="commander-tactics-dock">
-            <!-- Q: Chi Viện Dù (Airdrop - 16s) -->
             <button id="tactic-btn-airdrop" data-tactic="airdrop" data-skill="airdrop" class="tactic-skill-btn" title="[Q] Chi viện Dù (16s)">
                 <span class="tactic-key-pill">Q</span>
                 <div class="tactic-icon-wrap">🪂</div>
@@ -1595,7 +2157,6 @@
                 </div>
             </button>
 
-            <!-- W: Mìn Chống Tăng (Landmines - 18s) -->
             <button id="tactic-btn-mines" data-tactic="landmines" data-skill="minefield" class="tactic-skill-btn" title="[W] Mìn Chống Tăng (18s)">
                 <span class="tactic-key-pill">W</span>
                 <div class="tactic-icon-wrap">💣</div>
@@ -1608,7 +2169,6 @@
                 </div>
             </button>
 
-            <!-- E: Xung Điện EMP (EMP Blast - 22s) -->
             <button id="tactic-btn-emp" data-tactic="emp" data-skill="emp_blast" class="tactic-skill-btn" title="[E] Xung Điện EMP (22s)">
                 <span class="tactic-key-pill">E</span>
                 <div class="tactic-icon-wrap">⚡</div>
@@ -1621,7 +2181,6 @@
                 </div>
             </button>
 
-            <!-- R: Tăng Tốc Cơ Động (Blitzkrieg - 24s) -->
             <button id="tactic-btn-blitz" data-tactic="blitzkrieg" data-skill="blitzkrieg" class="tactic-skill-btn" title="[R] Blitzkrieg (24s)">
                 <span class="tactic-key-pill">R</span>
                 <div class="tactic-icon-wrap">🚀</div>
@@ -1637,7 +2196,7 @@
 
         <!-- THANH ĐIỀU KHIỂN DƯỚI ĐÁY TRONG TRẬN -->
         <div class="bottom-deck">
-            <div id="gas-generator-btn" class="gas-card" title="Chạm để nạp nhanh Xăng">
+            <div id="gas-generator-btn" class="gas-card" title="Chạm để nạp nhanh Xăng (Tắt trong Challenge)">
                 <div class="flex items-center justify-between w-full px-0.5">
                     <span class="text-[8px] font-bold uppercase tracking-wider text-sky-300">XĂNG</span>
                     <span id="gas-rate-label" class="text-[9.5px] text-emerald-400 font-bold gas-rate-val">+1/3.0s</span>
@@ -1655,7 +2214,7 @@
                     <div id="L4" class="gas-seg"></div>
                     <div id="L5" class="gas-seg"></div>
                 </div>
-                <div class="text-[7.5px] text-slate-400 leading-none mt-0.5">Chạm nạp</div>
+                <div id="gas-pump-hint" class="text-[7.5px] text-slate-400 leading-none mt-0.5">Chạm nạp</div>
             </div>
 
             <div id="btnUpgradeGas" class="unit-btn upgrade-btn">
@@ -1678,11 +2237,11 @@
                 </div>
             </div>
 
-            <!-- 5 Ô Nhân Vật Động (4 Ô Quân Tự Chọn trong metaState.selectedDeck + 1 Ô Không Kích) -->
+            <!-- 5 Ô (Battle) hoặc 6 Ô (Challenge) Nhân Vật Động -->
             <div id="unitDeckContainer" class="battle-deck-slots"></div>
         </div>
 
-        <!-- PANEL CHIẾN THẮNG (ĐỒNG BỘ CHUẨN #win-spawned: Wave đạt được & #win-kills: Độ khó & Số địch diệt) -->
+        <!-- PANEL CHIẾN THẮNG -->
         <div id="win-panel" class="result-modal win-bg">
             <div class="w-20 h-20 rounded-full bg-blue-500/30 border-4 border-sky-300 flex items-center justify-center mb-3 shadow-lg">
                 <span class="text-4xl">🏆</span>
@@ -1691,8 +2250,8 @@
             <p id="win-subtitle" class="text-sky-200 text-sm font-semibold mb-2">Đã hoàn thành nhiệm vụ chiến dịch!</p>
 
             <div class="bg-amber-400/20 border-2 border-amber-300 rounded-full px-4 py-1 mb-4 flex items-center gap-1.5 shadow">
-                <span class="text-xs font-bold text-amber-200">THƯỞNG CHIẾN THẮNG:</span>
-                <span id="win-coins-reward" class="text-xl font-black text-amber-300 vt323-num">+200 🪙</span>
+                <span class="text-xs font-bold text-amber-200">THƯỞNG:</span>
+                <span id="win-coins-reward" class="text-lg font-black text-amber-300 vt323-num">+200 🪙</span>
             </div>
 
             <div class="bg-slate-900/80 border border-sky-400/40 rounded-xl p-4 w-full max-w-xs mb-6 grid grid-cols-2 gap-3 text-left">
@@ -1715,19 +2274,19 @@
             </div>
 
             <div class="flex gap-2.5">
-                <button onclick="openLobbyScreen('battle')" class="btn-3d bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
+                <button id="btn-win-lobby" onclick="openLobbyScreen('battle')" class="btn-3d bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
                     🏠 VỀ SẢNH
                 </button>
-                <button onclick="restartGame()" class="btn-3d bg-sky-700 hover:bg-sky-600 text-white font-bold text-xs px-4 py-3 rounded-xl border border-sky-400 transition">
+                <button id="btn-win-restart" onclick="restartGame()" class="btn-3d bg-sky-700 hover:bg-sky-600 text-white font-bold text-xs px-4 py-3 rounded-xl border border-sky-400 transition">
                     CHƠI LẠI
                 </button>
-                <button onclick="nextOrRestartLevel()" class="btn-3d bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-xl shadow-lg border-2 border-amber-200 transition">
+                <button id="btn-win-next" onclick="nextOrRestartLevel()" class="btn-3d bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs px-5 py-3 rounded-xl shadow-lg border-2 border-amber-200 transition">
                     TIẾP TỤC ➔
                 </button>
             </div>
         </div>
 
-        <!-- PANEL THẤT BẠI (ĐỒNG BỘ CHUẨN #lose-spawned: Số quân triển khai & #lose-kills: Tên Map & Địch hạ gục) -->
+        <!-- PANEL THẤT BẠI -->
         <div id="lose-panel" class="result-modal lose-bg">
             <div class="w-20 h-20 rounded-full bg-red-500/30 border-4 border-rose-300 flex items-center justify-center mb-3 shadow-lg">
                 <span class="text-4xl">💥</span>
@@ -1755,10 +2314,10 @@
             </div>
 
             <div class="flex gap-2.5">
-                <button onclick="openLobbyScreen('battle')" class="btn-3d bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
+                <button id="btn-lose-lobby" onclick="openLobbyScreen('battle')" class="btn-3d bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-3 rounded-xl border border-slate-500 transition">
                     🏠 VỀ SẢNH
                 </button>
-                <button onclick="restartGame()" class="btn-3d bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs px-6 py-3 rounded-xl shadow-lg border-2 border-amber-200 transition">
+                <button id="btn-lose-restart" onclick="restartGame()" class="btn-3d bg-gradient-to-b from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-extrabold text-xs px-6 py-3 rounded-xl shadow-lg border-2 border-amber-200 transition">
                     ⚔️ THỬ LẠI NGAY
                 </button>
             </div>
@@ -1766,7 +2325,7 @@
 
     </div>
 
-    <!-- NẠP MODULE ENGINE CHÍNH (TỰ ĐỘNG FALLBACK NẾU main.js ĐẶT CÙNG THƯ MỤC VỚI index.html) -->
+    <!-- NẠP MODULE ENGINE CHÍNH -->
     <script type="module">
         import('./js/main.js').catch(() => import('./main.js'));
     </script>

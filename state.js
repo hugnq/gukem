@@ -1,7 +1,7 @@
 /* ============================================================================
    TINY BATTLE - META-GAME STATE & PERSISTENCE (js/state.js)
-   Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100%)
-   Hỗ trợ: 45 Map • 17 Binh Chủng • Ụ Pháo Căn Cứ • Sổ Tay Codex • Lịch Sử Jackpot
+   Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100% với save cũ)
+   Hỗ trợ: 45 Map • 17 Binh Chủng • Ngọc Trai Trắng • Kho Chip • Challenge • Skill Tree
    ============================================================================ */
 
 import {
@@ -12,8 +12,14 @@ import {
     LEVELS,
     UNIT_CATALOG,
     UNIT_BY_ID,
+    UNIT_CHIPS,
+    CHIP_SOCKET_2_UNLOCK_GEMS,
+    CHIP_BUY_COST_COINS,
+    CHIP_BUY_COST_GEMS,
     BASE_TURRET_CONFIG,
-    CODEX_MILESTONES
+    CODEX_MILESTONES,
+    ANCIENT_SKILL_TREE,
+    getSkillTreeNodeCost
 } from './config.js';
 import { getUnitUpgradeCost, calcTotalRefundCoinsFast } from './math.js';
 
@@ -26,11 +32,33 @@ export function normalizeUnitId(unitId) {
     return unitId;
 }
 
+export function createDefaultChipInventory() {
+    return {
+        napalm_rocket: 1,
+        tactical_radar: 1,
+        reactive_armor: 1,
+        overclock_core: 1
+    };
+}
+
+export function createDefaultAncientSkillTree() {
+    return {
+        vital_roots: 0,
+        supply_roots: 0,
+        iron_trunk: 0,
+        arcane_trunk: 0,
+        undead_slayer: 0,
+        elite_lineage: 0,
+        ancient_heart: 0
+    };
+}
+
 export let metaState = {
     playerName: '',
     coins: 350,
     gems: 400,
     medals: 5,
+    pearls: 0, // Tiền tệ mới: ⚪ Ngọc Trai Trắng
     isAdminMode: false,
     usedCodes: [],
     mapDifficultyProgress: {},
@@ -47,18 +75,32 @@ export let metaState = {
         upgrades: 0,
         claimed: {}
     },
+    // 6 Nhánh Cây Bị Động Chỉ Huy (Max Lv.10)
     metaTalents: {
         oil_refining: 0,
         high_grade_steel: 0,
-        optimal_logistics: 0
+        optimal_logistics: 0,
+        critical_firepower: 0,
+        battlefield_harvest: 0,
+        immortal_bastion: 0
     },
+    // Hệ thống Chip & Mở khóa Khe 2 (500 Gems / binh chủng)
+    chipInventory: createDefaultChipInventory(),
     unitSockets: {},
+    unitSocket2Unlocked: {},
     talents: {},
     equippedChips: {},
     selectedDeck: [PRIMARY_INFANTRY_ID, 'bazooka', 'humvee', 'tank', 'airstrike'],
     endlessBestWave: 0,
     autobattlerWins: 0,
     raidBossClears: 0,
+
+    // Tiến trình Chế độ CHALLENGE (Tower Defense 20 Wave Zombie - 45 Map)
+    challengeClearedMaps: {},
+    challengeBestWave: {},
+
+    // Cây Kỹ Năng Cổ Thụ (Dùng ⚪ Ngọc Trai Trắng)
+    ancientSkillTree: createDefaultAncientSkillTree(),
 
     // Vòng quay may mắn & Lịch sử nổ Jackpot
     wheelPity: 0,
@@ -72,7 +114,7 @@ export let metaState = {
         level: 1
     },
 
-    // Sổ tay Bách khoa (Codex) & Mốc độ hiếm cao nhất từng đạt
+    // Sổ tay INDEX (Codex) & Mốc độ hiếm cao nhất từng đạt
     highestRarityEverOwned: {},
     codexClaimed: {}
 };
@@ -232,10 +274,10 @@ export function createDefaultArmyLevels() {
 export function createDefaultUnitSockets() {
     const sockMap = {};
     UNIT_CATALOG.forEach(u => {
-        sockMap[u.id] = [u.defaultChips?.[0] || null, u.defaultChips?.[1] || null];
+        sockMap[u.id] = [null, null];
     });
-    sockMap['infantry'] = [...(sockMap[PRIMARY_INFANTRY_ID] || ['overclock_core', null])];
-    sockMap['rifleman'] = [...(sockMap[PRIMARY_INFANTRY_ID] || ['overclock_core', null])];
+    sockMap['infantry'] = [null, null];
+    sockMap['rifleman'] = [null, null];
     return sockMap;
 }
 
@@ -308,12 +350,20 @@ export function syncLegacyEngineBridges() {
     metaState.armyPermanentLevels.infantry = infLv;
     metaState.armyPermanentLevels.rifleman = infLv;
 
+    if (!metaState.unitSocket2Unlocked || typeof metaState.unitSocket2Unlocked !== 'object') {
+        metaState.unitSocket2Unlocked = {};
+    }
+
     UNIT_CATALOG.forEach(u => {
         if (!metaState.armyPermanentLevels[u.id] || metaState.armyPermanentLevels[u.id] < 1) {
             metaState.armyPermanentLevels[u.id] = 1;
         }
         if (!Array.isArray(metaState.unitSockets[u.id])) {
-            metaState.unitSockets[u.id] = [u.defaultChips?.[0] || null, u.defaultChips?.[1] || null];
+            metaState.unitSockets[u.id] = [null, null];
+        }
+        // Tương thích ngược: nếu save cũ đã gắn chip vào Khe 2 thì tự động mở khóa Khe 2
+        if (metaState.unitSockets[u.id][1]) {
+            metaState.unitSocket2Unlocked[u.id] = true;
         }
     });
 
@@ -321,9 +371,21 @@ export function syncLegacyEngineBridges() {
         metaState.unitSockets?.[PRIMARY_INFANTRY_ID] ||
         metaState.unitSockets?.infantry ||
         metaState.unitSockets?.rifleman ||
-        ['overclock_core', null];
+        [null, null];
     metaState.unitSockets.infantry = infSockets;
     metaState.unitSockets.rifleman = infSockets;
+
+    if (metaState.unitSocket2Unlocked[PRIMARY_INFANTRY_ID]) {
+        metaState.unitSocket2Unlocked.infantry = true;
+        metaState.unitSocket2Unlocked.rifleman = true;
+    }
+
+    if (!metaState.chipInventory || typeof metaState.chipInventory !== 'object') {
+        metaState.chipInventory = createDefaultChipInventory();
+    }
+    Object.keys(UNIT_CHIPS).forEach(cId => {
+        metaState.chipInventory[cId] = Math.max(0, Math.floor(Number(metaState.chipInventory[cId]) || 0));
+    });
 
     const eq = {};
     Object.keys(metaState.unitSockets || {}).forEach(uId => {
@@ -348,6 +410,21 @@ export function syncLegacyEngineBridges() {
         air_naval_cd: logiLv,
         gold_rush: logiLv
     };
+
+    if (!metaState.ancientSkillTree || typeof metaState.ancientSkillTree !== 'object') {
+        metaState.ancientSkillTree = createDefaultAncientSkillTree();
+    }
+    Object.keys(ANCIENT_SKILL_TREE).forEach(nodeId => {
+        const maxLv = ANCIENT_SKILL_TREE[nodeId].maxLevel;
+        metaState.ancientSkillTree[nodeId] = Math.max(0, Math.min(maxLv, Math.floor(Number(metaState.ancientSkillTree[nodeId]) || 0)));
+    });
+
+    if (!metaState.challengeClearedMaps || typeof metaState.challengeClearedMaps !== 'object') {
+        metaState.challengeClearedMaps = {};
+    }
+    if (!metaState.challengeBestWave || typeof metaState.challengeBestWave !== 'object') {
+        metaState.challengeBestWave = {};
+    }
 
     if (!metaState.baseTurret || typeof metaState.baseTurret !== 'object') {
         metaState.baseTurret = { type: 'gatling', level: 1 };
@@ -374,11 +451,36 @@ export function loadProgress() {
             metaState.coins = typeof parsed.coins === 'number' ? parsed.coins : 350;
             metaState.gems = typeof parsed.gems === 'number' ? parsed.gems : 400;
             metaState.medals = typeof parsed.medals === 'number' ? parsed.medals : 5;
+            metaState.pearls = typeof parsed.pearls === 'number' ? parsed.pearls : 0;
             metaState.isAdminMode = !!parsed.isAdminMode;
             metaState.usedCodes = Array.isArray(parsed.usedCodes) ? parsed.usedCodes : [];
             metaState.endlessBestWave = Number(parsed.endlessBestWave) || 0;
             metaState.autobattlerWins = Number(parsed.autobattlerWins) || 0;
             metaState.raidBossClears = Number(parsed.raidBossClears) || 0;
+
+            metaState.challengeClearedMaps =
+                parsed.challengeClearedMaps && typeof parsed.challengeClearedMaps === 'object'
+                    ? { ...parsed.challengeClearedMaps }
+                    : {};
+            metaState.challengeBestWave =
+                parsed.challengeBestWave && typeof parsed.challengeBestWave === 'object'
+                    ? { ...parsed.challengeBestWave }
+                    : {};
+
+            metaState.ancientSkillTree = {
+                ...createDefaultAncientSkillTree(),
+                ...(parsed.ancientSkillTree && typeof parsed.ancientSkillTree === 'object' ? parsed.ancientSkillTree : {})
+            };
+
+            metaState.chipInventory =
+                parsed.chipInventory && typeof parsed.chipInventory === 'object'
+                    ? { ...createDefaultChipInventory(), ...parsed.chipInventory }
+                    : createDefaultChipInventory();
+
+            metaState.unitSocket2Unlocked =
+                parsed.unitSocket2Unlocked && typeof parsed.unitSocket2Unlocked === 'object'
+                    ? { ...parsed.unitSocket2Unlocked }
+                    : {};
 
             metaState.wheelPity = Math.max(0, Math.min(100, Number(parsed.wheelPity) || 0));
             metaState.wheelSkipAnim = !!parsed.wheelSkipAnim;
@@ -457,6 +559,9 @@ export function loadProgress() {
                 oil_refining: 0,
                 high_grade_steel: 0,
                 optimal_logistics: 0,
+                critical_firepower: 0,
+                battlefield_harvest: 0,
+                immortal_bastion: 0,
                 ...(parsed.metaTalents || {})
             };
 
@@ -471,6 +576,7 @@ export function loadProgress() {
             metaState.coins = 350;
             metaState.gems = 400;
             metaState.medals = 5;
+            metaState.pearls = 0;
             metaState.isAdminMode = false;
             metaState.usedCodes = [];
             metaState.mapDifficultyProgress = defaultMapProg;
@@ -478,6 +584,11 @@ export function loadProgress() {
             syncRepresentativeInventoryFromStacks();
             metaState.armyPermanentLevels = defaultLevels;
             metaState.unitSockets = defaultSockets;
+            metaState.unitSocket2Unlocked = {};
+            metaState.chipInventory = createDefaultChipInventory();
+            metaState.ancientSkillTree = createDefaultAncientSkillTree();
+            metaState.challengeClearedMaps = {};
+            metaState.challengeBestWave = {};
             metaState.selectedDeck = normalizeSelectedDeck(null);
             metaState.wheelPity = 0;
             metaState.wheelSkipAnim = false;
@@ -493,6 +604,11 @@ export function loadProgress() {
         syncRepresentativeInventoryFromStacks();
         metaState.armyPermanentLevels = defaultLevels;
         metaState.unitSockets = defaultSockets;
+        metaState.unitSocket2Unlocked = {};
+        metaState.chipInventory = createDefaultChipInventory();
+        metaState.ancientSkillTree = createDefaultAncientSkillTree();
+        metaState.challengeClearedMaps = {};
+        metaState.challengeBestWave = {};
         metaState.selectedDeck = normalizeSelectedDeck(null);
         metaState.baseTurret = { type: 'gatling', level: 1 };
         metaState.highestRarityEverOwned = {};
@@ -522,6 +638,119 @@ export function resetAllAccountData() {
     window.location.reload();
 }
 
+// ============================================================================
+// CÁC HÀM QUẢN LÝ CHIP MOD & MỞ KHE CHIP THỨ 2 (500 💎 GEMS)
+// ============================================================================
+export function isUnitSocket2Unlocked(rawUnitId) {
+    if (metaState.isAdminMode) return true;
+    const unitId = normalizeUnitId(rawUnitId);
+    return !!metaState.unitSocket2Unlocked?.[unitId];
+}
+
+export function unlockUnitSocket2(rawUnitId) {
+    const unitId = normalizeUnitId(rawUnitId);
+    if (!UNIT_BY_ID[unitId]) return false;
+    if (isUnitSocket2Unlocked(unitId)) return true;
+    if (!metaState.isAdminMode && metaState.gems < CHIP_SOCKET_2_UNLOCK_GEMS) {
+        return false;
+    }
+    if (!metaState.isAdminMode) {
+        metaState.gems -= CHIP_SOCKET_2_UNLOCK_GEMS;
+    }
+    if (!metaState.unitSocket2Unlocked) metaState.unitSocket2Unlocked = {};
+    metaState.unitSocket2Unlocked[unitId] = true;
+    if (unitId === PRIMARY_INFANTRY_ID) {
+        metaState.unitSocket2Unlocked.infantry = true;
+        metaState.unitSocket2Unlocked.rifleman = true;
+    }
+    saveProgress();
+    return true;
+}
+
+export function getChipOwnedCount(chipId) {
+    if (!UNIT_CHIPS[chipId]) return 0;
+    return Math.max(0, Math.floor(Number(metaState.chipInventory?.[chipId]) || 0));
+}
+
+export function buyChipItem(chipId, currencyType = 'coins') {
+    const chip = UNIT_CHIPS[chipId];
+    if (!chip) return false;
+    if (!metaState.chipInventory) metaState.chipInventory = createDefaultChipInventory();
+
+    if (!metaState.isAdminMode) {
+        if (currencyType === 'gems') {
+            const cost = chip.buyGems || CHIP_BUY_COST_GEMS;
+            if (metaState.gems < cost) return false;
+            metaState.gems -= cost;
+        } else {
+            const cost = chip.buyCoins || CHIP_BUY_COST_COINS;
+            if (metaState.coins < cost) return false;
+            metaState.coins -= cost;
+        }
+    }
+
+    metaState.chipInventory[chipId] = getChipOwnedCount(chipId) + 1;
+    saveProgress();
+    return true;
+}
+
+export function equipChipToUnitSlot(rawUnitId, slotIdx, chipId) {
+    const unitId = normalizeUnitId(rawUnitId);
+    if (!UNIT_BY_ID[unitId] || !UNIT_CHIPS[chipId]) return { ok: false, reason: 'invalid' };
+    if (slotIdx !== 0 && slotIdx !== 1) return { ok: false, reason: 'invalid_slot' };
+    if (slotIdx === 1 && !isUnitSocket2Unlocked(unitId)) {
+        return { ok: false, reason: 'locked_slot2' };
+    }
+
+    if (!Array.isArray(metaState.unitSockets[unitId])) {
+        metaState.unitSockets[unitId] = [null, null];
+    }
+
+    const prevChipId = metaState.unitSockets[unitId][slotIdx];
+    if (prevChipId === chipId) {
+        return { ok: true };
+    }
+
+    const owned = getChipOwnedCount(chipId);
+    if (!metaState.isAdminMode && owned <= 0) {
+        return { ok: false, reason: 'no_stock' };
+    }
+
+    // Hoàn trả 1 viên Chip cũ về kho nếu ô đang có gắn Chip khác
+    if (prevChipId && UNIT_CHIPS[prevChipId]) {
+        metaState.chipInventory[prevChipId] = getChipOwnedCount(prevChipId) + 1;
+    }
+
+    // Trừ 1 viên Chip mới từ kho
+    if (!metaState.isAdminMode) {
+        metaState.chipInventory[chipId] = Math.max(0, owned - 1);
+    }
+
+    metaState.unitSockets[unitId][slotIdx] = chipId;
+    saveProgress();
+    return { ok: true };
+}
+
+export function unequipChipFromUnitSlot(rawUnitId, slotIdx) {
+    const unitId = normalizeUnitId(rawUnitId);
+    if (!UNIT_BY_ID[unitId]) return false;
+    if (slotIdx !== 0 && slotIdx !== 1) return false;
+    if (!Array.isArray(metaState.unitSockets[unitId])) return false;
+
+    const prevChipId = metaState.unitSockets[unitId][slotIdx];
+    if (!prevChipId) return false;
+
+    if (UNIT_CHIPS[prevChipId]) {
+        metaState.chipInventory[prevChipId] = getChipOwnedCount(prevChipId) + 1;
+    }
+    metaState.unitSockets[unitId][slotIdx] = null;
+    saveProgress();
+    return true;
+}
+
+// ============================================================================
+// CÁC HÀM TIẾN TRÌNH BATTLE, CHALLENGE & CÂY KỸ NĂNG CỔ THỤ
+// ============================================================================
 export function isDifficultyCleared(mapLv, diffId) {
     const prog = metaState.mapDifficultyProgress[mapLv];
     if (!prog) return false;
@@ -565,6 +794,66 @@ export function isDifficultyUnlocked(mapLv, diffId) {
 export function getDefaultDifficultyForMap(mapLv) {
     if (!isDifficultyCleared(mapLv, 'easy')) return 'easy';
     return 'difficult';
+}
+
+export function isChallengeMapCleared(mapLv) {
+    return !!metaState.challengeClearedMaps?.[mapLv];
+}
+
+export function getMaxUnlockedChallengeMapLevel() {
+    if (metaState.isAdminMode) return LEVELS.length;
+    let maxLv = 1;
+    for (let i = 1; i < LEVELS.length; i++) {
+        if (isChallengeMapCleared(i)) {
+            maxLv = i + 1;
+        } else {
+            break;
+        }
+    }
+    return maxLv;
+}
+
+export function isChallengeMapUnlocked(mapLv) {
+    if (metaState.isAdminMode) return true;
+    return mapLv >= 1 && mapLv <= getMaxUnlockedChallengeMapLevel();
+}
+
+export function getSkillTreeNodeLevel(nodeId) {
+    return Math.max(0, Math.floor(Number(metaState.ancientSkillTree?.[nodeId]) || 0));
+}
+
+export function isSkillTreeNodeUnlocked(nodeId) {
+    const node = ANCIENT_SKILL_TREE[nodeId];
+    if (!node) return false;
+    if (!Array.isArray(node.requires) || node.requires.length === 0) return true;
+    return node.requires.every(reqId => getSkillTreeNodeLevel(reqId) >= 1);
+}
+
+export function canUpgradeSkillTreeNode(nodeId) {
+    const node = ANCIENT_SKILL_TREE[nodeId];
+    if (!node) return false;
+    const curLv = getSkillTreeNodeLevel(nodeId);
+    if (curLv >= node.maxLevel) return false;
+    if (!isSkillTreeNodeUnlocked(nodeId)) return false;
+    const cost = getSkillTreeNodeCost(nodeId, curLv);
+    return metaState.isAdminMode || (metaState.pearls || 0) >= cost;
+}
+
+export function upgradeSkillTreeNode(nodeId) {
+    if (!canUpgradeSkillTreeNode(nodeId)) return false;
+    const curLv = getSkillTreeNodeLevel(nodeId);
+    const cost = getSkillTreeNodeCost(nodeId, curLv);
+    if (!metaState.isAdminMode) {
+        metaState.pearls = Math.max(0, (metaState.pearls || 0) - cost);
+    }
+    if (!metaState.ancientSkillTree) metaState.ancientSkillTree = createDefaultAncientSkillTree();
+    metaState.ancientSkillTree[nodeId] = curLv + 1;
+    saveProgress();
+    return true;
+}
+
+export function hasAnyUpgradableSkillTreeNode() {
+    return Object.keys(ANCIENT_SKILL_TREE).some(nodeId => canUpgradeSkillTreeNode(nodeId));
 }
 
 export function getHighestRarityForUnit(unitId) {

@@ -1,6 +1,7 @@
 /* ============================================================================
    TINY BATTLE - NAVIGATION FLOW-FIELD & 45 MAPS RENDERER (js/map-nav.js)
-   Dijkstra Flow-Field Pathfinding, Procedural Sine Water/Lava/Acid & 45 Maps
+   Dijkstra Flow-Field Pathfinding, Drag-and-Drop Deploy Validation,
+   Procedural Sine Water/Lava/Acid & 45 Maps Renderer
    ============================================================================ */
 
 import {
@@ -17,13 +18,28 @@ import {
 } from './config.js';
 import { atlas } from './engine-core.js';
 
+function drawRoundRectSafe(ctx, x, y, w, h, r) {
+    const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(x, y, w, h, radius);
+    } else {
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+    }
+}
+
 // ============================================================================
 // 1. HỆ THỐNG LƯỚI ĐỊA HÌNH VÀ TÌM ĐƯỜNG FLOW-FIELD (NAVSYSTEM)
 // ============================================================================
 export class NavSystem {
     constructor() {
         this.grid = new Uint8Array(GRID_W * GRID_H);
-        this.waterMask = new Uint8Array(GRID_W * GRID_H); // Đánh dấu ô thực sự có nước dưới gầm cầu
+        this.waterMask = new Uint8Array(GRID_W * GRID_H);
         this.obstacles = [];
         this.bridges = [];
         this.waterBoxes = [];
@@ -71,6 +87,51 @@ export class NavSystem {
     isNavalWaterCell(gx, gy) {
         if (!this.inBounds(gx, gy)) return false;
         return this.isNavalWaterIndex(this.idx(gx, gy));
+    }
+
+    hasNavigableWater() {
+        for (let i = 0; i < this.grid.length; i++) {
+            if (this.isNavalWaterIndex(i)) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Kiểm tra tọa độ kéo-thả (Drag & Drop) đặt quân quanh nhà trong chế độ BATTLE
+     */
+    isValidBattleDeployPoint(spec, x, y) {
+        if (!spec) return false;
+        if (x < 26 || x > LOGICAL_WIDTH - 26) return false;
+        if (y < PLAYFIELD_HEIGHT * 0.48 || y > PLAYFIELD_HEIGHT - 95) return false;
+
+        if (spec.isAir) return true;
+
+        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
+        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
+
+        if (spec.isNaval) {
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (this.isNavalWaterCell(gx + dx, gy + dy)) return true;
+                }
+            }
+            return false;
+        }
+
+        const cell = this.grid[this.idx(gx, gy)];
+        if (cell === T_WATER || cell === T_OBSTACLE) return false;
+
+        const effR = Math.max(8, (spec.radius || 12) * 0.72);
+        for (const obs of this.obstacles) {
+            if (obs.type === 'circle') {
+                if (Math.hypot(x - obs.x, y - obs.y) < obs.r + effR) return false;
+            } else if (obs.type === 'box') {
+                const cx = Math.max(obs.x, Math.min(x, obs.x + obs.w));
+                const cy = Math.max(obs.y, Math.min(y, obs.y + obs.h));
+                if (Math.hypot(x - cx, y - cy) < effR) return false;
+            }
+        }
+        return true;
     }
 
     markRect(x, y, w, h, type, overrideAll = true) {
@@ -324,9 +385,7 @@ export class NavSystem {
                 let terrainCost = 1.0;
 
                 if (isNaval) {
-                    // Chỉ đi trên mặt nước hoặc dưới gầm cầu thực sự có nước (waterMask === 1)
                     if (!this.isNavalWaterIndex(nIdx)) continue;
-                    // Chống cắt góc chéo qua bờ đất hoặc mố cầu trên cạn (Sửa lỗi kẹt tàu ở Map 13)
                     if (dx !== 0 && dy !== 0) {
                         if (!this.isNavalWaterCell(cx + dx, cy) || !this.isNavalWaterCell(cx, cy + dy)) {
                             continue;
@@ -464,7 +523,6 @@ export class NavSystem {
                     for (let c = -6; c <= 6; c++) {
                         const nx = gx + c, ny = gy + r;
                         if (!this.inBounds(nx, ny)) continue;
-                        // Chấp nhận cả T_WATER và gầm cầu T_BRIDGE có waterMask === 1 để tàu đi qua gầm cầu mượt mà
                         if (this.isNavalWaterCell(nx, ny)) {
                             const px = (nx + 0.5) * NAV_CELL;
                             const py = (ny + 0.5) * NAV_CELL;
@@ -477,7 +535,6 @@ export class NavSystem {
                         }
                     }
                 }
-                // Đẩy mềm về luồng nước thay vì giật cục
                 u.x += (bestX - u.x) * 0.65;
                 u.y += (bestY - u.y) * 0.65;
             }
@@ -487,18 +544,20 @@ export class NavSystem {
         u.y = Math.max(30, Math.min(PLAYFIELD_HEIGHT - 24, u.y));
     }
 
-    findValidSpawnPoint(team, spec, prefX, prefY) {
+    findValidSpawnPoint(team, spec, prefX, prefY, exactPref = false) {
         if (spec.isAir) return { x: prefX, y: prefY };
 
         if (spec.isNaval) {
             let bestX = prefX, bestY = prefY, bestScore = Infinity;
-            const targetY = team === 'blue' ? PLAYFIELD_HEIGHT - 120 : 120;
+            const targetY = exactPref ? prefY : (team === 'blue' ? PLAYFIELD_HEIGHT - 120 : 120);
             for (let r = 4; r < GRID_H - 4; r++) {
                 for (let c = 2; c < GRID_W - 2; c++) {
                     if (this.isNavalWaterCell(c, r)) {
                         const px = (c + 0.5) * NAV_CELL;
                         const py = (r + 0.5) * NAV_CELL;
-                        const score = Math.abs(py - targetY) * 1.5 + Math.abs(px - prefX) * 0.35 + (Math.random() * 14);
+                        const score = exactPref
+                            ? Math.hypot(px - prefX, py - prefY)
+                            : Math.abs(py - targetY) * 1.5 + Math.abs(px - prefX) * 0.35 + (Math.random() * 14);
                         if (score < bestScore) {
                             bestScore = score;
                             bestX = px;
@@ -508,6 +567,10 @@ export class NavSystem {
                 }
             }
             return { x: bestX, y: bestY };
+        }
+
+        if (exactPref && this.isValidBattleDeployPoint(spec, prefX, prefY)) {
+            return { x: prefX, y: prefY };
         }
 
         const gx = Math.max(2, Math.min(GRID_W - 3, Math.floor(prefX / NAV_CELL)));
@@ -524,8 +587,8 @@ export class NavSystem {
                 if ((ct === T_ROAD || ct === T_OPEN || ct === T_BRIDGE) && distArr[i] < 1e8) {
                     const px = (nx + 0.5) * NAV_CELL;
                     const py = (ny + 0.5) * NAV_CELL;
-                    const roadBonus = ct === T_ROAD ? -12 : 0;
-                    const score = Math.hypot(px - prefX, (py - prefY) * 2.0) + roadBonus;
+                    const roadBonus = (!exactPref && ct === T_ROAD) ? -12 : 0;
+                    const score = Math.hypot(px - prefX, (py - prefY) * (exactPref ? 1.0 : 2.0)) + roadBonus;
                     if (score < minScore) {
                         minScore = score;
                         bestX = px;
@@ -551,12 +614,10 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
     const baseId = levelNum <= 30 ? (((levelNum - 1) % 15) + 1) : levelNum;
     const isCoastMap = [10, 13, 34, 40].includes(baseId);
 
-    // 2.1. Vẽ sóng nước biển/sông/hồ (Water Boxes)
     if (nav.waterBoxes && nav.waterBoxes.length > 0) {
         for (const wb of nav.waterBoxes) {
             targetCtx.save();
-            targetCtx.beginPath();
-            targetCtx.roundRect(wb.x, wb.y, wb.w, wb.h, wb.rounded || 0);
+            drawRoundRectSafe(targetCtx, wb.x, wb.y, wb.w, wb.h, wb.rounded || 0);
             targetCtx.clip();
 
             targetCtx.fillStyle = 'rgba(2, 132, 199, 0.45)';
@@ -602,12 +663,10 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
         }
     }
 
-    // 2.2. Vẽ hồ dung nham sôi sục (Lava / Abyssal Magma - Map 31, 32, 45)
     if (nav.lavaBoxes && nav.lavaBoxes.length > 0) {
         for (const lb of nav.lavaBoxes) {
             targetCtx.save();
-            targetCtx.beginPath();
-            targetCtx.roundRect(lb.x, lb.y, lb.w, lb.h, lb.rounded || 0);
+            drawRoundRectSafe(targetCtx, lb.x, lb.y, lb.w, lb.h, lb.rounded || 0);
             targetCtx.clip();
 
             const isAbyss = lb.isAbyss;
@@ -619,7 +678,6 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
                 }
             }
 
-            // Bong bóng dung nham phát sáng
             targetCtx.fillStyle = isAbyss ? '#fae8ff' : '#fef08a';
             for (let i = 0; i < 6; i++) {
                 const bx = lb.x + 14 + ((i * 53 + Math.floor(timeSec * 18)) % Math.max(16, lb.w - 28));
@@ -634,12 +692,10 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
         }
     }
 
-    // 2.3. Vẽ hồ Axit Độc Tố Neon (Map 37)
     if (nav.acidBoxes && nav.acidBoxes.length > 0) {
         for (const ab of nav.acidBoxes) {
             targetCtx.save();
-            targetCtx.beginPath();
-            targetCtx.roundRect(ab.x, ab.y, ab.w, ab.h, ab.rounded || 0);
+            drawRoundRectSafe(targetCtx, ab.x, ab.y, ab.w, ab.h, ab.rounded || 0);
             targetCtx.clip();
 
             targetCtx.fillStyle = 'rgba(134, 239, 172, 0.72)';
@@ -655,7 +711,6 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
         }
     }
 
-    // 2.4. Vẽ lại các cây cầu nằm đè lên trên mặt nước/dung nham/axit
     for (const br of nav.bridges) {
         targetCtx.save();
         const style = br.style || 'wood';
@@ -708,9 +763,7 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
         targetCtx.restore();
     }
 
-    // 2.5. Hiệu ứng môi trường động cho các Map đặc biệt (Bão cát Map 35, Lõi Hạt nhân Map 39, Cổng Ma Giới Map 45)
     if (levelNum === 35) {
-        // Bão cát Sahara bay ngang nhẹ
         targetCtx.save();
         targetCtx.fillStyle = 'rgba(251, 191, 36, 0.14)';
         targetCtx.fillRect(0, 0, LOGICAL_WIDTH, PLAYFIELD_HEIGHT);
@@ -722,7 +775,6 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
         }
         targetCtx.restore();
     } else if (levelNum === 39) {
-        // Lõi phản ứng hạt nhân phát xung Cyan ở trung tâm
         targetCtx.save();
         const pulse = 26 + Math.sin(timeSec * 6) * 5;
         targetCtx.strokeStyle = 'rgba(0, 242, 254, 0.65)';
@@ -732,7 +784,6 @@ export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
         targetCtx.stroke();
         targetCtx.restore();
     } else if (levelNum === 45) {
-        // 2 Cổng Ma Giới (Abyss Gates) hai bên sườn phát vòng xoáy tím
         [75, LOGICAL_WIDTH - 75].forEach((gx, idx) => {
             const gy = PLAYFIELD_HEIGHT / 2;
             targetCtx.save();
@@ -885,37 +936,31 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
         }
         targetCtx.save();
         targetCtx.fillStyle = '#0284c7';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x - 3, y - 3, w + 6, h + 6, rounded);
+        drawRoundRectSafe(targetCtx, x - 3, y - 3, w + 6, h + 6, rounded);
         targetCtx.fill();
 
         targetCtx.fillStyle = '#29b6f6';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x, y, w, h, rounded);
+        drawRoundRectSafe(targetCtx, x, y, w, h, rounded);
         targetCtx.fill();
         targetCtx.restore();
     };
 
     const drawLavaBox = (x, y, w, h, rounded = 12, isAbyss = false) => {
         if (registerNav) {
-            // Dung nham chặn cả Lục quân lẫn Thủy quân (chỉ qua cầu hoặc Không quân bay qua)
             nav.markRect(x, y, w, h, T_OBSTACLE, true);
             nav.lavaBoxes.push({ x, y, w, h, rounded, isAbyss });
         }
         targetCtx.save();
         targetCtx.fillStyle = isAbyss ? '#3b0764' : '#7f1d1d';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x - 4, y - 4, w + 8, h + 8, rounded);
+        drawRoundRectSafe(targetCtx, x - 4, y - 4, w + 8, h + 8, rounded);
         targetCtx.fill();
 
         targetCtx.fillStyle = isAbyss ? '#9333ea' : '#dc2626';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x, y, w, h, rounded);
+        drawRoundRectSafe(targetCtx, x, y, w, h, rounded);
         targetCtx.fill();
 
         targetCtx.fillStyle = isAbyss ? '#d946ef' : '#ea580c';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x + 6, y + 6, Math.max(8, w - 12), Math.max(8, h - 12), Math.max(0, rounded - 4));
+        drawRoundRectSafe(targetCtx, x + 6, y + 6, Math.max(8, w - 12), Math.max(8, h - 12), Math.max(0, rounded - 4));
         targetCtx.fill();
         targetCtx.restore();
     };
@@ -927,18 +972,15 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
         }
         targetCtx.save();
         targetCtx.fillStyle = '#14532d';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x - 3, y - 3, w + 6, h + 6, rounded);
+        drawRoundRectSafe(targetCtx, x - 3, y - 3, w + 6, h + 6, rounded);
         targetCtx.fill();
 
         targetCtx.fillStyle = '#22c55e';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x, y, w, h, rounded);
+        drawRoundRectSafe(targetCtx, x, y, w, h, rounded);
         targetCtx.fill();
 
         targetCtx.fillStyle = '#4ade80';
-        targetCtx.beginPath();
-        targetCtx.roundRect(x + 5, y + 5, Math.max(6, w - 10), Math.max(6, h - 10), Math.max(0, rounded - 4));
+        drawRoundRectSafe(targetCtx, x + 5, y + 5, Math.max(6, w - 10), Math.max(6, h - 10), Math.max(0, rounded - 4));
         targetCtx.fill();
         targetCtx.restore();
     };
@@ -1115,7 +1157,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
     };
 
     switch (baseTemplateId) {
-        // ==================== MAP 1 ➔ 15 (VÀ VETERAN 16 ➔ 30) ====================
         case 1: {
             fillGrassBg('#7bc64d');
             drawWaterBox(0, H / 2 - 54, W, 108, 0);
@@ -1166,8 +1207,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawWaterBox(34, 155, W - 68, H - 310, 28);
             if (registerNav) nav.markRect(142, H / 2 - 58, 136, 116, T_ROAD, true);
             targetCtx.fillStyle = '#7bc64d';
-            targetCtx.beginPath();
-            targetCtx.roundRect(142, H / 2 - 58, 136, 116, 16);
+            drawRoundRectSafe(targetCtx, 142, H / 2 - 58, 136, 116, 16);
             targetCtx.fill();
 
             drawBridgeBox(210, 205, 48, 110, true);
@@ -1324,10 +1364,8 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             break;
         }
 
-        // ==================== MAP 31 ➔ 45: 15 BẢN ĐỒ QUẦN XÃ ĐỘC BẢN MỚI ====================
-
+        // ==================== MAP 31 ➔ 45: 15 BẢN ĐỒ QUẦN XÃ ĐỘC BẢN ====================
         case 31: {
-            // Map 31 – Miệng Núi Lửa Obsidian: Nền đá bazan đen (#1e1b18), 2 hồ dung nham đỏ cam ở 2 cánh, cầu thép ở giữa
             targetCtx.fillStyle = '#1e1b18';
             targetCtx.fillRect(0, 0, W, H);
             for (let i = 0; i < 28; i++) {
@@ -1343,9 +1381,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             [[55, 145], [365, 145], [55, H - 145], [365, H - 145]].forEach(([x, y]) => drawRockMountain(x, y, 26));
             break;
         }
-
         case 32: {
-            // Map 32 – Chảo Lửa Dung Nham Kép: Sông dung nham chữ X chia 4 góc, 2 cầu sắt hai bên sườn
             targetCtx.fillStyle = '#271714';
             targetCtx.fillRect(0, 0, W, H);
             drawLavaBox(0, H / 2 - 48, W, 96, 0, false);
@@ -1357,13 +1393,10 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawBridgeBox(315, H / 2, 52, 112, true, 'steel');
             break;
         }
-
         case 33: {
-            // Map 33 – Lãnh Nguyên Băng Giá: Mặt tuyết trắng xanh (#e0f2fe), hồ băng trung tâm (+35% tốc xe), rừng thông tuyết
             targetCtx.fillStyle = '#e0f2fe';
             targetCtx.fillRect(0, 0, W, H);
 
-            // Vùng hồ băng đóng cứng trung tâm
             const iceX = 56, iceY = 195, iceW = W - 112, iceH = H - 390;
             if (registerNav) {
                 nav.iceZones.push({ x: iceX, y: iceY, w: iceW, h: iceH });
@@ -1372,12 +1405,10 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             targetCtx.fillStyle = '#7dd3fc';
             targetCtx.strokeStyle = '#38bdf8';
             targetCtx.lineWidth = 4;
-            targetCtx.beginPath();
-            targetCtx.roundRect(iceX, iceY, iceW, iceH, 28);
+            drawRoundRectSafe(targetCtx, iceX, iceY, iceW, iceH, 28);
             targetCtx.fill();
             targetCtx.stroke();
 
-            // Vệt phản quang mặt băng
             targetCtx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
             targetCtx.lineWidth = 3;
             targetCtx.beginPath();
@@ -1393,9 +1424,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             );
             break;
         }
-
         case 34: {
-            // Map 34 – Vịnh Băng Tan Bắc Cực: Mặt biển sâu với nhiều tảng băng trôi (T_OBSTACLE) buộc Thủy quân lạng lách
             targetCtx.fillStyle = '#bae6fd';
             targetCtx.fillRect(0, 0, W, H);
             drawWaterBox(52, 130, W - 104, H - 260, 20);
@@ -1405,7 +1434,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawRoadPath([[26, 95], [W - 26, 95]], 28, true);
             drawRoadPath([[26, H - 95], [W - 26, H - 95]], 28, true);
 
-            // Các tảng băng trôi trên vịnh nước
             const icebergs = [
                 [135, 235, 24], [275, 255, 26],
                 [210, H / 2, 28],
@@ -1429,9 +1457,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             });
             break;
         }
-
         case 35: {
-            // Map 35 – Sa Mạc Bão Cát Sahara: Nền cát vàng (#f59e0b), cồn cát uốn lượn và ốc đảo tròn góc phải
             targetCtx.fillStyle = '#f59e0b';
             targetCtx.fillRect(0, 0, W, H);
             for (let y = 120; y < H - 100; y += 70) {
@@ -1440,7 +1466,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
                 targetCtx.ellipse(W / 2, y, 180, 18, 0, 0, Math.PI * 2);
                 targetCtx.fill();
             }
-            // Ốc đảo xanh góc phải
             targetCtx.fillStyle = '#22c55e';
             targetCtx.beginPath();
             targetCtx.arc(332, H / 2, 58, 0, Math.PI * 2);
@@ -1451,9 +1476,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             [[65, 195], [65, H - 195], [285, H / 2 - 52], [355, H / 2 + 52]].forEach(([x, y]) => drawTree(x, y, 1.05, 1));
             break;
         }
-
         case 36: {
-            // Map 36 – Hẻm Núi Kim Tự Tháp: Địa hình đá đỏ (#9a3412) với 3 khối Kim Tự Tháp bậc thang chia 4 hành lang hẹp
             fillBrownEarthBg('#9a3412');
             drawRoadPath([[45, 70], [45, H - 70]], 28, false);
             drawRoadPath([[155, 70], [155, H - 70]], 28, false);
@@ -1480,9 +1503,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawPyramid(320, H / 2, 58);
             break;
         }
-
         case 37: {
-            // Map 37 – Đầm Lầy Độc Tố Neon: Nền đất tím thẫm (#3b0764), hồ axit xanh lục phát sáng (#4ade80) & cầu gỗ
             targetCtx.fillStyle = '#3b0764';
             targetCtx.fillRect(0, 0, W, H);
             if (registerNav) {
@@ -1502,12 +1523,9 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawBridgeBox(325, H - 255, 46, 95, true, 'wood');
             break;
         }
-
         case 38: {
-            // Map 38 – Trạm Không Gian Quỹ Đạo: Sàn kim loại lưới công nghệ (#0f172a), khoảng không vũ trụ 2 rìa ngoài
             targetCtx.fillStyle = '#020617';
             targetCtx.fillRect(0, 0, W, H);
-            // Sao vũ trụ hai bên rìa
             targetCtx.fillStyle = '#ffffff';
             for (let i = 0; i < 36; i++) {
                 const sx = i % 2 === 0 ? (i * 13) % 45 : W - ((i * 17) % 45) - 4;
@@ -1519,7 +1537,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
                 nav.addBoxObstacle(W - 44, 0, 44, H, 'space_void');
             }
 
-            // Sàn kim loại trạm vũ trụ ở giữa
             targetCtx.fillStyle = '#0f172a';
             targetCtx.strokeStyle = '#38bdf8';
             targetCtx.lineWidth = 3;
@@ -1546,16 +1563,13 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawRoadPath([[125, H / 2], [295, H / 2]], 32, true);
             break;
         }
-
         case 39: {
-            // Map 39 – Lò Phản Ứng Hạt Nhân: Sàn công nghiệp với lõi năng lượng Cyan (#00f2fe) & nhà máy hàng 4 Preview.png
             targetCtx.fillStyle = '#334155';
             targetCtx.fillRect(0, 0, W, H);
             drawRingRoad(210, H / 2, 108, 36, true);
             drawRoadPath([[210, 65], [210, H / 2 - 108]], 38, true);
             drawRoadPath([[210, H / 2 + 108], [210, H - 65]], 38, true);
 
-            // Lõi phản ứng phát sáng ở chính giữa
             if (registerNav) nav.addCircleObstacle(210, H / 2, 36, 'reactor_core');
             targetCtx.fillStyle = '#0f172a';
             targetCtx.beginPath();
@@ -1572,9 +1586,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawHouse(W - 100, H - 237, 52, 52, 14, 4);
             break;
         }
-
         case 40: {
-            // Map 40 – Cảng Tàu Ngầm Bí Mật: 70% vịnh nước chữ U bao quanh bến cảng hình chữ T ở giữa
             targetCtx.fillStyle = '#475569';
             targetCtx.fillRect(0, 0, W, H);
             drawWaterBox(24, 135, 115, H - 270, 12);
@@ -1587,9 +1599,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawHouse(228, 175, 42, 42, 11, 2);
             break;
         }
-
         case 41: {
-            // Map 41 – Thung Lũng Hoa Anh Đào: Cỏ xanh ngọc (#34d399), cây tán hồng phấn (#f472b6), suối nhỏ & 3 cầu gỗ
             targetCtx.fillStyle = '#34d399';
             targetCtx.fillRect(0, 0, W, H);
             drawWaterBox(0, H / 2 - 38, W, 76, 0);
@@ -1607,9 +1617,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             );
             break;
         }
-
         case 42: {
-            // Map 42 – Pháo Đài Bát Quái Cổ Đại: Tường đá bát giác 4 cổng thành, bao quanh bởi hào nước vòng ngoài
             fillGrassBg('#65a30d');
             drawWaterBox(36, 155, W - 72, 48, 10);
             drawWaterBox(36, H - 203, W - 72, 48, 10);
@@ -1620,25 +1628,20 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawBridgeBox(210, 179, 50, 60, true, 'wood');
             drawBridgeBox(210, H - 179, 50, 60, true, 'wood');
 
-            // 4 góc tường đá bát quái chừa 4 cổng Đông - Tây - Nam - Bắc
             drawStoneWallBox(92, 250, 68, 24);
             drawStoneWallBox(260, 250, 68, 24);
             drawStoneWallBox(92, H - 274, 68, 24);
             drawStoneWallBox(260, H - 274, 68, 24);
             break;
         }
-
         case 43: {
-            // Map 43 – Sân Bay Quân Sự Dã Chiến: Đường băng rộng ở giữa kèm vạch kẻ sọc vàng đen (col 4 row 4 Preview.png)
             fillGrassBg('#4d7c0f');
-            // Đường băng bê tông trung tâm
             if (registerNav) nav.markRect(138, 65, 144, H - 130, T_ROAD, true);
             targetCtx.fillStyle = '#334155';
             targetCtx.fillRect(138, 65, 144, H - 130);
             targetCtx.fillStyle = '#475569';
             targetCtx.fillRect(146, 65, 128, H - 130);
 
-            // Vạch kẻ đường băng trắng ở giữa
             targetCtx.strokeStyle = '#f8fafc';
             targetCtx.lineWidth = 4;
             targetCtx.setLineDash([18, 14]);
@@ -1648,7 +1651,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             targetCtx.stroke();
             targetCtx.setLineDash([]);
 
-            // Kẻ sọc vàng đen (tile 4, 4 trong Preview.png) dọc hai mép đường băng
             for (let y = 110; y < H - 120; y += 32) {
                 if (atlas.ready) {
                     atlas.draw(targetCtx, 4, 4, 152, y, 20, 20);
@@ -1666,9 +1668,7 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawHouse(W - 104, H - 276, 56, 56, 13, 2);
             break;
         }
-
         case 44: {
-            // Map 44 – Ruộng Bậc Thang Vùng Cao: Các tầng địa hình xanh-vàng xếp lớp ngang bản đồ, nối bằng dốc bậc thang
             const terraceColors = ['#4d7c0f', '#65a30d', '#84cc16', '#eab308', '#ca8a04', '#65a30d', '#4d7c0f'];
             const bandH = Math.ceil(H / terraceColors.length);
             terraceColors.forEach((col, idx) => {
@@ -1683,14 +1683,11 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             [[45, 195], [375, 195], [45, H - 195], [375, H - 195]].forEach(([x, y]) => drawTree(x, y, 1.08, 0));
             break;
         }
-
         case 45:
         default: {
-            // Map 45 – Đấu Trường Tận Thế (Abyss Gate): Mặt đất nứt nẻ ánh tím (#1e1b4b), 2 cổng Ma Giới, cầu pha lê
             targetCtx.fillStyle = '#1e1b4b';
             targetCtx.fillRect(0, 0, W, H);
 
-            // Vết nứt năng lượng tím trên mặt đất
             targetCtx.strokeStyle = '#9333ea';
             targetCtx.lineWidth = 2.5;
             for (let y = 140; y < H - 120; y += 90) {
@@ -1708,7 +1705,6 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
             drawRoadPath([[105, H - 85], [315, H - 85]], 32, true);
             drawBridgeBox(210, H / 2, 64, 122, true, 'crystal');
 
-            // 2 Cổng Ma Giới ở hai cánh
             [75, W - 75].forEach(gx => {
                 const gy = H / 2;
                 targetCtx.fillStyle = '#090014';
@@ -1727,14 +1723,12 @@ export function renderMap(targetCtx, targetW, targetH, levelNum, includeMiniBase
         targetCtx.fillStyle = '#dc2626';
         targetCtx.strokeStyle = '#0f172a';
         targetCtx.lineWidth = 3;
-        targetCtx.beginPath();
-        targetCtx.roundRect(W / 2 - 42, 34, 84, 42, 8);
+        drawRoundRectSafe(targetCtx, W / 2 - 42, 34, 84, 42, 8);
         targetCtx.fill();
         targetCtx.stroke();
 
         targetCtx.fillStyle = '#0284c7';
-        targetCtx.beginPath();
-        targetCtx.roundRect(W / 2 - 42, H - 76, 84, 42, 8);
+        drawRoundRectSafe(targetCtx, W / 2 - 42, H - 76, 84, 42, 8);
         targetCtx.fill();
         targetCtx.stroke();
     }

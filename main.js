@@ -1,7 +1,8 @@
 /* ============================================================================
    TINY BATTLE - MAIN GAME CONTROLLER & RENDER LOOP (js/main.js)
    Logical Resolution: 420x840px | Target: 60-120 FPS Mobile Web
-   Hỗ trợ: 45 Map • 17 Binh Chủng • Cộng Hưởng Synergy • Ụ Pháo Căn Cứ • Auto-Battler
+   Hỗ trợ: 45 Map • 17 Binh Chủng • 14 Zombie & Boss • Drag & Drop Deploy •
+           Level-Up Roll + Reroll • Challenge 20W Zombie TD (7-Col Grid)
    ============================================================================ */
 
 import {
@@ -9,13 +10,21 @@ import {
     LOGICAL_HEIGHT,
     PLAYFIELD_HEIGHT,
     MAX_WAVES,
+    CHALLENGE_MAX_WAVES,
+    CHALLENGE_DECK_SLOTS,
+    TD_GRID_COLS,
+    TD_CELL_SIZE,
+    TD_GRID_TOP_Y,
+    TD_GRID_ROWS,
     BATTLE_SPEED_MULTIPLIERS,
     GAS_UPGRADE_LEVELS,
     DIFFICULTY_CONFIG,
     BATTLE_MODE_CONFIG,
     calcStageRewardCoins,
+    calcChallengeRewards,
     UNIT_CHIPS,
     UNIT_BY_ID,
+    UNIT_CATALOG,
     LEVELS,
     AIRSTRIKE_SPEC
 } from './config.js';
@@ -23,10 +32,13 @@ import {
 import { triggerHaptic } from './math.js';
 
 import {
+    PRIMARY_INFANTRY_ID,
     metaState,
     saveProgress,
     normalizeSelectedDeck,
-    syncLegacyEngineBridges
+    syncLegacyEngineBridges,
+    hasUnitInInventory,
+    getSkillTreeNodeLevel
 } from './state.js';
 
 import {
@@ -34,6 +46,8 @@ import {
     switchLobbyTab,
     renderStageScreenUI,
     renderArmyTabUI,
+    renderChallengeRoadmapUI,
+    renderSkillTreeTabUI,
     updateTopBarUI
 } from './lobby-ui.js';
 
@@ -43,6 +57,8 @@ import {
     particlePool,
     atlas,
     drawBaseTurretArt,
+    isCustomArtUnit,
+    drawCustomUnitArt,
     getUnitSpriteDataURL
 } from './engine-core.js';
 
@@ -56,16 +72,23 @@ import {
 import {
     game,
     setOnEndBattleHandler,
+    setOnDeckChangedHandler,
     getActiveMapConfig,
     addScreenShake,
     spawnFloatingText,
     spawnExplosionFX,
     updateActiveSynergies,
     renderSynergyHUD,
+    updateBaseHpHUD,
     getEffectiveUnitStats,
+    getTdGridCellFromPixel,
+    getTdCellCenterPixel,
+    canPlaceTowerAtCell,
+    placeTowerInChallengeGrid,
     updateBaseTurret,
     damageBase,
     spawnUnit,
+    spawnZombie,
     launchAirstrike,
     updateCommanderSkillsUI,
     triggerCommanderSkill,
@@ -94,10 +117,20 @@ if (ctx) {
 
 function getEffectiveGasInterval() {
     const oilLv = Number(metaState?.metaTalents?.oil_refining) || 0;
+    const supplyRootsLv = getSkillTreeNodeLevel('supply_roots');
     const baseInterval = GAS_UPGRADE_LEVELS[game.gasGenLevel]?.interval || 3.0;
     const mapCfg = getActiveMapConfig();
-    const gasRateMult = mapCfg?.gasRateMult || 1.0;
-    return Math.max(0.50, (baseInterval - oilLv * 0.08) / gasRateMult);
+    const mapGasMult = mapCfg?.gasRateMult || 1.0;
+    const treeSpeedMult = 1 + supplyRootsLv * 0.06;
+    return Math.max(0.45, (baseInterval - oilLv * 0.06) / (mapGasMult * treeSpeedMult));
+}
+
+function clientToLogicalCoords(clientX, clientY) {
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const lx = ((clientX - rect.left) / Math.max(1, rect.width)) * LOGICAL_WIDTH;
+    const ly = ((clientY - rect.top) / Math.max(1, rect.height)) * LOGICAL_HEIGHT;
+    return { x: lx, y: ly };
 }
 
 // ============================================================================
@@ -157,8 +190,9 @@ function runAutoPlayCommanderAI(dt) {
         while (game.gas >= 2) {
             const candidates = game.deckIds
                 .slice(0, 4)
+                .filter(Boolean)
                 .map(id => getEffectiveUnitStats(id, 'blue'))
-                .filter(sp => sp && sp.cost <= game.gas);
+                .filter(sp => sp && sp.cost <= game.gas && (!sp.isNaval || nav.hasNavigableWater()));
             if (candidates.length === 0) break;
             const pick = candidates[(Math.random() * candidates.length) | 0];
             const rx = 68 + Math.random() * (LOGICAL_WIDTH - 136);
@@ -172,7 +206,7 @@ function runAutoPlayCommanderAI(dt) {
 
     game.autoPlayTimer -= dt;
     if (game.autoPlayTimer > 0) return;
-    game.autoPlayTimer = 0.32;
+    game.autoPlayTimer = 0.34;
 
     const redUnits = game.units.filter(u => u.team === 'red' && !u.dead);
     const blueUnits = game.units.filter(u => u.team === 'blue' && !u.dead);
@@ -195,12 +229,41 @@ function runAutoPlayCommanderAI(dt) {
         }
     }
 
+    // Chế độ CHALLENGE: Tự động đặt Tower vào các ô vuông còn trống trên lưới 7x9
+    if (game.battleMode === 'challenge') {
+        for (let i = 0; i < CHALLENGE_DECK_SLOTS; i++) {
+            const uId = game.deckIds[i];
+            if (!uId || game.deckCooldowns[i] > 0) continue;
+            const spec = getEffectiveUnitStats(uId, 'blue');
+            if (!spec || game.gas < spec.cost) continue;
+
+            // Ưu tiên đặt hàng 3 -> 7 (phòng tuyến giữa & trước nhà)
+            const candidateRows = [4, 5, 3, 6, 7, 2, 8];
+            const cols = [0, 1, 2, 3, 4, 5, 6].sort(() => Math.random() - 0.5);
+            for (const r of candidateRows) {
+                for (const c of cols) {
+                    if (canPlaceTowerAtCell(spec, c, r)) {
+                        game.gas -= spec.cost;
+                        game.deckCooldowns[i] = spec.cooldown;
+                        game.deckMaxCooldowns[i] = spec.cooldown;
+                        placeTowerInChallengeGrid(uId, c, r);
+                        updateActiveSynergies();
+                        updateDeckButtonsUI();
+                        updateHUD();
+                        return;
+                    }
+                }
+            }
+        }
+        return;
+    }
+
     const readySlots = [];
     for (let i = 0; i < 4; i++) {
-        if (game.deckCooldowns[i] > 0) continue;
         const uId = game.deckIds[i];
+        if (!uId || game.deckCooldowns[i] > 0) continue;
         const spec = getEffectiveUnitStats(uId, 'blue');
-        if (spec && game.gas >= spec.cost) {
+        if (spec && game.gas >= spec.cost && (!spec.isNaval || nav.hasNavigableWater())) {
             readySlots.push({ slotIdx: i, spec });
         }
     }
@@ -215,25 +278,55 @@ function runAutoPlayCommanderAI(dt) {
 }
 
 // ============================================================================
-// 3. QUẢN LÝ DECK 5 Ô (#unitDeckContainer), RADIAL COOLDOWN & NẠP/NÂNG XĂNG
+// 3. QUẢN LÝ DECK 5 Ô (BATTLE) / 6 Ô (CHALLENGE) & KÉO-THẢ (DRAG & DROP)
 // ============================================================================
+let pointerDragTracker = {
+    tracking: false,
+    slotIdx: -1,
+    unitId: null,
+    startX: 0,
+    startY: 0,
+    didDrag: false
+};
+
 export function renderBattleDeckButtons() {
-    metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
-    game.deckIds = [...metaState.selectedDeck];
+    const isChallenge = game.battleMode === 'challenge';
+    const totalSlots = isChallenge ? CHALLENGE_DECK_SLOTS : 5;
+    const hasWater = nav.hasNavigableWater();
 
     const container = document.getElementById('unitDeckContainer');
     if (container) {
+        container.className = `battle-deck-slots${isChallenge ? ' challenge-6-slots' : ''}`;
         container.innerHTML = '';
         const gasIconUrl = atlas.ready ? atlas.toDataURL(12, 10) : '';
 
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < totalSlots; i++) {
             const uId = game.deckIds[i];
-            const isAirSlot = i === 4 || uId === 'airstrike';
+            const isAirSlot = !isChallenge && (i === 4 || uId === 'airstrike');
+
+            if (!uId && !isAirSlot) {
+                const emptyBtn = document.createElement('button');
+                emptyBtn.type = 'button';
+                emptyBtn.id = `deck-slot-${i}`;
+                emptyBtn.className = 'unit-btn empty-slot-btn';
+                emptyBtn.disabled = true;
+                emptyBtn.innerHTML = `
+                    <span class="hotkey-badge">${i + 1}</span>
+                    <span class="text-base">🎲</span>
+                    <span class="text-[8px] font-extrabold text-slate-400 leading-tight">LÊN CẤP<br/>MỞ Ô</span>
+                `;
+                container.appendChild(emptyBtn);
+                continue;
+            }
+
             const spec = isAirSlot
                 ? { ...AIRSTRIKE_SPEC, level: metaState.armyPermanentLevels?.airstrike || 1 }
                 : getEffectiveUnitStats(uId, 'blue');
 
             game.deckMaxCooldowns[i] = spec.cooldown || 2.0;
+            const stars = Math.max(1, Number(game.battleUnitStars?.[spec.id]) || 1);
+            const starStr = stars > 1 ? ` ★${stars}` : '';
+            const isNavalBlocked = !isChallenge && spec.isNaval && !hasWater;
 
             const sockets = Array.isArray(metaState?.unitSockets?.[spec.id]) ? metaState.unitSockets[spec.id] : [];
             const dotsHtml = sockets
@@ -253,15 +346,14 @@ export function renderBattleDeckButtons() {
             btn.className = `unit-btn unit-card-btn${spec.isNaval ? ' naval-btn' : ''}`;
             btn.innerHTML = `
                 <span class="hotkey-badge">${i + 1}</span>
-                <span class="unit-lv-badge">Lv.${spec.level || 1}</span>
+                <span class="unit-lv-badge">Lv.${spec.level || 1}${starStr}</span>
                 <div class="unit-btn-socket-dots">${dotsHtml}</div>
                 <div class="unit-card-art">
                     ${spriteUrl ? `<img src="${spriteUrl}" class="w-9 h-9 pixel-art" alt="${spec.name}" />` : `<span>${isAirSlot ? '✈️' : '🪖'}</span>`}
                 </div>
                 <div class="unit-card-name">${spec.name}</div>
                 <div class="cost-badge">
-                    ${gasIconUrl ? `<img src="${gasIconUrl}" class="w-2.5 h-2.5 pixel-art" alt="Gas" />` : '⛽'}
-                    <span>${spec.cost}</span>
+                    ${isNavalBlocked ? '<span class="text-[8px] text-rose-400">CẦN NƯỚC</span>' : `${gasIconUrl ? `<img src="${gasIconUrl}" class="w-2.5 h-2.5 pixel-art" alt="Gas" />` : '⛽'}<span>${spec.cost}</span>`}
                 </div>
                 <div class="cooldown-radial-overlay">
                     <span class="unit-cd-timer"></span>
@@ -270,7 +362,33 @@ export function renderBattleDeckButtons() {
                     <div class="cooldown-bar-fill"></div>
                 </div>
             `;
-            btn.addEventListener('click', () => triggerDeckSlot(i));
+
+            // Hỗ trợ Kéo - Thả (Drag & Drop) đặt quân quanh nhà hoặc đặt Tower lên lưới 7x9
+            if (!isAirSlot && !isNavalBlocked) {
+                btn.addEventListener('pointerdown', (e) => {
+                    if (!game.running || game.paused || game.gameOver) return;
+                    if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') return;
+                    if (game.deckCooldowns[i] > 0 || game.gas < spec.cost) return;
+
+                    pointerDragTracker.tracking = true;
+                    pointerDragTracker.slotIdx = i;
+                    pointerDragTracker.unitId = spec.id;
+                    pointerDragTracker.startX = e.clientX;
+                    pointerDragTracker.startY = e.clientY;
+                    pointerDragTracker.didDrag = false;
+                });
+            }
+
+            btn.addEventListener('click', (e) => {
+                if (pointerDragTracker.didDrag) {
+                    pointerDragTracker.didDrag = false;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                triggerDeckSlot(i);
+            });
+
             container.appendChild(btn);
         }
     }
@@ -279,17 +397,24 @@ export function renderBattleDeckButtons() {
 }
 
 export function updateDeckButtonsUI() {
+    const isChallenge = game.battleMode === 'challenge';
+    const totalSlots = isChallenge ? CHALLENGE_DECK_SLOTS : 5;
     const isAbPrep = game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep';
+    const hasWater = nav.hasNavigableWater();
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < totalSlots; i++) {
         const btn = document.getElementById(`deck-slot-${i}`);
         if (!btn) continue;
 
         const uId = game.deckIds[i];
-        const spec = i === 4 ? AIRSTRIKE_SPEC : getEffectiveUnitStats(uId, 'blue');
+        const isAirSlot = !isChallenge && (i === 4 || uId === 'airstrike');
+        if (!uId && !isAirSlot) continue;
+
+        const spec = isAirSlot ? AIRSTRIKE_SPEC : getEffectiveUnitStats(uId, 'blue');
         const cd = isAbPrep ? 0 : (game.deckCooldowns[i] || 0);
         const maxCd = Math.max(0.1, game.deckMaxCooldowns[i] || spec.cooldown || 2.0);
-        const canAfford = game.gas >= spec.cost && !(isAbPrep && i === 4);
+        const isNavalBlocked = !isChallenge && spec.isNaval && !hasWater;
+        const canAfford = !isNavalBlocked && game.gas >= spec.cost && !(isAbPrep && isAirSlot);
 
         const cdOverlay = btn.querySelector('.cooldown-radial-overlay');
         const cdTimer = btn.querySelector('.unit-cd-timer');
@@ -322,27 +447,25 @@ export function updateDeckButtonsUI() {
     const upgCost = isMax ? Infinity : GAS_UPGRADE_LEVELS[game.gasGenLevel].cost;
     const canUpgrade = !isMax && !isAbPrep && game.gas >= upgCost;
 
-    if (upgBtn) {
-        upgBtn.classList.toggle('ready', canUpgrade);
-    }
-    if (blockOverlay) {
-        blockOverlay.classList.toggle('unlocked', canUpgrade || isMax);
-    }
+    if (upgBtn) upgBtn.classList.toggle('ready', canUpgrade);
+    if (blockOverlay) blockOverlay.classList.toggle('unlocked', canUpgrade || isMax);
 }
 
 export function triggerDeckSlot(slotIdx) {
     if (!game.running || game.paused || game.gameOver) return;
-    if (slotIdx < 0 || slotIdx >= 5) return;
+    const isChallenge = game.battleMode === 'challenge';
+    const maxSlots = isChallenge ? CHALLENGE_DECK_SLOTS : 5;
+    if (slotIdx < 0 || slotIdx >= maxSlots) return;
 
-    // Sửa lỗi #3: Khi ở pha chuẩn bị Auto-Battler, bấm ô 1–4 để chọn loại quân đặt lên sân
+    // Pha chuẩn bị Auto-Battler: Chọn ô 1-4
     if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') {
-        if (slotIdx >= 4) {
+        if (slotIdx >= 4 || !game.deckIds[slotIdx]) {
             sfx.play('cannon');
-            spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT - 155, '⚠️ HÃY CHỌN Ô QUÂN 1–4 ĐỂ ĐẶT TRẬN!', '#fb7185', 12);
+            spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT - 155, '⚠️ HÃY CHỌN Ô QUÂN HỢP LỆ ĐỂ ĐẶT TRẬN!', '#fb7185', 12);
             return;
         }
         game.autoSelectedSlotIdx = slotIdx;
-        game.autoSelectedUnitId = game.deckIds[slotIdx] || 'infantry';
+        game.autoSelectedUnitId = game.deckIds[slotIdx];
         sfx.play('gas');
         triggerHaptic(15);
         setupAutoBattlerPrepUI();
@@ -350,10 +473,50 @@ export function triggerDeckSlot(slotIdx) {
         return;
     }
 
+    const uId = game.deckIds[slotIdx];
+    const isAirSlot = !isChallenge && (slotIdx === 4 || uId === 'airstrike');
+    if (!uId && !isAirSlot) return;
+
+    // Chế độ CHALLENGE: Bấm nhanh ô thẻ sẽ tự đặt Tower vào ô trống chiến thuật gần nhất
+    if (isChallenge) {
+        if (game.deckCooldowns[slotIdx] > 0) return;
+        const spec = getEffectiveUnitStats(uId, 'blue');
+        if (!spec || game.gas < spec.cost) {
+            sfx.play('cannon');
+            return;
+        }
+        const candidateRows = [4, 5, 3, 6, 7, 2, 8];
+        const candidateCols = [3, 2, 4, 1, 5, 0, 6];
+        for (const r of candidateRows) {
+            for (const c of candidateCols) {
+                if (canPlaceTowerAtCell(spec, c, r)) {
+                    game.gas -= spec.cost;
+                    game.deckCooldowns[slotIdx] = spec.cooldown;
+                    game.deckMaxCooldowns[slotIdx] = spec.cooldown;
+                    sfx.play('spawn');
+                    triggerHaptic(18);
+                    placeTowerInChallengeGrid(uId, c, r);
+                    updateActiveSynergies();
+                    updateDeckButtonsUI();
+                    updateHUD();
+                    return;
+                }
+            }
+        }
+        sfx.play('cannon');
+        spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT / 2, '⚠️ KHÔNG CÒN Ô TRỐNG HỢP LỆ!', '#fb7185', 13);
+        return;
+    }
+
     if (game.deckCooldowns[slotIdx] > 0) return;
 
-    const uId = game.deckIds[slotIdx];
-    const spec = slotIdx === 4 ? AIRSTRIKE_SPEC : getEffectiveUnitStats(uId, 'blue');
+    const spec = isAirSlot ? AIRSTRIKE_SPEC : getEffectiveUnitStats(uId, 'blue');
+    if (!isAirSlot && spec.isNaval && !nav.hasNavigableWater()) {
+        sfx.play('cannon');
+        spawnFloatingText(LOGICAL_WIDTH / 2, PLAYFIELD_HEIGHT - 140, '⚠️ BẢN ĐỒ NÀY KHÔNG CÓ NƯỚC CHO THỦY QUÂN!', '#fb7185', 12);
+        return;
+    }
+
     if (game.gas < spec.cost) {
         sfx.play('cannon');
         return;
@@ -364,7 +527,7 @@ export function triggerDeckSlot(slotIdx) {
     game.deckMaxCooldowns[slotIdx] = spec.cooldown;
     triggerHaptic(15);
 
-    if (spec.isAirstrike || uId === 'airstrike' || slotIdx === 4) {
+    if (isAirSlot) {
         const redUnits = game.units.filter(u => u.team === 'red' && !u.dead);
         let targetY = game.enemyBase.y + 45;
         if (redUnits.length > 0) {
@@ -409,14 +572,19 @@ export function manualPumpGas() {
     if (!game.running || game.paused || game.gameOver) return;
     if (game.battleMode === 'auto_battler' && game.autoBattlerPhase === 'prep') return;
 
-    const effInterval = getEffectiveGasInterval();
+    // Chế độ CHALLENGE (Hardcore): Xóa bỏ tính năng chạm vào bình Xăng để nạp nhanh
+    if (game.battleMode === 'challenge') {
+        sfx.play('cannon');
+        spawnFloatingText(48, PLAYFIELD_HEIGHT - 95, '🔒 CHẾ ĐỘ HARDCORE!', '#fb7185', 11);
+        return;
+    }
 
+    const effInterval = getEffectiveGasInterval();
     if (game.gas >= game.maxGas) {
         sfx.play('cannon');
         return;
     }
 
-    // Mỗi lần chạm đẩy nhanh 25% thanh tiến trình nạp xăng (4 lần chạm = +1 Xăng ngay lập tức)
     game.gasTimer += effInterval * 0.25;
     sfx.play('gas');
     triggerHaptic(10);
@@ -432,7 +600,7 @@ export function manualPumpGas() {
 }
 
 // ============================================================================
-// 4. ĐẤU TRƯỜNG AUTO-BATTLER (ĐẶT TRẬN TỰ ĐỘNG - CHỌN Ô 1-4 & CHẠM THU HỒI)
+// 4. ĐẤU TRƯỜNG AUTO-BATTLER (ĐẶT TRẬN TỰ ĐỘNG)
 // ============================================================================
 export function setupAutoBattlerPrepUI() {
     const overlay = document.getElementById('autobattler-setup-bar');
@@ -492,7 +660,7 @@ function spawnEnemyAutoBattlerFormation() {
         'infantry', 'bazooka', 'humvee', 'apc', 'tank', 'heavy_tank',
         'pyromancer', 'cryomancer', 'cleric', 'mecha_paladin', 'railgun_walker'
     ];
-    const budget = 16 + game.currentLevel * 2;
+    const budget = 18 + game.currentLevel * 3;
     let spent = 0;
     while (spent < budget) {
         const uId = pool[Math.floor(Math.random() * pool.length)];
@@ -507,12 +675,30 @@ function spawnEnemyAutoBattlerFormation() {
 // ============================================================================
 // 5. KHỞI TẠO TRẬN ĐẤU (INIT LEVEL) & KẾT THÚC TRẬN (END GAME)
 // ============================================================================
+function buildInitialStarterDeck(isChallenge) {
+    const ownedUnits = UNIT_CATALOG.filter(u => hasUnitInInventory(u.id));
+    const pool = ownedUnits.length > 0 ? ownedUnits : [UNIT_CATALOG[0]];
+
+    if (isChallenge) {
+        // Challenge khởi đầu với 2 Tower cơ bản trên 6 ô Deck; lên cấp mở dần tới 6 ô
+        const first = pool[0]?.id || PRIMARY_INFANTRY_ID;
+        const second = pool[1]?.id || 'bazooka';
+        return [first, second, null, null, null, null];
+    }
+
+    // Battle khởi đầu với 2 quân cơ bản + 2 ô mở khi lên cấp Roll + ô 5 Không kích
+    const first = pool[0]?.id || PRIMARY_INFANTRY_ID;
+    const second = pool[1]?.id || 'bazooka';
+    return [first, second, null, null, 'airstrike'];
+}
+
 export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destroy') {
     syncLegacyEngineBridges();
 
     const lv = Math.max(1, Math.min(LEVELS.length, Number(levelNum) || 1));
     const mapCfg = LEVELS[lv - 1] || LEVELS[0];
     const diffCfg = DIFFICULTY_CONFIG[difficulty] || DIFFICULTY_CONFIG.easy;
+    const isChallenge = battleMode === 'challenge';
 
     game.running = true;
     game.paused = false;
@@ -525,21 +711,57 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
     game.matchSpawns = 0;
     game.autoPlayTimer = 0.1;
 
+    // Xăng khởi đầu + Talents + Skill Tree Rễ Tiếp Tế
     const logiLv = Number(metaState?.metaTalents?.optimal_logistics) || 0;
-    game.gas = game.battleMode === 'auto_battler' ? 28 : (mapCfg.startingGas || 6) + logiLv;
-    game.maxGas = game.battleMode === 'auto_battler' ? 30 : 20 + logiLv;
+    const supplyRootsLv = getSkillTreeNodeLevel('supply_roots');
+    const bonusStartGas = Math.floor(logiLv / 2) + supplyRootsLv;
+
+    game.gas = game.battleMode === 'auto_battler'
+        ? 28
+        : (isChallenge ? 8 + bonusStartGas : (mapCfg.startingGas || 6) + bonusStartGas);
+    game.maxGas = game.battleMode === 'auto_battler' ? 30 : 20 + bonusStartGas;
     game.gasGenLevel = 0;
     game.gasTimer = 0;
 
-    game.wave = 1;
-    game.maxWaves = game.battleMode === 'endless_siege' ? 999 : MAX_WAVES;
-    game.waveTimer = 0;
-    game.waveDuration = 20;
-    game.enemySpawnTimer = 1.6;
+    // Reset Cấp độ trong trận (EXP Roll + 1 Reroll)
+    game.battleLv = 1;
+    game.battleExp = 0;
+    game.battleNextExp = 35;
+    game.battleUnitStars = {};
+    game.rerollsLeft = 1;
+    game.currentRollCandidates = [];
+    game.isRollModalOpen = false;
 
+    // Reset Sóng địch & Lưới ô vuông 7x9
+    game.wave = 1;
+    game.maxWaves = isChallenge
+        ? CHALLENGE_MAX_WAVES
+        : (game.battleMode === 'endless_siege' ? 999 : MAX_WAVES);
+    game.waveTimer = 0;
+    game.waveDuration = isChallenge ? 22 : 20;
+    game.enemySpawnTimer = 1.4;
+    game.challengeWaveSpawnedCount = 0;
+    game.challengeWaveTotalToSpawn = isChallenge ? 7 : 0;
+
+    game.tdGrid = new Array(TD_GRID_ROWS * TD_GRID_COLS).fill(null);
+    game.dragDeploy = {
+        active: false,
+        slotIdx: -1,
+        unitId: null,
+        x: 0,
+        y: 0,
+        isValid: false,
+        gridCol: -1,
+        gridRow: -1
+    };
+
+    // Máu Căn Cứ Xanh & Đỏ (Tích hợp Talents Thép Tôi Cao Cấp & Pháo Đài Bất Tử)
     const steelLv = Number(metaState?.metaTalents?.high_grade_steel) || 0;
-    const pHp = Math.round((mapCfg.playerBaseHp || 250) * (1 + steelLv * 0.08));
-    const eHp = Math.round((mapCfg.enemyBaseHp || 255) * diffCfg.baseHpMult);
+    const bastionLv = Number(metaState?.metaTalents?.immortal_bastion) || 0;
+    const vitalRootsLv = getSkillTreeNodeLevel('vital_roots');
+    const pHpMult = 1 + steelLv * 0.03 + bastionLv * 0.10 + vitalRootsLv * 0.10;
+    const pHp = Math.round((isChallenge ? 300 : (mapCfg.playerBaseHp || 250)) * pHpMult);
+    const eHp = Math.round((mapCfg.enemyBaseHp || 260) * diffCfg.baseHpMult);
 
     game.playerBase = {
         x: LOGICAL_WIDTH / 2,
@@ -565,9 +787,18 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
     game.floatingTexts = [];
     particlePool.clear();
 
-    metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
-    game.deckIds = [...metaState.selectedDeck];
-    game.deckCooldowns = [0, 0, 0, 0, 0];
+    if (game.battleMode === 'auto_battler') {
+        metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
+        game.deckIds = [...metaState.selectedDeck];
+    } else {
+        game.deckIds = buildInitialStarterDeck(isChallenge);
+    }
+
+    game.deckIds.forEach(id => {
+        if (id && id !== 'airstrike') game.battleUnitStars[id] = 1;
+    });
+
+    game.deckCooldowns = [0, 0, 0, 0, 0, 0];
     game.tacticCooldowns = { airdrop: 0, minefield: 0, emp_blast: 0, blitzkrieg: 0 };
     game.blitzkriegTimer = 0;
     game.activeMutations = [];
@@ -575,7 +806,12 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
     game.raidBoss = null;
 
     game.autoSelectedSlotIdx = 0;
-    game.autoSelectedUnitId = game.deckIds[0] || 'infantry';
+    game.autoSelectedUnitId = game.deckIds[0] || PRIMARY_INFANTRY_ID;
+
+    const pumpHintEl = document.getElementById('gas-pump-hint');
+    if (pumpHintEl) {
+        pumpHintEl.textContent = isChallenge ? 'Khóa (TD)' : 'Chạm nạp';
+    }
 
     document.getElementById('win-panel')?.classList.remove('active');
     document.getElementById('lose-panel')?.classList.remove('active');
@@ -583,14 +819,17 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
 
     buildStaticMapCanvas(lv);
 
-    if (game.battleMode === 'raid_boss') {
+    if (isChallenge) {
+        showBossWarningBanner('☠️ THỦ THÀNH ZOMBIE 20 WAVE!', 'Đặt quân vào lưới 7 cột để xây Tower phòng thủ!');
+    } else if (game.battleMode === 'raid_boss') {
         initRaidBoss();
     } else if (game.battleMode === 'auto_battler') {
         game.autoBattlerPhase = 'prep';
         spawnEnemyAutoBattlerFormation();
     } else {
-        spawnUnit('red', 'infantry', LOGICAL_WIDTH / 2 - 40, 128);
-        spawnUnit('red', 'infantry', LOGICAL_WIDTH / 2 + 40, 128);
+        // Địch chủ động xuất kích mạnh hơn ngay từ đầu
+        spawnUnit('red', 'infantry', LOGICAL_WIDTH / 2 - 48, 128);
+        spawnUnit('red', 'bazooka', LOGICAL_WIDTH / 2 + 48, 128);
     }
 
     updateActiveSynergies();
@@ -600,6 +839,7 @@ export function initLevel(levelNum = 1, difficulty = 'easy', battleMode = 'destr
     renderBattleDeckButtons();
     updateCommanderSkillsUI();
     updateSpeedAndAutoPlayButtonsUI();
+    updateBaseHpHUD();
     updateHUD();
 }
 
@@ -621,35 +861,61 @@ export function endGame(isWin) {
     const mode = game.battleMode;
     const diffCfg = DIFFICULTY_CONFIG[diff] || DIFFICULTY_CONFIG.easy;
 
+    const harvestLv = Number(metaState?.metaTalents?.battlefield_harvest) || 0;
+    const goldMult = 1 + harvestLv * 0.08;
+
     if (isWin) {
         sfx.play('upgrade');
-        const rewardCoins = calcStageRewardCoins(lv, diff, mode);
-        const rewardMedals = diff === 'difficult' ? (diffCfg.medalReward || 2) : (mode === 'raid_boss' ? 3 : 1);
 
-        metaState.coins += rewardCoins;
-        metaState.medals = (metaState.medals || 0) + rewardMedals;
-        metaState.missionsProgress.wins = (metaState.missionsProgress.wins || 0) + 1;
-        if (diff === 'difficult') {
-            metaState.missionsProgress.diffWins = (metaState.missionsProgress.diffWins || 0) + 1;
-        }
+        if (mode === 'challenge') {
+            const ancientHeartLv = getSkillTreeNodeLevel('ancient_heart');
+            const cRewards = calcChallengeRewards(lv, ancientHeartLv);
+            const finalCoins = Math.round(cRewards.coins * goldMult);
 
-        if (mode === 'auto_battler') {
-            metaState.autobattlerWins = (metaState.autobattlerWins || 0) + 1;
-        } else if (mode === 'raid_boss') {
-            metaState.raidBossClears = (metaState.raidBossClears || 0) + 1;
-        } else {
-            const prog = metaState.mapDifficultyProgress[lv] || {};
-            prog[diff] = true;
-            if (mode === 'destroy' || mode === 'survival') {
-                prog[`${diff}_${mode}`] = true;
+            metaState.pearls = (metaState.pearls || 0) + cRewards.pearls;
+            metaState.gems += cRewards.gems;
+            metaState.coins += finalCoins;
+            if (!metaState.challengeClearedMaps) metaState.challengeClearedMaps = {};
+            if (!metaState.challengeBestWave) metaState.challengeBestWave = {};
+            metaState.challengeClearedMaps[lv] = true;
+            metaState.challengeBestWave[lv] = CHALLENGE_MAX_WAVES;
+            metaState.missionsProgress.wins = (metaState.missionsProgress.wins || 0) + 1;
+            saveProgress();
+
+            const winCoinsEl = document.getElementById('win-coins-reward');
+            if (winCoinsEl) {
+                winCoinsEl.textContent = `+${cRewards.pearls} ⚪ • +${cRewards.gems} 💎 • +${finalCoins.toLocaleString('en-US')} 🪙`;
             }
-            metaState.mapDifficultyProgress[lv] = prog;
+        } else {
+            const rewardCoins = Math.round(calcStageRewardCoins(lv, diff, mode) * goldMult);
+            const rewardMedals = diff === 'difficult' ? (diffCfg.medalReward || 3) : (mode === 'raid_boss' ? 3 : 1);
+
+            metaState.coins += rewardCoins;
+            metaState.medals = (metaState.medals || 0) + rewardMedals;
+            metaState.missionsProgress.wins = (metaState.missionsProgress.wins || 0) + 1;
+            if (diff === 'difficult') {
+                metaState.missionsProgress.diffWins = (metaState.missionsProgress.diffWins || 0) + 1;
+            }
+
+            if (mode === 'auto_battler') {
+                metaState.autobattlerWins = (metaState.autobattlerWins || 0) + 1;
+            } else if (mode === 'raid_boss') {
+                metaState.raidBossClears = (metaState.raidBossClears || 0) + 1;
+            } else {
+                const prog = metaState.mapDifficultyProgress[lv] || {};
+                prog[diff] = true;
+                if (mode === 'destroy' || mode === 'survival') {
+                    prog[`${diff}_${mode}`] = true;
+                }
+                metaState.mapDifficultyProgress[lv] = prog;
+            }
+
+            saveProgress();
+
+            const winCoinsEl = document.getElementById('win-coins-reward');
+            if (winCoinsEl) winCoinsEl.textContent = `+${rewardCoins.toLocaleString('en-US')} 🪙 & +${rewardMedals} 🎖️`;
         }
 
-        saveProgress();
-
-        const winCoinsEl = document.getElementById('win-coins-reward');
-        if (winCoinsEl) winCoinsEl.textContent = `+${rewardCoins.toLocaleString('en-US')} 🪙 & +${rewardMedals} 🎖️`;
         const winTimeEl = document.getElementById('win-time');
         if (winTimeEl) winTimeEl.textContent = formatMatchTime(game.timeSec);
         const winHpEl = document.getElementById('win-hp');
@@ -657,15 +923,23 @@ export function endGame(isWin) {
         const winWaveEl = document.getElementById('win-spawned');
         if (winWaveEl) winWaveEl.textContent = `WAVE ${game.wave}`;
         const winKillsEl = document.getElementById('win-kills');
-        if (winKillsEl) winKillsEl.textContent = `${diffCfg.shortLabel} • ${game.matchKills}`;
+        if (winKillsEl) {
+            winKillsEl.textContent = mode === 'challenge'
+                ? `ZOMBIE TD • ${game.matchKills}`
+                : `${diffCfg.shortLabel} • ${game.matchKills}`;
+        }
 
         document.getElementById('win-panel')?.classList.add('active');
     } else {
         sfx.play('boom');
-        if (mode === 'endless_siege' && game.wave > (metaState.endlessBestWave || 0)) {
+        if (mode === 'challenge') {
+            if (!metaState.challengeBestWave) metaState.challengeBestWave = {};
+            const prevBest = Number(metaState.challengeBestWave[lv]) || 0;
+            if (game.wave > prevBest) metaState.challengeBestWave[lv] = game.wave;
+        } else if (mode === 'endless_siege' && game.wave > (metaState.endlessBestWave || 0)) {
             metaState.endlessBestWave = game.wave;
         }
-        const consolCoins = Math.max(40, Math.round(game.matchKills * 8 + game.wave * 25));
+        const consolCoins = Math.max(40, Math.round((game.matchKills * 8 + game.wave * 25) * goldMult));
         metaState.coins += consolCoins;
         saveProgress();
 
@@ -683,16 +957,23 @@ export function endGame(isWin) {
 }
 
 setOnEndBattleHandler(endGame);
+setOnDeckChangedHandler(() => {
+    renderBattleDeckButtons();
+});
 
 // ============================================================================
-// 6. CẬP NHẬT HUD & LOGIC MỖI KHUNG HÌNH (ĐỒNG BỘ ID TRONG index.html)
+// 6. CẬP NHẬT HUD & LOGIC SINH QUÂN ĐỊCH / ZOMBIE 20 WAVE
 // ============================================================================
 export function updateHUD() {
     const levelLabel = document.getElementById('current-level-label');
     if (levelLabel) {
-        const diffShort = DIFFICULTY_CONFIG[game.difficulty]?.shortLabel || 'DỄ';
-        const modeShort = BATTLE_MODE_CONFIG[game.battleMode]?.shortLabel || 'PHÁ CĂN CỨ';
-        levelLabel.textContent = `MAP ${game.currentLevel} • ${diffShort} (${modeShort})`;
+        if (game.battleMode === 'challenge') {
+            levelLabel.textContent = `CHALLENGE ${game.currentLevel} • ZOMBIE TD`;
+        } else {
+            const diffShort = DIFFICULTY_CONFIG[game.difficulty]?.shortLabel || 'DỄ';
+            const modeShort = BATTLE_MODE_CONFIG[game.battleMode]?.shortLabel || 'PHÁ CĂN CỨ';
+            levelLabel.textContent = `MAP ${game.currentLevel} • ${diffShort} (${modeShort})`;
+        }
     }
 
     const timerEl = document.getElementById('hud-match-timer');
@@ -711,7 +992,6 @@ export function updateHUD() {
     const gasCountEl = document.getElementById('gasCountText');
     if (gasCountEl) gasCountEl.textContent = String(Math.floor(game.gas));
 
-    // 5 vạch L1 -> L5 biểu diễn tiến trình nạp từ từ của bình xăng hiện tại (0% -> 100%)
     const segIds = ['L1', 'L2', 'L3', 'L4', 'L5'];
     const isGasFull = game.gas >= game.maxGas;
     const fillRatio = isGasFull ? 1 : Math.min(1, game.gasTimer / Math.max(0.1, effInterval));
@@ -731,8 +1011,20 @@ export function updateHUD() {
     const upgLockEl = document.getElementById('upgrade-lock-cost');
     if (upgLockEl) upgLockEl.textContent = isMaxGas ? 'MAX' : String(upgCfg.cost);
 
+    // Thanh Kinh Nghiệm Cấp Độ Trận (BATTLE LV)
     const battleLvEl = document.getElementById('battle-lv-label');
-    if (battleLvEl) battleLvEl.textContent = `WAVE ${game.wave}`;
+    if (battleLvEl) battleLvEl.textContent = `BATTLE LV.${game.battleLv}`;
+
+    const battleExpEl = document.getElementById('battle-exp-label');
+    if (battleExpEl) {
+        battleExpEl.textContent = `${game.battleExp}/${game.battleNextExp} EXP`;
+    }
+
+    const expFillEl = document.getElementById('battle-exp-fill');
+    if (expFillEl) {
+        const pct = Math.min(100, Math.round((game.battleExp / Math.max(1, game.battleNextExp)) * 100));
+        expFillEl.style.width = `${pct}%`;
+    }
 
     const waveCounterEl = document.getElementById('hud-wave-counter');
     if (waveCounterEl) {
@@ -742,38 +1034,35 @@ export function updateHUD() {
                 : (game.battleMode === 'raid_boss' ? 'BOSS' : `${game.wave}/${game.maxWaves}`);
     }
 
-    const expFillEl = document.getElementById('battle-exp-fill');
-    if (expFillEl) {
-        const pct = Math.min(100, Math.round((game.waveTimer / Math.max(1, game.waveDuration)) * 100));
-        expFillEl.style.width = `${pct}%`;
-    }
+    updateBaseHpHUD();
 }
 
 function spawnEnemyWaveSquad() {
     const mapCfg = LEVELS[game.currentLevel - 1] || LEVELS[0];
     const landPool = ['infantry', 'bazooka', 'sniper', 'humvee', 'apc', 'tank', 'cleric'];
-    if (game.wave >= 2 || game.currentLevel >= 4) {
+    if (game.wave >= 2 || game.currentLevel >= 2) {
         landPool.push('pyromancer', 'cryomancer');
     }
-    if (game.wave >= 4 || game.currentLevel >= 5) {
+    if (game.wave >= 3 || game.currentLevel >= 3) {
         landPool.push('heavy_tank', 'necromancer', 'mecha_paladin');
     }
-    if (game.wave >= 5 || game.currentLevel >= 8) {
+    if (game.wave >= 4 || game.currentLevel >= 5) {
         landPool.push('railgun_walker');
     }
-    if (game.wave >= 3 || game.currentLevel >= 3) {
+    if (game.wave >= 2 || game.currentLevel >= 2) {
         landPool.push('heli');
     }
 
     const navalPool = ['patrol_boat', 'destroyer'];
-    if (game.wave >= 5) navalPool.push('battleship');
+    if (game.wave >= 4) navalPool.push('battleship');
 
-    const count = 1 + Math.floor(game.wave / 3);
+    // Đội hình địch đông đảo và hung hãn hơn
+    const count = 2 + Math.floor(game.wave / 2);
     for (let i = 0; i < count; i++) {
-        const useNaval = mapCfg.hasWater && Math.random() < 0.32;
+        const useNaval = mapCfg.hasWater && Math.random() < 0.34;
         const pool = useNaval ? navalPool : landPool;
         const uId = pool[Math.floor(Math.random() * pool.length)];
-        const rx = 68 + Math.random() * (LOGICAL_WIDTH - 136);
+        const rx = 64 + Math.random() * (LOGICAL_WIDTH - 128);
         spawnUnit('red', uId, rx, 122);
     }
 
@@ -783,11 +1072,72 @@ function spawnEnemyWaveSquad() {
         if (bossUnit) {
             bossUnit.isBossUnit = true;
             bossUnit.radius = 23;
-            bossUnit.hp = Math.round(bossUnit.hp * 2.8);
+            bossUnit.hp = Math.round(bossUnit.hp * 3.1);
             bossUnit.maxHp = bossUnit.hp;
-            bossUnit.spec.damage = Math.round(bossUnit.spec.damage * 1.45);
+            bossUnit.spec.damage = Math.round(bossUnit.spec.damage * 1.55);
             showBossWarningBanner(`BOSS WAVE ${game.wave}!`, `${bossUnit.spec.name} chỉ huy đã xuất kích!`);
         }
+    }
+}
+
+function getZombiePoolForWave(w) {
+    if (w <= 2) return ['zombie_walker', 'zombie_runner'];
+    if (w <= 4) return ['zombie_walker', 'zombie_runner', 'zombie_bunny_rider', 'zombie_spitter'];
+    if (w <= 6) return ['zombie_walker', 'zombie_runner', 'zombie_bunny_rider', 'zombie_spitter', 'zombie_riot', 'zombie_bomber'];
+    if (w <= 10) return ['zombie_runner', 'zombie_bunny_rider', 'zombie_horse_knight', 'zombie_spitter', 'zombie_riot', 'zombie_bomber', 'zombie_necromancer'];
+    if (w <= 13) return ['zombie_horse_knight', 'zombie_tiger_lord', 'zombie_spitter', 'zombie_bomber', 'zombie_necromancer', 'zombie_cyborg'];
+    return ['zombie_horse_knight', 'zombie_tiger_lord', 'zombie_bomber', 'zombie_necromancer', 'zombie_cyborg', 'zombie_mecha'];
+}
+
+function updateChallengeZombieWaves(dt) {
+    const w = game.wave;
+    const isBossWave = w === 7 || w === 14 || w === 20;
+
+    // Sinh Boss duy nhất 1 lần ở đầu Wave 7, Wave 14 và Wave 20
+    if (isBossWave && game.challengeWaveSpawnedCount === 0) {
+        const bossId = w === 7 ? 'boss_butcher' : (w === 14 ? 'boss_chimera' : 'boss_omega_tyrant');
+        const bossEntity = spawnZombie(bossId, LOGICAL_WIDTH / 2, 42);
+        game.challengeWaveSpawnedCount++;
+        sfx.play('roar');
+        showBossWarningBanner(
+            `☠️ BOSS WAVE ${w}: ${bossEntity.spec.name.toUpperCase()}!`,
+            bossEntity.spec.desc
+        );
+    }
+
+    if (game.challengeWaveSpawnedCount < game.challengeWaveTotalToSpawn) {
+        game.enemySpawnTimer -= dt;
+        if (game.enemySpawnTimer <= 0) {
+            const zPool = getZombiePoolForWave(w);
+            const batch = w >= 12 ? 2 : 1;
+            for (let b = 0; b < batch; b++) {
+                if (game.challengeWaveSpawnedCount >= game.challengeWaveTotalToSpawn) break;
+                const zId = zPool[(Math.random() * zPool.length) | 0];
+                const col = (Math.random() * TD_GRID_COLS) | 0;
+                const sx = col * TD_CELL_SIZE + TD_CELL_SIZE / 2;
+                spawnZombie(zId, sx, 38 + Math.random() * 14);
+                game.challengeWaveSpawnedCount++;
+            }
+            game.enemySpawnTimer = Math.max(0.85, 2.35 - w * 0.065);
+        }
+    }
+
+    const zombiesRemaining = game.units.some(u => u.team === 'red' && !u.dead);
+
+    if (w >= CHALLENGE_MAX_WAVES && game.challengeWaveSpawnedCount >= game.challengeWaveTotalToSpawn && !zombiesRemaining) {
+        endGame(true);
+        return;
+    }
+
+    game.waveTimer += dt;
+    const waveClearedEarly = game.challengeWaveSpawnedCount >= game.challengeWaveTotalToSpawn && !zombiesRemaining;
+    if ((waveClearedEarly || game.waveTimer >= game.waveDuration) && w < CHALLENGE_MAX_WAVES) {
+        game.wave++;
+        game.waveTimer = 0;
+        game.challengeWaveSpawnedCount = 0;
+        game.challengeWaveTotalToSpawn = 6 + game.wave * 2;
+        game.enemySpawnTimer = 0.6;
+        spawnFloatingText(LOGICAL_WIDTH / 2, 96, `☠️ WAVE ${game.wave} / ${CHALLENGE_MAX_WAVES}!`, '#fb7185', 15);
     }
 }
 
@@ -801,7 +1151,8 @@ export function update(dt) {
     if (game.playerBase.hitFlash > 0) game.playerBase.hitFlash = Math.max(0, game.playerBase.hitFlash - dt);
     if (game.enemyBase.hitFlash > 0) game.enemyBase.hitFlash = Math.max(0, game.enemyBase.hitFlash - dt);
 
-    for (let i = 0; i < 5; i++) {
+    const maxDeckCount = game.battleMode === 'challenge' ? CHALLENGE_DECK_SLOTS : 5;
+    for (let i = 0; i < maxDeckCount; i++) {
         if (game.deckCooldowns[i] > 0) {
             game.deckCooldowns[i] = Math.max(0, game.deckCooldowns[i] - dt);
         }
@@ -831,11 +1182,13 @@ export function update(dt) {
         game.gasTimer = 0;
     }
 
-    // 2 Phe giao tranh: Nếu ở Map 45 (Abyss Gate) thì tốc độ sinh quân địch cũng hưởng +15% nhịp độ
     const mapCfg = getActiveMapConfig();
     const enemyGasMult = mapCfg?.gasRateMult ? (1 + (mapCfg.gasRateMult - 1) * 0.5) : 1.0;
 
-    if (game.battleMode !== 'auto_battler' && game.battleMode !== 'raid_boss') {
+    if (game.battleMode === 'challenge') {
+        updateChallengeZombieWaves(dt);
+        if (game.gameOver) return;
+    } else if (game.battleMode !== 'auto_battler' && game.battleMode !== 'raid_boss') {
         game.waveTimer += dt;
         if (game.waveTimer >= game.waveDuration) {
             game.waveTimer = 0;
@@ -856,8 +1209,8 @@ export function update(dt) {
         game.enemySpawnTimer -= dt * enemyGasMult;
         if (game.enemySpawnTimer <= 0) {
             spawnEnemyWaveSquad();
-            const diffSpeed = game.difficulty === 'difficult' ? 0.78 : 1.0;
-            game.enemySpawnTimer = Math.max(2.6, (7.2 - game.wave * 0.25) * diffSpeed);
+            const diffSpeed = game.difficulty === 'difficult' ? 0.72 : 0.90;
+            game.enemySpawnTimer = Math.max(2.3, (6.4 - game.wave * 0.24) * diffSpeed);
         }
     }
 
@@ -901,7 +1254,7 @@ export function update(dt) {
                         u.takeDamage(strike.damage, null, true, false);
                     }
                 }
-                if (strike.team === 'blue') {
+                if (strike.team === 'blue' && game.battleMode !== 'challenge') {
                     if (Math.hypot(game.enemyBase.x - dx, game.enemyBase.y - strike.y) <= 68) {
                         damageBase(game.enemyBase, strike.damage * 0.75);
                     }
@@ -979,8 +1332,86 @@ export function update(dt) {
 }
 
 // ============================================================================
-// 7. VẼ CHIẾN TRƯỜNG (DRAW) KÈM Ụ PHÁO PHÒNG THỦ & THANH HP CĂN CỨ
+// 7. VẼ CHIẾN TRƯỜNG (DRAW): LƯỚI 7 CỘT CHALLENGE, DRAG-DROP PREVIEW & HP 2 PHE
 // ============================================================================
+function drawChallengeTowerDefenseGrid(ctx) {
+    if (game.battleMode !== 'challenge') return;
+
+    ctx.save();
+    for (let r = 0; r < TD_GRID_ROWS; r++) {
+        for (let c = 0; c < TD_GRID_COLS; c++) {
+            const x = c * TD_CELL_SIZE;
+            const y = TD_GRID_TOP_Y + r * TD_CELL_SIZE;
+            const idx = r * TD_GRID_COLS + c;
+            const occ = game.tdGrid[idx];
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.24)';
+            ctx.lineWidth = 1.2;
+            ctx.strokeRect(x + 1, y + 1, TD_CELL_SIZE - 2, TD_CELL_SIZE - 2);
+
+            if (occ && !occ.dead) {
+                ctx.fillStyle = 'rgba(56, 189, 248, 0.14)';
+                ctx.fillRect(x + 2, y + 2, TD_CELL_SIZE - 4, TD_CELL_SIZE - 4);
+            }
+        }
+    }
+    ctx.restore();
+}
+
+function drawDragDeployOverlay(ctx) {
+    if (!game.dragDeploy.active || !game.dragDeploy.unitId) return;
+
+    const spec = getEffectiveUnitStats(game.dragDeploy.unitId, 'blue');
+    const px = game.dragDeploy.x;
+    const py = game.dragDeploy.y;
+    const isValid = game.dragDeploy.isValid;
+
+    ctx.save();
+
+    if (game.battleMode === 'challenge') {
+        // Highlight ô vuông đang trỏ tới trên lưới 7 cột
+        if (game.dragDeploy.gridCol >= 0 && game.dragDeploy.gridRow >= 0) {
+            const cx = game.dragDeploy.gridCol * TD_CELL_SIZE;
+            const cy = TD_GRID_TOP_Y + game.dragDeploy.gridRow * TD_CELL_SIZE;
+            ctx.fillStyle = isValid ? 'rgba(74, 222, 128, 0.35)' : 'rgba(239, 68, 68, 0.38)';
+            ctx.strokeStyle = isValid ? '#4ade80' : '#ef4444';
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(cx + 2, cy + 2, TD_CELL_SIZE - 4, TD_CELL_SIZE - 4);
+            ctx.strokeRect(cx + 2, cy + 2, TD_CELL_SIZE - 4, TD_CELL_SIZE - 4);
+        }
+    } else {
+        // Vẽ vùng đất/nước được phép thả quân quanh nhà (nửa sân dưới)
+        const zoneTop = PLAYFIELD_HEIGHT * 0.48;
+        const zoneH = PLAYFIELD_HEIGHT - 95 - zoneTop;
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+        ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 6]);
+        ctx.fillRect(24, zoneTop, LOGICAL_WIDTH - 48, zoneH);
+        ctx.strokeRect(24, zoneTop, LOGICAL_WIDTH - 48, zoneH);
+        ctx.setLineDash([]);
+    }
+
+    // Vẽ vòng tầm bắn tại điểm thả
+    ctx.strokeStyle = isValid ? 'rgba(74, 222, 128, 0.85)' : 'rgba(239, 68, 68, 0.85)';
+    ctx.fillStyle = isValid ? 'rgba(74, 222, 128, 0.14)' : 'rgba(239, 68, 68, 0.16)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(px, py, spec.range, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Vẽ bóng nhân vật xem trước
+    ctx.globalAlpha = 0.85;
+    if (isCustomArtUnit(spec.id)) {
+        drawCustomUnitArt(ctx, spec.id, px, py, 38, 'blue', game.timeSec, 0);
+    } else if (atlas.ready) {
+        atlas.draw(ctx, spec.spriteCol ?? 16, 7, px, py, 38, 38);
+    }
+
+    ctx.restore();
+}
+
 function drawBaseBuilding(ctx, baseObj, isBlue) {
     ctx.save();
     ctx.translate(baseObj.x, baseObj.y);
@@ -1010,26 +1441,38 @@ function drawBaseBuilding(ctx, baseObj, isBlue) {
     }
 
     if (baseObj.hitFlash > 0) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
         ctx.beginPath();
         ctx.roundRect(-42, -22, 84, 44, 10);
         ctx.fill();
     }
 
-    // Vẽ Ụ Pháo Phòng Thủ tự động trên nóc Căn Cứ Xanh
     if (isBlue) {
         const turretType = metaState?.baseTurret?.type || 'gatling';
         drawBaseTurretArt(ctx, turretType, 0, -4, baseObj.turretAngle ?? -Math.PI / 2, game.timeSec);
     }
 
-    // Thanh máu căn cứ hiển thị trực tiếp trên bản đồ
-    const bw = 76;
-    const bh = 6;
-    const by = isBlue ? 25 : -31;
+    // Thanh máu lớn + Con số HP chính xác ngay trên 2 Căn Cứ
+    const curHp = Math.max(0, Math.ceil(baseObj.hp));
+    const maxHp = Math.max(1, Math.ceil(baseObj.maxHp));
+    const ratio = curHp / maxHp;
+
+    const bw = 96;
+    const bh = 11;
+    const by = isBlue ? 24 : -35;
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(-bw / 2 - 1, by - 1, bw + 2, bh + 2);
-    ctx.fillStyle = isBlue ? '#22c55e' : '#ef4444';
-    ctx.fillRect(-bw / 2, by, bw * Math.max(0, baseObj.hp / Math.max(1, baseObj.maxHp)), bh);
+    ctx.fillRect(-bw / 2 - 1.5, by - 1.5, bw + 3, bh + 3);
+    ctx.fillStyle = ratio > 0.6 ? '#22c55e' : (ratio > 0.3 ? '#facc15' : '#ef4444');
+    ctx.fillRect(-bw / 2, by, bw * Math.max(0, ratio), bh);
+
+    ctx.font = '900 9.5px "Chakra Petch", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.4;
+    const hpLabel = `${curHp}/${maxHp}`;
+    ctx.strokeText(hpLabel, 0, by + 9);
+    ctx.fillText(hpLabel, 0, by + 9);
 
     ctx.restore();
 }
@@ -1053,6 +1496,7 @@ export function draw() {
     }
 
     drawDynamicSineWater(ctx, game.timeSec, game.currentLevel);
+    drawChallengeTowerDefenseGrid(ctx);
 
     for (const tr of game.tireTracks) {
         ctx.save();
@@ -1094,7 +1538,7 @@ export function draw() {
     drawBaseBuilding(ctx, game.playerBase, true);
     if (game.battleMode === 'raid_boss') {
         drawRaidBoss(ctx);
-    } else {
+    } else if (game.battleMode !== 'challenge') {
         drawBaseBuilding(ctx, game.enemyBase, false);
     }
 
@@ -1195,6 +1639,7 @@ export function draw() {
         ctx.restore();
     }
 
+    drawDragDeployOverlay(ctx);
     renderFogOfWarOverlay(ctx);
 
     for (const ft of game.floatingTexts) {
@@ -1239,21 +1684,27 @@ function mainGameLoop(now) {
 }
 
 // ============================================================================
-// 9. ĐIỀU HƯỚNG SẢNH / TRẬN & GẮN SỰ KIỆN DOM (ĐỒNG BỘ ID HTML)
+// 9. ĐIỀU HƯỚNG SẢNH / TRẬN & GẮN SỰ KIỆN DOM (BAO GỒM DRAG & DROP DEPLOY)
 // ============================================================================
 export function openLobbyScreen(tab = 'battle') {
+    const wasChallenge = game.battleMode === 'challenge';
     game.running = false;
     game.paused = true;
+    game.dragDeploy.active = false;
+    pointerDragTracker.tracking = false;
+
     document.getElementById('win-panel')?.classList.remove('active');
     document.getElementById('lose-panel')?.classList.remove('active');
     document.getElementById('draft-modal')?.classList.remove('active');
 
     const lobbyEl = document.getElementById('lobby-wrapper');
     if (lobbyEl) lobbyEl.classList.add('active');
-    switchLobbyTab(tab);
+    switchLobbyTab(wasChallenge ? 'challenge' : tab);
     updateTopBarUI();
     renderStageScreenUI();
     renderArmyTabUI();
+    renderChallengeRoadmapUI();
+    renderSkillTreeTabUI();
 }
 
 export function restartGame() {
@@ -1312,17 +1763,91 @@ function bindInGameDOMEvents() {
     document.getElementById('btn-ab-fight')?.addEventListener('click', startAutoBattlerCombat);
     document.getElementById('btn-ab-clear')?.addEventListener('click', clearAutoBattlerFormation);
 
-    // Sửa lỗi #3: Chạm vào quân Xanh đã đặt để thu hồi 100% Xăng hoặc đặt đúng loại quân đang chọn ở Ô 1–4
+    // Xử lý Kéo - Thả (Drag & Drop) toàn cục để đặt quân quanh nhà hoặc đặt Tower vào lưới 7 cột
+    window.addEventListener('pointermove', (e) => {
+        if (!pointerDragTracker.tracking || !game.running || game.paused || game.gameOver) return;
+        const distMoved = Math.hypot(e.clientX - pointerDragTracker.startX, e.clientY - pointerDragTracker.startY);
+        if (distMoved > 10) {
+            pointerDragTracker.didDrag = true;
+            game.dragDeploy.active = true;
+            game.dragDeploy.slotIdx = pointerDragTracker.slotIdx;
+            game.dragDeploy.unitId = pointerDragTracker.unitId;
+
+            const pt = clientToLogicalCoords(e.clientX, e.clientY);
+            const spec = getEffectiveUnitStats(pointerDragTracker.unitId, 'blue');
+
+            if (game.battleMode === 'challenge') {
+                const cell = getTdGridCellFromPixel(pt.x, pt.y);
+                if (cell) {
+                    const center = getTdCellCenterPixel(cell.col, cell.row);
+                    game.dragDeploy.x = center.x;
+                    game.dragDeploy.y = center.y;
+                    game.dragDeploy.gridCol = cell.col;
+                    game.dragDeploy.gridRow = cell.row;
+                    game.dragDeploy.isValid = canPlaceTowerAtCell(spec, cell.col, cell.row);
+                } else {
+                    game.dragDeploy.x = pt.x;
+                    game.dragDeploy.y = pt.y;
+                    game.dragDeploy.gridCol = -1;
+                    game.dragDeploy.gridRow = -1;
+                    game.dragDeploy.isValid = false;
+                }
+            } else {
+                game.dragDeploy.x = pt.x;
+                game.dragDeploy.y = pt.y;
+                game.dragDeploy.isValid = nav.isValidBattleDeployPoint(spec, pt.x, pt.y);
+            }
+        }
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (!pointerDragTracker.tracking) return;
+        const wasDragging = game.dragDeploy.active;
+        const slotIdx = pointerDragTracker.slotIdx;
+        const unitId = pointerDragTracker.unitId;
+        const dropX = game.dragDeploy.x;
+        const dropY = game.dragDeploy.y;
+        const isValid = game.dragDeploy.isValid;
+        const gCol = game.dragDeploy.gridCol;
+        const gRow = game.dragDeploy.gridRow;
+
+        pointerDragTracker.tracking = false;
+        game.dragDeploy.active = false;
+
+        if (wasDragging && game.running && !game.paused && !game.gameOver) {
+            const spec = getEffectiveUnitStats(unitId, 'blue');
+            if (isValid && spec && game.gas >= spec.cost && game.deckCooldowns[slotIdx] <= 0) {
+                game.gas -= spec.cost;
+                game.deckCooldowns[slotIdx] = spec.cooldown;
+                game.deckMaxCooldowns[slotIdx] = spec.cooldown;
+                sfx.play('spawn');
+                triggerHaptic(18);
+
+                if (game.battleMode === 'challenge') {
+                    placeTowerInChallengeGrid(unitId, gCol, gRow);
+                } else {
+                    const exactPt = nav.findValidSpawnPoint('blue', spec, dropX, dropY, true);
+                    spawnUnit('blue', unitId, exactPt.x, exactPt.y);
+                }
+                updateActiveSynergies();
+                updateDeckButtonsUI();
+                updateHUD();
+            } else if (!isValid) {
+                sfx.play('cannon');
+                spawnFloatingText(dropX, dropY, '⚠️ VỊ TRÍ ĐẶT KHÔNG HỢP LỆ!', '#fb7185', 12);
+            }
+        }
+    });
+
+    // Chạm trên Canvas (Auto-Battler thu hồi / đặt trận hoặc chạm ô lưới Challenge)
     if (canvas) {
         canvas.addEventListener('pointerdown', (e) => {
             if (!game.running || game.paused || game.gameOver) return;
             if (game.battleMode !== 'auto_battler' || game.autoBattlerPhase !== 'prep') return;
 
-            const rect = canvas.getBoundingClientRect();
-            const lx = ((e.clientX - rect.left) / Math.max(1, rect.width)) * LOGICAL_WIDTH;
-            const ly = ((e.clientY - rect.top) / Math.max(1, rect.height)) * LOGICAL_HEIGHT;
+            const { x: lx, y: ly } = clientToLogicalCoords(e.clientX, e.clientY);
 
-            // 1. Kiểm tra nếu người chơi chạm trực tiếp vào 1 đơn vị Xanh đã đặt trên sân -> Thu hồi & hoàn 100% Xăng
+            // Thu hồi quân Xanh đã đặt trên sân Auto-Battler
             for (let i = game.units.length - 1; i >= 0; i--) {
                 const u = game.units[i];
                 if (u.team === 'blue' && !u.dead) {
@@ -1343,7 +1868,6 @@ function bindInGameDOMEvents() {
                 }
             }
 
-            // 2. Nếu không chạm trúng lính cũ -> Kiểm tra vùng đặt quân hợp lệ ở nửa sân dưới
             if (ly < PLAYFIELD_HEIGHT * 0.45 || ly > PLAYFIELD_HEIGHT - 95) {
                 sfx.play('cannon');
                 spawnFloatingText(lx, ly, '⚠️ CHỈ ĐẶT QUÂN Ở NỬA SÂN DƯỚI!', '#fb7185', 12);
@@ -1351,7 +1875,7 @@ function bindInGameDOMEvents() {
             }
 
             const slotIdx = Math.max(0, Math.min(3, Number(game.autoSelectedSlotIdx) || 0));
-            const uId = game.deckIds[slotIdx] || game.autoSelectedUnitId || 'infantry';
+            const uId = game.deckIds[slotIdx] || game.autoSelectedUnitId || PRIMARY_INFANTRY_ID;
             const spec = getEffectiveUnitStats(uId, 'blue');
             if (game.gas < spec.cost) {
                 sfx.play('cannon');
@@ -1376,6 +1900,7 @@ function bindInGameDOMEvents() {
         else if (k === '3') triggerDeckSlot(2);
         else if (k === '4') triggerDeckSlot(3);
         else if (k === '5') triggerDeckSlot(4);
+        else if (k === '6') triggerDeckSlot(5);
         else if (k === 'q') triggerCommanderSkill('airdrop');
         else if (k === 'w') triggerCommanderSkill('minefield');
         else if (k === 'e') triggerCommanderSkill('emp_blast');

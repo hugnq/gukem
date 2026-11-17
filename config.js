@@ -1,22 +1,23 @@
 /* ============================================================================
    TINY BATTLE - CORE CONFIGURATION & CATALOGS (js/config.js)
    Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100%)
-   Quy mô: 45 Bản Đồ • 17 Binh Chủng • 41 Bậc Độ Hiếm • 1 Tỷ Rương O(1)
+   Quy mô: 45 Maps • 17 Binh Chủng • 14 Zombie & Boss • 41 Rarity • Cây Cổ Thụ
    ============================================================================ */
 
 export const STORAGE_KEY = 'tiny_battle_meta_save_v3';
 export const META_SAVE_KEY = STORAGE_KEY;
 export const ADMIN_PASSWORD = 'HUNGADMINDZ';
 
-/* 0. HẰNG SỐ ĐỘNG CƠ CANVAS, LƯỚI ĐỊA HÌNH FLOW-FIELD, TỐC ĐỘ TRẬN & NÂNG CẤP XĂNG */
+/* 0. HẰNG SỐ ĐỘNG CƠ CANVAS, LƯỚI ĐỊA HÌNH FLOW-FIELD, LƯỚI TD 7 CỘT & NÂNG CẤP XĂNG */
 export const LOGICAL_WIDTH = 420;
 export const LOGICAL_HEIGHT = 840;
 export const BOTTOM_UI_HEIGHT = 126;
 export const PLAYFIELD_HEIGHT = LOGICAL_HEIGHT - BOTTOM_UI_HEIGHT; // 714px
 export const MAX_DECK_SLOTS = 5;
-export const MAX_CUSTOM_UNIT_SLOTS = 4; // 4 Ô quân tự chọn + Ô 5 cố định là Airstrike
+export const MAX_CUSTOM_UNIT_SLOTS = 4;
 export const MAX_WAVES = 10;
 
+// Lưới điều hướng Flow-Field 10x10px
 export const NAV_CELL = 10;
 export const GRID_W = Math.floor(LOGICAL_WIDTH / NAV_CELL);     // 42 cột
 export const GRID_H = Math.floor(PLAYFIELD_HEIGHT / NAV_CELL);  // 71 hàng
@@ -26,6 +27,15 @@ export const T_ROAD = 1;
 export const T_WATER = 2;
 export const T_BRIDGE = 3;
 export const T_OBSTACLE = 4;
+
+// Hằng số chế độ CHALLENGE (Tower Defense 20 Wave Zombie - Lưới ô vuông 7 cột x 9 hàng)
+export const CHALLENGE_MAX_WAVES = 20;
+export const CHALLENGE_DECK_SLOTS = 6;
+export const CHALLENGE_COOLDOWN_MULT = 3.0; // Tăng hồi chiêu đặt Tower gấp 3.0 lần (Hardcore)
+export const TD_GRID_COLS = 7;
+export const TD_CELL_SIZE = 60;             // 420px / 7 cột = 60x60px mỗi ô vuông
+export const TD_GRID_TOP_Y = 72;            // Vùng trên 0..72px dành cho Zombie xuất quân
+export const TD_GRID_ROWS = 9;              // 9 hàng * 60px = 540px (y: 72 -> 612px, đáy 612..714px là Căn Cứ Xanh)
 
 export const BATTLE_SPEED_MULTIPLIERS = [1, 2, 4];
 
@@ -37,69 +47,66 @@ export const GAS_UPGRADE_LEVELS = [
     { interval: 1.1, cost: 0,  label: 'MAX' }
 ];
 
-/* 1. HỆ THỐNG 41 BẬC ĐỘ HIẾM (RANK 0 ➔ 40: COMMON ➔ SECRET +5 ➔ MASTER +8 ➔ DEMON +10) */
+/* 1. HỆ THỐNG 41 BẬC ĐỘ HIẾM ĐÃ CÂN BẰNG LẠI (COMMON 1.0x ➔ MASTER +8 120x ➔ DEMON +10 777x) */
 export const RARITY_ORDER = [
-    // Bậc cơ bản ➔ Secret +5 (Rank 0 ➔ 20)
     'common', 'uncommon', 'rare',
     'epic', 'epic1', 'epic2',
     'legendary', 'legendary1', 'legendary2', 'legendary3',
     'mythic', 'mythic1', 'mythic2', 'mythic3', 'mythic4',
     'secret', 'secret1', 'secret2', 'secret3', 'secret4', 'secret5',
-    // Chuỗi 9 bậc MASTER (Rank 21 ➔ 29)
     'master', 'master1', 'master2', 'master3', 'master4', 'master5', 'master6', 'master7', 'master8',
-    // Chuỗi 11 bậc DEMON (Rank 30 ➔ 40)
     'demon', 'demon1', 'demon2', 'demon3', 'demon4', 'demon5', 'demon6', 'demon7', 'demon8', 'demon9', 'demon10'
 ];
 
 export const MAX_RARITY_RANK = RARITY_ORDER.length - 1; // Rank 40 (demon10)
 
 export const RARITY_CONFIG = {
-    // --- BẬC 0 ➔ 20: COMMON ĐẾN SECRET +5 (secret5 có next: 'master') ---
-    common:     { id: 'common',     rank: 0,  next: 'uncommon',   plusLabel: '',   name: 'Common',       mult: 1.00,   statMult: 1.00,   color: '#94a3b8', glowColor: '#cbd5e1', auraType: 'none',        css: 'rarity-common',     cssClass: 'rarity-common' },
-    uncommon:   { id: 'uncommon',   rank: 1,  next: 'rare',       plusLabel: '',   name: 'Uncommon',     mult: 1.25,   statMult: 1.25,   color: '#4ade80', glowColor: '#86efac', auraType: 'none',        css: 'rarity-uncommon',   cssClass: 'rarity-uncommon' },
-    rare:       { id: 'rare',       rank: 2,  next: 'epic',       plusLabel: '',   name: 'Rare',         mult: 1.55,   statMult: 1.55,   color: '#60a5fa', glowColor: '#93c5fd', auraType: 'none',        css: 'rarity-rare',       cssClass: 'rarity-rare' },
-    epic:       { id: 'epic',       rank: 3,  next: 'epic1',      plusLabel: '',   name: 'Epic',         mult: 1.90,   statMult: 1.90,   color: '#c084fc', glowColor: '#d8b4fe', auraType: 'none',        css: 'rarity-epic',       cssClass: 'rarity-epic' },
-    epic1:      { id: 'epic1',      rank: 4,  next: 'epic2',      plusLabel: '+1', name: 'Epic +1',      mult: 2.30,   statMult: 2.30,   color: '#d8b4fe', glowColor: '#e9d5ff', auraType: 'none',        css: 'rarity-epic1',      cssClass: 'rarity-epic1' },
-    epic2:      { id: 'epic2',      rank: 5,  next: 'legendary',  plusLabel: '+2', name: 'Epic +2',      mult: 2.75,   statMult: 2.75,   color: '#e879f9', glowColor: '#f5d0fe', auraType: 'none',        css: 'rarity-epic2',      cssClass: 'rarity-epic2' },
-    legendary:  { id: 'legendary',  rank: 6,  next: 'legendary1', plusLabel: '',   name: 'Legendary',    mult: 3.40,   statMult: 3.40,   color: '#f59e0b', glowColor: '#fcd34d', auraType: 'gold',        css: 'rarity-legendary',  cssClass: 'rarity-legendary' },
-    legendary1: { id: 'legendary1', rank: 7,  next: 'legendary2', plusLabel: '+1', name: 'Legendary +1', mult: 4.20,   statMult: 4.20,   color: '#fbbf24', glowColor: '#fde047', auraType: 'gold',        css: 'rarity-legendary1', cssClass: 'rarity-legendary1' },
-    legendary2: { id: 'legendary2', rank: 8,  next: 'legendary3', plusLabel: '+2', name: 'Legendary +2', mult: 5.20,   statMult: 5.20,   color: '#facc15', glowColor: '#fef08a', auraType: 'gold',        css: 'rarity-legendary2', cssClass: 'rarity-legendary2' },
-    legendary3: { id: 'legendary3', rank: 9,  next: 'mythic',     plusLabel: '+3', name: 'Legendary +3', mult: 6.40,   statMult: 6.40,   color: '#fde047', glowColor: '#fef9c3', auraType: 'gold',        css: 'rarity-legendary3', cssClass: 'rarity-legendary3' },
-    mythic:     { id: 'mythic',     rank: 10, next: 'mythic1',    plusLabel: '',   name: 'Mythic',       mult: 8.00,   statMult: 8.00,   color: '#fb7185', glowColor: '#fda4af', auraType: 'crimson',     css: 'rarity-mythic',     cssClass: 'rarity-mythic' },
-    mythic1:    { id: 'mythic1',    rank: 11, next: 'mythic2',    plusLabel: '+1', name: 'Mythic +1',    mult: 10.0,   statMult: 10.0,   color: '#f43f5e', glowColor: '#fb7185', auraType: 'crimson',     css: 'rarity-mythic1',    cssClass: 'rarity-mythic1' },
-    mythic2:    { id: 'mythic2',    rank: 12, next: 'mythic3',    plusLabel: '+2', name: 'Mythic +2',    mult: 12.5,   statMult: 12.5,   color: '#ef4444', glowColor: '#f87171', auraType: 'crimson',     css: 'rarity-mythic2',    cssClass: 'rarity-mythic2' },
-    mythic3:    { id: 'mythic3',    rank: 13, next: 'mythic4',    plusLabel: '+3', name: 'Mythic +3',    mult: 15.5,   statMult: 15.5,   color: '#dc2626', glowColor: '#ef4444', auraType: 'crimson',     css: 'rarity-mythic3',    cssClass: 'rarity-mythic3' },
-    mythic4:    { id: 'mythic4',    rank: 14, next: 'secret',     plusLabel: '+4', name: 'Mythic +4',    mult: 19.0,   statMult: 19.0,   color: '#b91c1c', glowColor: '#f97316', auraType: 'crimson',     css: 'rarity-mythic4',    cssClass: 'rarity-mythic4' },
-    secret:     { id: 'secret',     rank: 15, next: 'secret1',    plusLabel: '',   name: 'Secret',       mult: 24.0,   statMult: 24.0,   color: '#18181b', glowColor: '#71717a', auraType: 'dark_void',   css: 'rarity-secret',     cssClass: 'rarity-secret' },
-    secret1:    { id: 'secret1',    rank: 16, next: 'secret2',    plusLabel: '+1', name: 'Secret +1',    mult: 30.0,   statMult: 30.0,   color: '#18181b', glowColor: '#a1a1aa', auraType: 'dark_void',   css: 'rarity-secret1',    cssClass: 'rarity-secret1' },
-    secret2:    { id: 'secret2',    rank: 17, next: 'secret3',    plusLabel: '+2', name: 'Secret +2',    mult: 38.0,   statMult: 38.0,   color: '#09090b', glowColor: '#cbd5e1', auraType: 'dark_void',   css: 'rarity-secret2',    cssClass: 'rarity-secret2' },
-    secret3:    { id: 'secret3',    rank: 18, next: 'secret4',    plusLabel: '+3', name: 'Secret +3',    mult: 48.0,   statMult: 48.0,   color: '#09090b', glowColor: '#e2e8f0', auraType: 'dark_void',   css: 'rarity-secret3',    cssClass: 'rarity-secret3' },
-    secret4:    { id: 'secret4',    rank: 19, next: 'secret5',    plusLabel: '+4', name: 'Secret +4',    mult: 60.0,   statMult: 60.0,   color: '#000000', glowColor: '#f1f5f9', auraType: 'dark_void',   css: 'rarity-secret4',    cssClass: 'rarity-secret4' },
-    secret5:    { id: 'secret5',    rank: 20, next: 'master',     plusLabel: '+5', name: 'Secret +5',    mult: 75.0,   statMult: 75.0,   color: '#000000', glowColor: '#ffffff', auraType: 'dark_void',   css: 'rarity-secret5',    cssClass: 'rarity-secret5' },
+    // --- BẬC 0 ➔ 20: COMMON ĐẾN SECRET +5 ---
+    common:     { id: 'common',     rank: 0,  next: 'uncommon',   plusLabel: '',   name: 'Common',       mult: 1.00,  statMult: 1.00,  color: '#94a3b8', glowColor: '#cbd5e1', auraType: 'none',        css: 'rarity-common',     cssClass: 'rarity-common' },
+    uncommon:   { id: 'uncommon',   rank: 1,  next: 'rare',       plusLabel: '',   name: 'Uncommon',     mult: 1.20,  statMult: 1.20,  color: '#4ade80', glowColor: '#86efac', auraType: 'none',        css: 'rarity-uncommon',   cssClass: 'rarity-uncommon' },
+    rare:       { id: 'rare',       rank: 2,  next: 'epic',       plusLabel: '',   name: 'Rare',         mult: 1.42,  statMult: 1.42,  color: '#60a5fa', glowColor: '#93c5fd', auraType: 'none',        css: 'rarity-rare',       cssClass: 'rarity-rare' },
+    epic:       { id: 'epic',       rank: 3,  next: 'epic1',      plusLabel: '',   name: 'Epic',         mult: 1.65,  statMult: 1.65,  color: '#c084fc', glowColor: '#d8b4fe', auraType: 'none',        css: 'rarity-epic',       cssClass: 'rarity-epic' },
+    epic1:      { id: 'epic1',      rank: 4,  next: 'epic2',      plusLabel: '+1', name: 'Epic +1',      mult: 1.88,  statMult: 1.88,  color: '#d8b4fe', glowColor: '#e9d5ff', auraType: 'none',        css: 'rarity-epic1',      cssClass: 'rarity-epic1' },
+    epic2:      { id: 'epic2',      rank: 5,  next: 'legendary',  plusLabel: '+2', name: 'Epic +2',      mult: 2.15,  statMult: 2.15,  color: '#e879f9', glowColor: '#f5d0fe', auraType: 'none',        css: 'rarity-epic2',      cssClass: 'rarity-epic2' },
+    legendary:  { id: 'legendary',  rank: 6,  next: 'legendary1', plusLabel: '',   name: 'Legendary',    mult: 2.60,  statMult: 2.60,  color: '#f59e0b', glowColor: '#fcd34d', auraType: 'gold',        css: 'rarity-legendary',  cssClass: 'rarity-legendary' },
+    legendary1: { id: 'legendary1', rank: 7,  next: 'legendary2', plusLabel: '+1', name: 'Legendary +1', mult: 3.05,  statMult: 3.05,  color: '#fbbf24', glowColor: '#fde047', auraType: 'gold',        css: 'rarity-legendary1', cssClass: 'rarity-legendary1' },
+    legendary2: { id: 'legendary2', rank: 8,  next: 'legendary3', plusLabel: '+2', name: 'Legendary +2', mult: 3.55,  statMult: 3.55,  color: '#facc15', glowColor: '#fef08a', auraType: 'gold',        css: 'rarity-legendary2', cssClass: 'rarity-legendary2' },
+    legendary3: { id: 'legendary3', rank: 9,  next: 'mythic',     plusLabel: '+3', name: 'Legendary +3', mult: 4.10,  statMult: 4.10,  color: '#fde047', glowColor: '#fef9c3', auraType: 'gold',        css: 'rarity-legendary3', cssClass: 'rarity-legendary3' },
+    mythic:     { id: 'mythic',     rank: 10, next: 'mythic1',    plusLabel: '',   name: 'Mythic',       mult: 5.00,  statMult: 5.00,  color: '#fb7185', glowColor: '#fda4af', auraType: 'crimson',     css: 'rarity-mythic',     cssClass: 'rarity-mythic' },
+    mythic1:    { id: 'mythic1',    rank: 11, next: 'mythic2',    plusLabel: '+1', name: 'Mythic +1',    mult: 5.90,  statMult: 5.90,  color: '#f43f5e', glowColor: '#fb7185', auraType: 'crimson',     css: 'rarity-mythic1',    cssClass: 'rarity-mythic1' },
+    mythic2:    { id: 'mythic2',    rank: 12, next: 'mythic3',    plusLabel: '+2', name: 'Mythic +2',    mult: 6.90,  statMult: 6.90,  color: '#ef4444', glowColor: '#f87171', auraType: 'crimson',     css: 'rarity-mythic2',    cssClass: 'rarity-mythic2' },
+    mythic3:    { id: 'mythic3',    rank: 13, next: 'mythic4',    plusLabel: '+3', name: 'Mythic +3',    mult: 8.00,  statMult: 8.00,  color: '#dc2626', glowColor: '#ef4444', auraType: 'crimson',     css: 'rarity-mythic3',    cssClass: 'rarity-mythic3' },
+    mythic4:    { id: 'mythic4',    rank: 14, next: 'secret',     plusLabel: '+4', name: 'Mythic +4',    mult: 9.20,  statMult: 9.20,  color: '#b91c1c', glowColor: '#f97316', auraType: 'crimson',     css: 'rarity-mythic4',    cssClass: 'rarity-mythic4' },
+    secret:     { id: 'secret',     rank: 15, next: 'secret1',    plusLabel: '',   name: 'Secret',       mult: 11.50, statMult: 11.50, color: '#18181b', glowColor: '#71717a', auraType: 'dark_void',   css: 'rarity-secret',     cssClass: 'rarity-secret' },
+    secret1:    { id: 'secret1',    rank: 16, next: 'secret2',    plusLabel: '+1', name: 'Secret +1',    mult: 13.80, statMult: 13.80, color: '#18181b', glowColor: '#a1a1aa', auraType: 'dark_void',   css: 'rarity-secret1',    cssClass: 'rarity-secret1' },
+    secret2:    { id: 'secret2',    rank: 17, next: 'secret3',    plusLabel: '+2', name: 'Secret +2',    mult: 16.40, statMult: 16.40, color: '#09090b', glowColor: '#cbd5e1', auraType: 'dark_void',   css: 'rarity-secret2',    cssClass: 'rarity-secret2' },
+    secret3:    { id: 'secret3',    rank: 18, next: 'secret4',    plusLabel: '+3', name: 'Secret +3',    mult: 19.30, statMult: 19.30, color: '#09090b', glowColor: '#e2e8f0', auraType: 'dark_void',   css: 'rarity-secret3',    cssClass: 'rarity-secret3' },
+    secret4:    { id: 'secret4',    rank: 19, next: 'secret5',    plusLabel: '+4', name: 'Secret +4',    mult: 22.50, statMult: 22.50, color: '#000000', glowColor: '#f1f5f9', auraType: 'dark_void',   css: 'rarity-secret4',    cssClass: 'rarity-secret4' },
+    secret5:    { id: 'secret5',    rank: 20, next: 'master',     plusLabel: '+5', name: 'Secret +5',    mult: 26.00, statMult: 26.00, color: '#000000', glowColor: '#ffffff', auraType: 'dark_void',   css: 'rarity-secret5',    cssClass: 'rarity-secret5' },
 
-    // --- 1.1. CHUỖI 9 BẬC MASTER (RANK 21 ➔ 29 | master ➔ master8) ---
-    master:     { id: 'master',     rank: 21, next: 'master1',    plusLabel: '',   name: 'Master',       mult: 95.0,   statMult: 95.0,   color: '#00f2fe', glowColor: '#0284c7', auraType: 'master_aqua', css: 'rarity-master',     cssClass: 'rarity-master' },
-    master1:    { id: 'master1',    rank: 22, next: 'master2',    plusLabel: '+1', name: 'Master +1',    mult: 120.0,  statMult: 120.0,  color: '#00f2fe', glowColor: '#0284c7', auraType: 'master_aqua', css: 'rarity-master1',    cssClass: 'rarity-master1' },
-    master2:    { id: 'master2',    rank: 23, next: 'master3',    plusLabel: '+2', name: 'Master +2',    mult: 150.0,  statMult: 150.0,  color: '#00f2fe', glowColor: '#38bdf8', auraType: 'master_aqua', css: 'rarity-master2',    cssClass: 'rarity-master2' },
-    master3:    { id: 'master3',    rank: 24, next: 'master4',    plusLabel: '+3', name: 'Master +3',    mult: 190.0,  statMult: 190.0,  color: '#00f2fe', glowColor: '#38bdf8', auraType: 'master_aqua', css: 'rarity-master3',    cssClass: 'rarity-master3' },
-    master4:    { id: 'master4',    rank: 25, next: 'master5',    plusLabel: '+4', name: 'Master +4',    mult: 240.0,  statMult: 240.0,  color: '#38bdf8', glowColor: '#7dd3fc', auraType: 'master_aqua', css: 'rarity-master4',    cssClass: 'rarity-master4' },
-    master5:    { id: 'master5',    rank: 26, next: 'master6',    plusLabel: '+5', name: 'Master +5',    mult: 300.0,  statMult: 300.0,  color: '#38bdf8', glowColor: '#7dd3fc', auraType: 'master_aqua', css: 'rarity-master5',    cssClass: 'rarity-master5' },
-    master6:    { id: 'master6',    rank: 27, next: 'master7',    plusLabel: '+6', name: 'Master +6',    mult: 380.0,  statMult: 380.0,  color: '#7dd3fc', glowColor: '#bae6fd', auraType: 'master_aqua', css: 'rarity-master6',    cssClass: 'rarity-master6' },
-    master7:    { id: 'master7',    rank: 28, next: 'master8',    plusLabel: '+7', name: 'Master +7',    mult: 480.0,  statMult: 480.0,  color: '#bae6fd', glowColor: '#e0f2fe', auraType: 'master_aqua', css: 'rarity-master7',    cssClass: 'rarity-master7' },
-    master8:    { id: 'master8',    rank: 29, next: 'demon',      plusLabel: '+8', name: 'Master +8',    mult: 600.0,  statMult: 600.0,  color: '#e0f2fe', glowColor: '#ffffff', auraType: 'master_aqua', css: 'rarity-master8',    cssClass: 'rarity-master8' },
+    // --- CHUỖI 9 BẬC MASTER (RANK 21 ➔ 29 | 33.0x ➔ 120.0x) ---
+    master:     { id: 'master',     rank: 21, next: 'master1',    plusLabel: '',   name: 'Master',       mult: 33.00, statMult: 33.00, color: '#00f2fe', glowColor: '#0284c7', auraType: 'master_aqua', css: 'rarity-master',     cssClass: 'rarity-master' },
+    master1:    { id: 'master1',    rank: 22, next: 'master2',    plusLabel: '+1', name: 'Master +1',    mult: 40.00, statMult: 40.00, color: '#00f2fe', glowColor: '#0284c7', auraType: 'master_aqua', css: 'rarity-master1',    cssClass: 'rarity-master1' },
+    master2:    { id: 'master2',    rank: 23, next: 'master3',    plusLabel: '+2', name: 'Master +2',    mult: 48.00, statMult: 48.00, color: '#00f2fe', glowColor: '#38bdf8', auraType: 'master_aqua', css: 'rarity-master2',    cssClass: 'rarity-master2' },
+    master3:    { id: 'master3',    rank: 24, next: 'master4',    plusLabel: '+3', name: 'Master +3',    mult: 57.00, statMult: 57.00, color: '#00f2fe', glowColor: '#38bdf8', auraType: 'master_aqua', css: 'rarity-master3',    cssClass: 'rarity-master3' },
+    master4:    { id: 'master4',    rank: 25, next: 'master5',    plusLabel: '+4', name: 'Master +4',    mult: 67.00, statMult: 67.00, color: '#38bdf8', glowColor: '#7dd3fc', auraType: 'master_aqua', css: 'rarity-master4',    cssClass: 'rarity-master4' },
+    master5:    { id: 'master5',    rank: 26, next: 'master6',    plusLabel: '+5', name: 'Master +5',    mult: 78.00, statMult: 78.00, color: '#38bdf8', glowColor: '#7dd3fc', auraType: 'master_aqua', css: 'rarity-master5',    cssClass: 'rarity-master5' },
+    master6:    { id: 'master6',    rank: 27, next: 'master7',    plusLabel: '+6', name: 'Master +6',    mult: 90.00, statMult: 90.00, color: '#7dd3fc', glowColor: '#bae6fd', auraType: 'master_aqua', css: 'rarity-master6',    cssClass: 'rarity-master6' },
+    master7:    { id: 'master7',    rank: 28, next: 'master8',    plusLabel: '+7', name: 'Master +7',    mult: 104.0, statMult: 104.0, color: '#bae6fd', glowColor: '#e0f2fe', auraType: 'master_aqua', css: 'rarity-master7',    cssClass: 'rarity-master7' },
+    master8:    { id: 'master8',    rank: 29, next: 'demon',      plusLabel: '+8', name: 'Master +8',    mult: 120.0, statMult: 120.0, color: '#e0f2fe', glowColor: '#ffffff', auraType: 'master_aqua', css: 'rarity-master8',    cssClass: 'rarity-master8' },
 
-    // --- 1.2. CHUỖI 11 BẬC DEMON (RANK 30 ➔ 40 | demon ➔ demon10) ---
-    demon:      { id: 'demon',      rank: 30, next: 'demon1',     plusLabel: '',    name: 'Demon',        mult: 750.0,  statMult: 750.0,  color: '#a855f7', glowColor: '#7e22ce', auraType: 'demon_abyss', css: 'rarity-demon',      cssClass: 'rarity-demon' },
-    demon1:     { id: 'demon1',     rank: 31, next: 'demon2',     plusLabel: '+1',  name: 'Demon +1',     mult: 950.0,  statMult: 950.0,  color: '#a855f7', glowColor: '#9333ea', auraType: 'demon_abyss', css: 'rarity-demon1',     cssClass: 'rarity-demon1' },
-    demon2:     { id: 'demon2',     rank: 32, next: 'demon3',     plusLabel: '+2',  name: 'Demon +2',     mult: 1200.0, statMult: 1200.0, color: '#c084fc', glowColor: '#9333ea', auraType: 'demon_abyss', css: 'rarity-demon2',     cssClass: 'rarity-demon2' },
-    demon3:     { id: 'demon3',     rank: 33, next: 'demon4',     plusLabel: '+3',  name: 'Demon +3',     mult: 1500.0, statMult: 1500.0, color: '#c084fc', glowColor: '#a855f7', auraType: 'demon_abyss', css: 'rarity-demon3',     cssClass: 'rarity-demon3' },
-    demon4:     { id: 'demon4',     rank: 34, next: 'demon5',     plusLabel: '+4',  name: 'Demon +4',     mult: 1900.0, statMult: 1900.0, color: '#d946ef', glowColor: '#a855f7', auraType: 'demon_abyss', css: 'rarity-demon4',     cssClass: 'rarity-demon4' },
-    demon5:     { id: 'demon5',     rank: 35, next: 'demon6',     plusLabel: '+5',  name: 'Demon +5',     mult: 2400.0, statMult: 2400.0, color: '#d946ef', glowColor: '#c084fc', auraType: 'demon_abyss', css: 'rarity-demon5',     cssClass: 'rarity-demon5' },
-    demon6:     { id: 'demon6',     rank: 36, next: 'demon7',     plusLabel: '+6',  name: 'Demon +6',     mult: 3000.0, statMult: 3000.0, color: '#e879f9', glowColor: '#c084fc', auraType: 'demon_abyss', css: 'rarity-demon6',     cssClass: 'rarity-demon6' },
-    demon7:     { id: 'demon7',     rank: 37, next: 'demon8',     plusLabel: '+7',  name: 'Demon +7',     mult: 3800.0, statMult: 3800.0, color: '#e879f9', glowColor: '#d946ef', auraType: 'demon_abyss', css: 'rarity-demon7',     cssClass: 'rarity-demon7' },
-    demon8:     { id: 'demon8',     rank: 38, next: 'demon9',     plusLabel: '+8',  name: 'Demon +8',     mult: 4800.0, statMult: 4800.0, color: '#f0abfc', glowColor: '#d946ef', auraType: 'demon_abyss', css: 'rarity-demon8',     cssClass: 'rarity-demon8' },
-    demon9:     { id: 'demon9',     rank: 39, next: 'demon10',    plusLabel: '+9',  name: 'Demon +9',     mult: 6000.0, statMult: 6000.0, color: '#f5d0fe', glowColor: '#e879f9', auraType: 'demon_abyss', css: 'rarity-demon9',     cssClass: 'rarity-demon9' },
-    demon10:    { id: 'demon10',    rank: 40, next: null,         plusLabel: '+10', name: 'Demon +10',    mult: 7777.0, statMult: 7777.0, color: '#fae8ff', glowColor: '#ffffff', auraType: 'demon_abyss', css: 'rarity-demon10',    cssClass: 'rarity-demon10' }
+    // --- CHUỖI 11 BẬC DEMON (RANK 30 ➔ 40 | 155.0x ➔ 777.0x) ---
+    demon:      { id: 'demon',      rank: 30, next: 'demon1',     plusLabel: '',    name: 'Demon',        mult: 155.0, statMult: 155.0, color: '#a855f7', glowColor: '#7e22ce', auraType: 'demon_abyss', css: 'rarity-demon',      cssClass: 'rarity-demon' },
+    demon1:     { id: 'demon1',     rank: 31, next: 'demon2',     plusLabel: '+1',  name: 'Demon +1',     mult: 190.0, statMult: 190.0, color: '#a855f7', glowColor: '#9333ea', auraType: 'demon_abyss', css: 'rarity-demon1',     cssClass: 'rarity-demon1' },
+    demon2:     { id: 'demon2',     rank: 32, next: 'demon3',     plusLabel: '+2',  name: 'Demon +2',     mult: 230.0, statMult: 230.0, color: '#c084fc', glowColor: '#9333ea', auraType: 'demon_abyss', css: 'rarity-demon2',     cssClass: 'rarity-demon2' },
+    demon3:     { id: 'demon3',     rank: 33, next: 'demon4',     plusLabel: '+3',  name: 'Demon +3',     mult: 275.0, statMult: 275.0, color: '#c084fc', glowColor: '#a855f7', auraType: 'demon_abyss', css: 'rarity-demon3',     cssClass: 'rarity-demon3' },
+    demon4:     { id: 'demon4',     rank: 34, next: 'demon5',     plusLabel: '+4',  name: 'Demon +4',     mult: 325.0, statMult: 325.0, color: '#d946ef', glowColor: '#a855f7', auraType: 'demon_abyss', css: 'rarity-demon4',     cssClass: 'rarity-demon4' },
+    demon5:     { id: 'demon5',     rank: 35, next: 'demon6',     plusLabel: '+5',  name: 'Demon +5',     mult: 385.0, statMult: 385.0, color: '#d946ef', glowColor: '#c084fc', auraType: 'demon_abyss', css: 'rarity-demon5',     cssClass: 'rarity-demon5' },
+    demon6:     { id: 'demon6',     rank: 36, next: 'demon7',     plusLabel: '+6',  name: 'Demon +6',     mult: 450.0, statMult: 450.0, color: '#e879f9', glowColor: '#c084fc', auraType: 'demon_abyss', css: 'rarity-demon6',     cssClass: 'rarity-demon6' },
+    demon7:     { id: 'demon7',     rank: 37, next: 'demon8',     plusLabel: '+7',  name: 'Demon +7',     mult: 520.0, statMult: 520.0, color: '#e879f9', glowColor: '#d946ef', auraType: 'demon_abyss', css: 'rarity-demon7',     cssClass: 'rarity-demon7' },
+    demon8:     { id: 'demon8',     rank: 38, next: 'demon9',     plusLabel: '+8',  name: 'Demon +8',     mult: 600.0, statMult: 600.0, color: '#f0abfc', glowColor: '#d946ef', auraType: 'demon_abyss', css: 'rarity-demon8',     cssClass: 'rarity-demon8' },
+    demon9:     { id: 'demon9',     rank: 39, next: 'demon10',    plusLabel: '+9',  name: 'Demon +9',     mult: 685.0, statMult: 685.0, color: '#f5d0fe', glowColor: '#e879f9', auraType: 'demon_abyss', css: 'rarity-demon9',     cssClass: 'rarity-demon9' },
+    demon10:    { id: 'demon10',    rank: 40, next: null,         plusLabel: '+10', name: 'Demon +10',    mult: 777.0, statMult: 777.0, color: '#fae8ff', glowColor: '#ffffff', auraType: 'demon_abyss', css: 'rarity-demon10',    cssClass: 'rarity-demon10' }
 };
 export const RARITY_TIERS = RARITY_CONFIG;
 
@@ -113,13 +120,14 @@ export function isDemonRarity(rarityId) {
     return !!(r && r.rank >= 30 && r.rank <= 40);
 }
 
-/* 2. CẤU HÌNH ĐỘ KHÓ VÀ CHẾ ĐỘ CHIẾN ĐẤU */
+/* 2. CẤU HÌNH ĐỘ KHÓ (ĐÃ TĂNG ĐỘ KHÓ 45 MAP) VÀ CHẾ ĐỘ CHIẾN ĐẤU */
 export const DIFFICULTY_ORDER = ['easy', 'difficult'];
 export const BATTLE_MODE_ORDER = ['destroy', 'survival'];
+export const MAP_ENEMY_SCALE_PER_LEVEL = 0.095; // Tăng +9.5%/map thay vì +5.5%
 
 export const DIFFICULTY_CONFIG = {
-    easy:      { id: 'easy',      name: 'Dễ',  shortLabel: 'DỄ',  statMult: 1.00, baseHpMult: 1.00, medalReward: 0 },
-    difficult: { id: 'difficult', name: 'Khó', shortLabel: 'KHÓ', statMult: 1.45, baseHpMult: 1.60, medalReward: 2 }
+    easy:      { id: 'easy',      name: 'Dễ',  shortLabel: 'DỄ',  statMult: 1.20, baseHpMult: 1.25, medalReward: 0 },
+    difficult: { id: 'difficult', name: 'Khó', shortLabel: 'KHÓ', statMult: 1.85, baseHpMult: 2.10, medalReward: 3 }
 };
 
 export const BATTLE_MODE_CONFIG = {
@@ -132,22 +140,39 @@ export const BATTLE_MODE_CONFIG = {
     night_fog:     { id: 'night_fog',     name: 'Chiến Dịch Đêm Mù',   shortLabel: 'ĐÊM MÙ' },
     fog_of_war:    { id: 'fog_of_war',    name: 'Chiến Dịch Đêm Mù',   shortLabel: 'ĐÊM MÙ' },
     raid_boss:     { id: 'raid_boss',     name: 'Đấu Trường Siêu Boss', shortLabel: 'SIÊU BOSS' },
-    bossrush:      { id: 'bossrush',      name: 'Đấu Trường Siêu Boss', shortLabel: 'SIÊU BOSS' }
+    bossrush:      { id: 'bossrush',      name: 'Đấu Trường Siêu Boss', shortLabel: 'SIÊU BOSS' },
+    challenge:     { id: 'challenge',     name: 'Thủ Thành Zombie 20W', shortLabel: 'ZOMBIE TD' }
 };
 
 export function calcStageRewardCoins(mapLv, diffId, modeId) {
     const m = Math.max(1, Number(mapLv) || 1);
-    let coins = diffId === 'difficult' ? (500 + m * 120) : (150 + m * 50);
+    let coins = diffId === 'difficult' ? (650 + m * 150) : (200 + m * 65);
     if (modeId === 'survival' || modeId === 'endless' || modeId === 'endless_siege') {
         coins = Math.round(coins * 1.35);
     } else if (modeId === 'raid_boss' || modeId === 'bossrush') {
         coins = Math.round(coins * 1.5);
+    } else if (modeId === 'challenge') {
+        coins = 12000 + m * 3500;
     }
     return coins;
 }
 
+export function calcChallengeEntryCostCoins(mapLv) {
+    const m = Math.max(1, Number(mapLv) || 1);
+    return 5000 + (m - 1) * 1500;
+}
+
+export function calcChallengeRewards(mapLv, ancientHeartLv = 0) {
+    const m = Math.max(1, Number(mapLv) || 1);
+    const pearlMult = 1 + (Math.max(0, Number(ancientHeartLv) || 0) * 0.25);
+    const pearls = Math.max(10, Math.round((12 + m * 3) * pearlMult));
+    const gems = 250 + m * 35;
+    const coins = 12000 + m * 3500;
+    return { pearls, gems, coins };
+}
+
 /* 3. CẤU HÌNH RƯƠNG GACHA SHOP & BẢNG GIÁ NÂNG CẤP */
-export const MAX_CRATE_OPEN_QTY = 1000000000; // 1 Tỷ rương / lần
+export const MAX_CRATE_OPEN_QTY = 1000000000;
 export const CRATE_PRESET_QUANTITIES = [1000, 1000000, 100000000, 1000000000];
 
 export const CRATE_CONFIG = {
@@ -189,9 +214,10 @@ export const OFFICIAL_GIFTCODES = [
 export const GIFTCODE_REWARD_GEMS = 1500;
 export const GIFTCODE_REWARD_COINS = 15000;
 export const GIFTCODE_REWARD_MEDALS = 15;
+export const GIFTCODE_REWARD_PEARLS = 25;
 
 export const GIFT_CODES = {
-    'HUNGDEPTRAI': { gems: 999999, coins: 999999999, medals: 500, desc: 'Gói Siêu Cấp Dev' }
+    'HUNGDEPTRAI': { gems: 999999, coins: 999999999, medals: 500, pearls: 9999, desc: 'Gói Siêu Cấp Dev' }
 };
 OFFICIAL_GIFTCODES.forEach(code => {
     if (code !== 'HUNGDEPTRAI') {
@@ -199,12 +225,13 @@ OFFICIAL_GIFTCODES.forEach(code => {
             gems: GIFTCODE_REWARD_GEMS,
             coins: GIFTCODE_REWARD_COINS,
             medals: GIFTCODE_REWARD_MEDALS,
+            pearls: GIFTCODE_REWARD_PEARLS,
             desc: 'Quà Tặng Chỉ Huy'
         };
     }
 });
 
-/* 5. BỘ KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG (Q, W, E, R - ĐỒNG BỘ TUYỆT ĐỐI 16s / 18s / 22s / 24s) */
+/* 5. BỘ KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG (Q, W, E, R) */
 export const COMMANDER_TACTICS = {
     airdrop: {
         id: 'airdrop',
@@ -271,41 +298,75 @@ Object.defineProperties(COMMANDER_TACTICS, {
     blitz:     { value: COMMANDER_TACTICS.blitzkrieg, enumerable: false }
 });
 
-/* 6. CÂY KỸ NĂNG BỊ ĐỘNG LOBBY (META-TALENTS) */
+/* 6. CÂY KỸ NĂNG BỊ ĐỘNG LOBBY (6 NHÁNH META-TALENTS - MAX LV.10 | GIÁ KHỞI ĐIỂM 5 🎖️, +4 🎖️/CẤP) */
 export const META_TALENTS = {
     oil_refining: {
         id: 'oil_refining',
         name: 'Công Nghệ Lọc Dầu',
         icon: '🛢️',
-        maxLevel: 5,
-        baseCost: 2,
-        costStep: 2,
-        desc: 'Giảm chu kỳ nạp xăng khởi đầu (3.0s ➔ 2.6s ở cấp tối đa).',
-        getEffectText(lv) { return `Chu kỳ xăng: ${(3.0 - lv * 0.08).toFixed(2)}s / điểm`; }
+        maxLevel: 10,
+        baseCost: 5,
+        costStep: 4,
+        desc: 'Giảm chu kỳ hồi Xăng (-0.06s/cấp, tối đa -0.60s ở Lv.10).',
+        getEffectText(lv) { return `Chu kỳ xăng: ${(3.0 - lv * 0.06).toFixed(2)}s / điểm (-${(lv * 0.06).toFixed(2)}s)`; }
     },
     high_grade_steel: {
         id: 'high_grade_steel',
         name: 'Thép Tôi Cao Cấp',
         icon: '🛡️',
-        maxLevel: 5,
-        baseCost: 2,
-        costStep: 2,
-        desc: 'Tăng máu và giảm sát thương nhận vào cho quân đội (tối đa +20%).',
-        getEffectText(lv) { return `Giáp & Máu cộng thêm: +${lv * 4}%`; }
+        maxLevel: 10,
+        baseCost: 5,
+        costStep: 4,
+        desc: 'Tăng HP & Giáp giảm sát thương toàn quân (+3%/cấp, tối đa +30%).',
+        getEffectText(lv) { return `HP & Giáp cộng thêm: +${lv * 3}%`; }
     },
     optimal_logistics: {
         id: 'optimal_logistics',
         name: 'Hậu Cần Tối Ưu',
         icon: '📦',
-        maxLevel: 5,
-        baseCost: 3,
-        costStep: 2,
-        desc: 'Tăng Xăng khởi đầu trận và giảm hồi chiêu Kỹ năng Chỉ huy.',
-        getEffectText(lv) { return `Xăng đầu trận: +${lv} | Hồi chiêu QWER: -${lv * 4}%`; }
+        maxLevel: 10,
+        baseCost: 5,
+        costStep: 4,
+        desc: 'Tăng Xăng đầu trận (+1 mỗi 2 cấp) & giảm hồi chiêu Q/W/E/R (-3%/cấp, tối đa -30%).',
+        getEffectText(lv) { return `Xăng đầu trận: +${Math.floor(lv / 2)} | Hồi chiêu QWER: -${lv * 3}%`; }
+    },
+    critical_firepower: {
+        id: 'critical_firepower',
+        name: 'Hỏa Lực Chí Mạng',
+        icon: '🎯',
+        maxLevel: 10,
+        baseCost: 5,
+        costStep: 4,
+        desc: 'Tăng tỷ lệ Bạo kích (+2.5%/cấp, đòn chí mạng gây 1.75x sát thương).',
+        getEffectText(lv) { return `Tỷ lệ Bạo kích: +${(lv * 2.5).toFixed(1)}% (1.75x DMG)`; }
+    },
+    battlefield_harvest: {
+        id: 'battlefield_harvest',
+        name: 'Thu Hoạch Chiến Trường',
+        icon: '💰',
+        maxLevel: 10,
+        baseCost: 5,
+        costStep: 4,
+        desc: 'Tăng +8%/cấp Vàng thắng trận và hoàn lại 15% chi phí Xăng khi quân hy sinh.',
+        getEffectText(lv) { return `Thưởng Vàng: +${lv * 8}% | Hoàn Xăng hy sinh: ${lv > 0 ? '15%' : '0%'}`; }
+    },
+    immortal_bastion: {
+        id: 'immortal_bastion',
+        name: 'Pháo Đài Bất Tử',
+        icon: '🗼',
+        maxLevel: 10,
+        baseCost: 5,
+        costStep: 4,
+        desc: 'Tăng +10%/cấp HP Căn Cứ Xanh và +8%/cấp sát thương cho Ụ Pháo Căn Cứ.',
+        getEffectText(lv) { return `HP Căn Cứ: +${lv * 10}% | DMG Ụ Pháo: +${lv * 8}%`; }
     }
 };
 
-/* 7. HỆ THỐNG CHIP / NGỌC BỔ TRỢ (UNIT SOCKETS - ĐÃ KÍCH HOẠT STUN CHANCE 14%) */
+/* 7. HỆ THỐNG CHIP / NGỌC BỔ TRỢ (MUA BẰNG 2,500 🪙 HOẶC 150 💎 | MỞ KHE 2 = 500 💎) */
+export const CHIP_SOCKET_2_UNLOCK_GEMS = 500;
+export const CHIP_BUY_COST_COINS = 2500;
+export const CHIP_BUY_COST_GEMS = 150;
+
 export const UNIT_CHIPS = {
     napalm_rocket: {
         id: 'napalm_rocket',
@@ -313,6 +374,8 @@ export const UNIT_CHIPS = {
         shortName: 'Napalm',
         icon: '🔥',
         dotCss: 'chip-napalm',
+        buyCoins: CHIP_BUY_COST_COINS,
+        buyGems: CHIP_BUY_COST_GEMS,
         burnDps: 18,
         burnDuration: 3.0,
         splashBonus: 14,
@@ -325,6 +388,8 @@ export const UNIT_CHIPS = {
         shortName: 'Radar +28 & Choáng',
         icon: '📡',
         dotCss: 'chip-radar',
+        buyCoins: CHIP_BUY_COST_COINS,
+        buyGems: CHIP_BUY_COST_GEMS,
         rangeBonusFlat: 28,
         nightVisionBonus: 65,
         stunChance: 0.14,
@@ -338,6 +403,8 @@ export const UNIT_CHIPS = {
         shortName: 'Giáp ERA',
         icon: '🟣',
         dotCss: 'chip-armor',
+        buyCoins: CHIP_BUY_COST_COINS,
+        buyGems: CHIP_BUY_COST_GEMS,
         hpBonusPct: 0.18,
         damageReductionPct: 0.15,
         recommendedUnits: ['tank', 'heavy_tank', 'apc', 'destroyer', 'battleship', 'mecha_paladin', 'cleric'],
@@ -349,6 +416,8 @@ export const UNIT_CHIPS = {
         shortName: 'Ép Xung & Choáng',
         icon: '🔋',
         dotCss: 'chip-overclock',
+        buyCoins: CHIP_BUY_COST_COINS,
+        buyGems: CHIP_BUY_COST_GEMS,
         speedBonusPct: 0.20,
         cooldownReductionPct: 0.15,
         stunChance: 0.14,
@@ -361,15 +430,117 @@ Object.defineProperties(UNIT_CHIPS, {
     overclock_servo: { value: UNIT_CHIPS.overclock_core, enumerable: false }
 });
 
-/* 8. DANH MỤC 17 BINH CHỦNG (11 CŨ + 6 BINH CHỦNG SÁNG TẠO MỚI) & KHÔNG KÍCH + CHIẾN BINH XƯƠNG */
+/* 8. CÂY KỸ NĂNG CỔ THỤ (SKILL TREE - DÙNG ⚪ NGỌC TRAI TRẮNG) */
+export const ANCIENT_SKILL_TREE = {
+    vital_roots: {
+        id: 'vital_roots',
+        tier: 1,
+        tierName: 'Rễ Cây',
+        name: 'Rễ Sinh Mệnh',
+        icon: '💚',
+        maxLevel: 5,
+        baseCost: 5,
+        costStep: 1, // 5, 6, 7, 8, 9 (tầm 5 - 10 Ngọc Trai)
+        requires: [],
+        desc: '+12%/cấp HP tối đa cho toàn bộ đơn vị và Tower.',
+        getEffectText(lv) { return `HP Toàn Quân & Tower: +${lv * 12}%`; }
+    },
+    supply_roots: {
+        id: 'supply_roots',
+        tier: 1,
+        tierName: 'Rễ Cây',
+        name: 'Rễ Tiếp Tế',
+        icon: '⛽',
+        maxLevel: 5,
+        baseCost: 6,
+        costStep: 1, // 6, 7, 8, 9, 10 (tầm 5 - 10 Ngọc Trai)
+        requires: [],
+        desc: '+1 Xăng khởi đầu trận và +6%/cấp tốc độ hồi Xăng.',
+        getEffectText(lv) { return `Xăng đầu trận: +${lv} | Tốc hồi Xăng: +${lv * 6}%`; }
+    },
+    iron_trunk: {
+        id: 'iron_trunk',
+        tier: 2,
+        tierName: 'Thân Cây',
+        name: 'Thân Cương Thiết',
+        icon: '⚙️',
+        maxLevel: 5,
+        baseCost: 15,
+        costStep: 2, // 15, 17, 19, 21, 23 (tầm 15 - 25 Ngọc Trai)
+        requires: ['vital_roots'],
+        desc: '+15%/cấp Sát thương vật lý & tốc độ bắn cho bộ binh, cơ giới và Tower.',
+        getEffectText(lv) { return `DMG Vật Lý & Tốc Bắn: +${lv * 15}%`; }
+    },
+    arcane_trunk: {
+        id: 'arcane_trunk',
+        tier: 2,
+        tierName: 'Thân Cây',
+        name: 'Thân Ma Thuật',
+        icon: '🔮',
+        maxLevel: 5,
+        baseCost: 15,
+        costStep: 2, // 15, 17, 19, 21, 23 (tầm 15 - 25 Ngọc Trai)
+        requires: ['supply_roots'],
+        desc: '+18%/cấp Sát thương nguyên tố (Lửa, Băng, Điện, Ám) và kéo dài thời gian khống chế.',
+        getEffectText(lv) { return `DMG Nguyên Tố: +${lv * 18}% | Khống chế: +${lv * 12}%`; }
+    },
+    undead_slayer: {
+        id: 'undead_slayer',
+        tier: 3,
+        tierName: 'Cành Nhánh',
+        name: 'Cành Săn Xác Sống',
+        icon: '🗡️',
+        maxLevel: 5,
+        baseCost: 35,
+        costStep: 4, // 35, 39, 43, 47, 51 (tầm 35 - 50 Ngọc Trai)
+        requires: ['iron_trunk'],
+        desc: '+25%/cấp sát thương gây ra lên toàn bộ Zombie & Boss trong chế độ CHALLENGE.',
+        getEffectText(lv) { return `Sát thương diệt Zombie & Boss: +${lv * 25}%`; }
+    },
+    elite_lineage: {
+        id: 'elite_lineage',
+        tier: 3,
+        tierName: 'Cành Nhánh',
+        name: 'Cành Tinh Anh',
+        icon: '⚡',
+        maxLevel: 5,
+        baseCost: 35,
+        costStep: 4, // 35, 39, 43, 47, 51
+        requires: ['arcane_trunk'],
+        desc: 'Giảm 15% thời gian hồi chiêu đặt Tower/gọi quân và tăng +8% tỷ lệ chí mạng.',
+        getEffectText(lv) { return `Hồi chiêu: -${lv * 3}% (tối đa 15%) | Bạo kích: +${(lv * 1.6).toFixed(1)}% (tối đa +8%)`; }
+    },
+    ancient_heart: {
+        id: 'ancient_heart',
+        tier: 4,
+        tierName: 'Ngọn Cây Tối Thượng',
+        name: 'Trái Tim Cổ Thụ',
+        icon: '💖',
+        maxLevel: 3,
+        baseCost: 80,
+        costStep: 20, // 80, 100, 120 (80 - 120 Ngọc Trai)
+        requires: ['undead_slayer', 'elite_lineage'],
+        desc: 'Toàn bộ quân & Tower tự hồi 2% HP mỗi giây, đồng thời tăng +25%/cấp lượng Ngọc Trai nhận được khi thắng CHALLENGE.',
+        getEffectText(lv) { return `Hồi phục: ${lv > 0 ? '2% HP/s' : '0%'} | Thưởng Ngọc Trai: +${lv * 25}%`; }
+    }
+};
+
+export function getSkillTreeNodeCost(nodeId, currentLv) {
+    const node = ANCIENT_SKILL_TREE[nodeId];
+    if (!node) return 999;
+    const lv = Math.max(0, Math.floor(Number(currentLv) || 0));
+    return node.baseCost + lv * node.costStep;
+}
+
+/* 9. DANH MỤC 17 BINH CHỦNG & KHÔNG KÍCH + CHIẾN BINH XƯƠNG */
 export const UNIT_CATALOG = [
-    // --- 11 BINH CHỦNG NGUYÊN BẢN ---
     {
         id: 'infantry',
         aliasId: 'rifleman',
         name: 'Bộ Binh',
         role: 'Lính Xung Kích',
         category: 'infantry',
+        element: 'physical',
         isWalker: true,
         cost: 2,
         cooldown: 1.5,
@@ -384,13 +555,14 @@ export const UNIT_CATALOG = [
         attackType: 'beam',
         spriteCol: 16,
         sockets: [null, null],
-        defaultChips: ['overclock_core', null]
+        defaultChips: [null, null]
     },
     {
         id: 'bazooka',
         name: 'Lính Tên Lửa',
         role: 'Khắc Tinh Cơ Giới',
         category: 'infantry',
+        element: 'physical',
         isWalker: true,
         cost: 3,
         cooldown: 2.2,
@@ -407,14 +579,15 @@ export const UNIT_CATALOG = [
         projType: 'rocket_short',
         projSpeed: 250,
         spriteCol: 17,
-        sockets: ['napalm_rocket', null],
-        defaultChips: ['napalm_rocket', null]
+        sockets: [null, null],
+        defaultChips: [null, null]
     },
     {
         id: 'sniper',
         name: 'Lính Bắn Tỉa',
         role: 'Xạ Thủ Tầm Xa',
         category: 'infantry',
+        element: 'physical',
         isWalker: true,
         cost: 3,
         cooldown: 2.8,
@@ -429,13 +602,14 @@ export const UNIT_CATALOG = [
         attackType: 'beam',
         spriteCol: 16,
         sockets: [null, null],
-        defaultChips: ['tactical_radar', null]
+        defaultChips: [null, null]
     },
     {
         id: 'humvee',
         name: 'Xe Humvee',
         role: 'Trinh Sát Cơ Động',
         category: 'vehicle',
+        element: 'physical',
         cost: 4,
         cooldown: 3.0,
         hp: 340,
@@ -448,14 +622,15 @@ export const UNIT_CATALOG = [
         radius: 14,
         attackType: 'beam',
         spriteCol: 5,
-        sockets: ['tactical_radar', null],
-        defaultChips: ['tactical_radar', null]
+        sockets: [null, null],
+        defaultChips: [null, null]
     },
     {
         id: 'apc',
         name: 'Xe Thiết Giáp APC',
         role: 'Đỡ Đạn Tuyến Đầu',
         category: 'vehicle',
+        element: 'physical',
         cost: 5,
         cooldown: 3.8,
         hp: 620,
@@ -470,14 +645,15 @@ export const UNIT_CATALOG = [
         projType: 'shell',
         projSpeed: 270,
         spriteCol: 7,
-        sockets: ['reactive_armor', null],
-        defaultChips: ['reactive_armor', 'tactical_radar']
+        sockets: [null, null],
+        defaultChips: [null, null]
     },
     {
         id: 'tank',
         name: 'Xe Tăng Chiến Đấu',
         role: 'Chủ Lực Mặt Đất',
         category: 'vehicle',
+        element: 'physical',
         cost: 6,
         cooldown: 4.5,
         hp: 840,
@@ -495,13 +671,14 @@ export const UNIT_CATALOG = [
         projSpeed: 250,
         spriteCol: 8,
         sockets: [null, null],
-        defaultChips: ['reactive_armor', 'napalm_rocket']
+        defaultChips: [null, null]
     },
     {
         id: 'heavy_tank',
         name: 'Siêu Tăng Hạng Nặng',
         role: 'Pháo Đài Di Động',
         category: 'vehicle',
+        element: 'physical',
         cost: 8,
         cooldown: 6.2,
         hp: 1480,
@@ -519,13 +696,14 @@ export const UNIT_CATALOG = [
         projSpeed: 235,
         spriteCol: 9,
         sockets: [null, null],
-        defaultChips: ['napalm_rocket', 'reactive_armor']
+        defaultChips: [null, null]
     },
     {
         id: 'heli',
         name: 'Trực Thăng Vũ Trang',
         role: 'Không Quân Yểm Trợ',
         category: 'air',
+        element: 'physical',
         isAir: true,
         cost: 6,
         cooldown: 5.0,
@@ -544,13 +722,14 @@ export const UNIT_CATALOG = [
         projSpeed: 280,
         spriteCol: 11,
         sockets: [null, null],
-        defaultChips: ['napalm_rocket', 'overclock_core']
+        defaultChips: [null, null]
     },
     {
         id: 'patrol_boat',
         name: 'Thuyền Tuần Tra',
         role: 'Thủy Quân Cơ Động',
         category: 'naval',
+        element: 'physical',
         isNaval: true,
         cost: 3,
         cooldown: 2.5,
@@ -565,13 +744,14 @@ export const UNIT_CATALOG = [
         attackType: 'beam',
         spriteCol: 13,
         sockets: [null, null],
-        defaultChips: ['tactical_radar', null]
+        defaultChips: [null, null]
     },
     {
         id: 'destroyer',
         name: 'Tàu Khu Trục',
         role: 'Pháo Hạm Đa Năng',
         category: 'naval',
+        element: 'physical',
         isNaval: true,
         cost: 5,
         cooldown: 4.2,
@@ -590,13 +770,14 @@ export const UNIT_CATALOG = [
         projSpeed: 255,
         spriteCol: 14,
         sockets: [null, null],
-        defaultChips: ['tactical_radar', 'reactive_armor']
+        defaultChips: [null, null]
     },
     {
         id: 'battleship',
         name: 'Thiết Giáp Hạm',
         role: 'Bá Chủ Đại Dương',
         category: 'naval',
+        element: 'physical',
         isNaval: true,
         cost: 8,
         cooldown: 6.5,
@@ -615,15 +796,14 @@ export const UNIT_CATALOG = [
         projSpeed: 230,
         spriteCol: 15,
         sockets: [null, null],
-        defaultChips: ['napalm_rocket', 'reactive_armor']
+        defaultChips: [null, null]
     },
-
-    // --- 6 BINH CHỦNG SÁNG TẠO MỚI (CUSTOM CANVAS PIXEL ART + SPRITE HYBRID) ---
     {
         id: 'pyromancer',
         name: 'Phù Thủy Lửa',
         role: 'Pháp Sư Hỏa Cầu (Thiêu Đốt)',
         category: 'infantry',
+        element: 'elemental',
         isWalker: true,
         isCustomArt: true,
         cost: 4,
@@ -645,13 +825,14 @@ export const UNIT_CATALOG = [
         projSpeed: 245,
         spriteCol: 17,
         sockets: [null, null],
-        defaultChips: ['napalm_rocket', 'overclock_core']
+        defaultChips: [null, null]
     },
     {
         id: 'cryomancer',
         name: 'Pháp Sư Băng Giá',
         role: 'Khống Chế Đóng Băng (-55% Tốc)',
         category: 'infantry',
+        element: 'elemental',
         isWalker: true,
         isCustomArt: true,
         cost: 4,
@@ -673,13 +854,14 @@ export const UNIT_CATALOG = [
         projSpeed: 255,
         spriteCol: 16,
         sockets: [null, null],
-        defaultChips: ['tactical_radar', 'overclock_core']
+        defaultChips: [null, null]
     },
     {
         id: 'cleric',
         name: 'Mục Sư Thánh Quang',
         role: 'Hồi Máu 2 Đồng Minh Thấp HP',
         category: 'infantry',
+        element: 'elemental',
         isWalker: true,
         isHealer: true,
         healTargetsCount: 2,
@@ -697,13 +879,14 @@ export const UNIT_CATALOG = [
         attackType: 'heal_beam',
         spriteCol: 16,
         sockets: [null, null],
-        defaultChips: ['overclock_core', 'reactive_armor']
+        defaultChips: [null, null]
     },
     {
         id: 'necromancer',
         name: 'Pháp Sư Chiêu Hồn',
         role: 'Triệu Hồi Chiến Binh Xương',
         category: 'infantry',
+        element: 'elemental',
         isWalker: true,
         isNecromancer: true,
         soulHarvestRadius: 135,
@@ -726,13 +909,14 @@ export const UNIT_CATALOG = [
         projSpeed: 245,
         spriteCol: 17,
         sockets: [null, null],
-        defaultChips: ['tactical_radar', 'reactive_armor']
+        defaultChips: [null, null]
     },
     {
         id: 'mecha_paladin',
         name: 'Robot Hộ Vệ Titan',
         role: 'Khiên Lục Giác (-35% Đạn Xa)',
         category: 'vehicle',
+        element: 'elemental',
         isCustomArt: true,
         rangedShieldReductionPct: 0.35,
         cost: 7,
@@ -748,13 +932,14 @@ export const UNIT_CATALOG = [
         attackType: 'beam',
         spriteCol: 9,
         sockets: [null, null],
-        defaultChips: ['reactive_armor', 'overclock_core']
+        defaultChips: [null, null]
     },
     {
         id: 'railgun_walker',
         name: 'Pháo Điện Từ Railgun',
         role: 'Bắn Xuyên Tuyến & Làm Choáng',
         category: 'vehicle',
+        element: 'elemental',
         isCustomArt: true,
         isRailgunLine: true,
         lineStunDuration: 0.8,
@@ -771,7 +956,7 @@ export const UNIT_CATALOG = [
         attackType: 'railgun_line',
         spriteCol: 8,
         sockets: [null, null],
-        defaultChips: ['tactical_radar', 'overclock_core']
+        defaultChips: [null, null]
     }
 ];
 
@@ -780,6 +965,7 @@ export const SKELETON_SUMMON_SPEC = {
     name: 'Chiến Binh Xương',
     role: 'Vong Linh Triệu Hồi',
     category: 'infantry',
+    element: 'elemental',
     isWalker: true,
     isSummonedSkeleton: true,
     isCustomArt: true,
@@ -804,6 +990,7 @@ export const AIRSTRIKE_SPEC = {
     name: 'Không Kích',
     role: 'Oanh Tạc Chiến Thuật',
     category: 'air',
+    element: 'physical',
     isAir: true,
     isAirstrike: true,
     cost: 5,
@@ -819,7 +1006,7 @@ export const AIRSTRIKE_SPEC = {
     splash: 52,
     spriteCol: 10,
     sockets: [null, null],
-    defaultChips: ['napalm_rocket', null]
+    defaultChips: [null, null]
 };
 
 export const UNIT_BY_ID = {};
@@ -831,7 +1018,246 @@ UNIT_BY_ID['airstrike'] = AIRSTRIKE_SPEC;
 UNIT_BY_ID['skeleton'] = SKELETON_SUMMON_SPEC;
 export const UNIT_MAP = UNIT_BY_ID;
 
-/* 9. HỆ THỐNG CỘNG HƯỞNG ĐỘI HÌNH TRONG TRẬN (IN-BATTLE SYNERGIES) */
+/* 10. DANH MỤC 14 LOẠI ZOMBIE & BOSS (GÓC NHÌN FRONT-TOP VIEW CHO CHẾ ĐỘ CHALLENGE) */
+export const ZOMBIE_CATALOG = [
+    {
+        id: 'zombie_walker',
+        name: 'Walker Zombie',
+        role: 'Xác Sống Bầy Đàn',
+        hp: 210,
+        damage: 24,
+        speed: 32,
+        range: 28,
+        fireRate: 0.90,
+        radius: 12,
+        scale: 1.0,
+        expReward: 8,
+        desc: 'Da xanh tái, mắt lờ đờ, áo rách, tiến chậm theo bầy đông.'
+    },
+    {
+        id: 'zombie_runner',
+        name: 'Crawler Runner Zombie',
+        role: 'Tốc Độ Cực Nhanh',
+        hp: 155,
+        damage: 28,
+        speed: 68,
+        range: 26,
+        fireRate: 1.25,
+        radius: 11,
+        scale: 1.0,
+        expReward: 10,
+        desc: 'Dáng lao gù sát đất, mắt đỏ rực, lao cực nhanh áp sát Tower.'
+    },
+    {
+        id: 'zombie_bunny_rider',
+        name: 'Zombie Cưỡi Thỏ Đột Biến',
+        role: 'Nhảy Lắt Léo Cơ Động',
+        hp: 280,
+        damage: 34,
+        speed: 62,
+        range: 30,
+        fireRate: 1.15,
+        radius: 14,
+        scale: 1.08,
+        zigzagAmp: 22,
+        expReward: 14,
+        desc: 'Zombie cưỡi trên lưng thỏ khổng lồ tai dài mắt đỏ, nhảy lắt léo tốc độ cao.'
+    },
+    {
+        id: 'zombie_horse_knight',
+        name: 'Kỵ Sĩ Ngựa Xương',
+        role: 'Xung Kích Phá Tháp',
+        hp: 640,
+        damage: 58,
+        speed: 48,
+        range: 32,
+        fireRate: 0.85,
+        radius: 16,
+        scale: 1.15,
+        towerBonusMult: 1.35,
+        expReward: 22,
+        desc: 'Zombie mặc giáp sắt rỉ sét cưỡi chiến mã thây ma, HP cao, húc phá Tower.'
+    },
+    {
+        id: 'zombie_tiger_lord',
+        name: 'Chúa Tể Cưỡi Hổ Răng Kiếm',
+        role: 'Sát Thủ Cận Chiến Mạnh',
+        hp: 760,
+        damage: 86,
+        speed: 56,
+        range: 34,
+        fireRate: 1.10,
+        radius: 17,
+        scale: 1.20,
+        expReward: 28,
+        desc: 'Thủ lĩnh zombie cưỡi hổ vằn đột biến hung dữ, tốc độ nhanh và sát thương cận chiến rất mạnh.'
+    },
+    {
+        id: 'zombie_spitter',
+        name: 'Zombie Phun Axit',
+        role: 'Xạ Thủ Độc Tố (-40% Tốc Bắn)',
+        hp: 260,
+        damage: 32,
+        speed: 34,
+        range: 148,
+        fireRate: 0.70,
+        radius: 12,
+        scale: 1.0,
+        attackType: 'projectile',
+        projType: 'acid_glob',
+        projSpeed: 235,
+        acidSlowFireRatePct: 0.40,
+        acidDuration: 3.0,
+        expReward: 15,
+        desc: 'Đeo bình hóa chất xanh phát sáng sau lưng, phun đạn axit làm giảm 40% tốc độ bắn của Tower.'
+    },
+    {
+        id: 'zombie_bomber',
+        name: 'Zombie Cảm Tử Ôm Bom',
+        role: 'Nổ Cảm Tử Diện Rộng',
+        hp: 240,
+        damage: 210,
+        speed: 52,
+        range: 28,
+        fireRate: 1.0,
+        radius: 13,
+        scale: 1.05,
+        isBomber: true,
+        splash: 75,
+        expReward: 16,
+        desc: 'Ôm thùng thuốc nổ TNT đỏ nhấp nháy trước ngực, phát nổ diện rộng khi chạm vào Tower.'
+    },
+    {
+        id: 'zombie_necromancer',
+        name: 'Pháp Sư Zombie Gọi Hồn',
+        role: 'Triệu Hồi Walker Zombie',
+        hp: 420,
+        damage: 40,
+        speed: 30,
+        range: 145,
+        fireRate: 0.65,
+        radius: 13,
+        scale: 1.08,
+        attackType: 'projectile',
+        projType: 'dark_orb',
+        projSpeed: 230,
+        summonCooldown: 5.5,
+        expReward: 24,
+        desc: 'Đội mũ đầu lâu, cầm trượng xương tím, định kỳ triệu hồi thêm Walker Zombie xung quanh.'
+    },
+    {
+        id: 'zombie_riot',
+        name: 'Zombie Khiên Chống Bạo Động',
+        role: 'Khiên Thép (-50% DMG Trước)',
+        hp: 720,
+        damage: 36,
+        speed: 28,
+        range: 28,
+        fireRate: 0.80,
+        radius: 14,
+        scale: 1.08,
+        frontalShieldReductionPct: 0.50,
+        expReward: 20,
+        desc: 'Cầm khiên thép chữ nhật lớn che trước mặt, giảm 50% sát thương từ các đòn bắn phía trước.'
+    },
+    {
+        id: 'zombie_cyborg',
+        name: 'Cyborg Zombie',
+        role: 'Lưỡi Cưa & Kháng Khống Chế',
+        hp: 680,
+        damage: 74,
+        speed: 44,
+        range: 30,
+        fireRate: 1.20,
+        radius: 14,
+        scale: 1.10,
+        ccImmune: true,
+        expReward: 25,
+        desc: 'Nửa khuôn mặt bọc thép với mắt laser đỏ, tay phải là lưỡi cưa máy, miễn nhiễm làm chậm/đóng băng.'
+    },
+    {
+        id: 'zombie_mecha',
+        name: 'Mecha-Zombie MK-IV',
+        role: 'Cỗ Máy Bắn Tên Lửa',
+        hp: 1150,
+        damage: 68,
+        speed: 26,
+        range: 165,
+        fireRate: 0.60,
+        radius: 17,
+        scale: 1.22,
+        attackType: 'projectile',
+        projType: 'arc_missile',
+        projSpeed: 230,
+        splash: 38,
+        expReward: 34,
+        desc: 'Cỗ máy chiến đấu bọc thép có lồng kính chứa đầu zombie bên trong, vừa tiến vừa bắn tên lửa vào Tower.'
+    },
+    {
+        id: 'boss_butcher',
+        name: 'BOSS: Đồ Tể Khổng Lồ',
+        role: 'BOSS Wave 7 • Chém Lan',
+        hp: 4600,
+        damage: 145,
+        speed: 24,
+        range: 42,
+        fireRate: 0.75,
+        radius: 24,
+        scale: 2.0,
+        isBoss: true,
+        bossWave: 7,
+        cleaveRadius: 68,
+        expReward: 120,
+        desc: 'Kích thước gấp 2.0 lần, mặt khâu chằng chịt, cầm dao phay khổng lồ chém lan nhiều Tower cùng lúc.'
+    },
+    {
+        id: 'boss_chimera',
+        name: 'BOSS: Quái Thú Chimera',
+        role: 'BOSS Wave 14 • Gầm Choáng',
+        hp: 8200,
+        damage: 185,
+        speed: 28,
+        range: 46,
+        fireRate: 0.85,
+        radius: 25,
+        scale: 2.0,
+        isBoss: true,
+        bossWave: 14,
+        roarCooldown: 6.5,
+        roarRadius: 135,
+        roarStunDuration: 2.2,
+        expReward: 200,
+        desc: 'Kích thước gấp 2.0 lần, quái thú đột biến 2 đầu có sừng, gầm rú sóng âm làm choáng các Tower diện rộng.'
+    },
+    {
+        id: 'boss_omega_tyrant',
+        name: 'BOSS: Bạo Chúa Omega',
+        role: 'BOSS Wave 20 • 4 Nòng Plasma',
+        hp: 15500,
+        damage: 240,
+        speed: 20,
+        range: 185,
+        fireRate: 0.75,
+        radius: 28,
+        scale: 2.2,
+        isBoss: true,
+        bossWave: 20,
+        attackType: 'projectile',
+        projType: 'arc_missile',
+        projSpeed: 245,
+        splash: 46,
+        summonCooldown: 7.0,
+        expReward: 400,
+        desc: 'Kích thước gấp 2.2 lần, đại boss Zombie-Robot trang bị 4 nòng pháo plasma, giáp dày và liên tục gọi viện binh.'
+    }
+];
+
+export const ZOMBIE_BY_ID = {};
+ZOMBIE_CATALOG.forEach(z => {
+    ZOMBIE_BY_ID[z.id] = z;
+});
+
+/* 11. HỆ THỐNG CỘNG HƯỞNG ĐỘI HÌNH TRONG TRẬN (IN-BATTLE SYNERGIES) */
 export const BATTLE_SYNERGIES = {
     thermal_shock: {
         id: 'thermal_shock',
@@ -864,7 +1290,7 @@ export const BATTLE_SYNERGIES = {
     }
 };
 
-/* 10. HỆ THỐNG Ụ PHÁO PHÒNG THỦ CĂN CỨ XANH (BASE TURRET) */
+/* 12. HỆ THỐNG Ụ PHÁO PHÒNG THỦ CĂN CỨ XANH (BASE TURRET) */
 export const BASE_TURRET_CONFIG = {
     gatling: {
         id: 'gatling',
@@ -911,7 +1337,7 @@ export function getBaseTurretUpgradeCost(currentLv) {
     return Math.round(1500 * Math.pow(1.45, Math.min(25, lv - 1)));
 }
 
-/* 11. HỆ THỐNG SỔ TAY BÁCH KHOA (CODEX MILESTONES) */
+/* 13. HỆ THỐNG SỔ TAY INDEX (CODEX MILESTONES) */
 export const CODEX_MILESTONES = [
     { id: 'mythic', label: 'MYTHIC 🔴', minRank: 10, rewardGems: 250,  rewardMedals: 2 },
     { id: 'secret', label: 'SECRET ⚫', minRank: 15, rewardGems: 600,  rewardMedals: 5 },
@@ -919,7 +1345,7 @@ export const CODEX_MILESTONES = [
     { id: 'demon',  label: 'DEMON 😈',  minRank: 30, rewardGems: 4000, rewardMedals: 30 }
 ];
 
-/* 12. CẤU HÌNH VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal) & PITY 100 */
+/* 14. CẤU HÌNH VÒNG QUAY MAY MẮN 8 Ô & PITY 100 */
 export const LUCKY_WHEEL_CONFIG = {
     singlePrice: 200,
     tenPrice: 1800,
@@ -936,7 +1362,7 @@ export const LUCKY_WHEEL_CONFIG = {
     ]
 };
 
-/* 13. CẤU HÌNH TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal) */
+/* 15. CẤU HÌNH TRUNG TÂM 3 MINI-GAME GIẢI TRÍ */
 export const MINIGAME_CONFIG = {
     mines: {
         id: 'mines',
@@ -981,7 +1407,7 @@ export const MINIGAME_CONFIG = {
     }
 };
 
-/* 14. DỮ LIỆU ĐỘT BIẾN ROGUELIKE & RAID BOSS */
+/* 16. DỮ LIỆU ĐỘT BIẾN ROGUELIKE & RAID BOSS */
 export const ROGUELIKE_MUTATIONS = [
     { id: 'titan_armor',     name: 'Giáp Titan Hợp Kim',   desc: '+35% Máu tối đa toàn quân',                icon: '🛡️' },
     { id: 'plasma_rounds',   name: 'Đầu Đạn Plasma',       desc: '+30% Sát thương cho mọi đơn vị',           icon: '🔥' },
@@ -1000,7 +1426,7 @@ export const RAID_BOSS_CONFIG = {
     hullHp: 12000
 };
 
-/* 15. KHỞI TẠO 45 BẢN ĐỒ CHIẾN THUẬT (15 MAP CHUẨN + 15 MAP VETERAN + 15 MAP QUẦN XÃ ĐỘC BẢN 31-45) */
+/* 17. KHỞI TẠO 45 BẢN ĐỒ CHIẾN THUẬT */
 const BASE_15_MAPS_SPEC = [
     { id: 1,  name: 'CẦU QUA SÔNG',            theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Sông lớn cắt ngang chiến trường. Quân bộ phải qua cầu đá chiến lược ở chính giữa.' },
     { id: 2,  name: 'ĐƯỜNG ĐÈO CHỮ S',         theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Đường nhựa chữ S uốn lượn xuyên rừng thông và vách núi đá hiểm trở.' },
@@ -1187,7 +1613,6 @@ const UNIQUE_31_TO_45_MAPS_SPEC = [
 
 export function buildAllMapsData() {
     const maps = [];
-    // Map 1 -> 30 (15 Map chuẩn + 15 Map Veteran II)
     for (let i = 1; i <= 30; i++) {
         const baseSpec = BASE_15_MAPS_SPEC[(i - 1) % 15];
         const isVeteran = i > 15;
@@ -1208,13 +1633,12 @@ export function buildAllMapsData() {
             hasCoastFoam: baseSpec.hasCoastFoam,
             mechanicTag: null,
             desc: baseSpec.desc,
-            enemyBaseHp: 220 + i * 35,
+            enemyBaseHp: 260 + i * 48,
             playerBaseHp: 250,
             startingGas: 6
         });
     }
 
-    // Map 31 -> 45 (15 Map Quần Xã Độc Bản Mới)
     for (let idx = 0; idx < UNIQUE_31_TO_45_MAPS_SPEC.length; idx++) {
         const spec = UNIQUE_31_TO_45_MAPS_SPEC[idx];
         const i = spec.id;
@@ -1240,7 +1664,7 @@ export function buildAllMapsData() {
             gasRateMult: spec.gasRateMult || 1.0,
             mechanicTag: spec.mechanicTag || null,
             desc: spec.desc,
-            enemyBaseHp: 220 + i * 38,
+            enemyBaseHp: 280 + i * 52,
             playerBaseHp: 260,
             startingGas: 6
         });
@@ -1252,7 +1676,7 @@ export function buildAllMapsData() {
 export const LEVELS = buildAllMapsData();
 export const MAPS_DATA = LEVELS;
 
-/* 16. DANH MỤC NHIỆM VỤ CHIẾN DỊCH MỞ RỘNG (MISSIONS CATALOG) */
+/* 18. DANH MỤC NHIỆM VỤ CHIẾN DỊCH */
 export const MISSIONS_CATALOG = [
     { id: 'kill_50',     title: 'Tiêu diệt 50 quân địch',           target: 50,      rewardGems: 150,  rewardCoins: 2000,   statKey: 'kills' },
     { id: 'kill_250',    title: 'Tiêu diệt 250 quân địch',          target: 250,     rewardGems: 400,  rewardCoins: 6000,   statKey: 'kills' },

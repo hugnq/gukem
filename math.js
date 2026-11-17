@@ -1,6 +1,6 @@
 /* ============================================================================
    TINY BATTLE - O(1) ALGORITHMS & MATH UTILITIES (js/math.js)
-   - Định dạng số lớn (K, M, B, T) & Haptic Feedback
+   - Định dạng số lớn (K, M, B, T, Qa) & Haptic Feedback
    - Thuật toán Mở Rương Siêu Tốc O(1) lên tới 1,000,000,000 rương (< 0.005s)
    - Toán học khối O(1) tính chi phí Nâng cấp vượt cấp (+N Level & MAX) & Hoàn Vàng
    ============================================================================ */
@@ -25,6 +25,7 @@ export function triggerHaptic(duration = 15) {
 
 export function formatCompactNumber(val) {
     const n = Math.floor(Number(val) || 0);
+    if (n >= 1e15) return `${(n / 1e15).toFixed(2).replace(/\.00$/, '')}Qa`;
     if (n >= 1e12) return `${(n / 1e12).toFixed(2).replace(/\.00$/, '')}T`;
     if (n >= 1e9)  return `${(n / 1e9).toFixed(2).replace(/\.00$/, '')}B`;
     if (n >= 1e6)  return `${(n / 1e6).toFixed(2).replace(/\.00$/, '')}M`;
@@ -62,9 +63,9 @@ export function sampleBinomialGaussianO1(n, p) {
 
 /**
  * Thuật toán Mở Rương Siêu Tốc O(1) từ 1 đến 1,000,000,000 (1 Tỷ) rương:
- * - Khi qty <= 1000: Quay ngẫu nhiên từng rương chính xác.
+ * - Khi qty <= 1000: Quay ngẫu nhiên từng rương chính xác trên toàn bộ 17 binh chủng.
  * - Khi qty > 1000: Dùng Xấp xỉ Phân phối Chuẩn Đa thức (Box-Muller Gaussian Multinomial Approximation),
- *   chỉ thực hiện ~44 phép tính số học, hoàn thành trong < 0.005 giây và không tốn thêm RAM!
+ *   chỉ thực hiện vài chục phép tính số học, hoàn thành trong < 0.005 giây và không tốn RAM.
  */
 export function simulateBulkCrateOpeningO1(crateType, rawQty, unitIdsList = null) {
     const qty = Math.max(1, Math.min(MAX_CRATE_OPEN_QTY, Math.floor(Number(rawQty) || 1)));

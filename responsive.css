@@ -1,9 +1,68 @@
 /* ============================================================================
-   TINY BATTLE - RESPONSIVE STYLES
+   TINY BATTLE - RESPONSIVE STYLES (css/responsive.css)
    Tinh chỉnh giao diện cho màn hình điện thoại nhỏ (< 380px & < 720px height)
+   Hỗ trợ: Top Bar 4 tiền tệ, 5 Tabs, Deck 6 ô Challenge, Base HP HUD & Skill Tree
    ============================================================================ */
 
 @media (max-width: 380px) {
+    /* 1. Top Bar 4 loại tiền tệ (Ngọc Trai Trắng, Huy Chương, Gems, Vàng) */
+    .lobby-top-bar {
+        padding: 4px 5px !important;
+        gap: 3px;
+    }
+    .profile-settings-group {
+        gap: 4px;
+    }
+    .player-profile-pill {
+        padding: 2px 5px 2px 3px;
+        gap: 4px;
+    }
+    .avatar-box {
+        width: 28px;
+        height: 28px;
+    }
+    .player-name-text {
+        max-width: 48px !important;
+        font-size: 10px !important;
+    }
+    .btn-settings-gear {
+        width: 32px;
+        height: 32px;
+    }
+    .currency-group {
+        gap: 2px !important;
+    }
+    .currency-pill {
+        min-width: 38px !important;
+        padding: 2px 4px 2px 3px !important;
+        gap: 2px !important;
+    }
+    .currency-icon {
+        font-size: 10.5px !important;
+    }
+    .currency-val {
+        font-size: 13px !important;
+    }
+
+    /* 2. Thanh điều hướng đáy 5 Tab */
+    .lobby-bottom-nav.five-tabs .nav-tab-icon {
+        font-size: 16px;
+    }
+    .lobby-bottom-nav.five-tabs .nav-tab-label {
+        font-size: 7.5px;
+        letter-spacing: 0;
+    }
+
+    /* 3. Thanh HUD máu 2 căn cứ Xanh & Đỏ không đè lên cụm nút góc phải */
+    .base-hp-hud-strip {
+        width: min(216px, calc(100vw - 144px)) !important;
+        gap: 3px;
+    }
+    .base-hp-label-row {
+        font-size: 8px;
+    }
+
+    /* 4. Thanh Deck đáy (5 ô Battle & 6 ô Challenge) */
     .bottom-deck {
         grid-template-columns: 0.88fr 0.74fr 4.38fr;
         gap: 2.5px;
@@ -14,16 +73,47 @@
     #battle-deck-slots {
         gap: 2.5px;
     }
+    .battle-deck-slots.challenge-6-slots {
+        gap: 1.5px !important;
+    }
+    .battle-deck-slots.challenge-6-slots .hotkey-badge,
+    .battle-deck-slots.challenge-6-slots .unit-lv-badge {
+        font-size: 9px;
+        padding: 0 2px;
+    }
+    .battle-deck-slots.challenge-6-slots .unit-card-art {
+        width: 28px;
+        height: 28px;
+    }
+    .battle-deck-slots.challenge-6-slots .unit-card-art img {
+        width: 26px;
+        height: 26px;
+    }
+    .battle-deck-slots.challenge-6-slots .unit-card-name {
+        font-size: 6.8px;
+    }
+    .battle-deck-slots.challenge-6-slots .cost-badge {
+        font-size: 11px;
+        padding: 0 3px;
+    }
+
+    /* 5. Bảng Roll thẻ bài & Kho tướng */
     .draft-cards-grid {
         gap: 4px;
     }
     .draft-card {
-        min-height: 168px;
+        min-height: 164px;
         padding: 6px 3px;
+    }
+    .draft-cards-grid.six-cards .draft-card {
+        min-height: 122px;
+        padding: 4px 2px;
     }
     .army-cards-grid {
         grid-template-columns: repeat(3, 1fr);
     }
+
+    /* 6. Màn hình Battle & Cột nút Sidebar */
     .mode-pill-btn {
         font-size: 8.8px;
         padding: 4px 3px;
@@ -42,15 +132,30 @@
         font-size: 8px;
     }
     .side-feature-btn {
-        width: 54px;
-        height: 52px;
+        width: 52px;
+        height: 50px;
+    }
+    .battle-side-column.four-btns .side-feature-btn {
+        width: 52px;
+        height: 43px;
     }
     .side-btn-icon {
-        font-size: 18px;
+        font-size: 16px;
     }
     .side-btn-text {
-        font-size: 8px;
+        font-size: 7.5px;
     }
+
+    /* 7. Cây Kỹ Năng Cổ Thụ (Skill Tree) */
+    .st-node-btn {
+        width: 74px;
+        padding: 5px 3px;
+    }
+    .st-crown-node {
+        width: 94px;
+    }
+
+    /* 8. Modal Nâng cấp & Vòng quay */
     .bulk-upg-top-row {
         flex-direction: column;
         align-items: stretch;
@@ -79,17 +184,23 @@
 
 @media (max-height: 720px) {
     .army-Hero-stage {
-        height: 126px;
+        height: 122px;
     }
     .army-showcase-canvas {
-        width: 88px;
-        height: 88px;
+        width: 84px;
+        height: 84px;
     }
     .map-canvas-frame {
-        width: 142px;
-        height: 168px;
+        width: 140px;
+        height: 164px;
     }
     .side-feature-btn {
-        height: 50px;
+        height: 48px;
+    }
+    .battle-side-column.four-btns .side-feature-btn {
+        height: 41px;
+    }
+    .skilltree-canvas-stage {
+        min-height: 390px;
     }
 }

@@ -1,28 +1,36 @@
 /* ============================================================================
-   TINY BATTLE - BASE STYLES (VARIABLES, RESET, WRAPPER, SCROLLBAR, 3D BUTTONS)
-   Logical Resolution: 420x840px | Target: 60-120 FPS Mobile Web
+   TINY BATTLE - BASE STYLES, VARIABLES, FONTS & 3D BUTTONS (css/base.css)
+   Bright Mobile UI • 420x840px Vertical Layout • 60-120 FPS Hardware Accelerated
    ============================================================================ */
-
-/* NHẬP ĐỒNG BỘ 2 FONT CHỮ CHAKRA PETCH (UI) & VT323 (RETRO NUMBERS) */
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700&family=VT323&display=swap');
 
 :root {
     --font-ui: 'Chakra Petch', sans-serif;
-    --font-num: 'VT323', monospace;
+    --font-pixel: 'VT323', monospace;
 
-    /* Biến màu bổ trợ cho các tính năng nâng cấp */
-    --gold-ready: #facc15;
-    --gold-ready-glow: #fde047;
-    --emp-cyan: #06b6d4;
-    --napalm-orange: #f97316;
-    --airdrop-green: #22c55e;
-    --blitz-yellow: #eab308;
-    --roguelike-purple: #a855f7;
-    --boss-crimson: #ef4444;
-    --master-aqua: #00f2fe;
-    --master-deep: #0284c7;
-    --demon-purple: #a855f7;
-    --demon-magenta: #d946ef;
+    /* Bảng màu Sảnh & Khung viền */
+    --bg-outer: #090d16;
+    --bg-sky-top: #7dd3fc;
+    --bg-sky-mid: #bae6fd;
+    --bg-ground-green: #65a30d;
+    --border-ink: #0f172a;
+    --panel-cream: #fefce8;
+
+    /* Màu Tiền tệ */
+    --color-pearl: #f8fafc;
+    --color-medal: #fbbf24;
+    --color-gem: #38bdf8;
+    --color-coin: #facc15;
+
+    /* Màu 41 Bậc Độ Hiếm */
+    --r-common: #94a3b8;
+    --r-uncommon: #4ade80;
+    --r-rare: #60a5fa;
+    --r-epic: #c084fc;
+    --r-legendary: #f59e0b;
+    --r-mythic: #fb7185;
+    --r-secret: #18181b;
+    --r-master: #00f2fe;
+    --r-demon: #d946ef;
 }
 
 * {
@@ -33,216 +41,212 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+html,
 body {
     margin: 0;
     padding: 0;
-    background: radial-gradient(circle at center, #0F172A 0%, #0A0D15 100%);
-    font-family: var(--font-ui);
-    overflow: hidden;
-    height: 100dvh;
-    width: 100vw;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    touch-action: manipulation;
-    overscroll-behavior: none;
-}
-
-#game-wrapper {
-    position: relative;
     width: 100%;
     height: 100%;
-    max-height: 96dvh;
-    aspect-ratio: 9 / 18;
-    max-width: calc(96dvh * (9 / 18));
-    background: #58a846;
-    border: 4px solid #0f172a;
-    border-radius: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), inset 0 0 15px rgba(0, 0, 0, 0.4);
-    overflow: hidden;
+    background-color: var(--bg-outer);
+    font-family: var(--font-ui);
     display: flex;
-    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
 }
 
-@media (max-width: 500px) {
-    #game-wrapper {
-        max-height: 100dvh;
-        max-width: 100vw;
-        border-radius: 0;
-        border: none;
-    }
+/* Khung Game Chính khóa tỷ lệ dọc 9 / 18 (420x840px) */
+#game-wrapper {
+    position: relative;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: min(100vw, calc(100dvh * (9 / 18)));
+    aspect-ratio: 9 / 18;
+    background: #1e293b;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.9), 0 0 0 2px #334155;
 }
 
-canvas,
+.hidden {
+    display: none !important;
+}
+
+/* Giữ độ sắc nét Pixel Art cho Sprite & Canvas */
 .pixel-art {
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
 }
 
-canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
+/* Bộ đếm số dạng Tabular-Nums tránh rung giật layout khi số nhảy nhanh */
+.vt323-num,
+.currency-val,
+.medal-currency-val,
+.match-timer-val,
+.gas-rate-val,
+.gas-counter-val,
+.upgrade-cost-val,
+.wave-counter-val,
+.boss-hp-num-val {
+    font-family: var(--font-pixel);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.4px;
 }
 
 /* ============================================================================
-   THANH CUỘN TÙY CHỈNH CHO CÁC KHUNG DANH SÁCH TRÊN MOBILE
-   ============================================================================ */
-.shop-scroll-area::-webkit-scrollbar,
-.army-cards-grid::-webkit-scrollbar,
-.mission-scroll-list::-webkit-scrollbar,
-.gacha-results-grid::-webkit-scrollbar,
-.settings-modal-scroll::-webkit-scrollbar,
-.giftcode-tags-wrap::-webkit-scrollbar,
-.talents-scroll-list::-webkit-scrollbar,
-.talent-tree-container::-webkit-scrollbar,
-.chip-inventory-grid::-webkit-scrollbar,
-.chip-sockets-grid::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-}
-
-.shop-scroll-area::-webkit-scrollbar-track,
-.army-cards-grid::-webkit-scrollbar-track,
-.mission-scroll-list::-webkit-scrollbar-track,
-.gacha-results-grid::-webkit-scrollbar-track,
-.settings-modal-scroll::-webkit-scrollbar-track,
-.giftcode-tags-wrap::-webkit-scrollbar-track,
-.talents-scroll-list::-webkit-scrollbar-track,
-.talent-tree-container::-webkit-scrollbar-track,
-.chip-inventory-grid::-webkit-scrollbar-track,
-.chip-sockets-grid::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.2);
-    border-radius: 999px;
-}
-
-.shop-scroll-area::-webkit-scrollbar-thumb,
-.army-cards-grid::-webkit-scrollbar-thumb,
-.mission-scroll-list::-webkit-scrollbar-thumb,
-.gacha-results-grid::-webkit-scrollbar-thumb,
-.settings-modal-scroll::-webkit-scrollbar-thumb,
-.giftcode-tags-wrap::-webkit-scrollbar-thumb,
-.talents-scroll-list::-webkit-scrollbar-thumb,
-.talent-tree-container::-webkit-scrollbar-thumb,
-.chip-inventory-grid::-webkit-scrollbar-thumb,
-.chip-sockets-grid::-webkit-scrollbar-thumb {
-    background: rgba(15, 23, 42, 0.55);
-    border-radius: 999px;
-}
-
-/* ============================================================================
-   NÚT BẤM 3D CHUẨN MOBILE & HAPTIC MICRO-ANIMATION
+   HỆ THỐNG NÚT BẤM 3D MOBILE UI (.btn-3d)
    ============================================================================ */
 .btn-3d {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: var(--font-ui);
-    border: 3px solid #0f172a;
-    border-radius: 14px;
-    font-weight: 800;
+    font-weight: 900;
+    border: 2.5px solid #0f172a;
+    border-radius: 12px;
     cursor: pointer;
-    text-shadow: 0 1.5px 0 #0f172a;
-    transition: transform 0.08s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.08s ease, filter 0.15s ease;
-    box-shadow: 0 4px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.45);
-    will-change: transform;
-}
-
-.btn-3d:hover:not(:disabled) {
-    filter: brightness(1.06);
+    box-shadow: 0 4px 0 #0f172a;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+    text-align: center;
+    line-height: 1.1;
 }
 
 .btn-3d:active:not(:disabled) {
-    transform: scale(0.96) translateY(2px);
-    box-shadow: 0 1px 0 #0f172a, inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #0f172a;
 }
 
 .btn-3d:disabled {
-    opacity: 0.45;
+    opacity: 0.52;
     cursor: not-allowed;
-    filter: grayscale(60%);
+    filter: grayscale(45%);
 }
 
 .btn-3d-yellow {
-    background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
-    color: #ffffff;
+    background: linear-gradient(180deg, #fef08a 0%, #facc15 100%);
+    color: #422006;
 }
 
 .btn-3d-amber {
-    background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
     color: #ffffff;
+    text-shadow: 0 1.5px 0 #0f172a;
 }
 
 .btn-3d-green {
     background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
     color: #ffffff;
-}
-
-.btn-3d-rose {
-    background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
-    color: #ffffff;
-}
-
-.btn-3d-danger {
-    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
-    color: #ffffff;
-    border-color: #450a0a;
-    box-shadow: 0 4px 0 #450a0a, inset 0 2px 0 rgba(255, 255, 255, 0.4);
-}
-
-.btn-3d-danger:active:not(:disabled) {
-    transform: scale(0.96) translateY(2px);
-    box-shadow: 0 1px 0 #450a0a, inset 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.btn-3d-slate {
-    background: linear-gradient(180deg, #94a3b8 0%, #475569 100%);
-    color: #ffffff;
-}
-
-.btn-3d-purple {
-    background: linear-gradient(180deg, #c084fc 0%, #7e22ce 100%);
-    color: #ffffff;
+    text-shadow: 0 1.5px 0 #0f172a;
 }
 
 .btn-3d-cyan {
     background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
     color: #ffffff;
+    text-shadow: 0 1.5px 0 #0f172a;
+}
+
+.btn-3d-purple {
+    background: linear-gradient(180deg, #c084fc 0%, #7e22ce 100%);
+    color: #ffffff;
+    text-shadow: 0 1.5px 0 #0f172a;
+}
+
+.btn-3d-rose,
+.btn-3d-danger {
+    background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
+    color: #ffffff;
+    text-shadow: 0 1.5px 0 #0f172a;
+}
+
+.btn-3d-slate {
+    background: linear-gradient(180deg, #64748b 0%, #334155 100%);
+    color: #f8fafc;
+    text-shadow: 0 1.5px 0 #0f172a;
 }
 
 /* ============================================================================
-   ĐỒNG BỘ FONT SỐ ĐẾM RETRO ARCADE (VT323 & .font-retro) & HIỆU ỨNG NHẤN CHUNG
+   THANH CUỘN TÙY CHỈNH CHO TOÀN BỘ DANH SÁCH & MODAL MỚI
    ============================================================================ */
-.font-retro,
-.vt323-num,
-.wave-counter-val,
-.match-timer-val,
-.gas-counter-val,
-.gas-rate-val,
-.unit-cd-timer,
-.tactic-cd-timer,
-.tactic-cd-text,
-.medal-currency-val,
-.endless-wave-record-val,
-.autobattler-fuel-val,
-.boss-hp-num-val {
-    font-family: var(--font-num) !important;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.4px;
-    line-height: 1;
+.shop-scroll-area::-webkit-scrollbar,
+.army-subview::-webkit-scrollbar,
+.merge-inv-scroll::-webkit-scrollbar,
+.challenge-roadmap-scroll::-webkit-scrollbar,
+.skilltree-canvas-stage::-webkit-scrollbar,
+.settings-modal-scroll::-webkit-scrollbar,
+.mission-scroll-list::-webkit-scrollbar,
+.talents-scroll-list::-webkit-scrollbar,
+.gacha-results-grid::-webkit-scrollbar,
+.wheel-history-box::-webkit-scrollbar,
+#codex-units-list::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
 }
 
-.tactic-skill-btn:active:not(:disabled),
-.talent-upgrade-btn:active:not(:disabled),
-.chip-slot-btn:active:not(:disabled),
-.chip-item-card:active:not(:disabled),
-.special-mode-card:active:not(:disabled),
-.autobattler-unit-token:active {
-    transform: scale(0.96) translateY(2px) !important;
+.shop-scroll-area::-webkit-scrollbar-track,
+.army-subview::-webkit-scrollbar-track,
+.merge-inv-scroll::-webkit-scrollbar-track,
+.challenge-roadmap-scroll::-webkit-scrollbar-track,
+.skilltree-canvas-stage::-webkit-scrollbar-track,
+.settings-modal-scroll::-webkit-scrollbar-track,
+.mission-scroll-list::-webkit-scrollbar-track,
+.talents-scroll-list::-webkit-scrollbar-track,
+.gacha-results-grid::-webkit-scrollbar-track,
+.wheel-history-box::-webkit-scrollbar-track,
+#codex-units-list::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.25);
+    border-radius: 999px;
 }
 
+.shop-scroll-area::-webkit-scrollbar-thumb,
+.army-subview::-webkit-scrollbar-thumb,
+.merge-inv-scroll::-webkit-scrollbar-thumb,
+.challenge-roadmap-scroll::-webkit-scrollbar-thumb,
+.skilltree-canvas-stage::-webkit-scrollbar-thumb,
+.settings-modal-scroll::-webkit-scrollbar-thumb,
+.mission-scroll-list::-webkit-scrollbar-thumb,
+.talents-scroll-list::-webkit-scrollbar-thumb,
+.gacha-results-grid::-webkit-scrollbar-thumb,
+.wheel-history-box::-webkit-scrollbar-thumb,
+#codex-units-list::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.65);
+    border-radius: 999px;
+}
+
+.shop-scroll-area::-webkit-scrollbar-thumb:hover,
+.challenge-roadmap-scroll::-webkit-scrollbar-thumb:hover,
+.skilltree-canvas-stage::-webkit-scrollbar-thumb:hover,
+.settings-modal-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(248, 250, 252, 0.85);
+}
+
+/* Keyframes dùng chung */
 @keyframes popIn {
-    from { opacity: 0; transform: scale(0.92); }
-    to { opacity: 1; transform: scale(1); }
+    0% {
+        transform: scale(0.86);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes notifPulse {
+    0% {
+        transform: scale(0.95);
+    }
+    100% {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes bossPulse {
+    0% {
+        opacity: 0.72;
+    }
+    100% {
+        opacity: 1;
+    }
 }

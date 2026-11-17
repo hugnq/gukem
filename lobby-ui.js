@@ -1,7 +1,7 @@
 /* ============================================================================
    TINY BATTLE - LOBBY UI & INTERACTION CONTROLLER (js/lobby-ui.js)
-   TopBar, Tab Battle (45 Maps), Shop Gacha 1B, Army/Merge O(1) (17 Units),
-   Base Turret, Codex Encyclopedia, Lucky Wheel (Skip 0.01s + History) & 3 Mini-Games
+   TopBar (4 Currencies + White Pearl), 5 Navigation Tabs (SHOP, ARMY, BATTLE,
+   CHALLENGE 20W Zombie TD, SKILL TREE Ancient Tree), INDEX, Sandbox Review & Chip Store
    ============================================================================ */
 
 import {
@@ -15,10 +15,13 @@ import {
     DIFFICULTY_CONFIG,
     BATTLE_MODE_CONFIG,
     calcStageRewardCoins,
+    calcChallengeEntryCostCoins,
+    calcChallengeRewards,
     MAX_CRATE_OPEN_QTY,
     OFFICIAL_GIFTCODES,
     GIFTCODE_REWARD_GEMS,
     GIFTCODE_REWARD_COINS,
+    GIFTCODE_REWARD_PEARLS,
     GIFT_CODES,
     MISSIONS_CATALOG,
     LEVELS,
@@ -26,6 +29,11 @@ import {
     UNIT_BY_ID,
     META_TALENTS,
     UNIT_CHIPS,
+    CHIP_SOCKET_2_UNLOCK_GEMS,
+    CHIP_BUY_COST_COINS,
+    CHIP_BUY_COST_GEMS,
+    ANCIENT_SKILL_TREE,
+    getSkillTreeNodeCost,
     BASE_TURRET_CONFIG,
     getBaseTurretUpgradeCost,
     CODEX_MILESTONES,
@@ -49,16 +57,28 @@ import {
     syncRepresentativeInventoryFromStacks,
     addCardToStacks,
     getTotalCardsInInventory,
-    normalizeSelectedDeck,
     syncLegacyEngineBridges,
     loadProgress,
     saveProgress,
     resetAllAccountData,
+    isUnitSocket2Unlocked,
+    unlockUnitSocket2,
+    getChipOwnedCount,
+    buyChipItem,
+    equipChipToUnitSlot,
+    unequipChipFromUnitSlot,
     isDifficultyCleared,
     isDifficultyModeCleared,
     getMaxUnlockedMapLevel,
     isDifficultyUnlocked,
     getDefaultDifficultyForMap,
+    isChallengeMapCleared,
+    getMaxUnlockedChallengeMapLevel,
+    isChallengeMapUnlocked,
+    getSkillTreeNodeLevel,
+    isSkillTreeNodeUnlocked,
+    canUpgradeSkillTreeNode,
+    upgradeSkillTreeNode,
     getHighestRarityForUnit,
     getHighestEverRarityRankForUnit,
     hasClaimableCodexMilestones,
@@ -74,6 +94,8 @@ import {
     drawBaseTurretArt,
     getUnitSpriteDataURL
 } from './engine-core.js';
+
+import { getEffectiveUnitStats } from './entities.js';
 
 let sfxRef = null;
 let atlasRef = null;
@@ -96,19 +118,28 @@ export let currentStageViewLevel = 1;
 export let currentSelectedDifficulty = 'easy';
 export let currentSelectedBattleMode = 'destroy';
 export let currentSelectedSpecialMode = 'standard';
-export let currentArmyMode = 'army';
+export let currentArmyMode = 'army'; // 'army' | 'review' | 'merge'
 export let showcaseUnitId = PRIMARY_INFANTRY_ID;
 export let inspectingUnitId = PRIMARY_INFANTRY_ID;
 export let currentBulkAddLevels = 1;
 export let mergeSelectedCardUids = [];
 export let activeChipSocketIndex = 0;
+export let selectedSkillTreeNodeId = 'vital_roots';
 
 // ============================================================================
-// 1. GIAO DIỆN SẢNH (TOP BAR & TABS)
+// 1. GIAO DIỆN SẢNH (TOP BAR 4 TIỀN TỆ & 5 NAVIGATION TABS)
 // ============================================================================
 export function updateTopBarUI() {
     const nameEl = document.getElementById('player-name-display');
     if (nameEl) nameEl.textContent = metaState.playerName || 'COMMANDER';
+
+    const pearlsEl = document.getElementById('pearls-count-display');
+    if (pearlsEl) pearlsEl.textContent = formatCurrency(metaState.pearls || 0);
+
+    const medalsEl1 = document.getElementById('medals-count-display');
+    const medalsEl2 = document.getElementById('lobby-medals-val');
+    if (medalsEl1) medalsEl1.textContent = formatCurrency(metaState.medals || 0);
+    if (medalsEl2) medalsEl2.textContent = formatCurrency(metaState.medals || 0);
 
     const gemsEl = document.getElementById('gems-count-display');
     if (gemsEl) gemsEl.textContent = formatCurrency(metaState.gems);
@@ -116,11 +147,7 @@ export function updateTopBarUI() {
     const coinsEl = document.getElementById('coins-count-display');
     if (coinsEl) coinsEl.textContent = formatCurrency(metaState.coins);
 
-    const medalsEl1 = document.getElementById('medals-count-display');
-    const medalsEl2 = document.getElementById('lobby-medals-val');
-    if (medalsEl1) medalsEl1.textContent = formatCurrency(metaState.medals || 0);
-    if (medalsEl2) medalsEl2.textContent = formatCurrency(metaState.medals || 0);
-
+    const pearlsPill = document.getElementById('pearls-pill-box');
     const medalsPill = document.getElementById('medals-pill-box');
     const gemsPill = document.getElementById('gems-pill-box');
     const coinsPill = document.getElementById('coins-pill-box');
@@ -128,12 +155,14 @@ export function updateTopBarUI() {
     const adminTag = document.getElementById('admin-active-tag');
 
     if (metaState.isAdminMode) {
+        if (pearlsPill) pearlsPill.className = 'currency-pill pearl-pill admin-infinite-pill';
         if (medalsPill) medalsPill.className = 'currency-pill medal-pill admin-infinite-pill';
         if (gemsPill) gemsPill.className = 'currency-pill admin-infinite-pill';
         if (coinsPill) coinsPill.className = 'currency-pill admin-infinite-pill';
         if (gearBtn) gearBtn.className = 'btn-settings-gear admin-active-gear';
         if (adminTag) adminTag.classList.remove('hidden');
     } else {
+        if (pearlsPill) pearlsPill.className = 'currency-pill pearl-pill';
         if (medalsPill) medalsPill.className = 'currency-pill medal-pill';
         if (gemsPill) gemsPill.className = 'currency-pill';
         if (coinsPill) coinsPill.className = 'currency-pill';
@@ -166,8 +195,12 @@ export function switchLobbyTab(tabName) {
         }
     });
 
-    if (tabName === 'battle') renderStageScreenUI();
+    if (tabName === 'shop') renderShopChipStoreUI();
     else if (tabName === 'army') renderArmyTabUI();
+    else if (tabName === 'battle') renderStageScreenUI();
+    else if (tabName === 'challenge') renderChallengeRoadmapUI();
+    else if (tabName === 'skilltree') renderSkillTreeTabUI();
+
     updateTopBarUI();
 }
 
@@ -207,7 +240,7 @@ export function renderSettingsModalUI() {
             modeBadge.textContent = '👑 CHẾ ĐỘ ADMIN ĐANG BẬT';
         }
         if (modeDesc) {
-            modeDesc.textContent = `Bạn đang bật quyền Admin: Tài nguyên vô hạn, mở 1 Tỷ rương miễn phí, mở khóa toàn bộ ${LEVELS.length} map chơi.`;
+            modeDesc.textContent = `Bạn đang bật quyền Admin: Tài nguyên vô hạn, mở 1 Tỷ rương miễn phí, mở khóa toàn bộ ${LEVELS.length} map Battle & Challenge.`;
         }
         if (loginSection) loginSection.classList.add('hidden');
         if (activeSection) activeSection.classList.remove('hidden');
@@ -329,7 +362,7 @@ export function renderStageScreenUI() {
         if (sp === 'endless') {
             diffBannerEl.innerHTML = `Chế độ: <b>Thủ Thành Roguelike Vô Tận</b> • Kỷ lục: <b class="text-purple-300">Wave ${metaState.endlessBestWave || 0}</b> • Qua mỗi Wave chọn Thẻ Đột Biến!`;
         } else if (sp === 'autobattler') {
-            diffBannerEl.innerHTML = `Chế độ: <b>Đấu Trường Đặt Trận Tự Động</b> • Đã thắng: <b class="text-emerald-300">${metaState.autobattlerWins || 0} trận</b> • Chọn ô 1-4 & chạm sân đặt quân!`;
+            diffBannerEl.innerHTML = `Chế độ: <b>Đấu Trường Đặt Trận Tự Động</b> • Đã thắng: <b class="text-emerald-300">${metaState.autobattlerWins || 0} trận</b> • Chọn ô & chạm sân đặt quân!`;
         } else if (sp === 'night_fog') {
             diffBannerEl.innerHTML = `Chế độ: <b>Chiến Dịch Đêm Mù (Fog of War)</b> • Màn đêm bao phủ, đơn vị chiếu đèn mở tầm nhìn!`;
         } else if (sp === 'raid_boss') {
@@ -346,7 +379,7 @@ export function renderStageScreenUI() {
         if (cfg.mechanicTag) {
             mechanicSubEl.innerHTML = `<b>${cfg.mechanicTag}</b>`;
         } else {
-            mechanicSubEl.innerHTML = `💡 Thắng chế độ <b>KHÓ</b> nhận thêm <b class="text-amber-700">🎖️ Huy Chương</b> nâng cấp Cây Bị Động & Ụ Pháo!`;
+            mechanicSubEl.innerHTML = `🎲 Trong trận lên cấp sẽ <b>Roll ngẫu nhiên 3 Binh Chủng</b> (kèm 1 lượt <b>Reroll</b>) & kéo thả đặt quanh nhà!`;
         }
     }
 
@@ -390,7 +423,7 @@ export function renderStageScreenUI() {
 }
 
 // ============================================================================
-// 4. CÂY KỸ NĂNG CHỈ HUY BỊ ĐỘNG (META-TALENTS MODAL)
+// 4. CÂY KỸ NĂNG CHỈ HUY BỊ ĐỘNG (6 NHÁNH META-TALENTS - MAX LV.10)
 // ============================================================================
 export function updateTalentNotificationDot() {
     const canAffordAny = Object.values(META_TALENTS).some(t => {
@@ -431,7 +464,7 @@ export function renderMetaTalentsModalUI() {
 
         let pipsHtml = '';
         for (let i = 1; i <= talent.maxLevel; i++) {
-            pipsHtml += `<span class="talent-pip ${i <= curLv ? 'active' : ''}"></span>`;
+            pipsHtml += `<span class="talent-pip ${i <= curLv ? 'active' : ''}" style="width:10px;"></span>`;
         }
 
         const card = document.createElement('div');
@@ -512,6 +545,8 @@ export function renderBaseTurretModalUI() {
     const curType = metaState.baseTurret.type || 'gatling';
     const curLv = Math.max(1, Number(metaState.baseTurret.level) || 1);
     const lvMult = 1 + (curLv - 1) * 0.15;
+    const bastionLv = Number(metaState.metaTalents?.immortal_bastion) || 0;
+    const bastionMult = 1 + bastionLv * 0.08;
     const activeCfg = BASE_TURRET_CONFIG[curType] || BASE_TURRET_CONFIG.gatling;
 
     const lvValEl = document.getElementById('turret-modal-level-val');
@@ -519,7 +554,7 @@ export function renderBaseTurretModalUI() {
 
     const statsBadgeEl = document.getElementById('turret-modal-stats-badge');
     if (statsBadgeEl) {
-        const effDmg = Math.round(activeCfg.baseDamage * lvMult);
+        const effDmg = Math.round(activeCfg.baseDamage * lvMult * bastionMult);
         statsBadgeEl.textContent = `DMG: ${effDmg} • Tầm: ${activeCfg.range} • Tốc: ${activeCfg.fireRate}/s`;
     }
 
@@ -528,7 +563,7 @@ export function renderBaseTurretModalUI() {
         container.innerHTML = '';
         Object.values(BASE_TURRET_CONFIG).forEach(turret => {
             const isSelected = turret.id === curType;
-            const effDmg = Math.round(turret.baseDamage * lvMult);
+            const effDmg = Math.round(turret.baseDamage * lvMult * bastionMult);
 
             const previewCanvas = document.createElement('canvas');
             previewCanvas.width = 44;
@@ -579,7 +614,7 @@ export function renderBaseTurretModalUI() {
 }
 
 // ============================================================================
-// 4C. SỔ TAY BÁCH KHOA 17 BINH CHỦNG & THƯỞNG MỐC SƯU TẦM (#codex-modal)
+// 4C. SỔ TAY INDEX 17 BINH CHỦNG & THƯỞNG MỐC SƯU TẦM (#codex-modal)
 // ============================================================================
 export function updateCodexNotificationDot() {
     const dotEl = document.getElementById('codex-notif-dot');
@@ -801,9 +836,64 @@ export function renderGiftcodeModalUI() {
 }
 
 // ============================================================================
-// 6. TAB SHOP: MỞ RƯƠNG SIÊU TỐC O(1) LÊN TỚI 1 TỶ RƯƠNG
+// 6. TAB SHOP: MỞ RƯƠNG SIÊU TỐC O(1) & CỬA HÀNG CHIP BỔ TRỢ
 // ============================================================================
 let pendingGachaData = null;
+
+export function renderShopChipStoreUI() {
+    const listEl = document.getElementById('shop-chips-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    Object.values(UNIT_CHIPS).forEach(chip => {
+        const ownedCount = getChipOwnedCount(chip.id);
+        const coinCost = chip.buyCoins || CHIP_BUY_COST_COINS;
+        const gemCost = chip.buyGems || CHIP_BUY_COST_GEMS;
+        const canBuyCoins = metaState.isAdminMode || metaState.coins >= coinCost;
+        const canBuyGems = metaState.isAdminMode || metaState.gems >= gemCost;
+
+        const row = document.createElement('div');
+        row.className = 'shop-chip-item-row';
+        row.innerHTML = `
+            <div class="flex items-center gap-2 flex-1 text-left">
+                <div class="w-9 h-9 rounded-lg bg-slate-800 border-2 border-slate-600 flex items-center justify-center text-xl flex-shrink-0">
+                    ${chip.icon}
+                </div>
+                <div>
+                    <div class="text-xs font-black text-white">
+                        ${chip.name} <span class="text-amber-300 vt323-num text-sm">(Kho: ${ownedCount})</span>
+                    </div>
+                    <div class="text-[9.5px] font-bold text-slate-300 leading-tight mt-0.5">${chip.desc}</div>
+                </div>
+            </div>
+            <div class="flex flex-col gap-1 flex-shrink-0">
+                <button type="button" data-buy-chip="${chip.id}" data-curr="coins" class="btn-3d btn-3d-amber px-2.5 py-1 text-[10px] vt323-num" ${!canBuyCoins ? 'disabled' : ''}>
+                    🪙 ${coinCost.toLocaleString('en-US')}
+                </button>
+                <button type="button" data-buy-chip="${chip.id}" data-curr="gems" class="btn-3d btn-3d-cyan px-2.5 py-1 text-[10px] vt323-num" ${!canBuyGems ? 'disabled' : ''}>
+                    💎 ${gemCost.toLocaleString('en-US')}
+                </button>
+            </div>
+        `;
+
+        row.querySelectorAll('button[data-buy-chip]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cId = btn.getAttribute('data-buy-chip');
+                const curr = btn.getAttribute('data-curr');
+                if (buyChipItem(cId, curr)) {
+                    triggerHaptic(20);
+                    if (sfxRef) sfxRef.play('upgrade');
+                    renderShopChipStoreUI();
+                    updateTopBarUI();
+                } else if (sfxRef) {
+                    sfxRef.play('cannon');
+                }
+            });
+        });
+
+        listEl.appendChild(row);
+    });
+}
 
 export function requestOpenGachaCrate(crateType, count) {
     const qty = Math.max(1, Math.min(MAX_CRATE_OPEN_QTY, Math.floor(Number(count) || 1)));
@@ -851,7 +941,7 @@ export function requestOpenGachaCrate(crateType, count) {
 }
 
 // ============================================================================
-// 7. TAB ARMY: SHOWCASE CANVAS (AURA MASTER/DEMON), DECK BUILDER, BULK LEVEL & MERGE
+// 7. TAB ARMY: SHOWCASE CANVAS, REVIEW SANDBOX, CHIP SOCKETS (KHE 2 = 500 💎) & MERGE
 // ============================================================================
 export function drawCanvasRarityAura(ctx, cx, cy, baseRadius, rarityId, timeSec) {
     const rCfg = RARITY_CONFIG[rarityId];
@@ -990,45 +1080,30 @@ export function renderArmyShowcaseCanvas() {
     }
 }
 
-export function renderArmyDeckBuilderBar() {
-    metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
-    const bar = document.getElementById('army-active-deck-bar');
-    if (!bar) return;
-
-    const buttons = bar.querySelectorAll('button[data-deck-slot]');
-    buttons.forEach(btn => {
-        const slotIdx = Number(btn.getAttribute('data-deck-slot'));
-        const uId = metaState.selectedDeck[slotIdx] || PRIMARY_INFANTRY_ID;
-        const u = UNIT_BY_ID[uId] || UNIT_CATALOG[0];
-        const lv = metaState.armyPermanentLevels[u.id] || 1;
-        btn.textContent = `Ô ${slotIdx + 1}: ${u.name} (Lv.${lv})`;
-    });
-}
-
 export function renderArmyTabUI() {
     renderArmyShowcaseCanvas();
-    renderArmyDeckBuilderBar();
 
     const btnArmy = document.getElementById('btn-mode-army');
+    const btnReview = document.getElementById('btn-mode-review');
     const btnMerge = document.getElementById('btn-mode-merge');
+
     const listView = document.getElementById('army-list-view');
+    const reviewView = document.getElementById('army-review-view');
     const mergeView = document.getElementById('army-merge-view');
-    const headingEl = document.getElementById('army-panel-title');
+
+    btnArmy?.classList.toggle('active', currentArmyMode === 'army');
+    btnReview?.classList.toggle('active', currentArmyMode === 'review');
+    btnMerge?.classList.toggle('active', currentArmyMode === 'merge');
+
+    listView?.classList.toggle('active', currentArmyMode === 'army');
+    reviewView?.classList.toggle('active', currentArmyMode === 'review');
+    mergeView?.classList.toggle('active', currentArmyMode === 'merge');
 
     if (currentArmyMode === 'army') {
-        btnArmy?.classList.add('active');
-        btnMerge?.classList.remove('active');
-        listView?.classList.add('active');
-        mergeView?.classList.remove('active');
-        if (headingEl) headingEl.textContent = `QUÂN ĐỘI (${UNIT_CATALOG.length} BINH CHỦNG)`;
         renderArmyUnitsGrid();
+    } else if (currentArmyMode === 'review') {
+        renderArmyReviewGrid();
     } else {
-        btnArmy?.classList.remove('active');
-        btnMerge?.classList.add('active');
-        listView?.classList.remove('active');
-        mergeView?.classList.add('active');
-        const totalOwned = getTotalCardsInInventory();
-        if (headingEl) headingEl.textContent = `GHÉP TƯỚNG (${formatCompactNumber(totalOwned)} THẺ)`;
         renderMergeWorkbenchAndInventory();
     }
 }
@@ -1038,8 +1113,6 @@ export function renderArmyUnitsGrid() {
     if (!grid) return;
     grid.innerHTML = '';
 
-    const activeDeck = normalizeSelectedDeck(metaState.selectedDeck);
-
     UNIT_CATALOG.forEach(u => {
         const permLv = metaState.armyPermanentLevels[u.id] || 1;
         const highestRarity = getHighestRarityForUnit(u.id);
@@ -1048,15 +1121,15 @@ export function renderArmyUnitsGrid() {
         const spriteUrl = getUnitSpriteDataURL(u, 7);
 
         const sockets = metaState.unitSockets[u.id] || [null, null];
-        const chipDotsHtml = sockets.map(cId => {
+        const slot2Unlocked = isUnitSocket2Unlocked(u.id);
+        const chipDotsHtml = [0, 1].map(idx => {
+            if (idx === 1 && !slot2Unlocked) {
+                return `<span class="socket-dot" style="background:#0f172a;border-color:#fde047;" title="Khe 2 khóa"></span>`;
+            }
+            const cId = sockets[idx];
             const chip = cId ? UNIT_CHIPS[cId] : null;
             return `<span class="socket-dot ${chip ? chip.dotCss : ''}"></span>`;
         }).join('');
-
-        const deckSlotIdx = activeDeck.indexOf(u.id);
-        const deckSlotTag = deckSlotIdx >= 0 && deckSlotIdx < 4
-            ? `<span class="card-qty-badge" style="bottom:20px;left:3px;right:auto;background:#0284c7;border-color:#bae6fd;color:#fff;font-size:10px;">Ô ${deckSlotIdx + 1}</span>`
-            : '';
 
         const card = document.createElement('div');
         card.className = `army-unit-card ${rCfg.cssClass}`;
@@ -1067,7 +1140,6 @@ export function renderArmyUnitsGrid() {
                 ${rCfg.plusLabel ? `<span class="card-plus-tag">${rCfg.plusLabel}</span>` : `<span class="text-[8px] opacity-95">${owned ? rCfg.name : 'Cơ bản'}</span>`}
             </div>
             <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
-            ${deckSlotTag}
             <div class="card-unit-title">${u.name}</div>
         `;
 
@@ -1081,6 +1153,372 @@ export function renderArmyUnitsGrid() {
     });
 }
 
+// ============================================================================
+// 7B. CHẾ ĐỘ REVIEW & PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal)
+// ============================================================================
+export function renderArmyReviewGrid() {
+    const grid = document.getElementById('army-review-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    UNIT_CATALOG.forEach(u => {
+        const permLv = metaState.armyPermanentLevels[u.id] || 1;
+        const owned = hasUnitInInventory(u.id);
+        const highestRarity = owned ? getHighestRarityForUnit(u.id) : 'common';
+        const rCfg = RARITY_CONFIG[highestRarity] || RARITY_CONFIG.common;
+        const spriteUrl = getUnitSpriteDataURL(u, 7);
+
+        const card = document.createElement('div');
+        card.className = `army-unit-card ${rCfg.cssClass}`;
+        card.innerHTML = `
+            <div class="card-top-lv">
+                <span>${u.cost}⛽</span>
+                <span class="card-plus-tag" style="background:#0284c7;color:#fff;">🎯 TEST</span>
+            </div>
+            <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-1 drop-shadow" alt="${u.name}" />
+            <div class="card-unit-title">${u.name}</div>
+        `;
+
+        card.addEventListener('click', () => {
+            showcaseUnitId = u.id;
+            renderArmyShowcaseCanvas();
+            openSandboxReviewModal(u.id);
+        });
+
+        grid.appendChild(card);
+    });
+}
+
+const sandboxState = {
+    active: false,
+    unitId: PRIMARY_INFANTRY_ID,
+    rarityId: 'common',
+    totalDamageDealt: 0,
+    elapsedSec: 0,
+    attackTimer: 0.15,
+    dummyHitFlash: 0,
+    dummyHpDisplay: 999999,
+    projectiles: [],
+    beams: [],
+    floats: [],
+    rafId: null,
+    lastTs: 0,
+    hudTick: 0
+};
+
+const SANDBOX_TEST_RARITIES = [
+    'common', 'uncommon', 'rare', 'epic2', 'legendary3', 'mythic4', 'secret5', 'master8', 'demon10'
+];
+
+export function stopSandboxReviewLoop() {
+    sandboxState.active = false;
+    if (sandboxState.rafId) {
+        cancelAnimationFrame(sandboxState.rafId);
+        sandboxState.rafId = null;
+    }
+}
+
+function resetSandboxDpsMetrics() {
+    sandboxState.totalDamageDealt = 0;
+    sandboxState.elapsedSec = 0;
+    sandboxState.attackTimer = 0.12;
+    sandboxState.projectiles = [];
+    sandboxState.beams = [];
+    sandboxState.floats = [];
+    updateSandboxStatsUI();
+}
+
+function updateSandboxStatsUI() {
+    const u = UNIT_BY_ID[sandboxState.unitId] || UNIT_CATALOG[0];
+    const sp = getEffectiveUnitStats(u.id, 'blue', sandboxState.rarityId);
+    const rCfg = RARITY_CONFIG[sandboxState.rarityId] || RARITY_CONFIG.common;
+
+    const titleEl = document.getElementById('sb-modal-title');
+    if (titleEl) titleEl.textContent = `👁️ REVIEW: ${u.name.toUpperCase()}`;
+
+    const nameEl = document.getElementById('sb-unit-name');
+    if (nameEl) nameEl.textContent = `${u.name.toUpperCase()} (LV.${sp.level || 1}) • ${u.cost} ⛽`;
+
+    const roleEl = document.getElementById('sb-unit-role');
+    if (roleEl) roleEl.textContent = `${u.role} • Tốc bắn: ${sp.fireRate}/s`;
+
+    const badgeEl = document.getElementById('sb-unit-rarity-badge');
+    if (badgeEl) {
+        badgeEl.className = `rarity-badge ${rCfg.cssClass}`;
+        badgeEl.textContent = `${rCfg.name.toUpperCase()} (${rCfg.mult}x)`;
+    }
+
+    const dmgEl = document.getElementById('sb-stat-dmg');
+    if (dmgEl) dmgEl.textContent = formatCompactNumber(sp.damage);
+
+    const dpsEl = document.getElementById('sb-stat-dps');
+    if (dpsEl) {
+        const avgDps = sandboxState.elapsedSec > 0.25
+            ? (sandboxState.totalDamageDealt / sandboxState.elapsedSec)
+            : (sp.damage * sp.fireRate);
+        dpsEl.textContent = avgDps >= 10000 ? formatCompactNumber(avgDps) : avgDps.toFixed(1);
+    }
+
+    const hpRangeEl = document.getElementById('sb-stat-hp-range');
+    if (hpRangeEl) hpRangeEl.textContent = `${formatCompactNumber(sp.hp)} / ${sp.range}px`;
+}
+
+export function openSandboxReviewModal(rawUnitId) {
+    stopSandboxReviewLoop();
+    const unitId = normalizeUnitId(rawUnitId);
+    const u = UNIT_BY_ID[unitId] || UNIT_CATALOG[0];
+    const ownedRarity = getHighestRarityForUnit(u.id);
+
+    sandboxState.unitId = u.id;
+    sandboxState.rarityId = ownedRarity;
+    resetSandboxDpsMetrics();
+
+    // Render dải nút chọn nhanh Rarity để test bắn thử
+    const selectorEl = document.getElementById('sb-rarity-selector');
+    if (selectorEl) {
+        selectorEl.innerHTML = '';
+        const list = [...SANDBOX_TEST_RARITIES];
+        if (!list.includes(ownedRarity)) list.unshift(ownedRarity);
+
+        list.forEach(rKey => {
+            const rCfg = RARITY_CONFIG[rKey];
+            if (!rCfg) return;
+            const pill = document.createElement('button');
+            pill.type = 'button';
+            pill.className = `sb-rarity-pill ${rCfg.cssClass} ${sandboxState.rarityId === rKey ? 'active' : ''}`;
+            pill.textContent = `${rCfg.name} (${rCfg.mult}x)`;
+            pill.addEventListener('click', () => {
+                sandboxState.rarityId = rKey;
+                selectorEl.querySelectorAll('.sb-rarity-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                if (sfxRef) sfxRef.play('gas');
+                resetSandboxDpsMetrics();
+            });
+            selectorEl.appendChild(pill);
+        });
+    }
+
+    updateSandboxStatsUI();
+    document.getElementById('sandbox-review-modal')?.classList.add('active');
+
+    sandboxState.active = true;
+    sandboxState.lastTs = performance.now();
+
+    function sandboxLoop(now) {
+        if (!sandboxState.active) return;
+        const dt = Math.min(0.05, Math.max(0.001, (now - sandboxState.lastTs) / 1000));
+        sandboxState.lastTs = now;
+        sandboxState.elapsedSec += dt;
+
+        const sp = getEffectiveUnitStats(sandboxState.unitId, 'blue', sandboxState.rarityId);
+        const unitX = 82;
+        const unitY = 108;
+        const dummyX = 252;
+        const dummyY = 108;
+
+        if (sandboxState.dummyHitFlash > 0) {
+            sandboxState.dummyHitFlash = Math.max(0, sandboxState.dummyHitFlash - dt);
+        }
+
+        sandboxState.attackTimer -= dt * (sp.fireRate || 1.0);
+        if (sandboxState.attackTimer <= 0) {
+            sandboxState.attackTimer = 1.0;
+
+            if (sp.isHealer) {
+                if (sfxRef) sfxRef.play('heal');
+                sandboxState.totalDamageDealt += sp.damage;
+                sandboxState.beams.push({ x1: unitX + 12, y1: unitY - 4, x2: dummyX, y2: dummyY, color: '#34d399', width: 3.5, ttl: 0.16 });
+                sandboxState.floats.push({ x: dummyX, y: dummyY - 22, text: `+${formatCompactNumber(sp.damage)} HP`, color: '#4ade80', alpha: 1.0 });
+            } else if (sp.attackType === 'projectile') {
+                if (sfxRef) sfxRef.play('cannon');
+                sandboxState.projectiles.push({
+                    x: unitX + 14,
+                    y: unitY,
+                    startX: unitX + 14,
+                    startY: unitY,
+                    targetX: dummyX,
+                    targetY: dummyY,
+                    arcHeight: sp.arcHeight || 16,
+                    projType: sp.projType || 'shell',
+                    damage: sp.damage,
+                    burnDps: sp.burnDps || 0,
+                    t: 0,
+                    duration: 0.42
+                });
+            } else {
+                if (sfxRef) sfxRef.play(sp.attackType === 'railgun_line' ? 'railgun' : 'beam');
+                sandboxState.totalDamageDealt += sp.damage;
+                sandboxState.dummyHitFlash = 0.12;
+                const beamCol = sp.attackType === 'railgun_line' ? '#00f2fe' : '#fde047';
+                const endX = sp.attackType === 'railgun_line' ? 330 : dummyX;
+                sandboxState.beams.push({ x1: unitX + 14, y1: unitY, x2: endX, y2: dummyY, color: beamCol, width: sp.attackType === 'railgun_line' ? 5 : 2.8, ttl: 0.12 });
+                sandboxState.floats.push({ x: dummyX + (Math.random() - 0.5) * 14, y: dummyY - 22, text: `-${formatCompactNumber(sp.damage)}`, color: '#fde047', alpha: 1.0 });
+            }
+        }
+
+        // Cập nhật đạn bay trong phòng tập
+        for (let i = sandboxState.projectiles.length - 1; i >= 0; i--) {
+            const p = sandboxState.projectiles[i];
+            p.t += dt / p.duration;
+            const clamped = Math.min(1, p.t);
+            p.x = p.startX + (p.targetX - p.startX) * clamped;
+            p.y = p.startY + (p.targetY - p.startY) * clamped - Math.sin(clamped * Math.PI) * p.arcHeight;
+            if (p.t >= 1) {
+                const totalHit = p.damage + (p.burnDps > 0 ? p.burnDps * 2 : 0);
+                sandboxState.totalDamageDealt += totalHit;
+                sandboxState.dummyHitFlash = 0.14;
+                if (sfxRef) sfxRef.play('boom');
+                sandboxState.floats.push({
+                    x: dummyX + (Math.random() - 0.5) * 16,
+                    y: dummyY - 22,
+                    text: `-${formatCompactNumber(totalHit)}`,
+                    color: p.projType === 'ice_shard' ? '#38bdf8' : '#fb923c',
+                    alpha: 1.0
+                });
+                sandboxState.projectiles.splice(i, 1);
+            }
+        }
+
+        for (let i = sandboxState.beams.length - 1; i >= 0; i--) {
+            sandboxState.beams[i].ttl -= dt;
+            if (sandboxState.beams[i].ttl <= 0) sandboxState.beams.splice(i, 1);
+        }
+
+        for (let i = sandboxState.floats.length - 1; i >= 0; i--) {
+            const ft = sandboxState.floats[i];
+            ft.y -= 28 * dt;
+            ft.alpha -= dt * 1.15;
+            if (ft.alpha <= 0) sandboxState.floats.splice(i, 1);
+        }
+
+        sandboxState.hudTick += dt;
+        if (sandboxState.hudTick >= 0.22) {
+            sandboxState.hudTick = 0;
+            updateSandboxStatsUI();
+        }
+
+        // Vẽ Canvas Phòng Tập Sandbox
+        const sbCanvas = document.getElementById('sandboxCanvas');
+        if (sbCanvas) {
+            const sCtx = sbCanvas.getContext('2d');
+            const W = sbCanvas.width;
+            const H = sbCanvas.height;
+            sCtx.clearRect(0, 0, W, H);
+
+            // Sàn lưới công nghệ phòng tập
+            sCtx.fillStyle = '#0f172a';
+            sCtx.fillRect(0, 0, W, H);
+            sCtx.strokeStyle = 'rgba(56, 189, 248, 0.16)';
+            sCtx.lineWidth = 1;
+            for (let gx = 0; gx < W; gx += 24) {
+                sCtx.beginPath();
+                sCtx.moveTo(gx, 0);
+                sCtx.lineTo(gx, H);
+                sCtx.stroke();
+            }
+            for (let gy = 0; gy < H; gy += 24) {
+                sCtx.beginPath();
+                sCtx.moveTo(0, gy);
+                sCtx.lineTo(W, gy);
+                sCtx.stroke();
+            }
+
+            // Vòng tầm bắn của nhân vật
+            sCtx.save();
+            sCtx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+            sCtx.lineWidth = 1.5;
+            sCtx.setLineDash([5, 5]);
+            sCtx.beginPath();
+            sCtx.arc(unitX, unitY, Math.min(230, sp.range), 0, Math.PI * 2);
+            sCtx.stroke();
+            sCtx.restore();
+
+            // Hào quang Master / Demon nếu có
+            if (isMasterRarity(sandboxState.rarityId) || isDemonRarity(sandboxState.rarityId)) {
+                drawCanvasRarityAura(sCtx, unitX, unitY + 12, 24, sandboxState.rarityId, sandboxState.elapsedSec);
+            }
+
+            // Vẽ Nhân vật đang test (hướng mặt sang phải về phía Bia tập bắn)
+            const bob = Math.sin(sandboxState.elapsedSec * 6) * 2;
+            if (isCustomArtUnit(sp.id)) {
+                const rot = sp.id === 'railgun_walker' ? Math.PI / 2 : 0;
+                drawCustomUnitArt(sCtx, sp.id, unitX, unitY + bob, 46, 'blue', sandboxState.elapsedSec, rot);
+            } else if (atlasRef && atlasRef.ready) {
+                atlasRef.draw(sCtx, sp.spriteCol ?? 16, 7, unitX, unitY + bob, 46, 46, { rotation: Math.PI / 2 });
+            }
+
+            // Vẽ Bia Tập Bắn HP Vô Hạn (hoặc Đồng minh giả định nếu là Mục sư)
+            sCtx.save();
+            sCtx.translate(dummyX, dummyY);
+            sCtx.fillStyle = 'rgba(0,0,0,0.45)';
+            sCtx.beginPath();
+            sCtx.ellipse(0, 18, 18, 7, 0, 0, Math.PI * 2);
+            sCtx.fill();
+
+            sCtx.fillStyle = sandboxState.dummyHitFlash > 0 ? '#ffffff' : (sp.isHealer ? '#0284c7' : '#dc2626');
+            sCtx.strokeStyle = '#fde047';
+            sCtx.lineWidth = 2.5;
+            sCtx.beginPath();
+            sCtx.arc(0, 0, 18, 0, Math.PI * 2);
+            sCtx.fill();
+            sCtx.stroke();
+
+            sCtx.fillStyle = '#ffffff';
+            sCtx.beginPath();
+            sCtx.arc(0, 0, 10, 0, Math.PI * 2);
+            sCtx.fill();
+            sCtx.fillStyle = sp.isHealer ? '#16a34a' : '#ef4444';
+            sCtx.beginPath();
+            sCtx.arc(0, 0, 4.5, 0, Math.PI * 2);
+            sCtx.fill();
+
+            sCtx.font = '900 10px "Chakra Petch", sans-serif';
+            sCtx.textAlign = 'center';
+            sCtx.fillStyle = '#fde047';
+            sCtx.fillText(sp.isHealer ? 'ĐỒNG MINH (HP ∞)' : 'BIA TẬP BẮN (HP ∞)', 0, -25);
+            sCtx.restore();
+
+            // Vẽ tia laser & đạn bay
+            for (const bm of sandboxState.beams) {
+                sCtx.save();
+                sCtx.strokeStyle = bm.color;
+                sCtx.lineWidth = bm.width;
+                sCtx.beginPath();
+                sCtx.moveTo(bm.x1, bm.y1);
+                sCtx.lineTo(bm.x2, bm.y2);
+                sCtx.stroke();
+                sCtx.restore();
+            }
+
+            for (const p of sandboxState.projectiles) {
+                sCtx.save();
+                sCtx.fillStyle = p.projType === 'ice_shard' ? '#38bdf8' : (p.projType === 'dark_orb' ? '#c084fc' : '#f97316');
+                sCtx.beginPath();
+                sCtx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+                sCtx.fill();
+                sCtx.restore();
+            }
+
+            for (const ft of sandboxState.floats) {
+                sCtx.save();
+                sCtx.globalAlpha = Math.max(0, ft.alpha);
+                sCtx.font = '900 13px "Chakra Petch", sans-serif';
+                sCtx.textAlign = 'center';
+                sCtx.fillStyle = ft.color;
+                sCtx.fillText(ft.text, ft.x, ft.y);
+                sCtx.restore();
+            }
+        }
+
+        sandboxState.rafId = requestAnimationFrame(sandboxLoop);
+    }
+
+    sandboxState.rafId = requestAnimationFrame(sandboxLoop);
+}
+
+// ============================================================================
+// 7C. MODAL NÂNG CẤP TƯỚNG, KHE CHIP (MỞ KHE 2 = 500 💎) & HOÀN CẤP
+// ============================================================================
 export function calcUnitPermanentStats(spec, rarityId, permLv) {
     const rCfg = RARITY_CONFIG[rarityId] || RARITY_CONFIG.common;
     const lvMult = 1 + (permLv - 1) * 0.12;
@@ -1089,31 +1527,25 @@ export function calcUnitPermanentStats(spec, rarityId, permLv) {
     const normId = normalizeUnitId(spec.id);
     const sockets = metaState.unitSockets[normId] || [];
     const steelLv = Number(metaState.metaTalents?.high_grade_steel) || 0;
-    const hpBonus = (sockets.includes('reactive_armor') ? 1.18 : 1.0) * (1 + steelLv * 0.04);
+    const vitalRootsLv = getSkillTreeNodeLevel('vital_roots');
+    const ironTrunkLv = getSkillTreeNodeLevel('iron_trunk');
+    const arcaneTrunkLv = getSkillTreeNodeLevel('arcane_trunk');
+
+    const elemMult = spec.element === 'elemental'
+        ? (1 + arcaneTrunkLv * 0.18)
+        : (1 + ironTrunkLv * 0.15);
+
+    const hpBonus = (sockets.includes('reactive_armor') ? 1.18 : 1.0) * (1 + steelLv * 0.03 + vitalRootsLv * 0.12);
 
     return {
-        damage: Math.max(1, Math.round(spec.damage * totalMult)),
-        hp: Math.max(1, Math.round(spec.hp * totalMult * hpBonus)),
-        rawDmg: +(spec.damage * totalMult).toFixed(1),
-        rawHp: +(spec.hp * totalMult * hpBonus).toFixed(1)
+        damage: Math.max(1, Math.round(spec.damage * totalMult * elemMult)),
+        hp: Math.max(1, Math.round(spec.hp * totalMult * hpBonus))
     };
 }
 
 function ensureUnitSocketContainers() {
-    let slotsRow = document.getElementById('unit-sockets-slots-row');
-    let pickerDrawer = document.getElementById('chip-picker-drawer');
-    const legacyBox = document.getElementById('unit-chip-sockets-box');
-
-    if (!slotsRow && legacyBox) {
-        slotsRow = legacyBox;
-        if (!pickerDrawer) {
-            pickerDrawer = document.createElement('div');
-            pickerDrawer.id = 'chip-picker-drawer';
-            pickerDrawer.className = 'chip-inventory-grid';
-            pickerDrawer.style.display = 'none';
-            legacyBox.parentElement?.appendChild(pickerDrawer);
-        }
-    }
+    const slotsRow = document.getElementById('unit-sockets-slots-row');
+    const pickerDrawer = document.getElementById('chip-picker-drawer');
     return { slotsRow, pickerDrawer };
 }
 
@@ -1123,13 +1555,14 @@ export function renderUnitSocketsInModal(rawUnitId) {
     if (!slotsRow) return;
 
     if (!metaState.unitSockets[unitId]) {
-        const u = UNIT_BY_ID[unitId];
-        metaState.unitSockets[unitId] = [u?.defaultChips?.[0] || null, u?.defaultChips?.[1] || null];
+        metaState.unitSockets[unitId] = [null, null];
     }
     const equipped = metaState.unitSockets[unitId];
+    const slot2Unlocked = isUnitSocket2Unlocked(unitId);
     slotsRow.innerHTML = '';
 
     [0, 1].forEach(slotIdx => {
+        const isLockedSlot2 = slotIdx === 1 && !slot2Unlocked;
         const chipId = equipped[slotIdx];
         const chip = chipId ? UNIT_CHIPS[chipId] : null;
         const btn = document.createElement('button');
@@ -1137,123 +1570,132 @@ export function renderUnitSocketsInModal(rawUnitId) {
         btn.className = `chip-slot-btn ${chip ? 'equipped' : ''}`;
         if (chip) btn.setAttribute('data-chip', chip.id);
 
-        btn.innerHTML = `
-            <div class="chip-slot-icon">${chip ? chip.icon : '➕'}</div>
-            <div class="chip-slot-text-wrap">
-                <span class="chip-slot-name">${chip ? chip.name : `Khe Chip #${slotIdx + 1}`}</span>
-                <span class="chip-slot-effect">${chip ? chip.shortName : 'Chạm để gắn'}</span>
-            </div>
-        `;
-
-        btn.addEventListener('click', () => {
-            activeChipSocketIndex = slotIdx;
-            renderChipPickerDrawer(unitId, slotIdx);
-        });
+        if (isLockedSlot2) {
+            btn.style.borderColor = '#f59e0b';
+            btn.style.background = '#fffbeb';
+            btn.innerHTML = `
+                <div class="chip-slot-icon">🔒</div>
+                <div class="chip-slot-text-wrap">
+                    <span class="chip-slot-name text-amber-800">Khe #2 (Khóa)</span>
+                    <span class="chip-slot-effect text-amber-700 font-black">Mở: 💎 ${CHIP_SOCKET_2_UNLOCK_GEMS}</span>
+                </div>
+            `;
+            btn.addEventListener('click', () => {
+                if (unlockUnitSocket2(unitId)) {
+                    triggerHaptic(25);
+                    if (sfxRef) sfxRef.play('upgrade');
+                    updateTopBarUI();
+                    renderUnitSocketsInModal(unitId);
+                    renderArmyTabUI();
+                } else {
+                    if (sfxRef) sfxRef.play('cannon');
+                    alert(`Bạn cần ${CHIP_SOCKET_2_UNLOCK_GEMS} 💎 Gems để mở khóa Khe Chip thứ 2 cho binh chủng này!`);
+                }
+            });
+        } else {
+            btn.innerHTML = `
+                <div class="chip-slot-icon">${chip ? chip.icon : '➕'}</div>
+                <div class="chip-slot-text-wrap">
+                    <span class="chip-slot-name">${chip ? chip.name : `Khe Chip #${slotIdx + 1}`}</span>
+                    <span class="chip-slot-effect">${chip ? chip.shortName : 'Chạm chọn từ kho'}</span>
+                </div>
+            `;
+            btn.addEventListener('click', () => {
+                activeChipSocketIndex = slotIdx;
+                renderChipPickerDrawer(unitId, slotIdx);
+            });
+        }
 
         slotsRow.appendChild(btn);
     });
 
-    if (pickerDrawer) pickerDrawer.style.display = 'none';
+    if (pickerDrawer) {
+        pickerDrawer.classList.add('hidden');
+        pickerDrawer.style.display = 'none';
+    }
 }
 
 export function renderChipPickerDrawer(rawUnitId, slotIdx) {
     const unitId = normalizeUnitId(rawUnitId);
     const { pickerDrawer } = ensureUnitSocketContainers();
     if (!pickerDrawer) return;
+    pickerDrawer.classList.remove('hidden');
     pickerDrawer.style.display = 'grid';
     pickerDrawer.innerHTML = '';
 
-    const removeCard = document.createElement('div');
-    removeCard.className = 'chip-item-card';
-    removeCard.innerHTML = `
-        <span style="font-size:11px;font-weight:800;color:#dc2626;">❌ Tháo Chip khỏi Khe #${slotIdx + 1}</span>
-        <button type="button" class="btn-3d btn-3d-danger" style="padding:4px 8px;font-size:9.5px;">GỠ BỎ</button>
-    `;
-    removeCard.addEventListener('click', () => {
-        metaState.unitSockets[unitId][slotIdx] = null;
-        saveProgress();
-        openUnitUpgradeModal(unitId);
-        renderArmyTabUI();
-    });
-    pickerDrawer.appendChild(removeCard);
+    const currentEquippedChip = metaState.unitSockets?.[unitId]?.[slotIdx] || null;
+
+    if (currentEquippedChip) {
+        const removeCard = document.createElement('div');
+        removeCard.className = 'chip-item-card';
+        removeCard.innerHTML = `
+            <span style="font-size:11px;font-weight:800;color:#dc2626;">❌ Tháo Chip khỏi Khe #${slotIdx + 1} (Hoàn 1 viên về kho)</span>
+            <button type="button" class="btn-3d btn-3d-danger" style="padding:4px 8px;font-size:9.5px;">GỠ BỎ</button>
+        `;
+        removeCard.addEventListener('click', () => {
+            if (unequipChipFromUnitSlot(unitId, slotIdx)) {
+                if (sfxRef) sfxRef.play('gas');
+                openUnitUpgradeModal(unitId);
+                renderArmyTabUI();
+            }
+        });
+        pickerDrawer.appendChild(removeCard);
+    }
 
     Object.values(UNIT_CHIPS).forEach(chip => {
+        const ownedQty = getChipOwnedCount(chip.id);
+        const hasStock = metaState.isAdminMode || ownedQty > 0;
         const isRecommended = chip.recommendedUnits.includes(unitId) ||
             (unitId === PRIMARY_INFANTRY_ID && (chip.recommendedUnits.includes('infantry') || chip.recommendedUnits.includes('rifleman')));
+
         const item = document.createElement('div');
         item.className = `chip-item-card ${isRecommended ? 'compatible' : ''}`;
         item.innerHTML = `
-            <div style="display:flex;align-items:center;gap:6px;">
+            <div style="display:flex;align-items:center;gap:6px;flex:1;">
                 <span style="font-size:20px;">${chip.icon}</span>
                 <div style="text-align:left;">
                     <div style="font-size:11px;font-weight:900;color:#0f172a;">
-                        ${chip.name} ${isRecommended ? '<span style="color:#16a34a;font-size:9px;">(Khuyên dùng)</span>' : ''}
+                        ${chip.name} <span style="color:#0284c7;">(Kho: ${metaState.isAdminMode ? '∞' : ownedQty})</span>
+                        ${isRecommended ? '<span style="color:#16a34a;font-size:9px;">(Khuyên dùng)</span>' : ''}
                     </div>
                     <div style="font-size:9.5px;color:#475569;">${chip.desc}</div>
                 </div>
             </div>
-            <button type="button" class="btn-3d btn-3d-green" style="padding:4px 8px;font-size:9.5px;">LẮP</button>
+            <div style="display:flex;flex-direction:column;gap:3px;">
+                <button type="button" data-action="equip" class="btn-3d btn-3d-green" style="padding:4px 8px;font-size:9.5px;" ${!hasStock ? 'disabled' : ''}>
+                    ${hasStock ? 'LẮP' : 'HẾT CHIP'}
+                </button>
+                ${!hasStock ? `<button type="button" data-action="quickbuy" class="btn-3d btn-3d-amber" style="padding:3px 6px;font-size:8.5px;">MUA 2.5K🪙</button>` : ''}
+            </div>
         `;
-        item.addEventListener('click', () => {
-            metaState.unitSockets[unitId][slotIdx] = chip.id;
-            triggerHaptic(20);
-            if (sfxRef) sfxRef.play('upgrade');
-            saveProgress();
-            openUnitUpgradeModal(unitId);
-            renderArmyTabUI();
+
+        item.querySelector('button[data-action="equip"]')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const res = equipChipToUnitSlot(unitId, slotIdx, chip.id);
+            if (res.ok) {
+                triggerHaptic(20);
+                if (sfxRef) sfxRef.play('upgrade');
+                openUnitUpgradeModal(unitId);
+                renderArmyTabUI();
+            } else if (sfxRef) {
+                sfxRef.play('cannon');
+            }
         });
+
+        item.querySelector('button[data-action="quickbuy"]')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (buyChipItem(chip.id, 'coins')) {
+                triggerHaptic(20);
+                if (sfxRef) sfxRef.play('upgrade');
+                updateTopBarUI();
+                renderChipPickerDrawer(unitId, slotIdx);
+            } else if (sfxRef) {
+                sfxRef.play('cannon');
+            }
+        });
+
         pickerDrawer.appendChild(item);
     });
-}
-
-export function renderDeckSlotButtonsInUpgradeModal(rawUnitId) {
-    const unitId = normalizeUnitId(rawUnitId);
-    metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
-    const selector = document.getElementById('upg-deck-slot-selector');
-    if (!selector) return;
-
-    const buttons = selector.querySelectorAll('button[data-deck-slot]');
-    buttons.forEach(btn => {
-        const slotIdx = Number(btn.getAttribute('data-deck-slot'));
-        const curSlotUnitId = metaState.selectedDeck[slotIdx];
-        const curSlotUnit = UNIT_BY_ID[curSlotUnitId] || UNIT_CATALOG[0];
-        const isAssignedHere = curSlotUnitId === unitId;
-
-        btn.classList.toggle('active-deck-slot', isAssignedHere);
-        btn.classList.toggle('btn-3d-amber', isAssignedHere);
-        btn.classList.toggle('btn-3d-slate', !isAssignedHere);
-        btn.textContent = isAssignedHere
-            ? `✓ Ô ${slotIdx + 1}: Đang chọn`
-            : `[Ô ${slotIdx + 1}]: ${curSlotUnit.name}`;
-    });
-}
-
-export function assignUnitToDeckSlot(rawUnitId, slotIdx) {
-    const unitId = normalizeUnitId(rawUnitId);
-    if (!UNIT_BY_ID[unitId] || unitId === 'airstrike') return;
-    const idx = Math.max(0, Math.min(3, Number(slotIdx) || 0));
-    metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
-
-    const existingIdx = metaState.selectedDeck.indexOf(unitId);
-    if (existingIdx >= 0 && existingIdx < 4 && existingIdx !== idx) {
-        const temp = metaState.selectedDeck[idx];
-        metaState.selectedDeck[idx] = unitId;
-        metaState.selectedDeck[existingIdx] = temp;
-    } else {
-        metaState.selectedDeck[idx] = unitId;
-    }
-
-    saveProgress();
-    if (sfxRef) sfxRef.play('spawn');
-    renderDeckSlotButtonsInUpgradeModal(unitId);
-    renderArmyDeckBuilderBar();
-    if (currentLobbyTab === 'army' && currentArmyMode === 'army') {
-        renderArmyUnitsGrid();
-    }
-    if (typeof window !== 'undefined' && window.game?.running && typeof window.renderBattleDeckButtons === 'function') {
-        window.game.deckIds = [...metaState.selectedDeck];
-        window.renderBattleDeckButtons();
-    }
 }
 
 export function updateBulkUpgradePreviewUI(rawAddLevels = null) {
@@ -1299,29 +1741,21 @@ export function updateBulkUpgradePreviewUI(rawAddLevels = null) {
     }
 
     const curDmgEl = document.getElementById('upg-cur-dmg');
-    if (curDmgEl) curDmgEl.textContent = `${curStats.damage.toLocaleString('en-US')}`;
+    if (curDmgEl) curDmgEl.textContent = formatCompactNumber(curStats.damage);
 
     const nextDmgEl = document.getElementById('upg-next-dmg');
     if (nextDmgEl) {
         const diffDmg = Math.max(0, targetStats.damage - curStats.damage);
-        nextDmgEl.textContent = `${targetStats.damage.toLocaleString('en-US')} (+${diffDmg.toLocaleString('en-US')})`;
+        nextDmgEl.textContent = `${formatCompactNumber(targetStats.damage)} (+${formatCompactNumber(diffDmg)})`;
     }
 
     const curHpEl = document.getElementById('upg-cur-hp');
-    if (curHpEl) {
-        curHpEl.textContent = u.isAirstrike
-            ? `Phá nhà ${u.baseDamage}`
-            : `${curStats.hp.toLocaleString('en-US')}`;
-    }
+    if (curHpEl) curHpEl.textContent = formatCompactNumber(curStats.hp);
 
     const nextHpEl = document.getElementById('upg-next-hp');
     if (nextHpEl) {
-        if (u.isAirstrike) {
-            nextHpEl.textContent = `Phá nhà ${Math.round(u.baseDamage * (1 + (targetLv - 1) * 0.12))}`;
-        } else {
-            const diffHp = Math.max(0, targetStats.hp - curStats.hp);
-            nextHpEl.textContent = `${targetStats.hp.toLocaleString('en-US')} (+${diffHp.toLocaleString('en-US')})`;
-        }
+        const diffHp = Math.max(0, targetStats.hp - curStats.hp);
+        nextHpEl.textContent = `${formatCompactNumber(targetStats.hp)} (+${formatCompactNumber(diffHp)})`;
     }
 
     const actionLabelEl = document.getElementById('upg-btn-action-label');
@@ -1388,7 +1822,6 @@ export function openUnitUpgradeModal(rawUnitId) {
         btnRefund.disabled = permLv <= 1;
     }
 
-    renderDeckSlotButtonsInUpgradeModal(u.id);
     renderUnitSocketsInModal(u.id);
     updateBulkUpgradePreviewUI(currentBulkAddLevels || 1);
     document.getElementById('unit-upgrade-modal')?.classList.add('active');
@@ -1462,12 +1895,6 @@ export function renderMergeWorkbenchAndInventory() {
     const btnMergeExec = document.getElementById('btn-execute-merge');
     const hintEl = document.getElementById('merge-hint-text');
     const invGrid = document.getElementById('merge-inventory-grid');
-    const headingEl = document.getElementById('army-panel-title');
-
-    if (headingEl && currentArmyMode === 'merge') {
-        const totalOwned = getTotalCardsInInventory();
-        headingEl.textContent = `GHÉP TƯỚNG (${formatCompactNumber(totalOwned)} THẺ)`;
-    }
 
     const card1 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[0]) || null;
     const card2 = metaState.inventory.find(c => c.uid === mergeSelectedCardUids[1]) || null;
@@ -1528,7 +1955,7 @@ export function renderMergeWorkbenchAndInventory() {
                 hintEl.innerHTML = `Hãy chọn thêm 1 thẻ <b>${u.name} (${rCfg.name})</b> giống hệt để ghép!`;
             }
         } else if (hintEl) {
-            hintEl.innerHTML = `Chọn 2 thẻ <b>cùng tên & cùng độ hiếm</b> hoặc bấm <b>⚡ AUTO MERGE</b> để ghép dây chuyền O(1) lên tới <b>Master +8 & Demon +10 (7777x)</b>!`;
+            hintEl.innerHTML = `Kho hiện có <b>${formatCompactNumber(getTotalCardsInInventory())} thẻ</b> • Bấm <b>⚡ AUTO MERGE</b> để ghép dây chuyền O(1)!`;
         }
     }
 
@@ -1657,7 +2084,171 @@ export function renderMergeWorkbenchAndInventory() {
 }
 
 // ============================================================================
-// 9. HỆ THỐNG VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal), SKIP SPIN 0.01S & LỊCH SỬ JACKPOT
+// 9. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 45 MAP - ZOMBIE TOWER DEFENSE 20 WAVE)
+// ============================================================================
+export function renderChallengeRoadmapUI() {
+    const listEl = document.getElementById('challenge-roadmap-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const ancientHeartLv = getSkillTreeNodeLevel('ancient_heart');
+    const fragment = document.createDocumentFragment();
+
+    LEVELS.forEach(cfg => {
+        const lv = cfg.level;
+        const unlocked = isChallengeMapUnlocked(lv);
+        const cleared = isChallengeMapCleared(lv);
+        const entryCost = calcChallengeEntryCostCoins(lv);
+        const rewards = calcChallengeRewards(lv, ancientHeartLv);
+        const bestW = Number(metaState.challengeBestWave?.[lv]) || 0;
+        const canAfford = metaState.isAdminMode || metaState.coins >= entryCost;
+
+        const node = document.createElement('div');
+        node.className = `challenge-stage-node ${cleared ? 'cleared' : (unlocked ? 'unlocked' : 'locked')}`;
+        node.innerHTML = `
+            <div class="flex-1 text-left">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-black text-white">${lv}. ${cfg.name}</span>
+                    ${cleared ? '<span class="bg-emerald-500 text-slate-950 text-[8.5px] font-black px-1.5 py-0.5 rounded-full">✓ ĐÃ QUA</span>' : ''}
+                    ${!unlocked ? '<span class="text-xs">🔒</span>' : ''}
+                </div>
+                <div class="text-[9.5px] font-bold text-slate-300 mt-0.5">
+                    Kỷ lục: <b class="text-rose-300">Wave ${cleared ? 20 : bestW} / 20</b> • 3 Boss (W.7, W.14, W.20)
+                </div>
+                <div class="text-[9.5px] font-extrabold text-amber-300 mt-0.5 vt323-num">
+                    Thưởng 20W: ⚪ +${rewards.pearls} Ngọc Trai • 💎 +${rewards.gems} • 🪙 +${rewards.coins.toLocaleString('en-US')}
+                </div>
+            </div>
+            <button type="button" class="btn-3d ${cleared ? 'btn-3d-green' : (unlocked ? 'btn-3d-rose' : 'btn-3d-slate')} px-2.5 py-2 text-[10px] flex flex-col items-center flex-shrink-0" ${!unlocked ? 'disabled' : ''}>
+                <span>${unlocked ? '☠️ CHIẾN' : '🔒 KHÓA'}</span>
+                <span class="vt323-num text-xs text-amber-200">${metaState.isAdminMode ? '🪙 0' : `🪙 ${entryCost.toLocaleString('en-US')}`}</span>
+            </button>
+        `;
+
+        const playBtn = node.querySelector('button');
+        if (playBtn && unlocked) {
+            playBtn.addEventListener('click', () => {
+                if (!canAfford) {
+                    if (sfxRef) sfxRef.play('cannon');
+                    alert(`Bạn cần ${entryCost.toLocaleString('en-US')} 🪙 Vàng để vào ải Challenge Map ${lv}!`);
+                    return;
+                }
+                if (!metaState.isAdminMode) {
+                    metaState.coins -= entryCost;
+                    saveProgress();
+                    updateTopBarUI();
+                }
+                if (sfxRef) sfxRef.play('spawn');
+                syncLegacyEngineBridges();
+                document.getElementById('lobby-wrapper')?.classList.remove('active');
+                if (onStartBattleCallback) {
+                    onStartBattleCallback(lv, 'difficult', 'challenge', 'challenge');
+                }
+            });
+        }
+
+        fragment.appendChild(node);
+    });
+
+    listEl.appendChild(fragment);
+}
+
+// ============================================================================
+// 10. TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ - DÙNG ⚪ NGỌC TRAI TRẮNG)
+// ============================================================================
+export function renderSkillTreeTabUI() {
+    const balanceEl = document.getElementById('skilltree-pearls-balance');
+    if (balanceEl) {
+        balanceEl.textContent = `⚪ ${formatCurrency(metaState.pearls || 0)}`;
+    }
+
+    // Vẽ các nhánh nối SVG phát sáng từ Rễ -> Thân -> Cành -> Ngọn
+    const svgEl = document.getElementById('skilltree-branches-svg');
+    if (svgEl) {
+        const connections = [
+            // Rễ gốc dưới đáy
+            { x1: 190, y1: 425, x2: 100, y2: 380, active: true },
+            { x1: 190, y1: 425, x2: 280, y2: 380, active: true },
+            // Rễ -> Thân
+            { x1: 100, y1: 380, x2: 100, y2: 275, active: getSkillTreeNodeLevel('vital_roots') > 0 },
+            { x1: 280, y1: 380, x2: 280, y2: 275, active: getSkillTreeNodeLevel('supply_roots') > 0 },
+            // Thân -> Cành
+            { x1: 100, y1: 275, x2: 100, y2: 165, active: getSkillTreeNodeLevel('iron_trunk') > 0 },
+            { x1: 280, y1: 275, x2: 280, y2: 165, active: getSkillTreeNodeLevel('arcane_trunk') > 0 },
+            // Cành -> Ngọn Cây Tối Thượng
+            { x1: 100, y1: 165, x2: 190, y2: 58, active: getSkillTreeNodeLevel('undead_slayer') > 0 },
+            { x1: 280, y1: 165, x2: 190, y2: 58, active: getSkillTreeNodeLevel('elite_lineage') > 0 }
+        ];
+
+        svgEl.innerHTML = connections.map(c => {
+            const stroke = c.active ? '#4ade80' : '#334155';
+            const width = c.active ? '5' : '3.5';
+            const dash = c.active ? '' : 'stroke-dasharray="6,6"';
+            return `<line x1="${c.x1}" y1="${c.y1}" x2="${c.x2}" y2="${c.y2}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" ${dash} />`;
+        }).join('');
+    }
+
+    // Cập nhật trạng thái 7 nút trên cây
+    Object.values(ANCIENT_SKILL_TREE).forEach(node => {
+        const curLv = getSkillTreeNodeLevel(node.id);
+        const unlocked = isSkillTreeNodeUnlocked(node.id);
+        const btnEl = document.getElementById(`st-node-${node.id}`);
+        const lvEl = document.getElementById(`st-lv-${node.id}`);
+
+        if (btnEl) {
+            btnEl.classList.toggle('unlocked', unlocked);
+            btnEl.classList.toggle('leveled', curLv > 0);
+            btnEl.classList.toggle('locked', !unlocked);
+            btnEl.classList.toggle('selected-node', selectedSkillTreeNodeId === node.id);
+        }
+        if (lvEl) {
+            lvEl.textContent = `LV.${curLv}/${node.maxLevel}`;
+        }
+    });
+
+    // Cập nhật khung Inspector bên dưới
+    const selNode = ANCIENT_SKILL_TREE[selectedSkillTreeNodeId] || ANCIENT_SKILL_TREE.vital_roots;
+    const curLv = getSkillTreeNodeLevel(selNode.id);
+    const isMax = curLv >= selNode.maxLevel;
+    const unlocked = isSkillTreeNodeUnlocked(selNode.id);
+    const cost = getSkillTreeNodeCost(selNode.id, curLv);
+    const canUpg = canUpgradeSkillTreeNode(selNode.id);
+
+    const titleEl = document.getElementById('st-inspector-title');
+    if (titleEl) {
+        titleEl.textContent = `${selNode.icon} ${selNode.name} (LV.${curLv}/${selNode.maxLevel})`;
+    }
+
+    const descEl = document.getElementById('st-inspector-desc');
+    if (descEl) {
+        descEl.textContent = `${selNode.desc} (${selNode.getEffectText(curLv)})`;
+    }
+
+    const reqEl = document.getElementById('st-inspector-req');
+    if (reqEl) {
+        if (isMax) {
+            reqEl.textContent = '✨ Đã đạt cấp độ tối đa của nhánh này!';
+        } else if (!unlocked) {
+            const reqNames = selNode.requires.map(rId => ANCIENT_SKILL_TREE[rId]?.name || rId).join(' & ');
+            reqEl.textContent = `🔒 Yêu cầu nâng tối thiểu Lv.1: ${reqNames}`;
+        } else {
+            reqEl.textContent = `✅ Đủ điều kiện nâng cấp (Tầng ${selNode.tier}: ${selNode.tierName})`;
+        }
+    }
+
+    const costEl = document.getElementById('st-upgrade-cost-val');
+    if (costEl) {
+        costEl.textContent = isMax ? 'MAX' : (metaState.isAdminMode ? '⚪ 0' : `⚪ ${cost}`);
+    }
+
+    const upgBtn = document.getElementById('btn-upgrade-skilltree-node');
+    if (upgBtn) {
+        upgBtn.disabled = !canUpg;
+    }
+}
+
+// ============================================================================
+// 11. VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal), SKIP SPIN & LỊCH SỬ JACKPOT
 // ============================================================================
 let wheelCurrentRotationRad = 0;
 let wheelIsSpinning = false;
@@ -1930,7 +2521,7 @@ export function executeLuckyWheelSpins(rawSpinCount = 1) {
 }
 
 // ============================================================================
-// 10. TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal)
+// 12. TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal)
 // ============================================================================
 let currentMinigameTab = 'mines';
 
@@ -1984,7 +2575,6 @@ export function switchMinigameTab(tabId) {
     else if (tabId === 'highlow') renderHighLowMinigameUI();
 }
 
-/* --- 10.1. MINI-GAME 1: ĐẬP MÌN CÔNG BINH 5x5 --- */
 export function startMinesMinigame() {
     const cfg = MINIGAME_CONFIG.mines;
     if (!metaState.isAdminMode && metaState.coins < cfg.entryCostCoins) {
@@ -2152,7 +2742,6 @@ export function cashoutMinesMinigame() {
     renderMinesMinigameBoard();
 }
 
-/* --- 10.2. MINI-GAME 2: HỨNG TIẾP TẾ DÙ 30 GIÂY --- */
 export function drawCatcherIdleCanvas() {
     const canvas = document.getElementById('mgCatcherCanvas');
     if (!canvas) return;
@@ -2371,7 +2960,6 @@ export function startCatcherMinigame() {
     catcherGameState.rafId = requestAnimationFrame(catcherLoop);
 }
 
-/* --- 10.3. MINI-GAME 3: ĐOÁN BÀI CHIẾN THUẬT (RANK 0 ➔ 40) --- */
 export function startHighLowMinigame() {
     const cfg = MINIGAME_CONFIG.highlow;
     if (!metaState.isAdminMode && metaState.coins < cfg.entryCostCoins) {
@@ -2535,7 +3123,7 @@ export function cashoutHighLowMinigame() {
 }
 
 // ============================================================================
-// 11. KHỞI TẠO BỘ LẮNG NGHE SỰ KIỆN SẢNH (INIT LOBBY LISTENERS)
+// 13. KHỞI TẠO BỘ LẮNG NGHE SỰ KIỆN SẢNH (INIT LOBBY LISTENERS)
 // ============================================================================
 export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPreview }) {
     sfxRef = sfx;
@@ -2559,12 +3147,13 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
     currentSelectedDifficulty = getDefaultDifficultyForMap(currentStageViewLevel);
 
     document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button, .btn-3d, .army-unit-card, .diff-pill-btn, .mode-pill-btn, .special-mode-pill, .nav-tab-btn, .side-feature-btn, .quick-utility-pill');
+        const btn = e.target.closest('button, .btn-3d, .army-unit-card, .diff-pill-btn, .mode-pill-btn, .special-mode-pill, .nav-tab-btn, .side-feature-btn, .quick-utility-pill, .st-node-btn');
         if (btn && !btn.disabled) {
             triggerHaptic(15);
         }
     });
 
+    // Thanh điều hướng 5 Tab
     document.querySelectorAll('.nav-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -2572,6 +3161,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         });
     });
 
+    // Hồ sơ & Đặt tên
     document.getElementById('btn-edit-name')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         checkAndPromptPlayerName(true);
@@ -2596,6 +3186,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         document.getElementById('name-modal')?.classList.remove('active');
     });
 
+    // Cài đặt & Admin Mode
     document.getElementById('btn-open-settings')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         renderSettingsModalUI();
@@ -2626,6 +3217,8 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
             if (sfxRef) sfxRef.play('upgrade');
             renderSettingsModalUI();
             if (currentLobbyTab === 'battle') renderStageScreenUI();
+            else if (currentLobbyTab === 'challenge') renderChallengeRoadmapUI();
+            else if (currentLobbyTab === 'skilltree') renderSkillTreeTabUI();
         } else {
             fb.className = 'text-[11px] font-extrabold mt-1.5 text-center text-rose-600';
             fb.textContent = '❌ Mật khẩu Admin không chính xác!';
@@ -2640,6 +3233,8 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         if (sfxRef) sfxRef.play('gas');
         renderSettingsModalUI();
         if (currentLobbyTab === 'battle') renderStageScreenUI();
+        else if (currentLobbyTab === 'challenge') renderChallengeRoadmapUI();
+        else if (currentLobbyTab === 'skilltree') renderSkillTreeTabUI();
     });
 
     document.getElementById('btn-settings-rename')?.addEventListener('click', () => {
@@ -2672,6 +3267,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         resetAllAccountData();
     });
 
+    // Điều hướng Map trong Tab Battle
     document.getElementById('btn-prev-stage')?.addEventListener('click', () => {
         if (currentStageViewLevel > 1) {
             currentStageViewLevel--;
@@ -2717,22 +3313,17 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         }
     });
 
-    const toggleSpecialBattleMode = (spMode) => {
-        if (!spMode) return;
-        currentSelectedSpecialMode = currentSelectedSpecialMode === spMode ? 'standard' : spMode;
-        if (sfxRef) sfxRef.play('gas');
-        renderStageScreenUI();
-    };
-
     document.querySelectorAll('.special-mode-pill').forEach(btn => {
-        btn.dataset.boundSpecial = '1';
         btn.addEventListener('click', () => {
             const spMode = btn.getAttribute('data-special') || btn.getAttribute('data-mode');
-            toggleSpecialBattleMode(spMode);
+            if (!spMode) return;
+            currentSelectedSpecialMode = currentSelectedSpecialMode === spMode ? 'standard' : spMode;
+            if (sfxRef) sfxRef.play('gas');
+            renderStageScreenUI();
         });
     });
 
-    // Sự kiện mở/đóng Ụ Pháo Căn Cứ Xanh (#base-turret-modal)
+    // Ụ Pháo Căn Cứ Xanh
     document.getElementById('btn-open-turret-modal')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         renderBaseTurretModalUI();
@@ -2760,8 +3351,8 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         updateTopBarUI();
     });
 
-    // Sự kiện mở/đóng Sổ Tay Bách Khoa (#codex-modal)
-    document.getElementById('btn-open-codex')?.addEventListener('click', () => {
+    // Nút mở Sổ Tay INDEX (đặt ở cột phải phía trên nút CODE)
+    document.getElementById('btn-open-index')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         renderCodexModalUI();
         document.getElementById('codex-modal')?.classList.add('active');
@@ -2773,6 +3364,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
 
     document.getElementById('btn-codex-claim-all')?.addEventListener('click', claimAllCodexMilestones);
 
+    // Talents 6 Nhánh
     document.getElementById('btn-open-talents')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         renderMetaTalentsModalUI();
@@ -2793,6 +3385,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         openUnitUpgradeModal(showcaseUnitId || PRIMARY_INFANTRY_ID);
     });
 
+    // Nút START vào trận Battle
     document.getElementById('btn-start-battle')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('spawn');
         syncLegacyEngineBridges();
@@ -2814,6 +3407,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         }
     });
 
+    // Nhiệm vụ & Giftcode
     document.getElementById('btn-open-missions')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         renderMissionsList();
@@ -2868,25 +3462,28 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         const rewardPack = (GIFT_CODES && GIFT_CODES[rawCode]) || {
             gems: GIFTCODE_REWARD_GEMS,
             coins: GIFTCODE_REWARD_COINS,
-            medals: 15
+            medals: 15,
+            pearls: GIFTCODE_REWARD_PEARLS
         };
 
         metaState.usedCodes.push(rawCode);
         metaState.gems += Number(rewardPack.gems) || GIFTCODE_REWARD_GEMS;
         metaState.coins += Number(rewardPack.coins) || GIFTCODE_REWARD_COINS;
         metaState.medals = (metaState.medals || 0) + (Number(rewardPack.medals) || 0);
+        metaState.pearls = (metaState.pearls || 0) + (Number(rewardPack.pearls) || 0);
 
         saveProgress();
         updateTopBarUI();
         if (sfxRef) sfxRef.play('upgrade');
 
-        const medalMsg = rewardPack.medals ? ` & +${rewardPack.medals} 🎖️` : '';
+        const extraMsg = ` & +${rewardPack.medals || 0} 🎖️, +${rewardPack.pearls || 0} ⚪`;
         fb.className = 'text-xs font-extrabold mt-2 text-emerald-600';
-        fb.innerHTML = `🎉 NHẬP QUÀ THÀNH CÔNG! (+${(Number(rewardPack.gems) || 0).toLocaleString('en-US')} 💎, +${(Number(rewardPack.coins) || 0).toLocaleString('en-US')} 🪙${medalMsg})`;
+        fb.innerHTML = `🎉 NHẬP QUÀ THÀNH CÔNG! (+${(Number(rewardPack.gems) || 0).toLocaleString('en-US')} 💎, +${(Number(rewardPack.coins) || 0).toLocaleString('en-US')} 🪙${extraMsg})`;
         input.value = '';
         renderGiftcodeModalUI();
     });
 
+    // Shop Gacha Rương Siêu Tốc O(1)
     document.getElementById('btn-open-leg-1')?.addEventListener('click', () => requestOpenGachaCrate('legendary', 1));
     document.getElementById('btn-open-leg-10')?.addEventListener('click', () => requestOpenGachaCrate('legendary', 10));
     document.getElementById('btn-open-leg-custom')?.addEventListener('click', () => {
@@ -3055,8 +3652,15 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         if (currentLobbyTab === 'army') renderArmyTabUI();
     });
 
+    // Tab ARMY: chuyển 3 chế độ ARMY / REVIEW / MERGE
     document.getElementById('btn-mode-army')?.addEventListener('click', () => {
         currentArmyMode = 'army';
+        if (sfxRef) sfxRef.play('gas');
+        renderArmyTabUI();
+    });
+
+    document.getElementById('btn-mode-review')?.addEventListener('click', () => {
+        currentArmyMode = 'review';
         if (sfxRef) sfxRef.play('gas');
         renderArmyTabUI();
     });
@@ -3068,23 +3672,18 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         renderArmyTabUI();
     });
 
-    document.querySelectorAll('#army-active-deck-bar button[data-deck-slot]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const slotIdx = Number(btn.getAttribute('data-deck-slot'));
-            const uId = metaState.selectedDeck?.[slotIdx] || PRIMARY_INFANTRY_ID;
-            showcaseUnitId = uId;
-            renderArmyShowcaseCanvas();
-            openUnitUpgradeModal(uId);
-        });
+    // Đóng & Reset Sandbox Review Modal
+    document.getElementById('btn-close-sandbox-modal')?.addEventListener('click', () => {
+        stopSandboxReviewLoop();
+        document.getElementById('sandbox-review-modal')?.classList.remove('active');
     });
 
-    document.querySelectorAll('#upg-deck-slot-selector button[data-deck-slot]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const slotIdx = Number(btn.getAttribute('data-deck-slot'));
-            assignUnitToDeckSlot(inspectingUnitId, slotIdx);
-        });
+    document.getElementById('btn-reset-sandbox-dps')?.addEventListener('click', () => {
+        if (sfxRef) sfxRef.play('gas');
+        resetSandboxDpsMetrics();
     });
 
+    // Nâng cấp tướng & Hoàn cấp
     document.querySelectorAll('.upg-quick-lv-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const u = UNIT_BY_ID[inspectingUnitId];
@@ -3217,6 +3816,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         openUnitUpgradeModal(u.id);
     });
 
+    // Merge thủ công & Auto-Merge O(1)
     document.getElementById('merge-slot-1')?.addEventListener('click', () => {
         if (mergeSelectedCardUids.length > 0) {
             mergeSelectedCardUids.shift();
@@ -3266,7 +3866,6 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         }
     });
 
-    // Sửa lỗi #5: Auto Merge dây chuyền O(1) hiển thị chính xác toàn bộ thẻ bậc cao nhất hiện có sau khi hợp nhất
     document.getElementById('btn-auto-merge')?.addEventListener('click', () => {
         const t0 = performance.now();
         let totalMergeOperations = 0;
@@ -3305,11 +3904,13 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
 
         if (totalMergeOperations === 0) {
             if (sfxRef) sfxRef.play('cannon');
-            alert('Không tìm thấy cặp thẻ nào cùng tên & cùng độ hiếm trong kho để tự động ghép!');
+            const hintEl = document.getElementById('merge-hint-text');
+            if (hintEl) {
+                hintEl.innerHTML = `<span class="text-rose-300 font-bold">⚠️ Không có cặp thẻ nào cùng tên & cùng độ hiếm để ghép!</span>`;
+            }
             return;
         }
 
-        // Hiển thị chính xác toàn bộ số lượng thẻ bậc cao nhất hiện có của các binh chủng vừa tham gia hợp nhất
         const summaryItems = [];
         touchedUnits.forEach(normId => {
             let bestR = highestReachedRarityByUnit[normId] || getHighestRarityForUnit(normId);
@@ -3388,6 +3989,30 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         document.getElementById('auto-merge-modal')?.classList.remove('active');
     });
 
+    // Cây Kỹ Năng Cổ Thụ (Skill Tree - Ngọc Trai Trắng)
+    document.querySelectorAll('.st-node-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const nodeId = btn.getAttribute('data-st-id');
+            if (nodeId && ANCIENT_SKILL_TREE[nodeId]) {
+                selectedSkillTreeNodeId = nodeId;
+                if (sfxRef) sfxRef.play('gas');
+                renderSkillTreeTabUI();
+            }
+        });
+    });
+
+    document.getElementById('btn-upgrade-skilltree-node')?.addEventListener('click', () => {
+        if (upgradeSkillTreeNode(selectedSkillTreeNodeId)) {
+            triggerHaptic(30);
+            if (sfxRef) sfxRef.play('upgrade');
+            updateTopBarUI();
+            renderSkillTreeTabUI();
+        } else if (sfxRef) {
+            sfxRef.play('cannon');
+        }
+    });
+
+    // Vòng Quay May Mắn
     document.getElementById('btn-open-lucky-wheel')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         updateLuckyWheelPityUI();
@@ -3412,6 +4037,7 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
         executeLuckyWheelSpins(count);
     });
 
+    // 3 Mini-Game Giải Trí
     document.getElementById('btn-open-minigames')?.addEventListener('click', () => {
         if (sfxRef) sfxRef.play('gas');
         switchMinigameTab(currentMinigameTab || 'mines');
@@ -3474,7 +4100,9 @@ export function initLobby({ sfx, atlas, renderMap, onStartBattle, onRenderMapPre
 
     updateTopBarUI();
     renderStageScreenUI();
-    renderArmyDeckBuilderBar();
+    renderShopChipStoreUI();
+    renderChallengeRoadmapUI();
+    renderSkillTreeTabUI();
     drawLuckyWheelCanvas();
     checkAndPromptPlayerName(false);
 }

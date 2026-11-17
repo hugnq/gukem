@@ -1,10 +1,26 @@
 /* ============================================================================
-   TINY BATTLE - IN-GAME BATTLE STYLES
-   HUD, Bottom Deck, Radial Cooldown, Commander Q/W/E/R, Raid Boss & Results
+   TINY BATTLE - IN-GAME BATTLE STYLES (css/battle.css)
+   HUD, Base HP Strip, 5/6 Deck Slots, Radial Cooldown, Commander Q/W/E/R,
+   Roll Draft (3/6 Cards), Auto-Battler, Raid Boss & Win/Lose Panels
    ============================================================================ */
 
 /* ============================================================================
-   BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN
+   1. CANVAS CHIẾN TRƯỜNG CHÍNH (#battleCanvas)
+   ============================================================================ */
+#battleCanvas,
+#gameCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    z-index: 1;
+    touch-action: none;
+}
+
+/* ============================================================================
+   2. BANNER CẢNH BÁO BOSS KHỔNG LỒ TRONG TRẬN
    ============================================================================ */
 .boss-alert-banner {
     position: absolute;
@@ -57,7 +73,7 @@
 }
 
 /* ============================================================================
-   POPUP ROGUELIKE DRAFTING TRONG TRẬN (ENDLESS SIEGE MUTATIONS)
+   3. POPUP ROLL CHỌN THẺ BÀI LÊN CẤP & ROGUELIKE DRAFTING (#draft-modal)
    ============================================================================ */
 .draft-overlay {
     position: absolute;
@@ -102,7 +118,7 @@
 
 .draft-header-title {
     color: #ffffff;
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 800;
     margin: 0;
     text-shadow: 0 2px 10px rgba(250, 204, 21, 0.4);
@@ -111,13 +127,19 @@
 .draft-header-sub {
     color: #94a3b8;
     font-size: 11px;
-    margin: 3px 0 12px 0;
+    margin: 3px 0 10px 0;
 }
 
 .draft-cards-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 7px;
+}
+
+/* Lưới 6 thẻ Roll trong chế độ Challenge Tower Defense */
+.draft-cards-grid.six-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
 }
 
 .draft-card {
@@ -131,8 +153,13 @@
     justify-content: space-between;
     cursor: pointer;
     transition: transform 0.14s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-    min-height: 178px;
+    min-height: 176px;
     position: relative;
+}
+
+.draft-cards-grid.six-cards .draft-card {
+    min-height: 132px;
+    padding: 5px 4px;
 }
 
 .draft-card.buff-card {
@@ -196,7 +223,7 @@
 }
 
 /* ============================================================================
-   HUD & THANH EXP TRONG TRẬN (KÈM NÚT SPEED X1/X2/X4 & AUTO-PLAY)
+   4. HUD TRÊN CÙNG, THANH EXP, THANH HP 2 CĂN CỨ & CỘNG HƯỞNG ĐỘI HÌNH
    ============================================================================ */
 .hud-top {
     position: absolute;
@@ -212,6 +239,17 @@
 
 .hud-top > * {
     pointer-events: auto;
+}
+
+.hud-top button {
+    cursor: pointer;
+    box-shadow: 0 2.5px 0 #020617;
+    transition: transform 0.08s ease, filter 0.12s ease;
+}
+
+.hud-top button:active {
+    transform: translateY(2px);
+    box-shadow: 0 0.5px 0 #020617;
 }
 
 #speed-mult-btn.speed-x2 {
@@ -239,7 +277,7 @@
     border: 1px solid #475569;
     border-radius: 8px;
     padding: 2px 5px 4px 5px;
-    width: 138px;
+    width: 148px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
@@ -264,18 +302,115 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    background: rgba(2, 6, 23, 0.9);
+    background: rgba(2, 6, 23, 0.92);
     border: 1.5px solid #38bdf8;
     color: #7dd3fc;
     padding: 2px 8px;
     border-radius: 999px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
 }
 
+/* Thanh Máu HP 2 Phe (Hiển thị rõ con số chính xác của Căn Cứ Xanh & Đỏ) */
+.base-hp-hud-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-top: 2px;
+    width: 248px;
+}
+
+.base-hp-box {
+    background: rgba(15, 23, 42, 0.92);
+    border: 1.5px solid #475569;
+    border-radius: 7px;
+    padding: 2px 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+.base-hp-box.blue-base-box {
+    border-color: #38bdf8;
+}
+
+.base-hp-box.red-base-box {
+    border-color: #fb7185;
+}
+
+.base-hp-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+
+.base-hp-track {
+    width: 100%;
+    height: 5px;
+    background: #020617;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.base-hp-fill {
+    height: 100%;
+    background: #22c55e;
+    transition: width 0.12s ease, background-color 0.2s ease;
+}
+
+.base-hp-fill.hp-warn {
+    background: #facc15;
+}
+
+.base-hp-fill.hp-danger {
+    background: #ef4444;
+    animation: bossPulse 0.35s ease-in-out infinite alternate;
+}
+
+/* Dải Huy Hiệu Cộng Hưởng Đội Hình (In-Battle Synergy Strip) */
+.hud-synergy-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 2px;
+    pointer-events: none;
+}
+
+.synergy-hud-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1.5px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 900;
+    color: #ffffff;
+    border: 1.5px solid #0f172a;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
+    text-shadow: 0 1px 0 #000000;
+    animation: popIn 0.2s ease-out;
+}
+
+.synergy-thermal {
+    background: linear-gradient(90deg, #ea580c 0%, #0284c7 100%);
+    border-color: #fde047;
+}
+
+.synergy-fortress {
+    background: linear-gradient(90deg, #059669 0%, #0284c7 100%);
+    border-color: #a7f3d0;
+}
+
+.synergy-darklegion {
+    background: linear-gradient(90deg, #4c1d95 0%, #9333ea 100%);
+    border-color: #f0abfc;
+}
+
 /* ============================================================================
-   THANH DECK DƯỚI CÙNG TRONG TRẬN & RADIAL SWEEP COOLDOWN
+   5. THANH DECK DƯỚI CÙNG TRONG TRẬN (5 Ô BATTLE / 6 Ô CHALLENGE) & COOLDOWN
    ============================================================================ */
 .bottom-deck {
     position: absolute;
@@ -300,6 +435,13 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     height: 100%;
+}
+
+/* Deck 6 Ô trong chế độ CHALLENGE Tower Defense */
+.battle-deck-slots.challenge-6-slots,
+#unitDeckContainer.challenge-6-slots {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 2.5px;
 }
 
 .gas-card {
@@ -393,8 +535,8 @@
 }
 
 .unit-btn.empty-slot-btn {
-    background: rgba(15, 23, 42, 0.5);
-    border: 1.5px dashed #334155;
+    background: rgba(15, 23, 42, 0.55);
+    border: 1.5px dashed #475569;
     cursor: default;
     box-shadow: none;
     justify-content: center;
@@ -418,6 +560,15 @@
     border-color: #334155;
 }
 
+/* Ô quân đang được chọn để đặt trong chế độ Auto-Battler */
+.unit-btn.ab-selected-slot,
+.unit-card-btn.ab-selected-slot {
+    outline: 3.5px solid #fde047 !important;
+    border-color: #fde047 !important;
+    transform: translateY(-4px);
+    box-shadow: 0 6px 0 #0f172a, 0 0 18px rgba(250, 204, 21, 0.95) !important;
+}
+
 .unit-btn.ready:hover,
 .unit-card-btn.card-ready-gold:hover {
     border-color: #fde047;
@@ -431,6 +582,17 @@
     box-shadow: 0 1px 0 #0f172a;
 }
 
+/* Chấm Chip Bổ Trợ hiển thị trên thẻ bài trong trận */
+.unit-btn-socket-dots {
+    position: absolute;
+    left: 3px;
+    bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 6;
+}
+
 .unit-card-art {
     width: 42px;
     height: 42px;
@@ -438,11 +600,22 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    margin-top: 6px;
 }
 
 .unit-card-art canvas {
     width: 40px;
     height: 40px;
+}
+
+.battle-deck-slots.challenge-6-slots .unit-card-art {
+    width: 34px;
+    height: 34px;
+}
+
+.battle-deck-slots.challenge-6-slots .unit-card-art img {
+    width: 32px;
+    height: 32px;
 }
 
 .unit-card-name {
@@ -458,11 +631,15 @@
     text-shadow: 0 1px 0 #020617;
 }
 
+.battle-deck-slots.challenge-6-slots .unit-card-name {
+    font-size: 7.5px;
+}
+
 .unit-card-cost {
     background: #0f172a;
     border: 1px solid #f59e0b;
     color: #fbbf24;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 13px;
     padding: 0 6px;
     border-radius: 999px;
@@ -480,7 +657,7 @@
     left: 2px;
     background: rgba(2, 6, 23, 0.78);
     color: #94a3b8;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 11px;
     padding: 0 3.5px;
     border-radius: 3px;
@@ -494,8 +671,8 @@
     right: 2px;
     background: rgba(234, 179, 8, 0.95);
     color: #020617;
-    font-family: var(--font-num);
-    font-size: 11px;
+    font-family: var(--font-pixel, var(--font-num, monospace));
+    font-size: 10.5px;
     font-weight: 400;
     padding: 0 3.5px;
     border-radius: 3px;
@@ -526,7 +703,7 @@
     background: #0f172a;
     border: 1px solid #f59e0b;
     color: #fbbf24;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 13px;
     padding: 0.5px 5px;
     border-radius: 999px;
@@ -543,14 +720,14 @@
 }
 
 .dmg-mini-tag {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 11px;
     color: #fca5a5;
     line-height: 1;
 }
 
 .rng-mini-tag {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 10.5px;
     color: #93c5fd;
     line-height: 1;
@@ -571,7 +748,7 @@
         transparent 0deg
     );
     color: #fef08a;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 18px;
     text-shadow: 0 2px 0 #000000, 0 0 6px rgba(0, 0, 0, 0.9);
     opacity: 0;
@@ -591,7 +768,7 @@
 .unit-cd-timer,
 .tactic-cd-timer,
 .tactic-cd-text {
-    font-size: 19px;
+    font-size: 18px;
     color: #fef08a;
     text-shadow: 0 2px 0 #000000, 0 0 6px rgba(0, 0, 0, 0.9);
     z-index: 9;
@@ -626,7 +803,7 @@
     left: 24px;
     z-index: 40;
     pointer-events: none;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 24px;
     color: #4ade80;
     text-shadow: 0 2px 0 #020617, 0 0 10px rgba(74, 222, 128, 0.8);
@@ -640,7 +817,7 @@
 }
 
 /* ============================================================================
-   THANH 4 KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG CỦA CHỈ HUY (Q, W, E, R)
+   6. THANH 4 KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG CỦA CHỈ HUY (Q, W, E, R)
    ============================================================================ */
 .commander-tactics-dock,
 .commander-tactics-bar {
@@ -719,7 +896,7 @@
     background: #020617;
     border: 1px solid #64748b;
     color: #fde047;
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 12px;
     padding: 0 4px;
     border-radius: 4px;
@@ -761,7 +938,7 @@
 }
 
 .tactic-sub-desc {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 11px;
     color: #94a3b8;
     line-height: 1;
@@ -814,7 +991,7 @@
 }
 
 /* ============================================================================
-   ĐẤU TRƯỜNG ĐẶT TRẬN TỰ ĐỘNG (AUTO-BATTLER DEPLOYMENT OVERLAY)
+   7. ĐẤU TRƯỜNG ĐẶT TRẬN TỰ ĐỘNG (AUTO-BATTLER DEPLOYMENT OVERLAY)
    ============================================================================ */
 .autobattler-prep-overlay,
 .autobattler-setup-bar {
@@ -928,7 +1105,7 @@
 }
 
 /* ============================================================================
-   ĐẤU TRƯỜNG RAID BOSS RUSH (MULTI-PART SUPER BOSS HUD)
+   8. ĐẤU TRƯỜNG RAID BOSS RUSH (MULTI-PART SUPER BOSS HUD)
    ============================================================================ */
 .raid-boss-hud-panel,
 .raid-boss-hud {
@@ -975,7 +1152,7 @@
 
 .boss-hp-num-val,
 .raid-boss-hp-text {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 17px;
     color: #fde047;
     text-shadow: 0 1.5px 0 #020617;
@@ -1044,7 +1221,7 @@
 
 .boss-part-status,
 .part-hp {
-    font-family: var(--font-num);
+    font-family: var(--font-pixel, var(--font-num, monospace));
     font-size: 11px;
     color: #fbbf24;
 }
@@ -1073,7 +1250,7 @@
 }
 
 /* ============================================================================
-   MÀN HÌNH KẾT QUẢ CHIẾN THẮNG / THẤT BẠI (WIN & LOSE PANELS)
+   9. MÀN HÌNH KẾT QUẢ CHIẾN THẮNG / THẤT BẠI (WIN & LOSE PANELS)
    ============================================================================ */
 .result-modal {
     position: absolute;

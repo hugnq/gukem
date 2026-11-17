@@ -1,16 +1,34 @@
 /* ============================================================================
    TINY BATTLE - ENGINE CORE (js/engine-core.js)
-   Web Audio SoundFX, Offscreen Projectile Cache, ParticlePool, SpriteAtlas
-   & Procedural 2D Pixel-Vector Art Renderer cho 6 Binh Chủng Mới + Ụ Pháo
+   Web Audio SoundFX, Offscreen Projectile Cache, ParticlePool, SpriteAtlas,
+   Procedural 2D Pixel-Vector Art Renderer cho 6 Binh Chủng Mới, Ụ Pháo
+   & 14 Loại Zombie / Boss Góc Nhìn Chính Diện Từ Trên Xuống (Front-Top View)
    ============================================================================ */
 
+// Helper vẽ hình chữ nhật bo góc an toàn trên mọi trình duyệt / WebView
+function drawRoundRectPath(ctx, x, y, w, h, r) {
+    const radius = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    ctx.beginPath();
+    if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(x, y, w, h, radius);
+    } else {
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + w, y, x + w, y + h, radius);
+        ctx.arcTo(x + w, y + h, x, y + h, radius);
+        ctx.arcTo(x, y + h, x, y, radius);
+        ctx.arcTo(x, y, x + w, y, radius);
+        ctx.closePath();
+    }
+}
+
 // ============================================================================
-// 1. HỆ THỐNG ÂM THANH WEB AUDIO API (SOUNDFX)
+// 1. HỆ THỐNG ÂM THANH WEB AUDIO API (SOUNDFX - CHỐNG RÈ KHI TUA X4)
 // ============================================================================
 export class SoundFX {
     constructor() {
         this.enabled = true;
         this.ctx = null;
+        this.lastPlayTimes = {};
     }
 
     init() {
@@ -28,6 +46,12 @@ export class SoundFX {
         try {
             this.init();
             if (!this.ctx) return;
+
+            const nowPerf = performance.now();
+            const last = this.lastPlayTimes[type] || 0;
+            if (nowPerf - last < 42) return; // Chống spam oscillator khi tua x4
+            this.lastPlayTimes[type] = nowPerf;
+
             const now = this.ctx.currentTime;
             const osc = this.ctx.createOscillator();
             const gain = this.ctx.createGain();
@@ -130,6 +154,14 @@ export class SoundFX {
                 gain.gain.linearRampToValueAtTime(0.001, now + 0.24);
                 osc.start(now);
                 osc.stop(now + 0.24);
+            } else if (type === 'roar' || type === 'zombie') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(92, now);
+                osc.frequency.exponentialRampToValueAtTime(36, now + 0.36);
+                gain.gain.setValueAtTime(0.16, now);
+                gain.gain.linearRampToValueAtTime(0.001, now + 0.36);
+                osc.start(now);
+                osc.stop(now + 0.36);
             }
         } catch (e) {}
     }
@@ -138,7 +170,7 @@ export class SoundFX {
 export const sfx = new SoundFX();
 
 // ============================================================================
-// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO (KÈM FIREBALL, ICE SHARD, DARK ORB)
+// 2. OFFSCREEN CANVAS CACHING CHO ĐẠN PHÁO (KÈM FIREBALL, ICE SHARD, DARK ORB, ACID GLOB)
 // ============================================================================
 export class ProjectileSpriteCache {
     constructor() {
@@ -152,6 +184,7 @@ export class ProjectileSpriteCache {
         this.fireballCache = [];
         this.iceShardCache = [];
         this.darkOrbCache = [];
+        this.acidGlobCache = [];
         this.muzzleStarCanvas = null;
         this.buildCache();
     }
@@ -168,6 +201,7 @@ export class ProjectileSpriteCache {
             this.fireballCache.push(this.createMagicProjectile(angle, 'fireball'));
             this.iceShardCache.push(this.createMagicProjectile(angle, 'ice_shard'));
             this.darkOrbCache.push(this.createMagicProjectile(angle, 'dark_orb'));
+            this.acidGlobCache.push(this.createMagicProjectile(angle, 'acid_glob'));
         }
         this.muzzleStarCanvas = this.createMuzzleStarSprite();
     }
@@ -257,6 +291,20 @@ export class ProjectileSpriteCache {
             cx.lineTo(-1, 2);
             cx.closePath();
             cx.fill();
+        } else if (projType === 'acid_glob') {
+            // Cầu axit xanh neon phát sáng (Zombie Phun Axit)
+            cx.fillStyle = '#16a34a';
+            cx.beginPath();
+            cx.ellipse(0, 0, 6.8, 4.6, 0, 0, Math.PI * 2);
+            cx.fill();
+            cx.strokeStyle = '#052e16';
+            cx.lineWidth = 1.4;
+            cx.stroke();
+
+            cx.fillStyle = '#86efac';
+            cx.beginPath();
+            cx.arc(2, -1, 2.6, 0, Math.PI * 2);
+            cx.fill();
         } else {
             // dark_orb (Necromancer)
             cx.fillStyle = '#7e22ce';
@@ -316,6 +364,7 @@ export class ProjectileSpriteCache {
         if (projType === 'fireball') return this.fireballCache[idx];
         if (projType === 'ice_shard') return this.iceShardCache[idx];
         if (projType === 'dark_orb') return this.darkOrbCache[idx];
+        if (projType === 'acid_glob') return this.acidGlobCache[idx];
         if (isBlue && auraType === 'demon_abyss') return this.rocketDemon[idx];
         if (isBlue && auraType === 'master_aqua') return this.rocketMaster[idx];
         if (isRocket) return isBlue ? this.rocketBlue[idx] : this.rocketRed[idx];
@@ -439,7 +488,7 @@ export class ParticlePool {
 export const particlePool = new ParticlePool(240);
 
 // ============================================================================
-// 4. BỘ VẼ CANVAS PIXEL-VECTOR ART ĐA LỚP CHO 6 NHÂN VẬT MỚI + XƯƠNG + Ụ PHÁO
+// 4. BỘ VẼ CANVAS PIXEL-VECTOR ART CHO 6 NHÂN VẬT MỚI + XƯƠNG + Ụ PHÁO
 // ============================================================================
 export const CUSTOM_ART_UNIT_IDS = new Set([
     'pyromancer',
@@ -455,9 +504,6 @@ export function isCustomArtUnit(unitId) {
     return CUSTOM_ART_UNIT_IDS.has(unitId);
 }
 
-/**
- * Vẽ nhân vật sáng tạo đa lớp bằng Canvas 2D (Dùng cho cả Chiến trường, Showcase & Icon Thẻ bài)
- */
 export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team = 'blue', animPhase = 0, rotation = 0) {
     ctx.save();
     ctx.translate(cx, cy);
@@ -472,7 +518,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
     const isBlue = team !== 'red';
 
     if (unitId === 'pyromancer') {
-        // 1. Phù Thủy Lửa: Áo choàng đỏ viền vàng, mũ chóp nhọn, trượng ngọc lửa xoay tròn
         ctx.fillStyle = isBlue ? '#b91c1c' : '#7f1d1d';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -485,7 +530,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
 
-        // Viền vàng áo choàng
         ctx.strokeStyle = '#facc15';
         ctx.lineWidth = 1.6;
         ctx.beginPath();
@@ -495,13 +539,11 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(0, 10);
         ctx.stroke();
 
-        // Khuôn mặt & mắt sáng
         ctx.fillStyle = '#fde68a';
         ctx.beginPath();
         ctx.arc(0, -5, 4.5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Mũ phù thủy chóp nhọn
         ctx.fillStyle = isBlue ? '#dc2626' : '#991b1b';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.8;
@@ -518,7 +560,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
 
-        // Đai mũ vàng
         ctx.strokeStyle = '#fde047';
         ctx.lineWidth = 1.8;
         ctx.beginPath();
@@ -526,7 +567,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(5, -8.2);
         ctx.stroke();
 
-        // Trượng lửa bên phải + Ngọc lửa xoay
         ctx.strokeStyle = '#78350f';
         ctx.lineWidth = 2.4;
         ctx.beginPath();
@@ -544,7 +584,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.arc(11, -11, orbPulse * 0.65, 0, Math.PI * 2);
         ctx.fill();
     } else if (unitId === 'cryomancer') {
-        // 2. Pháp Sư Băng Giá: Áo choàng xanh băng #38bdf8, vương miện pha lê, mảnh băng xoay quanh
         ctx.fillStyle = isBlue ? '#0284c7' : '#be123c';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
@@ -557,7 +596,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
 
-        // Áo choàng trong màu băng sáng
         ctx.fillStyle = '#38bdf8';
         ctx.beginPath();
         ctx.moveTo(-5, 10);
@@ -567,7 +605,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.closePath();
         ctx.fill();
 
-        // Đầu & Vương miện pha lê 3 đỉnh
         ctx.fillStyle = '#e0f2fe';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.6;
@@ -589,7 +626,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
 
-        // 3 mảnh tinh thể băng bay xoay quanh người
         for (let i = 0; i < 3; i++) {
             const a = animPhase * 3.5 + (i * Math.PI * 2) / 3;
             const sx = Math.cos(a) * 12;
@@ -611,7 +647,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
             ctx.restore();
         }
     } else if (unitId === 'cleric') {
-        // 3. Mục Sư Thánh Quang: Áo giáp trắng viền vàng, quyền trượng chữ thập phát hào quang xanh ngọc
         ctx.strokeStyle = 'rgba(52, 211, 153, 0.75)';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -621,12 +656,10 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fillStyle = '#f8fafc';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(-8.5, -3, 17, 13, 4);
+        drawRoundRectPath(ctx, -8.5, -3, 17, 13, 4);
         ctx.fill();
         ctx.stroke();
 
-        // Chữ thập vàng trước ngực
         ctx.strokeStyle = '#eab308';
         ctx.lineWidth = 2.4;
         ctx.beginPath();
@@ -636,7 +669,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(4, 3);
         ctx.stroke();
 
-        // Đầu & Mũ trùm trắng viền vàng
         ctx.fillStyle = '#fef3c7';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.6;
@@ -645,7 +677,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
 
-        // Quyền trượng chữ thập phát sáng xanh ngọc
         ctx.strokeStyle = '#ca8a04';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
@@ -660,7 +691,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.arc(9.5, -8, 2.6, 0, Math.PI * 2);
         ctx.fill();
     } else if (unitId === 'necromancer') {
-        // 4. Pháp Sư Chiêu Hồn: Áo choàng tím đen hắc ám, trượng đầu lâu phát sáng tím, làn khói ma thuật
         ctx.fillStyle = 'rgba(147, 51, 234, 0.45)';
         ctx.beginPath();
         ctx.ellipse(0, 10, 11 + Math.sin(animPhase * 5) * 1.5, 4.5, 0, 0, Math.PI * 2);
@@ -678,7 +708,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fill();
         ctx.stroke();
 
-        // Viền áo tím ma giới
         ctx.strokeStyle = '#c084fc';
         ctx.lineWidth = 1.6;
         ctx.beginPath();
@@ -688,7 +717,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(7, 10);
         ctx.stroke();
 
-        // Mũ trùm đầu tối & 2 mắt tím phát sáng
         ctx.fillStyle = '#3b0764';
         ctx.beginPath();
         ctx.arc(0, -7, 5.5, 0, Math.PI * 2);
@@ -699,7 +727,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fillRect(-2.8, -8, 2, 2);
         ctx.fillRect(0.8, -8, 2, 2);
 
-        // Trượng đầu lâu phát sáng
         ctx.strokeStyle = '#4c1d95';
         ctx.lineWidth = 2.4;
         ctx.beginPath();
@@ -720,16 +747,13 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.arc(10, -10.5, 1.8, 0, Math.PI * 2);
         ctx.fill();
     } else if (unitId === 'mecha_paladin') {
-        // 5. Robot Hộ Vệ Titan: Giáp bạc xanh lớn, tay trái cầm khiên lục giác #00f2fe, tay phải kiếm plasma
         ctx.fillStyle = isBlue ? '#1e3a8a' : '#7f1d1d';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 2.2;
-        ctx.beginPath();
-        ctx.roundRect(-11, -8, 22, 18, 5);
+        drawRoundRectPath(ctx, -11, -8, 22, 18, 5);
         ctx.fill();
         ctx.stroke();
 
-        // Giáp ngực bạc & Lõi năng lượng
         ctx.fillStyle = '#cbd5e1';
         ctx.fillRect(-8, -5, 16, 11);
         ctx.fillStyle = '#00f2fe';
@@ -737,18 +761,15 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.arc(0, 0, 3.6, 0, Math.PI * 2);
         ctx.fill();
 
-        // Đầu Mecha & kính Visor phát sáng
         ctx.fillStyle = '#64748b';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.8;
-        ctx.beginPath();
-        ctx.roundRect(-5.5, -12.5, 11, 6.5, 2);
+        drawRoundRectPath(ctx, -5.5, -12.5, 11, 6.5, 2);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = '#38bdf8';
         ctx.fillRect(-4, -10.5, 8, 2.2);
 
-        // Tay phải: Kiếm Plasma phát sáng
         ctx.strokeStyle = '#00f2fe';
         ctx.lineWidth = 3.2;
         ctx.beginPath();
@@ -762,7 +783,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(13, -13);
         ctx.stroke();
 
-        // Tay trái: Khiên Năng Lượng Lục Giác (#00f2fe)
         ctx.save();
         ctx.translate(-10.5, -1);
         ctx.fillStyle = 'rgba(0, 242, 254, 0.42)';
@@ -782,7 +802,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.stroke();
         ctx.restore();
     } else if (unitId === 'railgun_walker') {
-        // 6. Pháo Điện Từ Railgun: Khung cơ giới 4 chân + nòng pháo đôi dài phát tia sét xanh cyan
         ctx.strokeStyle = '#1e293b';
         ctx.lineWidth = 3.2;
         [
@@ -799,16 +818,13 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
             ctx.fill();
         });
 
-        // Thân tháp pháo bọc thép
         ctx.fillStyle = isBlue ? '#0f172a' : '#450a0a';
         ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(-8.5, -6.5, 17, 14, 4);
+        drawRoundRectPath(ctx, -8.5, -6.5, 17, 14, 4);
         ctx.fill();
         ctx.stroke();
 
-        // Nòng pháo điện từ đôi hướng lên trên (Mặc định hướng Bắc như sprite chuẩn)
         ctx.fillStyle = '#94a3b8';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.4;
@@ -817,7 +833,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fillRect(1.5, -15.5, 3.5, 11);
         ctx.strokeRect(1.5, -15.5, 3.5, 11);
 
-        // Tia hồ quang điện Cyan giữa 2 thanh ray
         ctx.strokeStyle = '#00f2fe';
         ctx.lineWidth = 1.8;
         ctx.beginPath();
@@ -826,18 +841,14 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.lineTo(-1.5, -8);
         ctx.stroke();
     } else if (unitId === 'skeleton') {
-        // 7. Chiến Binh Xương (Triệu hồi bởi Necromancer)
         ctx.fillStyle = '#e2e8f0';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.8;
 
-        // Lồng ngực xương
-        ctx.beginPath();
-        ctx.roundRect(-5.5, -2, 11, 9, 2);
+        drawRoundRectPath(ctx, -5.5, -2, 11, 9, 2);
         ctx.fill();
         ctx.stroke();
 
-        // Hộp sọ trắng & mắt tím ma giới
         ctx.beginPath();
         ctx.arc(0, -6.5, 4.8, 0, Math.PI * 2);
         ctx.fill();
@@ -847,7 +858,6 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
         ctx.fillRect(-2.5, -7.5, 1.8, 1.8);
         ctx.fillRect(0.8, -7.5, 1.8, 1.8);
 
-        // Kiếm xương & Khiên nhỏ
         ctx.strokeStyle = '#f8fafc';
         ctx.lineWidth = 2.2;
         ctx.beginPath();
@@ -867,6 +877,579 @@ export function drawCustomUnitArt(ctx, unitId, cx = 0, cy = 0, size = 32, team =
     ctx.restore();
 }
 
+// ============================================================================
+// 4B. BỘ VẼ CANVAS 2D CHO 14 LOẠI ZOMBIE & BOSS (FRONT-TOP VIEW - THẤY RÕ MẶT)
+// ============================================================================
+export const ZOMBIE_ART_IDS = new Set([
+    'zombie_walker',
+    'zombie_runner',
+    'zombie_bunny_rider',
+    'zombie_horse_knight',
+    'zombie_tiger_lord',
+    'zombie_spitter',
+    'zombie_bomber',
+    'zombie_necromancer',
+    'zombie_riot',
+    'zombie_cyborg',
+    'zombie_mecha',
+    'boss_butcher',
+    'boss_chimera',
+    'boss_omega_tyrant'
+]);
+
+export function isZombieUnit(unitId) {
+    return ZOMBIE_ART_IDS.has(unitId);
+}
+
+/**
+ * Vẽ 14 Loại Zombie & Boss theo góc nhìn Front-Top View:
+ * Nhân vật hướng mặt xuống dưới (+Y) để người chơi luôn nhìn rõ khuôn mặt, đôi mắt & vũ khí
+ */
+export function drawZombieArt(ctx, zombieId, cx = 0, cy = 0, size = 34, animPhase = 0) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    const scale = size / 34;
+    ctx.scale(scale, scale);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    const sway = Math.sin(animPhase * 6) * 1.2;
+
+    if (zombieId === 'zombie_walker') {
+        // 1. Walker Zombie: Da xanh tái, mắt lờ đờ, áo rách, 2 tay đưa ra trước (+Y)
+        ctx.fillStyle = '#475569';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -8.5, -8, 17, 13, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // Vết rách áo & xương sườn
+        ctx.fillStyle = '#84cc16';
+        ctx.fillRect(-3, -3, 6, 4);
+
+        // Hai cánh tay xanh tái vươn xuống (+Y)
+        ctx.fillStyle = '#84cc16';
+        ctx.fillRect(-10.5, -2 + sway, 4, 11);
+        ctx.strokeRect(-10.5, -2 + sway, 4, 11);
+        ctx.fillRect(6.5, -2 - sway, 4, 11);
+        ctx.strokeRect(6.5, -2 - sway, 4, 11);
+
+        // Đầu chính diện hướng xuống (+Y)
+        ctx.fillStyle = '#a3e635';
+        ctx.beginPath();
+        ctx.arc(0, 1, 7.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Đôi mắt lờ đờ & miệng há
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(-2.6, 2.5, 1.8, 0, Math.PI * 2);
+        ctx.arc(2.6, 2.5, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-3, 2, 1, 1);
+        ctx.fillRect(2.2, 2.2, 1, 1);
+        ctx.fillStyle = '#365314';
+        ctx.fillRect(-2.5, 5.2, 5, 2);
+    } else if (zombieId === 'zombie_runner') {
+        // 2. Crawler / Runner Zombie: Dáng lao gù sát đất, mắt đỏ rực, vuốt sắc
+        const pounce = Math.abs(Math.sin(animPhase * 11)) * 2;
+        ctx.fillStyle = '#65a30d';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -9, -9 - pounce, 18, 14, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // Vuốt sắc vươn tới trước
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(-8, 4);
+        ctx.lineTo(-11, 11);
+        ctx.moveTo(8, 4);
+        ctx.lineTo(11, 11);
+        ctx.stroke();
+
+        // Đầu gù cúi thấp hướng thẳng về phía trước
+        ctx.fillStyle = '#84cc16';
+        ctx.beginPath();
+        ctx.arc(0, 3, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Đôi mắt đỏ rực phát sáng
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(-2.8, 4, 2, 0, Math.PI * 2);
+        ctx.arc(2.8, 4, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-3.2, 3.5, 1, 1);
+        ctx.fillRect(2.4, 3.5, 1, 1);
+    } else if (zombieId === 'zombie_bunny_rider') {
+        // 3. Zombie Cưỡi Thỏ Đột Biến: Thỏ khổng lồ tai dài mắt đỏ bên dưới, Zombie ngồi trên lưng
+        const hop = Math.abs(Math.sin(animPhase * 9)) * 2.5;
+        ctx.translate(0, -hop);
+
+        // Thân Thỏ khổng lồ màu xám trắng đột biến
+        ctx.fillStyle = '#e2e8f0';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 2, 10.5, 12.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Đầu Thỏ phía trước (+Y) với 2 tai dài vểnh lên & mắt đỏ
+        ctx.beginPath();
+        ctx.arc(0, 8, 6.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Hai tai thỏ dài
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.ellipse(-4.5, 1, 2.3, 7.5, -0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(4.5, 1, 2.3, 7.5, 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Mắt đỏ & răng cửa thỏ
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(-3.5, 8.5, 2.2, 2.2);
+        ctx.fillRect(1.3, 8.5, 2.2, 2.2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(-1.8, 12, 1.6, 2.5);
+        ctx.fillRect(0.2, 12, 1.6, 2.5);
+
+        // Zombie ngồi cưỡi trên lưng thỏ
+        ctx.fillStyle = '#84cc16';
+        ctx.beginPath();
+        ctx.arc(0, -3.5, 5.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(-2.2, -2.5, 1.5, 1.5);
+        ctx.fillRect(0.8, -2.5, 1.5, 1.5);
+    } else if (zombieId === 'zombie_horse_knight') {
+        // 4. Kỵ Sĩ Ngựa Xương: Chiến mã thây ma bên dưới + Kỵ sĩ giáp sắt rỉ sét bên trên
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -9.5, -12, 19, 24, 7);
+        ctx.fill();
+        ctx.stroke();
+
+        // Đầu ngựa xương vươn về phía trước (+Y)
+        ctx.fillStyle = '#cbd5e1';
+        drawRoundRectPath(ctx, -5, 6, 10, 10, 3);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(-3.2, 10, 2, 2);
+        ctx.fillRect(1.2, 10, 2, 2);
+
+        // Kỵ sĩ giáp rỉ sét & Thương sắt bên phải
+        ctx.fillStyle = '#78350f';
+        ctx.beginPath();
+        ctx.arc(0, -2, 6.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Khe mũ giáp sáng mắt đỏ
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-4.5, -1, 9, 2.5);
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(-3, -0.5, 2, 1.5);
+        ctx.fillRect(1, -0.5, 2, 1.5);
+
+        // Ngọn thương kỵ sĩ chỉ thẳng xuống (+Y)
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(11, -10);
+        ctx.lineTo(11, 15);
+        ctx.stroke();
+    } else if (zombieId === 'zombie_tiger_lord') {
+        // 5. Chúa Tể Cưỡi Hổ Răng Kiếm: Hổ vằn cam đột biến + Thủ lĩnh Zombie
+        ctx.fillStyle = '#ea580c';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -11, -12, 22, 24, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        // Vằn đen trên lưng hổ
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-9, -6);
+        ctx.lineTo(-4, -6);
+        ctx.moveTo(4, -6);
+        ctx.lineTo(9, -6);
+        ctx.moveTo(-9, 1);
+        ctx.lineTo(-4, 1);
+        ctx.moveTo(4, 1);
+        ctx.lineTo(9, 1);
+        ctx.stroke();
+
+        // Đầu Hổ răng kiếm phía trước (+Y)
+        ctx.fillStyle = '#f97316';
+        ctx.beginPath();
+        ctx.arc(0, 9, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Cặp răng nanh kiếm trắng dài
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(-4, 13);
+        ctx.lineTo(-2.5, 18);
+        ctx.lineTo(-1.2, 13);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(4, 13);
+        ctx.lineTo(2.5, 18);
+        ctx.lineTo(1.2, 13);
+        ctx.closePath();
+        ctx.fill();
+
+        // Chúa tể Zombie đội mũ xương trên lưng hổ
+        ctx.fillStyle = '#65a30d';
+        ctx.beginPath();
+        ctx.arc(0, -3, 5.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#fde047';
+        ctx.fillRect(-2.5, -2, 1.8, 1.8);
+        ctx.fillRect(0.8, -2, 1.8, 1.8);
+    } else if (zombieId === 'zombie_spitter') {
+        // 6. Zombie Phun Axit: Bình hóa chất xanh phát sáng sau lưng, miệng nhỏ axit
+        ctx.fillStyle = '#15803d';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -10.5, -11, 21, 13, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        // 2 ống bình hóa chất neon phát sáng trên vai
+        ctx.fillStyle = '#4ade80';
+        ctx.beginPath();
+        ctx.arc(-6, -7, 3.6, 0, Math.PI * 2);
+        ctx.arc(6, -7, 3.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Đầu chính diện
+        ctx.fillStyle = '#86efac';
+        ctx.beginPath();
+        ctx.arc(0, 2, 7.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Miệng phun axit xanh rực
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.arc(0, 5.5, 3.2 + Math.sin(animPhase * 8) * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(-3.2, 1.5, 2, 2);
+        ctx.fillRect(1.2, 1.5, 2, 2);
+    } else if (zombieId === 'zombie_bomber') {
+        // 7. Zombie Cảm Tử Ôm Bom: Ôm thùng thuốc nổ TNT đỏ nhấp nháy trước ngực (+Y)
+        ctx.fillStyle = '#65a30d';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, -3, 7.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Mắt điên dại
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(-2.6, -1.5, 2, 0, Math.PI * 2);
+        ctx.arc(2.6, -1.5, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Thùng TNT đỏ nhấp nháy ôm trước ngực (+Y)
+        const blink = Math.sin(animPhase * 16) > 0;
+        ctx.fillStyle = blink ? '#ef4444' : '#b91c1c';
+        drawRoundRectPath(ctx, -8.5, 2, 17, 11, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#fde047';
+        ctx.font = '900 6.5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('TNT', 0, 9.8);
+    } else if (zombieId === 'zombie_necromancer') {
+        // 8. Pháp Sư Zombie Gọi Hồn: Mũ đầu lâu, áo choàng tím, trượng xương phát sáng
+        ctx.fillStyle = '#3b0764';
+        ctx.strokeStyle = '#090014';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -10, -9, 20, 17, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // Mũ đầu lâu trắng chính diện
+        ctx.fillStyle = '#f1f5f9';
+        ctx.beginPath();
+        ctx.arc(0, 1, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#a855f7';
+        ctx.fillRect(-3.2, 1.5, 2.2, 2.2);
+        ctx.fillRect(1, 1.5, 2.2, 2.2);
+
+        // Trượng xương tím bên phải
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(11, -8);
+        ctx.lineTo(11, 11);
+        ctx.stroke();
+
+        ctx.fillStyle = '#d946ef';
+        ctx.beginPath();
+        ctx.arc(11, 12, 3.6 + Math.sin(animPhase * 7) * 0.8, 0, Math.PI * 2);
+        ctx.fill();
+    } else if (zombieId === 'zombie_riot') {
+        // 9. Zombie Khiên Chống Bạo Động: Thân sau + Khiên thép chữ nhật lớn che chắn mặt trước (+Y)
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, -3, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Khiên thép chữ nhật lớn phía trước (+Y)
+        ctx.fillStyle = '#64748b';
+        drawRoundRectPath(ctx, -12, 3, 24, 9, 2.5);
+        ctx.fill();
+        ctx.stroke();
+
+        // Khe kính quan sát trên khiên & chữ RIOT
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillRect(-7, 5, 14, 2.4);
+    } else if (zombieId === 'zombie_cyborg') {
+        // 10. Cyborg Zombie: Nửa mặt bọc thép mắt laser đỏ + Tay phải là lưỡi cưa máy
+        ctx.fillStyle = '#334155';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        drawRoundRectPath(ctx, -9, -8, 18, 14, 4);
+        ctx.fill();
+        ctx.stroke();
+
+        // Lưỡi cưa máy quay tít bên tay phải
+        const sawJitter = Math.sin(animPhase * 28) * 1.2;
+        ctx.fillStyle = '#94a3b8';
+        drawRoundRectPath(ctx, 8, -2 + sawJitter, 5, 16, 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(9.5, 2 + sawJitter, 2, 10);
+
+        // Đầu nửa thịt zombie (trái) nửa thép robot (phải)
+        ctx.fillStyle = '#84cc16';
+        ctx.beginPath();
+        ctx.arc(0, 1, 7.2, Math.PI / 2, Math.PI * 1.5);
+        ctx.fill();
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(0, 1, 7.2, -Math.PI / 2, Math.PI / 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 1, 7.2, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Mắt laser đỏ rực
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(2.8, 2, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(-3.5, 1.5, 1.8, 1.8);
+    } else if (zombieId === 'zombie_mecha') {
+        // 11. Mecha-Zombie MK-IV: Cỗ máy chiến đấu bọc thép, lồng kính chứa đầu zombie + 2 bệ tên lửa
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.2;
+        drawRoundRectPath(ctx, -13, -10, 26, 21, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        // 2 bệ phóng tên lửa trên vai
+        ctx.fillStyle = '#dc2626';
+        ctx.fillRect(-14.5, -4, 4, 11);
+        ctx.strokeRect(-14.5, -4, 4, 11);
+        ctx.fillRect(10.5, -4, 4, 11);
+        ctx.strokeRect(10.5, -4, 4, 11);
+
+        // Lồng kính bán cầu ở giữa chứa đầu Zombie
+        ctx.fillStyle = '#84cc16';
+        ctx.beginPath();
+        ctx.arc(0, 2, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(-2.5, 2.5, 1.8, 1.8);
+        ctx.fillRect(0.8, 2.5, 1.8, 1.8);
+
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(0, 2, 7.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+    } else if (zombieId === 'boss_butcher') {
+        // 12. BOSS Wave 7 – Đồ Tể Khổng Lồ: Tạp dề đẫm máu, mặt khâu chằng chịt, dao phay khổng lồ
+        ctx.fillStyle = '#7f1d1d';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.4;
+        drawRoundRectPath(ctx, -13, -11, 26, 22, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // Tạp dề trắng vấy máu phía trước
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(-9, 1, 18, 10);
+        ctx.fillStyle = '#dc2626';
+        ctx.beginPath();
+        ctx.arc(-3, 5, 3, 0, Math.PI * 2);
+        ctx.arc(4, 7, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Dao phay khổng lồ bên phải
+        ctx.fillStyle = '#cbd5e1';
+        drawRoundRectPath(ctx, 11, -3, 7, 19, 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Đầu đồ tể mặt khâu
+        ctx.fillStyle = '#84cc16';
+        ctx.beginPath();
+        ctx.arc(0, 0, 8.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(-4, -5);
+        ctx.lineTo(4, -2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(-3.8, 1, 2.4, 2.4);
+        ctx.fillRect(1.4, 1, 2.4, 2.4);
+    } else if (zombieId === 'boss_chimera') {
+        // 13. BOSS Wave 14 – Quái Thú Chimera: Quái thú đột biến 2 đầu có sừng, gầm sóng âm
+        ctx.fillStyle = '#581c87';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2.4;
+        drawRoundRectPath(ctx, -14, -10, 28, 20, 8);
+        ctx.fill();
+        ctx.stroke();
+
+        // Hai đầu quái thú song sinh hướng xuống (+Y)
+        [-6.5, 6.5].forEach((hx, idx) => {
+            ctx.fillStyle = idx === 0 ? '#7e22ce' : '#991b1b';
+            ctx.beginPath();
+            ctx.arc(hx, 5, 6.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Sừng cong
+            ctx.strokeStyle = '#fde047';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(hx - 4, 1);
+            ctx.lineTo(hx - 6, -4);
+            ctx.moveTo(hx + 4, 1);
+            ctx.lineTo(hx + 6, -4);
+            ctx.stroke();
+
+            // Mắt rực sáng
+            ctx.fillStyle = '#00f2fe';
+            ctx.fillRect(hx - 2.8, 5, 2, 2);
+            ctx.fillRect(hx + 0.8, 5, 2, 2);
+        });
+    } else if (zombieId === 'boss_omega_tyrant') {
+        // 14. BOSS Wave 20 – Bạo Chúa Omega: Đại boss Zombie-Robot 4 nòng pháo plasma, vương miện sừng
+        ctx.fillStyle = '#090014';
+        ctx.strokeStyle = '#d946ef';
+        ctx.lineWidth = 2.5;
+        drawRoundRectPath(ctx, -15, -12, 30, 24, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        // 4 nòng pháo plasma hướng xuống (+Y)
+        ctx.fillStyle = '#38bdf8';
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.4;
+        [-13, -8, 5, 10].forEach(bx => {
+            ctx.fillRect(bx, 6, 3, 10);
+            ctx.strokeRect(bx, 6, 3, 10);
+        });
+
+        // Lõi lò phản ứng tím-đỏ trước ngực
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(0, 3, 4.5 + Math.sin(animPhase * 10) * 1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Đầu Bạo Chúa & Vương miện sừng
+        ctx.fillStyle = '#4c1d95';
+        ctx.beginPath();
+        ctx.arc(0, -3, 7.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#facc15';
+        ctx.beginPath();
+        ctx.moveTo(-7, -7);
+        ctx.lineTo(-9, -14);
+        ctx.lineTo(-3, -9);
+        ctx.lineTo(0, -15);
+        ctx.lineTo(3, -9);
+        ctx.lineTo(9, -14);
+        ctx.lineTo(7, -7);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#f0abfc';
+        ctx.fillRect(-3.5, -2.5, 2.5, 2.2);
+        ctx.fillRect(1, -2.5, 2.5, 2.2);
+    }
+
+    ctx.restore();
+}
+
+const zombieIconCache = new Map();
+
+export function getZombieSpriteDataURL(zombieId) {
+    if (zombieIconCache.has(zombieId)) {
+        return zombieIconCache.get(zombieId);
+    }
+    const c = document.createElement('canvas');
+    c.width = 48;
+    c.height = 48;
+    const cCtx = c.getContext('2d');
+    drawZombieArt(cCtx, zombieId, 24, 24, 36, 0.4);
+    const url = c.toDataURL();
+    zombieIconCache.set(zombieId, url);
+    return url;
+}
+
 /**
  * Vẽ Ụ Pháo Phòng Thủ gắn trên Căn Cứ Xanh (`gatling` | `sam_missile` | `tesla_coil`)
  */
@@ -874,7 +1457,6 @@ export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI /
     ctx.save();
     ctx.translate(cx, cy);
 
-    // Đế ụ pháo xoay
     ctx.fillStyle = '#0f172a';
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 2;
@@ -886,12 +1468,10 @@ export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI /
     ctx.rotate(angleRad + Math.PI / 2);
 
     if (turretType === 'sam_missile') {
-        // Bệ phóng tên lửa SAM 4 ống
         ctx.fillStyle = '#ea580c';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.roundRect(-8, -9, 16, 15, 3);
+        drawRoundRectPath(ctx, -8, -9, 16, 15, 3);
         ctx.fill();
         ctx.stroke();
 
@@ -900,7 +1480,6 @@ export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI /
             ctx.fillRect(ox, -12, 3, 4);
         });
     } else if (turretType === 'tesla_coil') {
-        // Tháp sét từ trường Tesla
         ctx.fillStyle = '#6b21a8';
         ctx.strokeStyle = '#f0abfc';
         ctx.lineWidth = 1.8;
@@ -915,12 +1494,10 @@ export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI /
         ctx.arc(0, -4, pulseR, 0, Math.PI * 2);
         ctx.fill();
     } else {
-        // Pháo Gatling nhiều nòng
         ctx.fillStyle = '#0284c7';
         ctx.strokeStyle = '#0f172a';
         ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.roundRect(-6.5, -6, 13, 12, 3);
+        drawRoundRectPath(ctx, -6.5, -6, 13, 12, 3);
         ctx.fill();
         ctx.stroke();
 
@@ -935,12 +1512,13 @@ export function drawBaseTurretArt(ctx, turretType, cx, cy, angleRad = -Math.PI /
 
 const customUnitIconCache = new Map();
 
-/**
- * Lấy ảnh DataURL cho mọi đơn vị (Tự động kết hợp Sprite `Preview.png` cho 11 đơn vị cũ & Canvas Art cho 6 đơn vị mới)
- */
 export function getUnitSpriteDataURL(unitOrId, fallbackRow = 7) {
     const unitId = typeof unitOrId === 'string' ? unitOrId : (unitOrId?.id || 'infantry');
     const spriteCol = typeof unitOrId === 'object' && unitOrId !== null ? (unitOrId.spriteCol ?? 16) : 16;
+
+    if (isZombieUnit(unitId)) {
+        return getZombieSpriteDataURL(unitId);
+    }
 
     if (isCustomArtUnit(unitId)) {
         const team = fallbackRow === 8 ? 'red' : 'blue';
