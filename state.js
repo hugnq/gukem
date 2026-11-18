@@ -1,8 +1,9 @@
 /* ============================================================================
    TINY BATTLE - META-GAME STATE & PERSISTENCE (js/state.js)
    Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100% với save cũ)
-   Hỗ trợ: 45 Map • 18 Binh Chủng • Ngọc Trai Trắng • Kho Chip • Challenge •
-           Cây Kỹ Năng Cổ Thụ 4 Nhánh (40 Kỹ Năng & 4 Kỹ Năng Đặc Biệt Mốc 10)
+   Hỗ trợ: 54 Maps (6 Biomes) • Hệ thống 0-3 Sao (metaState.mapStars & 162 Sao) •
+           18 Binh Chủng • Ngọc Trai Trắng • Kho Chip • Challenge •
+           Cây Cổ Thụ 4 Nhánh (40 Kỹ Năng & 4 Kỹ Năng Đặc Biệt)
    ============================================================================ */
 
 import {
@@ -50,6 +51,14 @@ export function createDefaultAncientSkillTree() {
     return tree;
 }
 
+export function createDefaultMapStars() {
+    const starsMap = {};
+    for (let i = 1; i <= LEVELS.length; i++) {
+        starsMap[i] = 0;
+    }
+    return starsMap;
+}
+
 export let metaState = {
     playerName: '',
     coins: 350,
@@ -58,6 +67,7 @@ export let metaState = {
     pearls: 0, // ⚪ Ngọc Trai Trắng
     isAdminMode: false,
     usedCodes: [],
+    mapStars: createDefaultMapStars(),
     mapDifficultyProgress: {},
     inventoryStacks: {},
     inventory: [],
@@ -92,7 +102,7 @@ export let metaState = {
     autobattlerWins: 0,
     raidBossClears: 0,
 
-    // Tiến trình Chế độ CHALLENGE (Tower Defense 20 Wave Zombie - 45 Map)
+    // Tiến trình Chế độ CHALLENGE (Tower Defense 20 Wave Zombie - 54 Map)
     challengeClearedMaps: {},
     challengeBestWave: {},
 
@@ -282,6 +292,7 @@ export function createDefaultMapDifficultyProgress() {
     const prog = {};
     for (let i = 1; i <= LEVELS.length; i++) {
         prog[i] = {
+            stars: 0,
             easy: false,
             difficult: false,
             easy_destroy: false,
@@ -293,14 +304,16 @@ export function createDefaultMapDifficultyProgress() {
     return prog;
 }
 
-export function normalizeMapProgressEntry(rawEntry) {
+export function normalizeMapProgressEntry(rawEntry, externalStars = 0) {
     if (!rawEntry || typeof rawEntry !== 'object') {
+        const baseStars = Math.max(0, Math.min(3, Math.floor(Number(externalStars) || 0)));
         return {
-            easy: false,
-            difficult: false,
-            easy_destroy: false,
+            stars: baseStars,
+            easy: baseStars >= 1,
+            difficult: baseStars >= 2,
+            easy_destroy: baseStars >= 1,
             easy_survival: false,
-            difficult_destroy: false,
+            difficult_destroy: baseStars >= 2,
             difficult_survival: false
         };
     }
@@ -309,14 +322,63 @@ export function normalizeMapProgressEntry(rawEntry) {
     const diffDestroy = !!rawEntry.difficult_destroy;
     const diffSurvival = !!rawEntry.difficult_survival || (!!rawEntry.difficult && !rawEntry.difficult_destroy);
 
+    const easy = !!rawEntry.easy || easyDestroy || easySurvival;
+    const difficult = !!rawEntry.difficult || diffDestroy || diffSurvival;
+
+    // Suy diễn số sao tối thiểu từ tiến trình lưu cũ (0 -> 3 sao)
+    let inferredStars = 0;
+    if (easy) inferredStars = 1;
+    if (difficult) inferredStars = 2;
+    if (
+        difficult &&
+        (diffSurvival ||
+            rawEntry.difficult_endless_siege ||
+            rawEntry.difficult_raid_boss ||
+            rawEntry.difficult_fog_of_war ||
+            rawEntry.difficult_auto_battler ||
+            rawEntry.difficult_challenge)
+    ) {
+        inferredStars = 3;
+    }
+
+    const savedStars = Math.max(
+        0,
+        Math.min(3, Math.floor(Math.max(Number(rawEntry.stars) || 0, Number(externalStars) || 0)))
+    );
+
     return {
-        easy: !!rawEntry.easy || easyDestroy || easySurvival,
-        difficult: !!rawEntry.difficult || diffDestroy || diffSurvival,
+        ...rawEntry,
+        stars: Math.max(inferredStars, savedStars),
+        easy,
+        difficult,
         easy_destroy: easyDestroy,
         easy_survival: easySurvival,
         difficult_destroy: diffDestroy,
         difficult_survival: diffSurvival
     };
+}
+
+/**
+ * Đồng bộ thuộc tính stars giữa metaState.mapStars, metaState.mapDifficultyProgress và mảng LEVELS
+ */
+export function syncLevelsMetadata() {
+    if (!metaState.mapStars || typeof metaState.mapStars !== 'object') {
+        metaState.mapStars = createDefaultMapStars();
+    }
+    for (let i = 1; i <= LEVELS.length; i++) {
+        const entry = metaState.mapDifficultyProgress?.[i];
+        const progStars = entry ? Math.max(0, Math.min(3, Math.floor(Number(entry.stars) || 0))) : 0;
+        const mapStarsVal = Math.max(0, Math.min(3, Math.floor(Number(metaState.mapStars[i]) || 0)));
+        const bestStars = Math.max(progStars, mapStarsVal);
+
+        metaState.mapStars[i] = bestStars;
+        if (entry) {
+            entry.stars = bestStars;
+        }
+        if (LEVELS[i - 1]) {
+            LEVELS[i - 1].stars = bestStars;
+        }
+    }
 }
 
 export function normalizeSelectedDeck(rawDeck) {
@@ -459,11 +521,13 @@ export function syncLegacyEngineBridges() {
 
     metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
     syncHighestRarityEverOwnedFromStacks();
+    syncLevelsMetadata();
 }
 
 export function loadProgress() {
     const defaultLevels = createDefaultArmyLevels();
     const defaultMapProg = createDefaultMapDifficultyProgress();
+    const defaultStars = createDefaultMapStars();
     const defaultSockets = createDefaultUnitSockets();
 
     try {
@@ -524,13 +588,19 @@ export function loadProgress() {
                     ? { ...parsed.codexClaimed }
                     : {};
 
+            metaState.mapStars = defaultStars;
             metaState.mapDifficultyProgress = defaultMapProg;
-            if (parsed.mapDifficultyProgress && typeof parsed.mapDifficultyProgress === 'object') {
-                for (let i = 1; i <= LEVELS.length; i++) {
-                    if (parsed.mapDifficultyProgress[i]) {
-                        metaState.mapDifficultyProgress[i] = normalizeMapProgressEntry(parsed.mapDifficultyProgress[i]);
-                    }
+            const parsedStars = parsed.mapStars && typeof parsed.mapStars === 'object' ? parsed.mapStars : {};
+
+            for (let i = 1; i <= LEVELS.length; i++) {
+                const extStar = Number(parsedStars[i]) || 0;
+                const rawProg = parsed.mapDifficultyProgress?.[i] || null;
+                const normEntry = normalizeMapProgressEntry(rawProg, extStar);
+                if (metaState.challengeClearedMaps[i] && normEntry.stars < 3) {
+                    normEntry.stars = 3;
                 }
+                metaState.mapDifficultyProgress[i] = normEntry;
+                metaState.mapStars[i] = normEntry.stars;
             }
 
             const loadedStacks = {};
@@ -599,6 +669,7 @@ export function loadProgress() {
             metaState.pearls = 0;
             metaState.isAdminMode = false;
             metaState.usedCodes = [];
+            metaState.mapStars = defaultStars;
             metaState.mapDifficultyProgress = defaultMapProg;
             metaState.inventoryStacks = createDefaultInventoryStacks();
             syncRepresentativeInventoryFromStacks();
@@ -619,6 +690,7 @@ export function loadProgress() {
             metaState.codexClaimed = {};
         }
     } catch (e) {
+        metaState.mapStars = defaultStars;
         metaState.mapDifficultyProgress = defaultMapProg;
         metaState.inventoryStacks = createDefaultInventoryStacks();
         syncRepresentativeInventoryFromStacks();
@@ -645,7 +717,8 @@ export function saveProgress() {
         const compactPayload = {
             ...metaState,
             inventory: metaState.inventory,
-            inventoryStacks: metaState.inventoryStacks
+            inventoryStacks: metaState.inventoryStacks,
+            mapStars: metaState.mapStars
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(compactPayload));
     } catch (e) {}
@@ -767,16 +840,16 @@ export function unequipChipFromUnitSlot(rawUnitId, slotIdx) {
 }
 
 // ============================================================================
-// CÁC HÀM TIẾN TRÌNH BATTLE, CHALLENGE & CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH (40 SKILL)
+// CÁC HÀM TIẾN TRÌNH 54 MAP, 0-3 SAO, CHALLENGE & CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH
 // ============================================================================
 export function isDifficultyCleared(mapLv, diffId) {
     const prog = metaState.mapDifficultyProgress[mapLv];
     if (!prog) return false;
     if (diffId === 'easy') {
-        return !!(prog.easy || prog.easy_destroy || prog.easy_survival);
+        return !!(prog.easy || prog.easy_destroy || prog.easy_survival || (metaState.mapStars?.[mapLv] || 0) >= 1);
     }
     if (diffId === 'difficult') {
-        return !!(prog.difficult || prog.difficult_destroy || prog.difficult_survival);
+        return !!(prog.difficult || prog.difficult_destroy || prog.difficult_survival || (metaState.mapStars?.[mapLv] || 0) >= 2);
     }
     return false;
 }
@@ -786,6 +859,38 @@ export function isDifficultyModeCleared(mapLv, diffId, modeId) {
     if (!prog) return false;
     const key = `${diffId}_${modeId}`;
     return !!prog[key];
+}
+
+export function getStageStars(mapLv) {
+    const progStars = metaState.mapDifficultyProgress?.[mapLv]?.stars || 0;
+    const directStars = metaState.mapStars?.[mapLv] || 0;
+    return Math.max(0, Math.min(3, Math.floor(Math.max(Number(progStars) || 0, Number(directStars) || 0))));
+}
+
+export function recordStageStars(mapLv, earnedStars) {
+    const lv = Math.max(1, Math.min(LEVELS.length, Math.floor(Number(mapLv) || 1)));
+    const clamped = Math.max(0, Math.min(3, Math.floor(Number(earnedStars) || 0)));
+    if (!metaState.mapDifficultyProgress[lv]) {
+        metaState.mapDifficultyProgress[lv] = normalizeMapProgressEntry(null);
+    }
+    if (!metaState.mapStars || typeof metaState.mapStars !== 'object') {
+        metaState.mapStars = createDefaultMapStars();
+    }
+    const prev = getStageStars(lv);
+    if (clamped > prev) {
+        metaState.mapDifficultyProgress[lv].stars = clamped;
+        metaState.mapStars[lv] = clamped;
+    }
+    syncLevelsMetadata();
+    return getStageStars(lv);
+}
+
+export function getTotalCampaignStars() {
+    let total = 0;
+    for (let i = 1; i <= LEVELS.length; i++) {
+        total += getStageStars(i);
+    }
+    return total;
 }
 
 export function getMaxUnlockedMapLevel() {
@@ -799,6 +904,18 @@ export function getMaxUnlockedMapLevel() {
         }
     }
     return maxLv;
+}
+
+/**
+ * Lấy Level hiện tại mà người chơi đang đứng (màn chưa thắng tiếp theo trên lộ trình 54 màn)
+ */
+export function getCurrentCampaignLevel() {
+    for (let i = 1; i <= LEVELS.length; i++) {
+        if (!isDifficultyCleared(i, 'easy')) {
+            return i;
+        }
+    }
+    return LEVELS.length;
 }
 
 export function isDifficultyUnlocked(mapLv, diffId) {
@@ -1001,11 +1118,7 @@ export function hasUnitInInventory(unitId) {
 }
 
 export function calcTotalRefundCoins(targetLv, currentLv) {
-    return calcTotalRefundCoinsFast(targetLv, curLvOrNumber(currentLv));
-}
-
-function curLvOrNumber(val) {
-    return Math.max(1, Math.floor(Number(val) || 1));
+    return calcTotalRefundCoinsFast(targetLv, Math.max(1, Math.floor(Number(currentLv) || 1)));
 }
 
 export function getUpgradeTierBracketText(currentLv) {

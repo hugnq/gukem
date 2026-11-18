@@ -1,6 +1,7 @@
 /* ============================================================================
    TINY BATTLE - ARMY, REVIEW SANDBOX, MERGE & 41 RARITY TIERS (css/army.css)
-   Tab Army, Hero Showcase, 3 Subviews (ARMY / REVIEW / MERGE), Chip Dots & 41 Tiers
+   Tab Army, Hero Showcase, 3 Subviews (ARMY / REVIEW / MERGE), Chip Dots,
+   Holographic 3D Tilt Cards & 41 Rarity Tiers (Common -> Master -> Demon +10)
    ============================================================================ */
 
 /* ============================================================================
@@ -162,63 +163,6 @@
     flex-shrink: 0;
 }
 
-/* Thanh chọn đội hình chiến đấu */
-.army-deck-builder-strip {
-    background: #1e293b;
-    border: 2px solid #0f172a;
-    border-radius: 10px;
-    padding: 4px 6px;
-    margin-bottom: 6px;
-    flex-shrink: 0;
-}
-
-.army-deck-strip-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 9px;
-    font-weight: 900;
-    color: #38bdf8;
-    margin-bottom: 3px;
-}
-
-.army-deck-slots-row {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 4px;
-}
-
-.army-deck-slot-pill {
-    background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
-    border: 1.5px solid #60a5fa;
-    border-radius: 7px;
-    padding: 3px 2px;
-    color: #f8fafc;
-    font-size: 8.2px;
-    font-weight: 800;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-    transition: transform 0.08s ease, border-color 0.15s ease;
-}
-
-.army-deck-slot-pill:hover {
-    border-color: #fde047;
-}
-
-.army-deck-slot-pill:active {
-    transform: scale(0.95);
-}
-
-.army-deck-slot-pill.airstrike-fixed-pill {
-    background: linear-gradient(180deg, #7c2d12 0%, #431407 100%);
-    border-color: #f97316;
-    color: #fed7aa;
-    cursor: default;
-}
-
 .army-cards-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -229,7 +173,7 @@
 }
 
 /* ============================================================================
-   3. THẺ TƯỚNG, CHẤM CHIP BỔ TRỢ & HỆ THỐNG 41 BẬC ĐỘ HIẾM
+   3. THẺ TƯỚNG HOLOGRAPHIC 3D TILT, CHẤM CHIP & 41 BẬC ĐỘ HIẾM
    ============================================================================ */
 .army-unit-card {
     position: relative;
@@ -243,16 +187,23 @@
     cursor: pointer;
     min-height: 92px;
     box-shadow: 0 3px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.35);
-    transition: transform 0.08s ease, filter 0.12s ease;
+    transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), filter 0.12s ease, box-shadow 0.15s ease;
     overflow: hidden;
+    transform-style: preserve-3d;
+}
+
+.army-unit-card.tilting {
+    transition: none;
+    z-index: 6;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.65), 0 0 12px rgba(250, 204, 21, 0.45);
 }
 
 .army-unit-card:hover {
-    filter: brightness(1.06);
+    filter: brightness(1.07);
 }
 
 .army-unit-card:active {
-    transform: scale(0.96) translateY(2px);
+    transform: scale(0.95) translateY(2px);
 }
 
 .army-unit-card.selected-for-merge {

@@ -1,15 +1,16 @@
 /* ============================================================================
    TINY BATTLE - CORE CONFIGURATION & CATALOGS (js/config.js)
    Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100%)
-   Quy mô: 45 Maps Riêng Biệt • 18 Binh Chủng Tự Vẽ • 14 Zombie & Boss •
-           41 Bậc Độ Hiếm • Cây Cổ Thụ 4 Nhánh (40 Kỹ Năng & 4 Kỹ Năng Đặc Biệt)
+   Tích hợp: 7 Ảnh Map Gốc (assets/maps/*.png) • 54 Maps (6 Biomes x 9 Levels)
+              Tọa độ chuẩn hóa (rx, ry) • 18 Binh Chủng • 14 Zombie & Boss •
+              41 Bậc Độ Hiếm • Cây Cổ Thụ 4 Nhánh (40 Kỹ Năng)
    ============================================================================ */
 
 export const STORAGE_KEY = 'tiny_battle_meta_save_v3';
 export const META_SAVE_KEY = STORAGE_KEY;
 export const ADMIN_PASSWORD = 'HUNGADMINDZ';
 
-/* 0. HẰNG SỐ ĐỘNG CƠ CANVAS, LƯỚI ĐỊA HÌNH FLOW-FIELD, LƯỚI TD 7x11 FULL MAP & XĂNG */
+/* 0. HẰNG SỐ ĐỘNG CƠ CANVAS, WORLD ROADMAP, ẢNH MAP GỐC & LƯỚI ĐỊA HÌNH 42x71 */
 export const LOGICAL_WIDTH = 420;
 export const LOGICAL_HEIGHT = 840;
 export const BOTTOM_UI_HEIGHT = 126;
@@ -17,6 +18,23 @@ export const PLAYFIELD_HEIGHT = LOGICAL_HEIGHT - BOTTOM_UI_HEIGHT; // 714px
 export const MAX_DECK_SLOTS = 5;
 export const MAX_CUSTOM_UNIT_SLOTS = 4;
 export const MAX_WAVES = 10;
+
+// Kích thước World Campaign Roadmap toàn cảnh (54 Levels / 6 Biomes)
+export const WORLD_MAP_WIDTH = 1440;
+export const WORLD_MAP_HEIGHT = 900;
+export const TOTAL_CAMPAIGN_LEVELS = 54;
+export const MAX_CAMPAIGN_STARS = TOTAL_CAMPAIGN_LEVELS * 3; // 162 Sao
+
+// Danh mục 7 file ảnh bản đồ gốc trong thư mục assets/maps/
+export const MAP_IMAGE_ASSETS = {
+    world_map: 'assets/maps/world_map.png',
+    biome_1:   'assets/maps/biome_1.png',
+    biome_2:   'assets/maps/biome_2.png',
+    biome_3:   'assets/maps/biome_3.png',
+    biome_4:   'assets/maps/biome_4.png',
+    biome_5:   'assets/maps/biome_5.png',
+    biome_6:   'assets/maps/biome_6.png'
+};
 
 // Lưới điều hướng Flow-Field 10x10px
 export const NAV_CELL = 10;
@@ -122,7 +140,7 @@ export function isDemonRarity(rarityId) {
     return !!(r && r.rank >= 30 && r.rank <= 40);
 }
 
-/* 2. CẤU HÌNH ĐỘ KHÓ (45 MAP) VÀ CHẾ ĐỘ CHIẾN ĐẤU */
+/* 2. CẤU HÌNH ĐỘ KHÓ (54 MAP) VÀ CHẾ ĐỘ CHIẾN ĐẤU */
 export const DIFFICULTY_ORDER = ['easy', 'difficult'];
 export const BATTLE_MODE_ORDER = ['destroy', 'survival'];
 export const MAP_ENEMY_SCALE_PER_LEVEL = 0.095;
@@ -732,9 +750,7 @@ export const ANCIENT_SKILL_TREE = {
 
 // Sơ đồ các đoạn nối hình Cây Cổ Thụ Tự Nhiên (Gốc -> Thân -> Tỏa 4 Nhánh Độc Lập, không giao chéo)
 export const ANCIENT_TREE_BRANCH_LINES = [
-    // Gốc & Thân cây trung tâm (y: 745 -> 665)
     { from: { x: 360, y: 745 }, to: { x: 360, y: 675 }, reqNode: null },
-    // 4 Cành chính tỏa ngang từ thân cây ra 4 nhánh độc lập
     { from: { x: 360, y: 675 }, to: { x: 110, y: 610 }, reqNode: 'fp_1' },
     { from: { x: 360, y: 675 }, to: { x: 275, y: 610 }, reqNode: 'ft_1' },
     { from: { x: 360, y: 675 }, to: { x: 445, y: 610 }, reqNode: 'sm_1' },
@@ -776,7 +792,7 @@ export function getSkillTreeNodeCost(nodeId, currentLv) {
     return node.baseCost + lv * node.costStep;
 }
 
-/* 9. DANH MỤC 17 BINH CHỦNG + KHÔNG KÍCH + CHIẾN BINH XƯƠNG (100% TỰ VẼ CANVAS 2D) */
+/* 9. DANH MỤC 17 BINH CHỦNG + KHÔNG KÍCH + CHIẾN BINH XƯƠNG */
 export const UNIT_CATALOG = [
     {
         id: 'infantry',
@@ -1644,144 +1660,413 @@ export const RAID_BOSS_CONFIG = {
     hullHp: 12000
 };
 
-/* 17. DANH MỤC 45 BẢN ĐỒ RIÊNG BIỆT (1–15 CỔ ĐIỂN, 16–30 BIẾN THỂ CHIẾN THUẬT, 31–45 QUẦN XÃ ĐỘC BẢN) */
-const ALL_45_MAPS_SPEC = [
-    // --- MAPS 1 - 15 ---
-    { id: 1,  name: 'CẦU QUA SÔNG',              theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Sông lớn cắt ngang chiến trường. Quân bộ phải qua cầu đá chiến lược ở chính giữa.' },
-    { id: 2,  name: 'ĐƯỜNG ĐÈO CHỮ S',           theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Đường nhựa chữ S uốn lượn xuyên rừng thông và vách núi đá hiểm trở.' },
-    { id: 3,  name: 'ĐÔ THỊ PHỐ THỊ',            theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Khu đô thị bàn cờ với nhiều tòa nhà cao tầng chắn tầm nhìn pháo binh.' },
-    { id: 4,  name: 'PHÁO ĐÀI GIỮA HỒ',          theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Hồ nước rộng bao quanh pháo đài cổ giữa đảo, nối liền bằng 2 cầu Bắc - Nam.' },
-    { id: 5,  name: 'MÊ CUNG RỪNG GIÀ',          theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Nhiều nhánh đường mòn đan xen giữa rừng rậm, thích hợp đánh bọc sườn.' },
-    { id: 6,  name: 'KHU CÔNG NGHIỆP',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Tổ hợp nhà máy công nghiệp nặng với các tuyến đường vận tải bọc thép.' },
-    { id: 7,  name: 'HẺM NÚI SONG HỒ',           theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Đường đèo uốn lượn kẹp giữa 2 hồ nước sâu và dãy núi đá sát hai bên sườn.' },
-    { id: 8,  name: 'ĐÈO ĐÁ HIỂM TRỞ',           theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Dãy núi đá khổng lồ chắn ngang, ép hai phe giao tranh tại khe đèo hẹp.' },
-    { id: 9,  name: 'VÒNG XOAY THỊ TRẤN',        theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Hai bùng binh giao thông lớn chia nhánh bao quanh cụm dân cư trung tâm.' },
-    { id: 10, name: 'BÃI BIỂN ĐỔ BỘ',            theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Bờ biển sóng vỗ bên trái cho phép Hải quân pháo kích yểm trợ Lục quân trên cát.' },
-    { id: 11, name: 'CĂN CỨ TÊN LỬA',            theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Khu phức hợp quân sự đối xứng với đại lộ lớn, trạm radar và hầm phóng tên lửa.' },
-    { id: 12, name: 'THÀNH CỔ BAO VÂY',          theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Tường thành đá kiên cố bao bọc pháo đài trung tâm cùng vành đai đường nhựa.' },
-    { id: 13, name: 'QUẦN ĐẢO ĐA CẦU',           theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Hệ thống kênh rạch chia cắt chiến trường thành nhiều đảo nhỏ nối bằng 5 cây cầu.' },
-    { id: 14, name: 'BÙNG BINH ĐẦM LẦY',         theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Đường nhựa vòng tròn lớn bao quanh hồ nước trung tâm và rừng cây rậm rạp.' },
-    { id: 15, name: 'PHÒNG TUYẾN TRƯỜNG THÀNH',   theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Hai dải tường thành đá cổ chắn ngang tiền tuyến với 3 cổng vòm chiến lược.' },
-
-    // --- MAPS 16 - 30 (BIẾN THỂ ĐỊA HÌNH CHIẾN THUẬT RIÊNG BIỆT) ---
-    { id: 16, name: 'CẦU ĐÔI HẺM NÚI',           theme: 'brown_earth', hasWater: true,  hasCoastFoam: false, desc: 'Hẻm núi đất nâu bị chia cắt bởi sông sâu với 2 cây cầu sắt ở hai cánh trái - phải.' },
-    { id: 17, name: 'ĐÈO ZIGZAG CAO NGUYÊN',     theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Con đường đất đỏ gấp khúc 4 tầng len lỏi qua các mỏm đá cao nguyên dựng đứng.' },
-    { id: 18, name: 'PHẾ TÍCH THỦ ĐÔ',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Đại lộ chính bị sụp đổ buộc quân đội chia làm hai cánh vòng qua các khối nhà đổ nát.' },
-    { id: 19, name: 'PHÁO ĐÀI SONG ĐẢO',         theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Hai hòn đảo pháo đài nằm song song giữa hồ lớn nối với đất liền qua 4 cầu gỗ.' },
-    { id: 20, name: 'RỪNG THÔNG SƯƠNG MÙ',       theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Ba lối mòn độc đạo xuyên rừng thông cổ thụ tạo điểm phục kích lý tưởng cho pháo binh.' },
-    { id: 21, name: 'NHÀ MÁY LỌC DẦU',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Các bồn chứa nhiên liệu khổng lồ xếp so le tạo mê cung giao tranh tầm gần.' },
-    { id: 22, name: 'THUNG LŨNG TAM HỒ',         theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Ba hồ nước xếp hình tam giác ép đường hành quân uốn lượn theo hình chữ W.' },
-    { id: 23, name: 'CỬA ẢI THIẾT MÔN',          theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Vách núi đá đỏ khép chặt tạo thành 2 cửa ải hẹp ở tiền tuyến.' },
-    { id: 24, name: 'GIAO LỘ BỐN HƯỚNG',         theme: 'grass',       hasWater: false, hasCoastFoam: false, desc: 'Bùng binh trung tâm khổng lồ tỏa ra 4 tuyến cao tốc hướng thẳng tới hai căn cứ.' },
-    { id: 25, name: 'BÁN ĐẢO HẢI CẢNG',          theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Biển lớn bao bọc cả hai sườn trái - phải, chừa lại dải đất liền hẹp ở chính giữa.' },
-    { id: 26, name: 'KHO VŨ KHÍ NGẦM',           theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Hệ thống boong-ke bê tông kiên cố chia chiến trường thành 3 hành lang tác chiến.' },
-    { id: 27, name: 'THÀNH TRÌ BA LỚP',          theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Ba lớp tường thành đồng tâm bảo vệ trung tâm chỉ huy với các lối mở so le.' },
-    { id: 28, name: 'ĐỒNG BẰNG CHÂU THỔ',       theme: 'grass',       hasWater: true,  hasCoastFoam: true,  desc: 'Dòng sông chẻ làm ba nhánh đổ ra biển cùng 6 cây cầu gỗ bắc ngang.' },
-    { id: 29, name: 'HỒ NƯỚC THIÊNG',            theme: 'grass',       hasWater: true,  hasCoastFoam: false, desc: 'Hồ nước tròn lớn ở trung tâm với 2 cầu vượt chéo nối hai bờ Đông - Tây.' },
-    { id: 30, name: 'CHIẾN HÀO BIÊN GIỚI',       theme: 'brown_earth', hasWater: false, hasCoastFoam: false, desc: 'Hệ thống chiến hào và ụ bê tông dày đặc trải dài khắp vùng đất biên giới.' },
-
-    // --- MAPS 31 - 45 (15 QUẦN XÃ ĐỘC BẢN VỚI CƠ CHẾ MÔI TRƯỜNG RIÊNG) ---
+/* 17. DANH MỤC 6 VÙNG ĐẤT (BIOMES) & 54 BẢN ĐỒ CHIẾN DỊCH VỚI TỌA ĐỘ CHUẨN (rx, ry) */
+export const WORLD_BIOMES = [
     {
-        id: 31, name: 'MIỆNG NÚI LỬA OBSIDIAN', theme: 'obsidian_volcano', biome: 'obsidian_volcano',
-        hasWater: false, hasLava: true, hasCoastFoam: false,
-        mechanicTag: '🌋 Dung nham chặn Thủy & Lục quân (Chỉ qua cầu thép hoặc Không quân)',
-        desc: 'Đá bazan đen rực lửa với 2 hồ dung nham sôi sục hai cánh; Lục quân phải tiến qua cầu thép trung tâm.'
+        id: 1,
+        key: 'grass_village',
+        sheetKey: 'biome_1',
+        name: 'Thảo Nguyên & Làng Mạc',
+        shortLabel: '🌿 VÙNG 1 • THẢO NGUYÊN',
+        pillLabel: '🌿 Thảo Nguyên',
+        levelRange: [1, 9],
+        accentColor: '#4ade80',
+        focusRelPos: { rx: 0.215, ry: 0.460 },
+        focusPos: { x: Math.round(0.215 * WORLD_MAP_WIDTH), y: Math.round(0.460 * WORLD_MAP_HEIGHT) }
     },
     {
-        id: 32, name: 'CHẢO LỬA DUNG NHAM KÉP', theme: 'twin_lava_crater', biome: 'twin_lava_crater',
-        hasWater: false, hasLava: true, hasCoastFoam: false, scorchDurationMult: 2.0,
-        mechanicTag: '🔥 Vệt cháy nổ trên cầu sắt tồn tại lâu gấp đôi',
-        desc: 'Sông dung nham chữ X chia cắt chiến trường với 2 cầu sắt hai bên sườn; vệt cháy nổ tồn tại lâu gấp 2 lần.'
+        id: 2,
+        key: 'canyon_desert',
+        sheetKey: 'biome_2',
+        name: 'Hẻm Núi & Hoang Mạc',
+        shortLabel: '🏜️ VÙNG 2 • HOANG MẠC',
+        pillLabel: '🏜️ Hoang Mạc',
+        levelRange: [10, 18],
+        accentColor: '#fb923c',
+        focusRelPos: { rx: 0.502, ry: 0.415 },
+        focusPos: { x: Math.round(0.502 * WORLD_MAP_WIDTH), y: Math.round(0.415 * WORLD_MAP_HEIGHT) }
     },
     {
-        id: 33, name: 'LÃNH NGUYÊN BĂNG GIÁ', theme: 'frozen_tundra', biome: 'frozen_tundra',
-        hasWater: false, hasCoastFoam: false, vehicleIceSpeedBonus: 0.35,
+        id: 3,
+        key: 'frozen_tundra',
+        sheetKey: 'biome_3',
+        name: 'Lãnh Nguyên Băng Giá',
+        shortLabel: '❄️ VÙNG 3 • BĂNG GIÁ',
+        pillLabel: '❄️ Băng Giá',
+        levelRange: [19, 27],
+        accentColor: '#38bdf8',
+        focusRelPos: { rx: 0.728, ry: 0.290 },
+        focusPos: { x: Math.round(0.728 * WORLD_MAP_WIDTH), y: Math.round(0.290 * WORLD_MAP_HEIGHT) }
+    },
+    {
+        id: 4,
+        key: 'obsidian_volcano',
+        sheetKey: 'biome_4',
+        name: 'Miệng Núi Lửa Dung Nham',
+        shortLabel: '🌋 VÙNG 4 • NÚI LỬA',
+        pillLabel: '🌋 Núi Lửa',
+        levelRange: [28, 36],
+        accentColor: '#f97316',
+        focusRelPos: { rx: 0.852, ry: 0.485 },
+        focusPos: { x: Math.round(0.852 * WORLD_MAP_WIDTH), y: Math.round(0.485 * WORLD_MAP_HEIGHT) }
+    },
+    {
+        id: 5,
+        key: 'toxic_swamp',
+        sheetKey: 'biome_5',
+        name: 'Đầm Lầy Độc Tố Axit',
+        shortLabel: '☣️ VÙNG 5 • ĐẦM LẦY',
+        pillLabel: '☣️ Đầm Lầy',
+        levelRange: [37, 45],
+        accentColor: '#a3e635',
+        focusRelPos: { rx: 0.726, ry: 0.800 },
+        focusPos: { x: Math.round(0.726 * WORLD_MAP_WIDTH), y: Math.round(0.800 * WORLD_MAP_HEIGHT) }
+    },
+    {
+        id: 6,
+        key: 'sakura_valley',
+        sheetKey: 'biome_6',
+        name: 'Thung Lũng Hoa Anh Đào',
+        shortLabel: '🌸 VÙNG 6 • ANH ĐÀO',
+        pillLabel: '🌸 Anh Đào',
+        levelRange: [46, 54],
+        accentColor: '#f472b6',
+        focusRelPos: { rx: 0.466, ry: 0.840 },
+        focusPos: { x: Math.round(0.466 * WORLD_MAP_WIDTH), y: Math.round(0.840 * WORLD_MAP_HEIGHT) }
+    }
+];
+
+export const WORLD_BIOME_BY_ID = {};
+WORLD_BIOMES.forEach(b => {
+    WORLD_BIOME_BY_ID[b.id] = b;
+});
+
+const ALL_54_MAPS_SPEC = [
+    // ==================== VÙNG 1 (LEVEL 01 – 09): THẢO NGUYÊN & LÀNG MẠC ====================
+    {
+        id: 1, biomeId: 1, theme: 'grass_village', rx: 0.125, ry: 0.655,
+        name: 'CẦU QUA SÔNG', hasWater: true, hasCoastFoam: false,
+        desc: 'Sông xanh cắt ngang chính giữa với 1 cầu gỗ ở tâm; đường đất vàng chia 2 nhánh vòng cung đối xứng.'
+    },
+    {
+        id: 2, biomeId: 1, theme: 'grass_village', rx: 0.165, ry: 0.625,
+        name: 'ĐƯỜNG ĐÈO CHỮ S', hasWater: false, hasCoastFoam: false,
+        desc: 'Đường nhựa xám uốn lượn hình chữ S lớn từ trên xuống dưới, hai bên có hàng rào gỗ và rừng thông.'
+    },
+    {
+        id: 3, biomeId: 1, theme: 'grass_village', rx: 0.195, ry: 0.545,
+        name: 'TÀN TÍCH ĐỒNG CỎ', hasWater: false, hasCoastFoam: false,
+        desc: 'Hai con đường đất thẳng song song hai cánh trái – phải; chính giữa là tàn tích tường đá cổ hình chữ U.'
+    },
+    {
+        id: 4, biomeId: 1, theme: 'grass_village', rx: 0.215, ry: 0.450,
+        name: 'HỒ NGỌC TRUNG TÂM', hasWater: true, hasCoastFoam: false,
+        desc: 'Hồ nước tròn lớn màu xanh ngọc ở trung tâm; đường đất bao quanh hồ thành vòng tròn cùng 4 lều dã chiến.'
+    },
+    {
+        id: 5, biomeId: 1, theme: 'grass_village', rx: 0.203, ry: 0.390,
+        name: 'RỪNG THÔNG RẬM RẠP', hasWater: false, hasCoastFoam: false,
+        desc: 'Rừng thông dày đặc kèm cụm đá xám chiếm trọn trung tâm; đường đất vòng qua cánh phải hình chữ S ngược.'
+    },
+    {
+        id: 6, biomeId: 1, theme: 'grass_village', rx: 0.205, ry: 0.335,
+        name: 'LÀNG MẠC THANH BÌNH', hasWater: false, hasCoastFoam: false,
+        desc: 'Làng mạc với các ngôi nhà gỗ mái nâu/xanh xếp thành 2 khu phố hai bên trục đường chữ thập và hàng rào gỗ.'
+    },
+    {
+        id: 7, biomeId: 1, theme: 'grass_village', rx: 0.242, ry: 0.295,
+        name: 'HỒ ĐẢO SONG CẦU', hasWater: true, hasCoastFoam: false,
+        desc: 'Hồ nước trung tâm có hòn đảo nhỏ ở giữa; 2 cây cầu gỗ bắc song song ở hai cánh trái và phải.'
+    },
+    {
+        id: 8, biomeId: 1, theme: 'grass_village', rx: 0.268, ry: 0.355,
+        name: 'BÙNG BINH TƯỢNG ĐÀI', hasWater: false, hasCoastFoam: false,
+        desc: 'Bùng binh đường đất tròn lớn ở giữa bao quanh tượng đài đá và hàng rào cây bụi; vách núi đá góc trái trên.'
+    },
+    {
+        id: 9, biomeId: 1, theme: 'grass_village', rx: 0.312, ry: 0.320,
+        name: 'VÒNG XOAY PHÒNG THỦ', hasWater: false, hasCoastFoam: false,
+        desc: 'Vòng xoay trung tâm xếp đầy bao cát và chướng ngại vật gỗ, tỏa ra 4 nhánh đường chéo hướng về hai căn cứ.'
+    },
+
+    // ==================== VÙNG 2 (LEVEL 10 – 18): HẺM NÚI & HOANG MẠC ====================
+    {
+        id: 10, biomeId: 2, theme: 'canyon_desert', rx: 0.388, ry: 0.240,
+        name: 'CẦU SẮT VỰC SÂU', hasWater: false, hasCoastFoam: false,
+        mechanicTag: '🏜️ Vực sâu hẻm núi ép toàn bộ bộ binh qua cầu sắt trung tâm',
+        desc: 'Hẻm núi vực sâu cắt ngang bản đồ với 1 cây cầu sắt đen bắc thẳng ở giữa; xung quanh là vách đá cam.'
+    },
+    {
+        id: 11, biomeId: 2, theme: 'canyon_desert', rx: 0.453, ry: 0.255,
+        name: 'TRẠI LỬA HOANG MẠC', hasWater: false, hasCoastFoam: false,
+        desc: 'Đường đất đỏ uốn lượn hình chữ S gấp khúc qua các đồi đá cam, điểm xuyết lều trại và đống lửa trại.'
+    },
+    {
+        id: 12, biomeId: 2, theme: 'canyon_desert', rx: 0.450, ry: 0.350,
+        name: 'PHẾ TÍCH THÀNH CÁT', hasWater: false, hasCoastFoam: false,
+        desc: 'Đường đất chạy vòng hình vuông quanh phế tích thành cổ tường đá vỡ vụn ở trung tâm.'
+    },
+    {
+        id: 13, biomeId: 2, theme: 'canyon_desert', rx: 0.518, ry: 0.335,
+        name: 'THÁP KHOAN DẦU SA MẠC', hasWater: false, hasCoastFoam: false, gasRateMult: 1.15,
+        mechanicTag: '🛢️ Giếng dầu sa mạc tăng +15% tốc độ hồi Xăng',
+        desc: 'Bãi đất trống rộng với vòng tròn hàng rào gỗ bao quanh tháp khoan dầu bằng sắt ở chính giữa.'
+    },
+    {
+        id: 14, biomeId: 2, theme: 'canyon_desert', rx: 0.612, ry: 0.385,
+        name: 'SÔNG HẺM NÚI ĐỎ', hasWater: true, hasCoastFoam: false,
+        desc: 'Dòng sông nước xanh xám uốn chéo từ góc trái trên xuống góc phải dưới với 2 cây cầu gỗ bắc qua.'
+    },
+    {
+        id: 15, biomeId: 2, theme: 'canyon_desert', rx: 0.468, ry: 0.545,
+        name: 'BA HÀNH LANG ĐÁ', hasWater: false, hasCoastFoam: false,
+        desc: 'Hai dải tường thành đá chắn ngang trên-dưới và cụm đá lớn ở giữa chia hẻm núi thành 3 hành lang.'
+    },
+    {
+        id: 16, biomeId: 2, theme: 'canyon_desert', rx: 0.578, ry: 0.535,
+        name: 'MỎ KHAI THÁC XE GOÒNG', hasWater: false, hasCoastFoam: false,
+        desc: 'Khu mỏ khai thác với đường ray xe goòng uốn lượn từ cửa hầm trên xuống cửa hầm dưới cùng xe xúc vàng.'
+    },
+    {
+        id: 17, biomeId: 2, theme: 'canyon_desert', rx: 0.548, ry: 0.440,
+        name: 'CHIẾN HÀO BAO CÁT', hasWater: false, hasCoastFoam: false,
+        desc: 'Hai tuyến đường thẳng hai bên kẹp giữa dải chiến hào bao cát chạy dọc chính giữa.'
+    },
+    {
+        id: 18, biomeId: 2, theme: 'canyon_desert', rx: 0.512, ry: 0.640,
+        name: 'CHÒI CANH BIÊN ẢI', hasWater: false, hasCoastFoam: false, rangeMult: 0.90,
+        mechanicTag: '🌪️ Gió bụi hoang mạc giảm -10% tầm bắn xa',
+        desc: 'Đường uốn lượn chữ S qua 3 chòi canh tháp đá kiên cố và các ụ bao cát phòng thủ.'
+    },
+
+    // ==================== VÙNG 3 (LEVEL 19 – 27): LÃNH NGUYÊN BĂNG GIÁ ====================
+    {
+        id: 19, biomeId: 3, theme: 'frozen_tundra', rx: 0.618, ry: 0.230,
+        name: 'SÔNG BĂNG SONG CẦU', hasWater: true, hasCoastFoam: false,
+        desc: 'Sông băng xanh uốn chéo từ phải trên xuống trái dưới với 2 cầu gỗ, rừng thông tuyết và pha lê băng.'
+    },
+    {
+        id: 20, biomeId: 3, theme: 'frozen_tundra', rx: 0.698, ry: 0.210,
+        name: 'ĐÈO TUYẾT BỐN KHÚC CUA', hasWater: false, hasCoastFoam: false,
+        desc: 'Đường tuyết uốn lượn 4 khúc cua chữ S gắt xuyên qua vách núi tuyết và các khối băng.'
+    },
+    {
+        id: 21, biomeId: 3, theme: 'frozen_tundra', rx: 0.758, ry: 0.265,
+        name: 'PHÁO ĐÀI TUYẾT PHỦ', hasWater: false, hasCoastFoam: false,
+        desc: 'Đường tuyết bao quanh phế tích pháo đài đá phủ tuyết hình vuông ở trung tâm.'
+    },
+    {
+        id: 22, biomeId: 3, theme: 'frozen_tundra', rx: 0.816, ry: 0.210,
+        name: 'HỒ BĂNG ĐÓNG CỨNG', hasWater: false, hasCoastFoam: false, vehicleIceSpeedBonus: 0.35,
         mechanicTag: '❄️ Vùng băng trung tâm tăng +35% tốc chạy cho Xe cơ giới',
-        desc: 'Mặt tuyết trắng xanh và hồ băng đóng cứng ở trung tâm giúp Xe cơ giới trượt nhanh hơn +35% tốc độ.'
+        desc: 'Hồ băng tròn đóng cứng ở trung tâm với các mỏm băng nhô lên; đường tuyết chạy vòng tròn bao quanh.'
     },
     {
-        id: 34, name: 'VỊNH BĂNG TAN BẮC CỰC', theme: 'arctic_iceberg_bay', biome: 'arctic_iceberg_bay',
-        hasWater: true, hasCoastFoam: true,
-        mechanicTag: '🧊 Tảng băng trôi trên biển buộc Thủy quân lạng lách',
-        desc: 'Mặt biển Bắc Cực với nhiều tảng băng trôi nổi rải rác, tạo địa hình luồn lách chiến thuật cho Thủy quân.'
+        id: 23, biomeId: 3, theme: 'frozen_tundra', rx: 0.664, ry: 0.330,
+        name: 'KHE NỨT VỰC BĂNG CHỮ Y', hasWater: true, hasCoastFoam: false,
+        desc: 'Khe nứt vực băng sâu hình chữ Y ở trung tâm với 2 cây cầu gỗ bắc chéo qua khe vực.'
     },
     {
-        id: 35, name: 'SA MẠC BÃO CÁT SAHARA', theme: 'sahara_sandstorm', biome: 'sahara_sandstorm',
-        hasWater: false, hasCoastFoam: false, rangeMult: 0.80,
-        mechanicTag: '🌪️ Bão cát sa mạc làm giảm -20% tầm bắn toàn bộ đơn vị',
-        desc: 'Cồn cát vàng uốn lượn quanh ốc đảo nhỏ góc phải; bão cát mù mịt làm giảm 20% tầm bắn của mọi đơn vị.'
+        id: 24, biomeId: 3, theme: 'frozen_tundra', rx: 0.718, ry: 0.315,
+        name: 'HẺM NÚI PHA LÊ BĂNG', hasWater: false, hasCoastFoam: false,
+        desc: 'Hẻm núi băng với các cụm tinh thể pha lê băng xanh khổng lồ mọc dọc hai bên khúc cua chữ S.'
     },
     {
-        id: 36, name: 'HẺM NÚI KIM TỰ THÁP', theme: 'pyramid_canyon', biome: 'pyramid_canyon',
-        hasWater: false, hasCoastFoam: false,
-        mechanicTag: '🔺 3 Kim Tự Tháp chia chiến trường thành 4 hành lang hẹp',
-        desc: 'Địa hình đá đỏ cổ đại với 3 khối Kim Tự Tháp bậc thang sừng sững chia cắt tiền tuyến thành 4 lối đi hẹp.'
+        id: 25, biomeId: 3, theme: 'frozen_tundra', rx: 0.718, ry: 0.385,
+        name: 'ĐƯỜNG HẦM TÀU HỎA BĂNG', hasWater: false, hasCoastFoam: false, moveSpeedMult: 1.12,
+        mechanicTag: '🚂 Tuyến tiếp vận đường sắt tăng +12% tốc độ di chuyển',
+        desc: 'Đường ray tàu hỏa chạy vòng chữ U từ hầm núi trái sang hầm núi phải, băng qua khe vực tinh thể băng.'
     },
     {
-        id: 37, name: 'ĐẦM LẦY ĐỘC TỐ NEON', theme: 'neon_toxic_swamp', biome: 'neon_toxic_swamp',
-        hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
+        id: 26, biomeId: 3, theme: 'frozen_tundra', rx: 0.758, ry: 0.355,
+        name: 'RỪNG THÔNG TUYẾT TRẮNG', hasWater: false, hasCoastFoam: false,
+        desc: 'Đường tuyết uốn lượn vòng cung quanh các cụm rừng thông tuyết xếp so le.'
+    },
+    {
+        id: 27, biomeId: 3, theme: 'frozen_tundra', rx: 0.802, ry: 0.315,
+        name: 'THÀNH LŨY BĂNG GIÁ', hasWater: false, hasCoastFoam: false,
+        desc: 'Mê cung thành lũy tuyết và 2 tháp canh băng đối xứng ở nửa trên chiến trường.'
+    },
+
+    // ==================== VÙNG 4 (LEVEL 28 – 36): MIỆNG NÚI LỬA DUNG NHAM ====================
+    {
+        id: 28, biomeId: 4, theme: 'obsidian_volcano', rx: 0.866, ry: 0.250,
+        name: 'SÔNG DUNG NHAM BA CẦU', hasWater: false, hasLava: true, hasCoastFoam: false,
+        mechanicTag: '🌋 Dung nham chặn Lục quân (Thủy quân bơi được trên nham thạch)',
+        desc: 'Dòng sông dung nham phân nhánh rộng với 3 cây cầu sắt bắc qua các đảo đá đen và lò luyện nham thạch.'
+    },
+    {
+        id: 29, biomeId: 4, theme: 'obsidian_volcano', rx: 0.916, ry: 0.315,
+        name: 'ĐÈO THÁC DUNG NHAM', hasWater: false, hasLava: true, hasCoastFoam: false,
+        desc: 'Đèo núi đá đen uốn lượn chữ S kẹp giữa 2 dòng thác dung nham hai bên sườn và 2 tháp canh gỗ.'
+    },
+    {
+        id: 30, biomeId: 4, theme: 'obsidian_volcano', rx: 0.955, ry: 0.435,
+        name: 'TÀN TÍCH HẮC DIỆN THẠCH', hasWater: false, hasLava: true, hasCoastFoam: false,
+        desc: 'Dòng dung nham bao quanh phế tích tường đá đen hình vuông ở chính giữa.'
+    },
+    {
+        id: 31, biomeId: 4, theme: 'obsidian_volcano', rx: 0.928, ry: 0.575,
+        name: 'MIỆNG NÚI LỬA SÔI SỤC', hasWater: false, hasLava: true, hasCoastFoam: false, scorchDurationMult: 1.8,
+        mechanicTag: '🔥 Nhiệt lượng miệng núi lửa kéo dài vệt cháy nổ x1.8',
+        desc: 'Miệng núi lửa tròn khổng lồ sôi sục dung nham ở trung tâm; đường đất đen chạy vòng tròn bao quanh.'
+    },
+    {
+        id: 32, biomeId: 4, theme: 'obsidian_volcano', rx: 0.858, ry: 0.545,
+        name: 'DÒNG NHAM THẠCH CHÉO', hasWater: false, hasLava: true, hasCoastFoam: false, scorchDurationMult: 2.0,
+        mechanicTag: '🔥 Vệt cháy nổ trên cầu sắt tồn tại lâu gấp đôi',
+        desc: 'Dòng sông dung nham chảy chéo từ góc phải trên xuống góc trái dưới với 2 cây cầu sắt bắc song song.'
+    },
+    {
+        id: 33, biomeId: 4, theme: 'obsidian_volcano', rx: 0.774, ry: 0.450,
+        name: 'KHE NỨT NÚI LỬA', hasWater: false, hasLava: true, hasCoastFoam: false,
+        desc: 'Hẻm núi đá đen dựng đứng với các khe nứt dung nham chảy len lỏi quanh con đường chữ S.'
+    },
+    {
+        id: 34, biomeId: 4, theme: 'obsidian_volcano', rx: 0.750, ry: 0.535,
+        name: 'MỎ KHAI THÁC NHAM THẠCH', hasWater: false, hasLava: true, hasCoastFoam: false,
+        desc: 'Khu mỏ nham thạch với đường ray xe goòng uốn lượn qua các hồ dung nham và cần cẩu khai thác.'
+    },
+    {
+        id: 35, biomeId: 4, theme: 'obsidian_volcano', rx: 0.796, ry: 0.605,
+        name: 'CẦU SẮT RỰC LỬA', hasWater: false, hasLava: true, hasCoastFoam: false,
+        desc: 'Dòng dung nham cắt ngang bản đồ với 1 cây cầu sắt ở bên phải và đường vòng chữ S ở nửa trên.'
+    },
+    {
+        id: 36, biomeId: 4, theme: 'obsidian_volcano', rx: 0.836, ry: 0.680,
+        name: 'PHÁO ĐÀI OBSIDIAN', hasWater: false, hasLava: false, hasCoastFoam: false, gasRateMult: 1.20,
+        mechanicTag: '⚡ Địa nhiệt núi lửa tăng +20% tốc hồi Xăng',
+        desc: 'Pháo đài hắc diện thạch kiên cố có 4 tháp canh rực lửa bảo vệ khu vực tiền tuyến.'
+    },
+
+    // ==================== VÙNG 5 (LEVEL 37 – 45): ĐẦM LẦY ĐỘC TỐ AXIT ====================
+    {
+        id: 37, biomeId: 5, theme: 'toxic_swamp', rx: 0.812, ry: 0.775,
+        name: 'SÔNG AXIT BA CẦU GỖ', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
         mechanicTag: '☣️ Bộ binh đi ngoài cầu gỗ bị rút 1.5% HP/giây bởi độc tố',
-        desc: 'Đầm lầy tím thẫm chứa hồ axit xanh lục phát sáng; bộ binh đi ngoài đường cầu gỗ bị mất 1.5% HP mỗi giây.'
+        desc: 'Dòng sông axit xanh neon uốn lượn từ trên xuống dưới với 3 cây cầu gỗ bắc qua và cây khô chết.'
     },
     {
-        id: 38, name: 'TRẠM KHÔNG GIAN QUỸ ĐẠO', theme: 'orbital_station', biome: 'orbital_station',
-        hasWater: false, hasCoastFoam: false, moveSpeedMult: 1.20, projSpeedMult: 1.20,
-        mechanicTag: '🛰️ Trọng lực thấp: +20% tốc độ di chuyển & +20% tốc độ đạn',
-        desc: 'Sàn kim loại công nghệ cao lơ lửng ngoài vũ trụ; môi trường trọng lực thấp tăng 20% tốc chạy và tốc độ đạn.'
+        id: 38, biomeId: 5, theme: 'toxic_swamp', rx: 0.792, ry: 0.855,
+        name: 'ĐÈO KHÓI ĐỘC RÊU TỐI', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.012,
+        desc: 'Đèo hẻm núi rêu tối uốn lượn chữ S với các khe suối axit bốc khói độc hai bên sườn.'
     },
     {
-        id: 39, name: 'LÒ PHẢN ỨNG HẠT NHÂN', theme: 'nuclear_reactor', biome: 'nuclear_reactor',
-        hasWater: false, hasCoastFoam: false, empExtraStunSec: 1.5,
-        mechanicTag: '⚛️ Cộng hưởng từ trường: Kỹ năng [E] Xung EMP +1.5s làm choáng',
-        desc: 'Tổ hợp nhà máy hạt nhân với lõi năng lượng Cyan trung tâm giúp kỹ năng [E] Xung EMP tăng thêm 1.5 giây tê liệt.'
+        id: 39, biomeId: 5, theme: 'toxic_swamp', rx: 0.752, ry: 0.735,
+        name: 'PHẾ TÍCH THÙNG HÓA CHẤT', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
+        desc: 'Dòng axit bao quanh phế tích tường đá đổ nát ở giữa, kèm các thùng phuy hóa chất xanh rò rỉ.'
     },
     {
-        id: 40, name: 'CẢNG TÀU NGẦM BÍ MẬT', theme: 'submarine_harbor', biome: 'submarine_harbor',
-        hasWater: true, hasCoastFoam: true,
-        mechanicTag: '⚓ Vịnh nước chữ U 70% diện tích tối ưu đại chiến Hải quân',
-        desc: '70% diện tích là vịnh biển sâu hình chữ U bao bọc cầu cảng chữ T ở giữa, lý tưởng cho hạm đội Hải quân.'
+        id: 40, biomeId: 5, theme: 'toxic_swamp', rx: 0.710, ry: 0.720,
+        name: 'HỒ AXIT PHÁT SÁNG', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
+        desc: 'Hồ axit tròn phát sáng rực rỡ ở trung tâm; đường đất bùn bao quanh hình tròn cùng tháp khoan rỉ sét.'
     },
     {
-        id: 41, name: 'THUNG LŨNG HOA ANH ĐÀO', theme: 'sakura_valley', biome: 'sakura_valley',
-        hasWater: true, hasCoastFoam: false,
-        mechanicTag: '🌸 Suối ngọc bích uốn lượn với 3 cầu gỗ cổ truyền',
-        desc: 'Thung lũng cỏ xanh ngọc điểm xuyết rừng hoa anh đào hồng phấn và dòng suối trong vắt bắc ngang 3 cây cầu gỗ.'
+        id: 41, biomeId: 5, theme: 'toxic_swamp', rx: 0.728, ry: 0.805,
+        name: 'NGÃ TƯ SÔNG AXIT CHỮ X', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
+        desc: 'Hai nhánh sông axit giao nhau hình chữ X ở trung tâm với 3 cây cầu gỗ bắc qua các nhánh.'
     },
     {
-        id: 42, name: 'PHÁO ĐÀI BÁT QUÁI CỔ ĐẠI', theme: 'bagua_fortress', biome: 'bagua_fortress',
-        hasWater: true, hasCoastFoam: false,
-        mechanicTag: '☯️ Thành đá bát giác 4 cổng bao quanh bởi hào nước',
-        desc: 'Trận đồ tường đá bát giác cổ đại mở 4 cổng Tứ Tượng, bao bọc bởi hào nước sâu và các cây cầu treo.'
+        id: 42, biomeId: 5, theme: 'toxic_swamp', rx: 0.652, ry: 0.845,
+        name: 'HẺM NÚI RÊU PHONG', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false,
+        desc: 'Hẻm núi đá xám rêu phong với dòng suối axit xanh len lỏi bên cạnh con đường đèo chữ S.'
     },
     {
-        id: 43, name: 'SÂN BAY QUÂN SỰ DÃ CHIẾN', theme: 'military_airfield', biome: 'military_airfield',
-        hasWater: false, hasCoastFoam: false, airCooldownMult: 0.75,
-        mechanicTag: '✈️ Đường băng dã chiến: Giảm -25% hồi chiêu Trực thăng & Không kích',
-        desc: 'Đường băng bê tông kẻ sọc vàng đen xuyên tâm giúp giảm 25% thời gian hồi chiêu cho Trực thăng và Không kích.'
+        id: 43, biomeId: 5, theme: 'toxic_swamp', rx: 0.694, ry: 0.825,
+        name: 'ĐƯỜNG RAY MỎ ĐỘC TỐ', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false,
+        desc: 'Đường ray mỏ độc tố chạy chéo từ hầm trái trên xuống phải dưới với đoàn tàu chở khoáng sản.'
     },
     {
-        id: 44, name: 'RUỘNG BẬC THANG VÙNG CAO', theme: 'highland_terraces', biome: 'highland_terraces',
-        hasWater: false, hasCoastFoam: false,
-        mechanicTag: '🌾 Các tầng bậc thang xanh-vàng nối bằng dốc đá hẹp',
-        desc: 'Những thửa ruộng bậc thang xanh - vàng óng ả xếp tầng ngang bản đồ, nối với nhau qua các con dốc đá chiến lược.'
+        id: 44, biomeId: 5, theme: 'toxic_swamp', rx: 0.672, ry: 0.915,
+        name: 'MÊ CUNG ĐẦM LẦY NEON', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
+        desc: 'Mê cung đường đất uốn lượn nhiều tầng xen kẽ các vũng axit xanh phát sáng và cụm đá rêu.'
     },
     {
-        id: 45, name: 'ĐẤU TRƯỜNG TẬN THẾ (ABYSS GATE)', theme: 'abyss_gate', biome: 'abyss_gate',
-        hasWater: false, hasLava: true, hasCoastFoam: false, gasRateMult: 1.30,
-        mechanicTag: '😈 Cổng Ma Giới: Tốc độ hồi Xăng của cả 2 phe tăng +30%',
-        desc: 'Mặt đất nứt nẻ ánh tím hắc ám với 2 cổng Ma Giới và cầu pha lê; năng lượng Hư Không tăng 30% tốc nạp Xăng.'
+        id: 45, biomeId: 5, theme: 'toxic_swamp', rx: 0.672, ry: 0.745,
+        name: 'THÀNH CỔ ĐẦM LẦY AXIT', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, empExtraStunSec: 1.2,
+        mechanicTag: '⚛️ Từ trường đầm lầy tăng +1.2s choáng cho Xung EMP [E]',
+        desc: 'Thành cổ đầm lầy 4 tháp canh bao quanh bởi hào nước axit xanh phát sáng.'
+    },
+
+    // ==================== VÙNG 6 (LEVEL 46 – 54): THUNG LŨNG HOA ANH ĐÀO ====================
+    {
+        id: 46, biomeId: 6, theme: 'sakura_valley', rx: 0.585, ry: 0.895,
+        name: 'SUỐI NGỌC ANH ĐÀO', hasWater: true, hasCoastFoam: false,
+        mechanicTag: '🌸 Suối ngọc bích uốn lượn với 3 cầu gỗ đỏ cong',
+        desc: 'Dòng suối xanh ngọc chia nhánh ôm lấy các đảo hoa anh đào nhỏ, nối liền bằng 3 cây cầu gỗ đỏ cong.'
+    },
+    {
+        id: 47, biomeId: 6, theme: 'sakura_valley', rx: 0.570, ry: 0.805,
+        name: 'ĐÈO CỔNG TORII ĐỎ', hasWater: false, hasCoastFoam: false,
+        desc: 'Con đường đèo uốn lượn đi qua 3 cổng Torii màu đỏ son giữa rừng hoa anh đào và vách núi đá.'
+    },
+    {
+        id: 48, biomeId: 6, theme: 'sakura_valley', rx: 0.518, ry: 0.775,
+        name: 'ĐỀN CỔ HOA ANH ĐÀO', hasWater: false, hasCoastFoam: false,
+        desc: 'Đường đất hình vuông bao quanh phế tích đền cổ Nhật Bản và đèn lồng đá dưới tán hoa anh đào.'
+    },
+    {
+        id: 49, biomeId: 6, theme: 'sakura_valley', rx: 0.520, ry: 0.875,
+        name: 'HỒ SEN CÁNH HOA RƠI', hasWater: true, hasCoastFoam: false,
+        desc: 'Hồ sen tròn trong vắt điểm xuyết cánh hoa hồng rơi ở trung tâm; đường đất chạy vòng tròn bao quanh.'
+    },
+    {
+        id: 50, biomeId: 6, theme: 'sakura_valley', rx: 0.472, ry: 0.935,
+        name: 'SUỐI ĐÈN LỒNG ĐÁ', hasWater: true, hasCoastFoam: false,
+        desc: 'Dòng suối ngọc bích chảy chéo từ phải trên xuống trái dưới với 2 cầu gỗ cong và dãy đèn lồng đá.'
+    },
+    {
+        id: 51, biomeId: 6, theme: 'sakura_valley', rx: 0.415, ry: 0.905,
+        name: 'HẺM NÚI SUỐI ANH ĐÀO', hasWater: true, hasCoastFoam: false,
+        desc: 'Hẻm núi đá xanh rêu với con đường mòn song song dòng suối nhỏ uốn lượn dưới tán anh đào.'
+    },
+    {
+        id: 52, biomeId: 6, theme: 'sakura_valley', rx: 0.385, ry: 0.825,
+        name: 'VƯỜN TRE TRUYỀN THỐNG', hasWater: true, hasCoastFoam: false,
+        desc: 'Khu vườn cổ với 2 hồ nước ở hai bên, hàng rào tre và các công trình gỗ truyền thống.'
+    },
+    {
+        id: 53, biomeId: 6, theme: 'sakura_valley', rx: 0.435, ry: 0.735,
+        name: 'ĐƯỜNG ĐÈO ĐÁ CUỘI', hasWater: true, hasCoastFoam: false,
+        desc: 'Đường đất uốn lượn chữ S ngang qua dòng suối nhỏ ở nửa dưới và dãy đá cuội ở trung tâm.'
+    },
+    {
+        id: 54, biomeId: 6, theme: 'sakura_valley', rx: 0.305, ry: 0.855,
+        name: 'DOANH TRẠI THUNG LŨNG CUỐI', hasWater: true, hasCoastFoam: false, gasRateMult: 1.30,
+        mechanicTag: '👑 Đại bản doanh cuối cùng: Tốc độ hồi Xăng cả 2 phe tăng +30%',
+        desc: 'Doanh trại cuối cùng với dòng suối ngang có 2 cầu gỗ ở phía dưới và hệ thống chiến hào, 3 chòi canh gỗ.'
     }
 ];
 
 export function buildAllMapsData() {
-    return ALL_45_MAPS_SPEC.map(spec => {
+    return ALL_54_MAPS_SPEC.map(spec => {
         const i = spec.id;
+        const biomeId = spec.biomeId || Math.ceil(i / 9);
+        const biomeObj = WORLD_BIOME_BY_ID[biomeId] || WORLD_BIOMES[0];
+        const localIdx = (i - 1) % 9;
+        const sheetCol = localIdx % 3;
+        const sheetRow = Math.floor(localIdx / 3);
+        const rx = typeof spec.rx === 'number' ? spec.rx : 0.5;
+        const ry = typeof spec.ry === 'number' ? spec.ry : 0.5;
+
         return {
             id: i,
             level: i,
+            biomeId,
+            biomeName: biomeObj.name,
+            sheetKey: `biome_${biomeId}`,
+            sheetCol,
+            sheetRow,
             name: spec.name,
             theme: spec.theme,
-            biome: spec.biome || spec.theme,
+            biome: spec.theme,
+            rx,
+            ry,
+            worldPos: {
+                x: Math.round(rx * WORLD_MAP_WIDTH),
+                y: Math.round(ry * WORLD_MAP_HEIGHT)
+            },
+            stars: 0,
             hasWater: !!spec.hasWater,
             hasLava: !!spec.hasLava,
             hasToxicSwamp: !!spec.hasToxicSwamp,

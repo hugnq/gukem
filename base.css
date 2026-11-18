@@ -95,7 +95,7 @@ body {
 }
 
 /* ============================================================================
-   HỆ THỐNG NÚT BẤM 3D MOBILE UI (.btn-3d)
+   HỆ THỐNG NÚT BẤM 3D MOBILE UI (.btn-3d) & HIỆU ỨNG SÓNG CHẠM (RIPPLE)
    ============================================================================ */
 .btn-3d {
     position: relative;
@@ -108,13 +108,18 @@ body {
     border-radius: 12px;
     cursor: pointer;
     box-shadow: 0 4px 0 #0f172a;
-    transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+    transition: transform 0.08s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.08s ease, filter 0.12s ease;
     text-align: center;
     line-height: 1.1;
+    overflow: hidden;
+}
+
+.btn-3d:hover:not(:disabled) {
+    filter: brightness(1.06);
 }
 
 .btn-3d:active:not(:disabled) {
-    transform: translateY(3px);
+    transform: scale(0.96) translateY(2.5px);
     box-shadow: 0 1px 0 #0f172a;
 }
 
@@ -122,6 +127,23 @@ body {
     opacity: 0.52;
     cursor: not-allowed;
     filter: grayscale(45%);
+}
+
+/* Hiệu ứng sóng lan tỏa khi chạm vào nút */
+.ui-ripple-circle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.45);
+    transform: scale(0);
+    animation: rippleExpand 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes rippleExpand {
+    to {
+        transform: scale(3.2);
+        opacity: 0;
+    }
 }
 
 .btn-3d-yellow {
@@ -226,7 +248,7 @@ body {
 }
 
 /* ============================================================================
-   KEYFRAMES DÙNG CHUNG
+   KEYFRAMES DÙNG CHUNG TOÀN HỆ THỐNG (60-120 FPS)
    ============================================================================ */
 @keyframes popIn {
     0% {
@@ -239,12 +261,36 @@ body {
     }
 }
 
+@keyframes modalSpringIn {
+    0% {
+        transform: scale(0.78) translateY(18px);
+        opacity: 0;
+    }
+    72% {
+        transform: scale(1.03) translateY(-3px);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes backdropFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 @keyframes notifPulse {
     0% {
         transform: scale(0.95);
     }
     100% {
-        transform: scale(1.1);
+        transform: scale(1.12);
     }
 }
 
@@ -263,7 +309,7 @@ body {
         box-shadow: 0 4px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.75);
     }
     100% {
-        transform: scale(1.04);
-        box-shadow: 0 4px 0 #0f172a, 0 0 22px rgba(253, 224, 71, 1), 0 0 32px rgba(245, 158, 11, 0.8);
+        transform: scale(1.05);
+        box-shadow: 0 4px 0 #0f172a, 0 0 22px rgba(253, 224, 71, 1), 0 0 34px rgba(245, 158, 11, 0.85);
     }
 }

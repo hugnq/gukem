@@ -2,6 +2,7 @@
    TINY BATTLE - BATTLE STATE, ENTITIES, ZOMBIE TD, LEVEL-UP QUEUE & BOSSES (js/entities.js)
    100% Procedural Canvas 2D • 18 Units (360° Rotation) • 14 Front-Top Zombies & Bosses
    Full-Map 7x11 Challenge Grid • Floating LEVEL UP (+N) Queue • 4 Special Keystones
+   Combo Kill Streak HUD • Parabolic Floating Damage Numbers • Base Hitbox Sync (.png)
    ============================================================================ */
 
 import {
@@ -102,6 +103,10 @@ export const game = {
     matchKills: 0,
     matchSpawns: 0,
 
+    // Combo Kill Streak trong trận
+    comboKillCount: 0,
+    comboKillTimer: 0,
+
     // Kinh tế Xăng & Lò Phản Ứng Vô Cực (Mốc 10 Nhánh Kinh Tế)
     gas: 6,
     maxGas: 20,
@@ -166,10 +171,10 @@ export const game = {
     // Bộ đếm Bão Thiên Thạch (Mốc 10 Nhánh Hỏa Lực)
     meteorStormTimer: 14.0,
 
-    // Máu Căn Cứ, Khiên Phản Chấn Vĩnh Cửu & Ụ Pháo Căn Cứ Xanh
+    // Máu Căn Cứ, Khiên Phản Chấn Vĩnh Cửu & Ụ Pháo Căn Cứ Xanh (Đồng bộ tọa độ với 2 Dinh Thự trên ảnh .png)
     playerBase: {
         x: LOGICAL_WIDTH / 2,
-        y: PLAYFIELD_HEIGHT - 55,
+        y: PLAYFIELD_HEIGHT - 54,
         hp: 250,
         maxHp: 250,
         shield: 0,
@@ -178,7 +183,13 @@ export const game = {
         turretAngle: -Math.PI / 2,
         turretTimer: 0.5
     },
-    enemyBase: { x: LOGICAL_WIDTH / 2, y: 55, hp: 255, maxHp: 255, hitFlash: 0 },
+    enemyBase: {
+        x: LOGICAL_WIDTH / 2,
+        y: 52,
+        hp: 255,
+        maxHp: 255,
+        hitFlash: 0
+    },
 
     units: [],
     projectiles: [],
@@ -293,8 +304,35 @@ export function relocateTowerToCell(tower, newCol, newRow) {
 }
 
 // ============================================================================
-// 3. HIỆU ỨNG CHIẾN TRƯỜNG, KINH TẾ XĂNG & HUD MÁU 2 CĂN CỨ
+// 3. HIỆU ỨNG CHIẾN TRƯỜNG, COMBO KILL STREAK HUD & KINH TẾ XĂNG
 // ============================================================================
+export function updateComboKillStreakHUD() {
+    const hud = document.getElementById('combo-streak-hud');
+    const titleEl = document.getElementById('combo-streak-title');
+    const countEl = document.getElementById('combo-streak-count');
+    if (!hud) return;
+
+    const streak = Math.floor(Number(game.comboKillCount) || 0);
+    if (streak < 2 || game.comboKillTimer <= 0 || !game.running || game.gameOver) {
+        hud.classList.add('hidden');
+        return;
+    }
+
+    let label = '🔥 DOUBLE KILL!';
+    if (streak >= 10) label = '👑 GODLIKE STREAK!';
+    else if (streak >= 6) label = '💀 UNSTOPPABLE RAMPAGE!';
+    else if (streak >= 4) label = '💥 QUADRA KILL!';
+    else if (streak === 3) label = '⚡ TRIPLE KILL!';
+
+    if (titleEl) titleEl.textContent = label;
+    if (countEl) countEl.textContent = `${streak} KILLS STREAK`;
+
+    hud.classList.remove('hidden');
+    hud.style.animation = 'none';
+    void hud.offsetWidth;
+    hud.style.animation = '';
+}
+
 export function spendMatchGas(amount) {
     const cost = Math.max(0, Number(amount) || 0);
     if (cost <= 0) return;
@@ -345,8 +383,8 @@ export function spawnScorchMark(x, y, radius = 16) {
         x,
         y,
         radius,
-        alpha: 0.82,
-        decayRate: 0.03 / Math.max(0.5, durMult)
+        alpha: 0.72,
+        decayRate: 0.032 / Math.max(0.5, durMult)
     });
     if (game.scorchMarks.length > 36) {
         game.scorchMarks.shift();
@@ -375,6 +413,9 @@ export function spawnMuzzleFlash(x, y, angle = 0, scale = 1.0) {
     });
 }
 
+/**
+ * Số sát thương / bạo kích / hồi máu bay lên theo quỹ đạo parabol vật lý có độ nảy
+ */
 export function spawnFloatingText(x, y, text, color = '#fde047', size = 13) {
     game.floatingTexts.push({
         x,
@@ -382,7 +423,10 @@ export function spawnFloatingText(x, y, text, color = '#fde047', size = 13) {
         text,
         color,
         size,
-        vy: -28,
+        vx: (Math.random() - 0.5) * 26,
+        vy: -56 - Math.random() * 14,
+        gravity: 95,
+        scale: 1.22,
         alpha: 1.0
     });
 }
@@ -423,6 +467,7 @@ export function updateBaseHpHUD() {
     const blueShield = Math.max(0, Math.ceil(game.playerBase.shield || 0));
     const bluePct = Math.max(0, Math.min(100, (blueHp / blueMax) * 100));
 
+    const blueBox = document.querySelector('.blue-base-box');
     const blueTxt = document.getElementById('hud-blue-hp-text');
     const blueBar = document.getElementById('hud-blue-hp-bar');
     if (blueTxt) {
@@ -433,13 +478,19 @@ export function updateBaseHpHUD() {
         blueBar.classList.toggle('hp-warn', bluePct <= 60 && bluePct > 30);
         blueBar.classList.toggle('hp-danger', bluePct <= 30);
     }
+    if (blueBox) {
+        blueBox.classList.toggle('critical-hp-alert', bluePct <= 30 && blueHp > 0);
+    }
 
     const redBox = document.getElementById('hud-red-base-box');
     const redTxt = document.getElementById('hud-red-hp-text');
     const redBar = document.getElementById('hud-red-hp-bar');
 
     if (game.battleMode === 'challenge' || game.battleMode === 'survival' || game.battleMode === 'endless_siege') {
-        if (redBox) redBox.style.opacity = '0.45';
+        if (redBox) {
+            redBox.style.opacity = '0.45';
+            redBox.classList.remove('critical-hp-alert');
+        }
         if (redTxt) redTxt.textContent = `W.${game.wave}/${game.maxWaves === 999 ? '∞' : game.maxWaves}`;
         if (redBar) redBar.style.width = '100%';
     } else {
@@ -452,6 +503,9 @@ export function updateBaseHpHUD() {
             redBar.style.width = `${redPct}%`;
             redBar.classList.toggle('hp-warn', redPct <= 60 && redPct > 30);
             redBar.classList.toggle('hp-danger', redPct <= 30);
+        }
+        if (redBox) {
+            redBox.classList.toggle('critical-hp-alert', redPct <= 30 && redHp > 0);
         }
     }
 }
@@ -900,6 +954,10 @@ export class Unit {
 
             if (this.team === 'red') {
                 game.matchKills++;
+                game.comboKillCount = (game.comboKillCount || 0) + 1;
+                game.comboKillTimer = 3.5;
+                updateComboKillStreakHUD();
+
                 if (metaState?.missionsProgress) {
                     metaState.missionsProgress.kills = (metaState.missionsProgress.kills || 0) + 1;
                 }
@@ -1529,7 +1587,6 @@ export class Unit {
             ctx.stroke();
         }
 
-        // Vòng Khiên Phản Chấn Vĩnh Cửu trên Tower
         if (this.shield > 0) {
             ctx.strokeStyle = 'rgba(0, 242, 254, 0.85)';
             ctx.lineWidth = 2.2;
@@ -1555,7 +1612,6 @@ export class Unit {
             const zScaleSize = 34 * (this.spec.scale || 1.0);
             drawZombieArt(ctx, this.id, drawX, drawY, zScaleSize, game.timeSec + this.auraPhase);
         } else {
-            // Vẽ 100% Procedural Canvas 2D xoay mượt mọi góc 0 -> 2π
             drawUnitArt(
                 ctx,
                 this.id,
@@ -1901,7 +1957,7 @@ export function updateBaseTurret(dt) {
     if (game.playerBase.turretTimer > 0) return;
 
     const bx = game.playerBase.x;
-    const by = game.playerBase.y - 6;
+    const by = game.playerBase.y - 16;
 
     const redTargets = [];
     for (const u of game.units) {
@@ -1978,9 +2034,6 @@ export function updateBaseTurret(dt) {
     }
 }
 
-/**
- * Kỹ năng Đặc Biệt Mốc 10 Nhánh Hỏa Lực: Bão Thiên Thạch (Mỗi 14 giây gọi 3 thiên thạch)
- */
 export function triggerMeteorStormSkill() {
     const redUnits = game.units.filter(u => u.team === 'red' && !u.dead);
     if (redUnits.length === 0 && (!game.raidBoss || game.raidBoss.hp <= 0)) return;
@@ -2025,7 +2078,6 @@ export function damageBase(baseObj, rawDmg) {
     let dmg = Math.max(1, Math.round(rawDmg));
     baseObj.hitFlash = 0.15;
 
-    // Khiên Phản Chấn Vĩnh Cửu của Căn Cứ Xanh hấp thụ sát thương trước
     if (baseObj === game.playerBase && (baseObj.shield || 0) > 0) {
         const absorbed = Math.min(baseObj.shield, dmg);
         baseObj.shield -= absorbed;
@@ -2150,7 +2202,6 @@ export function grantBattleExp(rawAmount) {
         );
         updateFloatingLevelUpButtonUI();
 
-        // Nếu đang bật AUTO-PLAY thì tự động nâng cấp luôn
         if (game.autoPlay) {
             while (game.pendingLevelUps > 0) {
                 game.pendingLevelUps--;
@@ -2183,13 +2234,9 @@ export function executeDraftReroll() {
     renderBattleRollModal();
 }
 
-/**
- * Người chơi chủ động bấm nút LEVEL UP (+N) bên trái để nâng một thể liên tiếp các cấp tích lũy
- */
 export function openBattleLevelUpChain() {
     if (!game.running || game.gameOver || game.pendingLevelUps <= 0) return;
 
-    // Tích dồn từ 3 cấp trở lên tặng thêm +1 lượt Reroll miễn phí
     if (game.pendingLevelUps >= 3) {
         game.rerollsLeft += 1;
     }
@@ -2325,7 +2372,6 @@ export function renderBattleRollModal() {
             updateFloatingLevelUpButtonUI();
 
             if (game.pendingLevelUps > 0) {
-                // Roll ngay lượt nâng cấp tiếp theo trong chuỗi
                 const nextRollCount = isChallenge ? CHALLENGE_DECK_SLOTS : 3;
                 game.currentRollCandidates = generateRollCandidates(nextRollCount);
                 renderBattleRollModal();

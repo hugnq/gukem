@@ -1,11 +1,19 @@
 /* ============================================================================
-   TINY BATTLE - LOBBY UI, GACHA O(1), REVIEW SANDBOX, 4-BRANCH SKILL TREE (js/lobby-ui.js)
-   100% Procedural Canvas 2D (Zero External Images) • 45 Maps • 18 Units (41 Rarities)
-   4-Branch Ancient Skill Tree (40 Skills & 4 Keystones) • Challenge 45-Map Roadmap
+   TINY BATTLE - LOBBY UI, WORLD CAMPAIGN ROADMAP, SANDBOX & SKILL TREE (js/lobby-ui.js)
+   54 Campaign Levels (6 Biomes) • Auto-Zoom Mini World-Map (2.45x) •
+   Cloud-Dive Camera Zoom Transition (3 Phases) • Pan & Pinch Zoom •
+   Stage Action Popover • Lerp Currency Counters + Delta Toasts •
+   Holographic 3D Card Tilt • 18 Units & 41 Rarities
    ============================================================================ */
 
 import {
     ADMIN_PASSWORD,
+    WORLD_MAP_WIDTH,
+    WORLD_MAP_HEIGHT,
+    TOTAL_CAMPAIGN_LEVELS,
+    MAX_CAMPAIGN_STARS,
+    WORLD_BIOMES,
+    WORLD_BIOME_BY_ID,
     RARITY_ORDER,
     MAX_RARITY_RANK,
     RARITY_CONFIG,
@@ -59,8 +67,10 @@ import {
     syncRepresentativeInventoryFromStacks,
     getTotalCardsInInventory,
     getMaxUnlockedMapLevel,
+    getCurrentCampaignLevel,
+    getStageStars,
+    getTotalCampaignStars,
     isDifficultyCleared,
-    isDifficultyModeCleared,
     isDifficultyUnlocked,
     getDefaultDifficultyForMap,
     isChallengeMapCleared,
@@ -95,7 +105,13 @@ import {
     populateProceduralUIIcons
 } from './engine-core.js';
 
-import { renderMap } from './map-nav.js';
+import {
+    renderMap,
+    buildWorldCampaignCanvas,
+    renderWorldCampaignDynamicOverlay
+} from './map-nav.js';
+
+let startBattleHandlerRef = null;
 
 export const lobbyState = {
     activeTab: 'battle',
@@ -111,6 +127,64 @@ export const lobbyState = {
     pendingCustomGacha: null,
     activeSkillTreeNodeId: 'fp_1',
     activeSkillTreeBranch: 'firepower',
+
+    // Hiệu ứng số chạy mượt (Lerp Counter) & Toast bay lên cho 4 loại tiền tệ
+    currencyAnim: {
+        initialized: false,
+        pearls: 0,
+        medals: 0,
+        gems: 0,
+        coins: 0,
+        lastKnownPearls: 0,
+        lastKnownMedals: 0,
+        lastKnownGems: 0,
+        lastKnownCoins: 0
+    },
+
+    // Camera Auto-Zoom Mini World-Map ở sảnh Tab BATTLE (Zoom 2.45x)
+    miniWorldCam: {
+        x: Math.round(0.125 * WORLD_MAP_WIDTH),
+        y: Math.round(0.655 * WORLD_MAP_HEIGHT),
+        zoom: 2.45
+    },
+
+    // Camera Pan, Pinch Zoom & Cloud-Dive Transition 60-120 FPS (1440x900)
+    worldCam: {
+        isOpen: false,
+        x: 255,
+        y: 500,
+        targetX: 255,
+        targetY: 500,
+        zoom: 0.92,
+        targetZoom: 0.92,
+        vx: 0,
+        vy: 0,
+        isDragging: false,
+        dragMoved: false,
+        lastPointerX: 0,
+        lastPointerY: 0,
+        activePointers: new Map(),
+        initialPinchDist: 0,
+        initialPinchZoom: 1,
+        popoverLevel: null,
+        popoverDiff: 'easy',
+        popoverMode: 'destroy',
+
+        // Trạng thái Cloud-Dive Camera Zoom Transition (3 pha: 0.0s -> 1.15s)
+        cloudDive: {
+            active: false,
+            elapsed: 0,
+            duration: 1.15,
+            startX: WORLD_MAP_WIDTH * 0.5,
+            startY: WORLD_MAP_HEIGHT * 0.5,
+            endX: 255,
+            endY: 500,
+            startZoom: 0.58,
+            endZoom: 2.10,
+            targetLevel: 1,
+            cloudsSplit: false
+        }
+    },
 
     // Phòng tập bắn thử Sandbox (#sandbox-review-modal)
     sandbox: {
@@ -230,9 +304,9 @@ export function drawCanvasRarityAura(ctx, cx, cy, baseRadius, rarityId, timeSec 
 }
 
 // ============================================================================
-// 2. MỞ / ĐÓNG SẢNH & CẬP NHẬT TOP BAR 4 LOẠI TIỀN TỆ
+// 2. MỞ / ĐÓNG SẢNH, VÒNG LẶP ANIMATION LOBBY 60-120 FPS & LERP CURRENCY COUNTERS
 // ============================================================================
-let showcaseAnimStarted = false;
+let lobbyRafStarted = false;
 
 export function openLobbyScreen(defaultTab = null) {
     const lobby = document.getElementById('lobby-wrapper');
@@ -250,16 +324,33 @@ export function openLobbyScreen(defaultTab = null) {
     renderChallengeRoadmap();
     renderSkillTreeTab();
 
-    if (!showcaseAnimStarted) {
-        showcaseAnimStarted = true;
-        const showcaseLoop = () => {
+    if (!lobbyRafStarted) {
+        lobbyRafStarted = true;
+        let lastLobbyTs = performance.now();
+
+        const lobbyLoop = now => {
+            const dt = Math.min(0.05, Math.max(0.001, (now - lastLobbyTs) / 1000));
+            lastLobbyTs = now;
+            const timeSec = now * 0.001;
+
             const isLobbyActive = document.getElementById('lobby-wrapper')?.classList.contains('active');
-            if (isLobbyActive && lobbyState.activeTab === 'army') {
-                renderArmyShowcase();
+            if (isLobbyActive) {
+                stepAnimatedCurrencyCounters(dt);
+
+                if (lobbyState.activeTab === 'army') {
+                    renderArmyShowcase();
+                } else if (lobbyState.activeTab === 'battle' && !lobbyState.worldCam.isOpen) {
+                    updateAndDrawMiniWorldViewport(dt, timeSec);
+                }
+
+                if (lobbyState.worldCam.isOpen) {
+                    updateAndDrawFullscreenWorldRoadmap(dt, timeSec);
+                }
             }
-            requestAnimationFrame(showcaseLoop);
+
+            requestAnimationFrame(lobbyLoop);
         };
-        requestAnimationFrame(showcaseLoop);
+        requestAnimationFrame(lobbyLoop);
     }
 
     if (defaultTab) switchLobbyTab(defaultTab);
@@ -267,6 +358,14 @@ export function openLobbyScreen(defaultTab = null) {
 
 export function switchLobbyTab(tabName) {
     lobbyState.activeTab = tabName;
+    const tabOrder = ['shop', 'army', 'battle', 'challenge', 'skilltree'];
+    const idx = Math.max(0, tabOrder.indexOf(tabName));
+
+    const slider = document.getElementById('bottom-nav-slider');
+    if (slider) {
+        slider.style.transform = `translateX(${idx * 100}%)`;
+    }
+
     document.querySelectorAll('.nav-tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabName);
     });
@@ -279,6 +378,82 @@ export function switchLobbyTab(tabName) {
     if (tabName === 'battle') renderBattleStageView();
     if (tabName === 'challenge') renderChallengeRoadmap();
     if (tabName === 'skilltree') renderSkillTreeTab();
+}
+
+function triggerCurrencyBump(pillId) {
+    const el = document.getElementById(pillId);
+    if (!el) return;
+    el.classList.remove('currency-bump');
+    void el.offsetWidth;
+    el.classList.add('currency-bump');
+    setTimeout(() => el.classList.remove('currency-bump'), 260);
+}
+
+function spawnCurrencyDeltaToast(icon, delta) {
+    if (!delta || Math.abs(delta) < 1) return;
+    const layer = document.getElementById('currency-float-layer');
+    if (!layer) return;
+
+    const toast = document.createElement('div');
+    toast.className = 'currency-delta-toast';
+    const isPositive = delta > 0;
+    toast.style.color = isPositive ? '#4ade80' : '#fb7185';
+    toast.style.borderColor = isPositive ? '#fde047' : '#fb7185';
+    toast.textContent = `${isPositive ? '+' : ''}${Math.round(delta).toLocaleString('en-US')} ${icon}`;
+    layer.appendChild(toast);
+
+    setTimeout(() => {
+        toast.remove();
+    }, 1060);
+}
+
+function stepAnimatedCurrencyCounters(dt) {
+    if (metaState.isAdminMode) return;
+    const anim = lobbyState.currencyAnim;
+    const targets = {
+        pearls: Math.max(0, Math.floor(Number(metaState.pearls) || 0)),
+        medals: Math.max(0, Math.floor(Number(metaState.medals) || 0)),
+        gems: Math.max(0, Math.floor(Number(metaState.gems) || 0)),
+        coins: Math.max(0, Math.floor(Number(metaState.coins) || 0))
+    };
+
+    if (!anim.initialized) {
+        anim.initialized = true;
+        anim.pearls = targets.pearls;
+        anim.medals = targets.medals;
+        anim.gems = targets.gems;
+        anim.coins = targets.coins;
+        anim.lastKnownPearls = targets.pearls;
+        anim.lastKnownMedals = targets.medals;
+        anim.lastKnownGems = targets.gems;
+        anim.lastKnownCoins = targets.coins;
+        return;
+    }
+
+    const metaMap = {
+        pearls: ['pearls-count-display', 'pearls-pill-box', '⚪', 'lastKnownPearls'],
+        medals: ['medals-count-display', 'medals-pill-box', '🎖️', 'lastKnownMedals'],
+        gems:   ['gems-count-display',   'gems-pill-box',   '💎', 'lastKnownGems'],
+        coins:  ['coins-count-display',  'coins-pill-box',  '🪙', 'lastKnownCoins']
+    };
+
+    const lerpFactor = Math.min(1, dt * 14);
+    for (const key of ['pearls', 'medals', 'gems', 'coins']) {
+        const [dispId, pillId, icon, lastKey] = metaMap[key];
+        const actualDelta = targets[key] - anim[lastKey];
+        if (actualDelta !== 0) {
+            anim[lastKey] = targets[key];
+            triggerCurrencyBump(pillId);
+            spawnCurrencyDeltaToast(icon, actualDelta);
+        }
+
+        const diff = targets[key] - anim[key];
+        if (Math.abs(diff) >= 0.5) {
+            anim[key] = Math.abs(diff) < 1.5 ? targets[key] : anim[key] + diff * lerpFactor;
+            const el = document.getElementById(dispId);
+            if (el) el.textContent = Math.round(anim[key]).toLocaleString('en-US');
+        }
+    }
 }
 
 export function updateLobbyTopBar() {
@@ -296,10 +471,19 @@ export function updateLobbyTopBar() {
     const pearlsPill = document.getElementById('pearls-pill-box');
 
     if (nameEl) nameEl.textContent = metaState.playerName || 'COMMANDER';
-    if (coinsEl) coinsEl.textContent = formatCurrency(metaState.coins);
-    if (gemsEl) gemsEl.textContent = formatCurrency(metaState.gems);
-    if (medalsEl) medalsEl.textContent = formatCurrency(metaState.medals);
-    if (pearlsEl) pearlsEl.textContent = formatCurrency(metaState.pearls || 0);
+
+    if (metaState.isAdminMode) {
+        if (coinsEl) coinsEl.textContent = '∞';
+        if (gemsEl) gemsEl.textContent = '∞';
+        if (medalsEl) medalsEl.textContent = '∞';
+        if (pearlsEl) pearlsEl.textContent = '∞';
+    } else if (!lobbyState.currencyAnim.initialized) {
+        if (coinsEl) coinsEl.textContent = formatCurrency(metaState.coins);
+        if (gemsEl) gemsEl.textContent = formatCurrency(metaState.gems);
+        if (medalsEl) medalsEl.textContent = formatCurrency(metaState.medals);
+        if (pearlsEl) pearlsEl.textContent = formatCurrency(metaState.pearls || 0);
+    }
+
     if (stPearlsEl) stPearlsEl.textContent = `⚪ ${formatCurrency(metaState.pearls || 0)}`;
 
     const turretShortEl = document.getElementById('lobby-turret-short-label');
@@ -354,7 +538,632 @@ export function renderMissionNotifDot() {
 }
 
 // ============================================================================
-// 3. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 45 MAP THỦ THÀNH ZOMBIE 20 WAVE)
+// 3. TAB BATTLE: AUTO-ZOOM MINI WORLD-MAP (2.45x) & CLOUD-DIVE ROADMAP TOÀN CẢNH
+// ============================================================================
+export function renderBattleStageView() {
+    const curLv = getCurrentCampaignLevel();
+    lobbyState.selectedMapLevel = curLv;
+
+    const mapObj = LEVELS[curLv - 1] || LEVELS[0];
+    const biomeObj = WORLD_BIOME_BY_ID[mapObj.biomeId] || WORLD_BIOMES[0];
+    const totalStars = getTotalCampaignStars();
+    const maxUnlocked = getMaxUnlockedMapLevel();
+
+    const biomeTagEl = document.getElementById('lobby-current-biome-tag');
+    if (biomeTagEl) {
+        biomeTagEl.textContent = biomeObj.shortLabel;
+        biomeTagEl.style.borderColor = biomeObj.accentColor;
+    }
+
+    const starsEl = document.getElementById('lobby-total-stars-count');
+    const unlockedEl = document.getElementById('lobby-unlocked-maps-count');
+    if (starsEl) starsEl.textContent = String(totalStars);
+    if (unlockedEl) unlockedEl.textContent = String(maxUnlocked);
+
+    const lvTagEl = document.getElementById('lobby-current-lv-tag');
+    const mapNameEl = document.getElementById('lobby-current-map-name');
+    if (lvTagEl) lvTagEl.textContent = `LEVEL ${String(curLv).padStart(2, '0')}`;
+    if (mapNameEl) mapNameEl.textContent = mapObj.name;
+}
+
+function updateAndDrawMiniWorldViewport(dt, timeSec) {
+    const miniCanvas = document.getElementById('lobbyWorldMiniCanvas');
+    if (!miniCanvas) return;
+    const ctx = miniCanvas.getContext('2d');
+    const W = miniCanvas.width;
+    const H = miniCanvas.height;
+
+    const curLv = getCurrentCampaignLevel();
+    const mapObj = LEVELS[curLv - 1] || LEVELS[0];
+    const targetPos = mapObj.worldPos || { x: 255, y: 500 };
+
+    // Camera tự động Pan mượt (lerp) và Zoom phóng to 2.45x vào đúng tọa độ Level hiện tại
+    const cam = lobbyState.miniWorldCam;
+    const lerpSpeed = Math.min(1, dt * 6.0);
+    cam.x += (targetPos.x - cam.x) * lerpSpeed;
+    cam.y += (targetPos.y - cam.y) * lerpSpeed;
+    cam.zoom = 2.45;
+
+    const worldBg = buildWorldCampaignCanvas();
+    const maxUnlocked = getMaxUnlockedMapLevel();
+
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(cam.zoom, cam.zoom);
+
+    const halfViewW = W / (2 * cam.zoom);
+    const halfViewH = H / (2 * cam.zoom);
+    const clampedX = Math.max(halfViewW, Math.min(WORLD_MAP_WIDTH - halfViewW, cam.x));
+    const clampedY = Math.max(halfViewH, Math.min(WORLD_MAP_HEIGHT - halfViewH, cam.y));
+    ctx.translate(-clampedX, -clampedY);
+
+    ctx.drawImage(worldBg, 0, 0);
+    renderWorldCampaignDynamicOverlay(ctx, timeSec, curLv, maxUnlocked, getStageStars);
+    ctx.restore();
+}
+
+function setCloudDiveCloudsState(phase) {
+    const layer = document.getElementById('cloud-dive-layer');
+    if (!layer) return;
+
+    const cloudVectors = [
+        { id: 'cloud-dive-c1', sx: 30,  sy: 25,  ex: -260, ey: -180 },
+        { id: 'cloud-dive-c2', sx: -30, sy: 25,  ex: 260,  ey: -180 },
+        { id: 'cloud-dive-c3', sx: 45,  sy: 0,   ex: -290, ey: -40 },
+        { id: 'cloud-dive-c4', sx: -45, sy: 0,   ex: 290,  ey: -40 },
+        { id: 'cloud-dive-c5', sx: 35,  sy: -20, ex: -260, ey: 180 },
+        { id: 'cloud-dive-c6', sx: -35, sy: -20, ex: 260,  ey: 180 },
+        { id: 'cloud-dive-c7', sx: 0,   sy: 15,  ex: -220, ey: -240 },
+        { id: 'cloud-dive-c8', sx: 0,   sy: -15, ex: 220,  ey: 240 }
+    ];
+
+    if (phase === 'gather') {
+        layer.classList.add('active');
+        cloudVectors.forEach(cv => {
+            const el = document.getElementById(cv.id);
+            if (!el) return;
+            el.style.transition = 'none';
+            el.style.opacity = '0.94';
+            el.style.transform = `translate(${cv.sx}px, ${cv.sy}px) scale(1.12)`;
+        });
+    } else if (phase === 'split') {
+        cloudVectors.forEach(cv => {
+            const el = document.getElementById(cv.id);
+            if (!el) return;
+            el.style.transition = 'transform 0.9s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.85s ease';
+            el.style.opacity = '0';
+            el.style.transform = `translate(${cv.ex}px, ${cv.ey}px) scale(1.85)`;
+        });
+    } else {
+        layer.classList.remove('active');
+    }
+}
+
+/**
+ * Mở Màn Hình Bản Đồ Tổng Toàn Cảnh (#world-roadmap-modal) kèm chuỗi hoạt ảnh
+ * Cloud-Dive Camera Zoom Transition 3 pha (0.0s -> 1.15s)
+ */
+export function openWorldRoadmapModal(focusLevel = null) {
+    const modal = document.getElementById('world-roadmap-modal');
+    const viewport = document.getElementById('world-roadmap-viewport');
+    const wCanvas = document.getElementById('worldRoadmapCanvas');
+    if (!modal || !viewport || !wCanvas) return;
+
+    modal.classList.add('active');
+    sfx.play('airstrike');
+    triggerHaptic(22);
+
+    const rect = viewport.getBoundingClientRect();
+    wCanvas.width = Math.max(360, Math.round(rect.width || 420));
+    wCanvas.height = Math.max(520, Math.round(rect.height || 720));
+
+    const targetLv = focusLevel || getCurrentCampaignLevel();
+    const mapObj = LEVELS[targetLv - 1] || LEVELS[0];
+
+    // Căn chỉnh điểm đích sao cho nút Level nằm ngay phía trên bảng Popover
+    const diveDestX = mapObj.worldPos.x;
+    const diveDestY = mapObj.worldPos.y + (wCanvas.height * 0.21) / 2.10;
+
+    const cam = lobbyState.worldCam;
+    cam.isOpen = true;
+    cam.isDragging = false;
+    cam.vx = 0;
+    cam.vy = 0;
+
+    // Pha 1: Khởi đầu ở góc nhìn toàn cảnh bầu trời (0.58x) với 8 cụm mây trắng bồng bềnh
+    cam.x = WORLD_MAP_WIDTH * 0.5;
+    cam.y = WORLD_MAP_HEIGHT * 0.5;
+    cam.targetX = cam.x;
+    cam.targetY = cam.y;
+    cam.zoom = 0.58;
+    cam.targetZoom = 0.58;
+
+    cam.cloudDive = {
+        active: true,
+        elapsed: 0,
+        duration: 1.15,
+        startX: WORLD_MAP_WIDTH * 0.5,
+        startY: WORLD_MAP_HEIGHT * 0.5,
+        endX: diveDestX,
+        endY: diveDestY,
+        startZoom: 0.58,
+        endZoom: 2.10,
+        targetLevel: targetLv,
+        cloudsSplit: false
+    };
+
+    setCloudDiveCloudsState('gather');
+    closeStageActionPopover();
+
+    document.getElementById('world-total-stars').textContent = `${getTotalCampaignStars()} / ${MAX_CAMPAIGN_STARS}`;
+    document.getElementById('world-map-progress').textContent = metaState.isAdminMode
+        ? `ADMIN: 54 / ${TOTAL_CAMPAIGN_LEVELS}`
+        : `MAP ${getMaxUnlockedMapLevel()} / ${TOTAL_CAMPAIGN_LEVELS}`;
+
+    updateBiomeJumpPillsActive(mapObj.biomeId);
+}
+
+export function closeWorldRoadmapModal() {
+    lobbyState.worldCam.isOpen = false;
+    lobbyState.worldCam.cloudDive.active = false;
+    setCloudDiveCloudsState('hide');
+    closeStageActionPopover();
+    document.getElementById('world-roadmap-modal')?.classList.remove('active');
+}
+
+function updateBiomeJumpPillsActive(biomeId) {
+    document.querySelectorAll('[data-biome-jump]').forEach(btn => {
+        btn.classList.toggle('active', Number(btn.dataset.biomeJump) === Number(biomeId));
+    });
+}
+
+function clampWorldCameraCoords(x, y, zoom, viewW, viewH) {
+    const halfW = viewW / (2 * zoom);
+    const halfH = viewH / (2 * zoom);
+    const minX = Math.min(WORLD_MAP_WIDTH / 2, halfW);
+    const maxX = Math.max(WORLD_MAP_WIDTH / 2, WORLD_MAP_WIDTH - halfW);
+    const minY = Math.min(WORLD_MAP_HEIGHT / 2, halfH);
+    const maxY = Math.max(WORLD_MAP_HEIGHT / 2, WORLD_MAP_HEIGHT - halfH);
+    return {
+        x: Math.max(minX, Math.min(maxX, x)),
+        y: Math.max(minY, Math.min(maxY, y))
+    };
+}
+
+function updateAndDrawFullscreenWorldRoadmap(dt, timeSec) {
+    const wCanvas = document.getElementById('worldRoadmapCanvas');
+    if (!wCanvas) return;
+    const ctx = wCanvas.getContext('2d');
+    const W = wCanvas.width;
+    const H = wCanvas.height;
+    const cam = lobbyState.worldCam;
+    const dive = cam.cloudDive;
+
+    // Xử lý chuỗi hoạt ảnh Cloud-Dive Camera Zoom Transition 3 Pha (0.0s -> 1.15s)
+    if (dive && dive.active) {
+        dive.elapsed += dt;
+
+        // Pha 1 (0.0s -> 0.30s): Toàn cảnh tầng không trung
+        if (dive.elapsed >= 0.30 && !dive.cloudsSplit) {
+            dive.cloudsSplit = true;
+            setCloudDiveCloudsState('split');
+        }
+
+        // Pha 2 (0.30s -> 1.15s): Lao xuyên qua mây xuống Level hiện tại theo hàm easeOutQuart
+        if (dive.elapsed > 0.30) {
+            const t = Math.min(1, (dive.elapsed - 0.30) / (dive.duration - 0.30));
+            const easeOutQuart = 1 - Math.pow(1 - t, 4);
+
+            cam.zoom = dive.startZoom + (dive.endZoom - dive.startZoom) * easeOutQuart;
+            cam.targetZoom = cam.zoom;
+
+            const rawX = dive.startX + (dive.endX - dive.startX) * easeOutQuart;
+            const rawY = dive.startY + (dive.endY - dive.startY) * easeOutQuart;
+            const clamped = clampWorldCameraCoords(rawX, rawY, cam.zoom, W, H);
+            cam.x = clamped.x;
+            cam.y = clamped.y;
+            cam.targetX = cam.x;
+            cam.targetY = cam.y;
+        }
+
+        // Pha 3 (1.15s): Khóa mục tiêu & tự động mở UI Popover chọn chế độ
+        if (dive.elapsed >= dive.duration) {
+            dive.active = false;
+            setCloudDiveCloudsState('hide');
+            openStageActionPopover(dive.targetLevel);
+        }
+    } else {
+        // 1. Quán tính trượt (inertia damping) khi người chơi kéo bản đồ tự do
+        if (!cam.isDragging) {
+            if (Math.abs(cam.vx) > 0.5 || Math.abs(cam.vy) > 0.5) {
+                cam.targetX += cam.vx * dt;
+                cam.targetY += cam.vy * dt;
+                cam.vx *= Math.pow(0.06, dt);
+                cam.vy *= Math.pow(0.06, dt);
+            } else {
+                cam.vx = 0;
+                cam.vy = 0;
+            }
+        }
+
+        // 2. Nội suy mượt Zoom & Pan (60-120 FPS)
+        const smooth = Math.min(1, dt * 11);
+        cam.zoom += (cam.targetZoom - cam.zoom) * smooth;
+
+        const clampedTarget = clampWorldCameraCoords(cam.targetX, cam.targetY, cam.zoom, W, H);
+        cam.targetX = clampedTarget.x;
+        cam.targetY = clampedTarget.y;
+
+        cam.x += (cam.targetX - cam.x) * smooth;
+        cam.y += (cam.targetY - cam.y) * smooth;
+    }
+
+    const worldBg = buildWorldCampaignCanvas();
+    const curLv = cam.popoverLevel || getCurrentCampaignLevel();
+    const maxUnlocked = getMaxUnlockedMapLevel();
+
+    ctx.save();
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#07131f';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.translate(W / 2, H / 2);
+    ctx.scale(cam.zoom, cam.zoom);
+    ctx.translate(-cam.x, -cam.y);
+
+    ctx.drawImage(worldBg, 0, 0);
+    renderWorldCampaignDynamicOverlay(ctx, timeSec, curLv, maxUnlocked, getStageStars);
+    ctx.restore();
+}
+
+function openStageActionPopover(mapLv) {
+    const lv = Math.max(1, Math.min(TOTAL_CAMPAIGN_LEVELS, Number(mapLv) || 1));
+    const mapObj = LEVELS[lv - 1] || LEVELS[0];
+    const biomeObj = WORLD_BIOME_BY_ID[mapObj.biomeId] || WORLD_BIOMES[0];
+
+    const cam = lobbyState.worldCam;
+    cam.popoverLevel = lv;
+    cam.popoverDiff = getDefaultDifficultyForMap(lv);
+    cam.popoverMode = 'destroy';
+
+    const wCanvas = document.getElementById('worldRoadmapCanvas');
+    const viewH = wCanvas ? wCanvas.height : 700;
+    if (cam.targetZoom < 1.25) {
+        cam.targetZoom = 1.65;
+    }
+    cam.targetY = mapObj.worldPos.y + (viewH * 0.21) / Math.max(0.8, cam.targetZoom);
+    cam.targetX = mapObj.worldPos.x;
+
+    updateBiomeJumpPillsActive(mapObj.biomeId);
+
+    const popover = document.getElementById('stage-action-popover');
+    if (!popover) return;
+
+    document.getElementById('popover-stage-biome').textContent = biomeObj.shortLabel;
+    document.getElementById('popover-stage-title').textContent = `LEVEL ${String(lv).padStart(2, '0')}: ${mapObj.name}`;
+
+    const stars = getStageStars(lv);
+    document.getElementById('popover-stage-stars').textContent =
+        '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    document.getElementById('popover-stage-desc').textContent = mapObj.mechanicTag
+        ? `${mapObj.desc} (${mapObj.mechanicTag})`
+        : mapObj.desc;
+
+    // Vẽ thumbnail cắt trực tiếp từ ảnh gốc biome_X.png của chính map đó
+    const thumbCanvas = document.getElementById('popover-map-thumb');
+    if (thumbCanvas) {
+        const tCtx = thumbCanvas.getContext('2d');
+        tCtx.clearRect(0, 0, thumbCanvas.width, thumbCanvas.height);
+        renderMap(tCtx, thumbCanvas.width, thumbCanvas.height, lv);
+    }
+
+    refreshStageActionPopoverState();
+    popover.classList.add('active');
+}
+
+function closeStageActionPopover() {
+    lobbyState.worldCam.popoverLevel = null;
+    document.getElementById('stage-action-popover')?.classList.remove('active');
+}
+
+function refreshStageActionPopoverState() {
+    const cam = lobbyState.worldCam;
+    const lv = cam.popoverLevel;
+    if (!lv) return;
+
+    const hardUnlocked = isDifficultyUnlocked(lv, 'difficult');
+    if (cam.popoverDiff === 'difficult' && !hardUnlocked) {
+        cam.popoverDiff = 'easy';
+    }
+
+    const isChallenge = cam.popoverMode === 'challenge';
+
+    document.getElementById('popover-diff-easy')?.classList.toggle('active', !isChallenge && cam.popoverDiff === 'easy');
+    const hardBtn = document.getElementById('popover-diff-difficult');
+    if (hardBtn) {
+        hardBtn.classList.toggle('active', isChallenge || cam.popoverDiff === 'difficult');
+        hardBtn.classList.toggle('locked', !hardUnlocked && !isChallenge);
+    }
+
+    const easySt = document.getElementById('popover-easy-status');
+    const hardSt = document.getElementById('popover-hard-status');
+    if (easySt) easySt.textContent = isDifficultyCleared(lv, 'easy') ? '✓' : '★';
+    if (hardSt) hardSt.textContent = !hardUnlocked ? '🔒' : (isDifficultyCleared(lv, 'difficult') ? '✓' : '★');
+
+    document.querySelectorAll('[data-pop-mode]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.popMode === cam.popoverMode);
+    });
+
+    const rewardPreview = document.getElementById('popover-reward-preview');
+    const launchBtn = document.getElementById('btn-popover-launch-stage');
+
+    if (isChallenge) {
+        const treeB = getAncientSkillTreeBonuses();
+        const rew = calcChallengeRewards(lv, treeB.pearlBonusPct);
+        const entryCost = calcChallengeEntryCostCoins(lv);
+        if (rewardPreview) {
+            rewardPreview.innerHTML = `Thưởng: <b class="text-white">⚪ +${rew.pearls}</b> • 💎 +${rew.gems} • 🪙 +${rew.coins.toLocaleString('en-US')}`;
+        }
+        if (launchBtn) {
+            launchBtn.textContent = metaState.isAdminMode
+                ? '☠️ ZOMBIE TD (FREE)'
+                : `☠️ VÀO TD (🪙 ${entryCost.toLocaleString('en-US')})`;
+        }
+    } else {
+        const coins = calcStageRewardCoins(lv, cam.popoverDiff, cam.popoverMode);
+        const medalStr = cam.popoverDiff === 'difficult' ? ' • 🎖️ +3' : '';
+        if (rewardPreview) {
+            rewardPreview.innerHTML = `Thưởng: <b class="text-amber-300">🪙 +${coins.toLocaleString('en-US')}</b>${medalStr}`;
+        }
+        if (launchBtn) {
+            launchBtn.textContent = '⚔️ XUẤT KÍCH (START)';
+        }
+    }
+}
+
+function bindWorldRoadmapInteractions() {
+    const viewport = document.getElementById('world-roadmap-viewport');
+    const wCanvas = document.getElementById('worldRoadmapCanvas');
+    if (!viewport || !wCanvas) return;
+
+    const cam = lobbyState.worldCam;
+
+    const cancelActiveCloudDive = () => {
+        if (cam.cloudDive.active) {
+            cam.cloudDive.active = false;
+            setCloudDiveCloudsState('hide');
+        }
+    };
+
+    const getPinchDistance = () => {
+        const pts = Array.from(cam.activePointers.values());
+        if (pts.length < 2) return 0;
+        return Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+    };
+
+    viewport.addEventListener('pointerdown', e => {
+        if (e.target.closest('#stage-action-popover') || e.target.closest('.world-zoom-controls')) return;
+        cancelActiveCloudDive();
+        viewport.setPointerCapture?.(e.pointerId);
+        cam.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (cam.activePointers.size === 1) {
+            cam.isDragging = true;
+            cam.dragMoved = false;
+            cam.lastPointerX = e.clientX;
+            cam.lastPointerY = e.clientY;
+            cam.vx = 0;
+            cam.vy = 0;
+        } else if (cam.activePointers.size === 2) {
+            cam.isDragging = false;
+            cam.initialPinchDist = getPinchDistance();
+            cam.initialPinchZoom = cam.targetZoom;
+        }
+    });
+
+    viewport.addEventListener('pointermove', e => {
+        if (!cam.activePointers.has(e.pointerId)) return;
+        cam.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+        if (cam.activePointers.size === 2) {
+            const dist = getPinchDistance();
+            if (cam.initialPinchDist > 10 && dist > 10) {
+                const ratio = dist / cam.initialPinchDist;
+                cam.targetZoom = Math.max(0.45, Math.min(2.8, cam.initialPinchZoom * ratio));
+            }
+            return;
+        }
+
+        if (cam.isDragging && cam.activePointers.size === 1) {
+            const dx = e.clientX - cam.lastPointerX;
+            const dy = e.clientY - cam.lastPointerY;
+            if (Math.hypot(dx, dy) > 4) {
+                cam.dragMoved = true;
+            }
+            cam.lastPointerX = e.clientX;
+            cam.lastPointerY = e.clientY;
+
+            const worldDx = dx / cam.zoom;
+            const worldDy = dy / cam.zoom;
+            cam.targetX -= worldDx;
+            cam.targetY -= worldDy;
+            cam.vx = -worldDx * 14;
+            cam.vy = -worldDy * 14;
+        }
+    });
+
+    const onPointerEnd = e => {
+        const wasSingleTap = cam.activePointers.size === 1 && !cam.dragMoved;
+        cam.activePointers.delete(e.pointerId);
+
+        if (cam.activePointers.size === 0) {
+            cam.isDragging = false;
+        }
+
+        if (wasSingleTap) {
+            const rect = wCanvas.getBoundingClientRect();
+            const sx = e.clientX - rect.left;
+            const sy = e.clientY - rect.top;
+            const worldX = cam.x + (sx - wCanvas.width / 2) / cam.zoom;
+            const worldY = cam.y + (sy - wCanvas.height / 2) / cam.zoom;
+
+            let hitMap = null;
+            let bestDist = 30;
+            for (const m of LEVELS) {
+                const d = Math.hypot(worldX - m.worldPos.x, worldY - m.worldPos.y);
+                if (d <= bestDist) {
+                    bestDist = d;
+                    hitMap = m;
+                }
+            }
+
+            if (hitMap) {
+                const maxUnlocked = getMaxUnlockedMapLevel();
+                if (hitMap.id > maxUnlocked) {
+                    sfx.play('cannon');
+                    triggerHaptic(30);
+                } else {
+                    sfx.play('gas');
+                    triggerHaptic(18);
+                    openStageActionPopover(hitMap.id);
+                }
+            } else {
+                closeStageActionPopover();
+            }
+        }
+    };
+
+    viewport.addEventListener('pointerup', onPointerEnd);
+    viewport.addEventListener('pointercancel', onPointerEnd);
+
+    viewport.addEventListener(
+        'wheel',
+        e => {
+            e.preventDefault();
+            cancelActiveCloudDive();
+            const factor = e.deltaY < 0 ? 1.15 : 0.87;
+            cam.targetZoom = Math.max(0.45, Math.min(2.8, cam.targetZoom * factor));
+        },
+        { passive: false }
+    );
+
+    // 6 Nút chọn nhanh Vùng Đất
+    document.querySelectorAll('[data-biome-jump]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            cancelActiveCloudDive();
+            closeStageActionPopover();
+            const bId = Number(btn.dataset.biomeJump) || 1;
+            const bObj = WORLD_BIOME_BY_ID[bId] || WORLD_BIOMES[0];
+            cam.targetX = bObj.focusPos.x;
+            cam.targetY = bObj.focusPos.y;
+            cam.targetZoom = 1.05;
+            cam.vx = 0;
+            cam.vy = 0;
+            updateBiomeJumpPillsActive(bId);
+            sfx.play('gas');
+        });
+    });
+
+    // Nút 🌐 TOÀN CẢNH thu nhỏ ngắm toàn bộ 6 quần xã
+    document.getElementById('btn-world-overview')?.addEventListener('click', () => {
+        cancelActiveCloudDive();
+        closeStageActionPopover();
+        cam.targetX = WORLD_MAP_WIDTH * 0.5;
+        cam.targetY = WORLD_MAP_HEIGHT * 0.5;
+        cam.targetZoom = 0.55;
+        cam.vx = 0;
+        cam.vy = 0;
+        sfx.play('gas');
+    });
+
+    // Cụm nút Zoom & Căn giữa Level hiện tại
+    document.getElementById('btn-world-zoom-in')?.addEventListener('click', () => {
+        cancelActiveCloudDive();
+        cam.targetZoom = Math.min(2.8, cam.targetZoom * 1.25);
+        sfx.play('gas');
+    });
+    document.getElementById('btn-world-zoom-out')?.addEventListener('click', () => {
+        cancelActiveCloudDive();
+        cam.targetZoom = Math.max(0.45, cam.targetZoom * 0.8);
+        sfx.play('gas');
+    });
+    document.getElementById('btn-world-recenter')?.addEventListener('click', () => {
+        cancelActiveCloudDive();
+        const curLv = getCurrentCampaignLevel();
+        const mObj = LEVELS[curLv - 1] || LEVELS[0];
+        cam.targetX = mObj.worldPos.x;
+        cam.targetY = mObj.worldPos.y;
+        cam.targetZoom = 1.65;
+        cam.vx = 0;
+        cam.vy = 0;
+        updateBiomeJumpPillsActive(mObj.biomeId);
+        openStageActionPopover(curLv);
+        sfx.play('gas');
+    });
+
+    // Popover controls
+    document.getElementById('btn-close-stage-popover')?.addEventListener('click', () => {
+        closeStageActionPopover();
+    });
+    document.getElementById('popover-diff-easy')?.addEventListener('click', () => {
+        if (cam.popoverMode === 'challenge') cam.popoverMode = 'destroy';
+        cam.popoverDiff = 'easy';
+        refreshStageActionPopoverState();
+        sfx.play('gas');
+    });
+    document.getElementById('popover-diff-difficult')?.addEventListener('click', () => {
+        if (!cam.popoverLevel || !isDifficultyUnlocked(cam.popoverLevel, 'difficult')) {
+            sfx.play('cannon');
+            return;
+        }
+        if (cam.popoverMode === 'challenge') cam.popoverMode = 'destroy';
+        cam.popoverDiff = 'difficult';
+        refreshStageActionPopoverState();
+        sfx.play('gas');
+    });
+    document.querySelectorAll('[data-pop-mode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            cam.popoverMode = btn.dataset.popMode;
+            refreshStageActionPopoverState();
+            sfx.play('gas');
+        });
+    });
+
+    document.getElementById('btn-popover-launch-stage')?.addEventListener('click', () => {
+        const lv = cam.popoverLevel;
+        if (!lv) return;
+
+        if (cam.popoverMode === 'challenge') {
+            const entryCost = calcChallengeEntryCostCoins(lv);
+            if (!metaState.isAdminMode && metaState.coins < entryCost) {
+                sfx.play('cannon');
+                alert(`Không đủ Vàng! Cần 🪙 ${entryCost.toLocaleString('en-US')} để vào Zombie TD Ải ${lv}.`);
+                return;
+            }
+            if (!metaState.isAdminMode) {
+                metaState.coins -= entryCost;
+                saveProgress();
+                updateLobbyTopBar();
+            }
+            closeWorldRoadmapModal();
+            if (typeof window.startChallengeLevel === 'function') {
+                window.startChallengeLevel(lv);
+            }
+            return;
+        }
+
+        const diff = cam.popoverDiff;
+        const mode = cam.popoverMode;
+        closeWorldRoadmapModal();
+        if (typeof startBattleHandlerRef === 'function') {
+            startBattleHandlerRef(lv, diff, mode);
+        }
+    });
+}
+
+// ============================================================================
+// 4. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 54 MAP THỦ THÀNH ZOMBIE 20 WAVE)
 // ============================================================================
 export function renderChallengeRoadmap() {
     const listEl = document.getElementById('challenge-roadmap-list');
@@ -370,6 +1179,7 @@ export function renderChallengeRoadmap() {
         const bestWave = metaState.challengeBestWave?.[lv] || 0;
         const entryCost = calcChallengeEntryCostCoins(lv);
         const rewards = calcChallengeRewards(lv, treeB.pearlBonusPct);
+        const biomeObj = WORLD_BIOME_BY_ID[mapObj.biomeId] || WORLD_BIOMES[0];
 
         const node = document.createElement('div');
         node.className = `challenge-stage-node ${cleared ? 'cleared' : (unlocked ? 'unlocked' : 'locked')}`;
@@ -385,12 +1195,12 @@ export function renderChallengeRoadmap() {
         node.innerHTML = `
             <div class="flex-1 text-left">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-xs font-black text-white">Ải ${lv}: ${mapObj.name}</span>
+                    <span class="text-xs font-black text-white">Ải ${String(lv).padStart(2, '0')}: ${mapObj.name}</span>
                     ${cleared ? '<span class="text-[9px] font-black bg-emerald-500 text-slate-950 px-1.5 rounded-full">✓ ĐÃ VƯỢT</span>' : ''}
                     ${!cleared && bestWave > 0 ? `<span class="text-[9px] font-black bg-amber-400/20 text-amber-300 border border-amber-400 px-1.5 rounded-full vt323-num">Best: W.${bestWave}/20</span>` : ''}
                 </div>
                 <div class="text-[9.5px] font-bold text-slate-300 mt-0.5 leading-tight">
-                    20 Wave Zombie • Boss Wave 7, 14, 20 • ${mapObj.hasWater ? '🌊 Có Thủy Quân' : '🌲 Lục Quân'}
+                    ${biomeObj.pillLabel} • 20 Wave Zombie • Boss W.7, 14, 20
                 </div>
                 <div class="text-[10px] font-black text-sky-300 mt-1 vt323-num">
                     Thưởng: <b class="text-white">⚪ +${rewards.pearls} Ngọc Trai</b> • 💎 +${rewards.gems} • 🪙 +${rewards.coins.toLocaleString('en-US')}
@@ -425,7 +1235,7 @@ export function renderChallengeRoadmap() {
 }
 
 // ============================================================================
-// 4. TAB 5: CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY (40 KỸ NĂNG & 4 KỸ NĂNG ĐẶC BIỆT)
+// 5. TAB 5: CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY (40 KỸ NĂNG & 4 KỸ NĂNG ĐẶC BIỆT)
 // ============================================================================
 export function renderSkillTreeTab() {
     const svgEl = document.getElementById('skilltree-branches-svg');
@@ -452,7 +1262,8 @@ export function renderSkillTreeTab() {
         if (!p1 || !p2) return;
 
         const targetNodeId = typeof line.to === 'string' ? line.to : line.reqNode;
-        const isActiveBranch = !targetNodeId || getSkillTreeNodeLevel(targetNodeId) > 0 || isSkillTreeNodeUnlocked(targetNodeId);
+        const targetLv = targetNodeId ? getSkillTreeNodeLevel(targetNodeId) : 1;
+        const isActiveBranch = !targetNodeId || targetLv > 0 || isSkillTreeNodeUnlocked(targetNodeId);
         const branchInfo = targetNodeId && ANCIENT_SKILL_TREE[targetNodeId]
             ? SKILL_TREE_BRANCHES.find(b => b.id === ANCIENT_SKILL_TREE[targetNodeId].branch)
             : null;
@@ -460,9 +1271,11 @@ export function renderSkillTreeTab() {
         const strokeCol = isActiveBranch ? (branchInfo ? branchInfo.color : '#22c55e') : '#334155';
         const strokeW = typeof line.from !== 'string' ? 9 : (isActiveBranch ? 5 : 3.5);
         const midY = (p1.y + p2.y) / 2;
+        const energyClass = targetLv > 0 ? 'st-branch-energy-active' : '';
 
         svgHtml += `
             <path d="M ${p1.x} ${p1.y} C ${p1.x} ${midY}, ${p2.x} ${midY}, ${p2.x} ${p2.y}"
+                  class="${energyClass}"
                   stroke="${strokeCol}"
                   stroke-width="${strokeW}"
                   stroke-opacity="${isActiveBranch ? '0.92' : '0.45'}"
@@ -570,7 +1383,7 @@ export function renderSkillTreeTab() {
 }
 
 // ============================================================================
-// 5. TAB 1: SHOP (MỞ RƯƠNG SIÊU TỐC O(1) & CỬA HÀNG CHIP BỔ TRỢ)
+// 6. TAB 1: SHOP (MỞ RƯƠNG SIÊU TỐC O(1) & CỬA HÀNG CHIP BỔ TRỢ)
 // ============================================================================
 export function renderShopChipsSection() {
     const listEl = document.getElementById('shop-chips-list');
@@ -729,13 +1542,14 @@ export function executeGachaOpening(crateType, qty, finalCost) {
 
     if (grid) {
         grid.innerHTML = '';
-        pulledCards.slice(0, 60).forEach(item => {
+        pulledCards.slice(0, 60).forEach((item, idx) => {
             const uSpec = UNIT_BY_ID[item.unitId] || UNIT_CATALOG[0];
             const rCfg = RARITY_CONFIG[item.rarity] || RARITY_CONFIG.common;
             const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
 
             const cardDiv = document.createElement('div');
             cardDiv.className = `army-unit-card ${rCfg.cssClass}`;
+            cardDiv.style.animation = `cardFlipReveal 0.32s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(0.55, idx * 0.025)}s both`;
             cardDiv.innerHTML = `
                 <div class="card-top-lv">
                     <span>${rCfg.name}</span>
@@ -744,6 +1558,7 @@ export function executeGachaOpening(crateType, qty, finalCost) {
                 <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-0.5" alt="${uSpec.name}" />
                 <div class="card-unit-title">${uSpec.name}</div>
             `;
+            attachHolographicCardTilt(cardDiv);
             grid.appendChild(cardDiv);
         });
     }
@@ -752,8 +1567,29 @@ export function executeGachaOpening(crateType, qty, finalCost) {
 }
 
 // ============================================================================
-// 6. TAB 2: ARMY (QUẢN LÝ, BẮN THỬ SANDBOX REVIEW & GHÉP TIẾN HÓA 41 BẬC)
+// 7. TAB 2: ARMY (QUẢN LÝ, BẮN THỬ SANDBOX REVIEW, HOLOGRAPHIC 3D TILT & MERGE)
 // ============================================================================
+function attachHolographicCardTilt(cardEl) {
+    if (!cardEl) return;
+    cardEl.addEventListener('pointermove', e => {
+        const rect = cardEl.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const normX = (e.clientX - rect.left) / rect.width - 0.5;
+        const normY = (e.clientY - rect.top) / rect.height - 0.5;
+        const rotateY = Math.round(normX * 22);
+        const rotateX = Math.round(-normY * 22);
+        cardEl.classList.add('tilting');
+        cardEl.style.transform = `perspective(500px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.04)`;
+    });
+    const resetTilt = () => {
+        cardEl.classList.remove('tilting');
+        cardEl.style.transform = '';
+    };
+    cardEl.addEventListener('pointerleave', resetTilt);
+    cardEl.addEventListener('pointerup', resetTilt);
+    cardEl.addEventListener('pointercancel', resetTilt);
+}
+
 export function renderArmyTab() {
     renderArmyShowcase();
 
@@ -785,7 +1621,6 @@ export function renderArmyShowcase() {
         const timeSec = performance.now() * 0.001;
         const bob = Math.sin(timeSec * 5) * 2.5;
         drawCanvasRarityAura(ctx, 64, 86, 36, bestRarity, timeSec);
-        // rotation = null -> Vẽ góc chính diện / 3-4 hùng dũng trên bệ Showcase
         drawUnitArt(ctx, unitId, 64, 60 + bob, 82, 'blue', timeSec, null);
     }
 
@@ -837,6 +1672,8 @@ export function renderArmyUnitsGrid() {
             <div class="card-unit-title">${uSpec.name}</div>
         `;
 
+        attachHolographicCardTilt(card);
+
         card.addEventListener('click', () => {
             lobbyState.selectedShowcaseUnitId = uSpec.id;
             renderArmyShowcase();
@@ -848,7 +1685,7 @@ export function renderArmyUnitsGrid() {
 }
 
 // ============================================================================
-// 6B. CHẾ ĐỘ REVIEW & PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal)
+// 7B. CHẾ ĐỘ REVIEW & PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal)
 // ============================================================================
 export function renderArmyReviewGrid() {
     const grid = document.getElementById('army-review-grid');
@@ -871,6 +1708,8 @@ export function renderArmyReviewGrid() {
             <img src="${spriteUrl}" class="w-11 h-11 pixel-art my-0.5" alt="${uSpec.name}" />
             <div class="card-unit-title">${uSpec.name}</div>
         `;
+
+        attachHolographicCardTilt(card);
 
         card.addEventListener('click', () => {
             lobbyState.selectedShowcaseUnitId = uSpec.id;
@@ -1091,7 +1930,6 @@ function updateAndDrawSandbox(dt) {
         ctx.stroke();
     }
 
-    // Vòng tầm bắn của nhân vật trong Sandbox
     ctx.save();
     ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
     ctx.lineWidth = 1.5;
@@ -1103,14 +1941,12 @@ function updateAndDrawSandbox(dt) {
 
     drawCanvasRarityAura(ctx, unitX, unitY + 14, 30, sb.rarityId, sb.timeSec);
 
-    // Vẽ nhân vật quay ngang 0 rad hướng thẳng vào Bia Tập Bắn ở bên phải
     drawUnitArt(ctx, sb.unitId, unitX - sb.recoil, unitY, 54, 'blue', sb.timeSec, 0, {
         walkCycle: sb.timeSec * 8,
         rotorAngle: sb.timeSec * 24,
         recoilOffset: sb.recoil
     });
 
-    // Bia Tập Bắn / Đồng minh giả định
     ctx.save();
     ctx.translate(dummyX, dummyY);
     if (sb.dummyHitFlash > 0) ctx.translate((Math.random() - 0.5) * 4, 0);
@@ -1176,7 +2012,7 @@ function updateAndDrawSandbox(dt) {
 }
 
 // ============================================================================
-// 6C. BÀN GHÉP TIẾN HÓA TƯỚNG 41 BẬC (MERGE & AUTO-MERGE O(1))
+// 7C. BÀN GHÉP TIẾN HÓA TƯỚNG 41 BẬC (MERGE & AUTO-MERGE O(1))
 // ============================================================================
 export function renderMergeInventoryGrid() {
     const grid = document.getElementById('merge-inventory-grid');
@@ -1213,6 +2049,8 @@ export function renderMergeInventoryGrid() {
             <img src="${spriteUrl}" class="w-10 h-10 pixel-art my-0.5" alt="${uSpec.name}" />
             <div class="card-unit-title">${uSpec.name}</div>
         `;
+
+        attachHolographicCardTilt(card);
 
         card.addEventListener('click', () => {
             if (!rCfg.next || item.qty < 2) {
@@ -1342,13 +2180,14 @@ export function executeAutoMergeAllO1() {
                 count: metaState.inventoryStacks[`${uId}__${rar}`] || 1
             }))
             .sort((a, b) => b.rank - a.rank)
-            .forEach(item => {
+            .forEach((item, idx) => {
                 const uSpec = UNIT_BY_ID[item.uId] || UNIT_CATALOG[0];
                 const rCfg = RARITY_CONFIG[item.rar] || RARITY_CONFIG.common;
                 const spriteUrl = getUnitSpriteDataURL(uSpec, 'blue');
 
                 const card = document.createElement('div');
                 card.className = `army-unit-card ${rCfg.cssClass}`;
+                card.style.animation = `cardFlipReveal 0.32s cubic-bezier(0.16, 1, 0.3, 1) ${Math.min(0.55, idx * 0.035)}s both`;
                 card.innerHTML = `
                     <div class="card-top-lv">
                         <span>${rCfg.name}</span>
@@ -1358,6 +2197,7 @@ export function executeAutoMergeAllO1() {
                     <span class="card-qty-badge">x${formatCompactNumber(item.count)}</span>
                     <div class="card-unit-title">${uSpec.name}</div>
                 `;
+                attachHolographicCardTilt(card);
                 grid.appendChild(card);
             });
     }
@@ -1366,7 +2206,7 @@ export function executeAutoMergeAllO1() {
 }
 
 // ============================================================================
-// 7. MODAL CHI TIẾT NÂNG CẤP TƯỚNG, HOÀN CẤP (-1/+1) & KHE CHIP (MỞ KHE 2 = 500 💎)
+// 8. MODAL CHI TIẾT NÂNG CẤP TƯỚNG, HOÀN CẤP (-1/+1) & KHE CHIP (MỞ KHE 2 = 500 💎)
 // ============================================================================
 export function openUnitUpgradeModal(rawUnitId) {
     const unitId = normalizeUnitId(rawUnitId);
@@ -1575,92 +2415,6 @@ function openChipPickerDrawer(unitId, slotIdx) {
         });
         drawer.appendChild(card);
     });
-}
-
-// ============================================================================
-// 8. TAB 3: BATTLE (45 BẢN ĐỒ, ĐỘ KHÓ & CHẾ ĐỘ CHIẾN ĐẤU)
-// ============================================================================
-export function renderBattleStageView() {
-    const maxUnlocked = getMaxUnlockedMapLevel();
-    const lv = Math.max(1, Math.min(LEVELS.length, lobbyState.selectedMapLevel));
-    lobbyState.selectedMapLevel = lv;
-
-    const mapObj = LEVELS[lv - 1] || LEVELS[0];
-    const isMapUnlocked = lv <= maxUnlocked;
-
-    if (!isDifficultyUnlocked(lv, lobbyState.selectedDifficulty)) {
-        lobbyState.selectedDifficulty = getDefaultDifficultyForMap(lv);
-    }
-
-    document.getElementById('stage-map-title').textContent = `${lv}. ${mapObj.name}`;
-    document.getElementById('stage-progress-text').textContent = metaState.isAdminMode
-        ? `👑 ADMIN: ĐÃ MỞ TOÀN BỘ ${LEVELS.length} MAP`
-        : `MỞ KHÓA: MAP ${maxUnlocked} / ${LEVELS.length}`;
-    document.getElementById('select-map-desc').textContent = mapObj.mechanicTag
-        ? `${mapObj.desc} (${mapObj.mechanicTag})`
-        : mapObj.desc;
-
-    const waterBadge = document.getElementById('select-map-water-badge');
-    if (waterBadge) {
-        if (mapObj.hasWater) {
-            waterBadge.textContent = '🌊 CÓ THỦY QUÂN';
-            waterBadge.className = 'map-water-pill has-water';
-        } else if (mapObj.hasLava) {
-            waterBadge.textContent = '🌋 DUNG NHAM (THỦY QUÂN)';
-            waterBadge.className = 'map-water-pill has-water';
-        } else {
-            waterBadge.textContent = '🌲 LỤC QUÂN';
-            waterBadge.className = 'map-water-pill no-water';
-        }
-    }
-
-    document.getElementById('stage-cleared-stamp')?.classList.toggle('hidden', !isDifficultyCleared(lv, 'easy'));
-
-    const previewCanvas = document.getElementById('selected-map-preview');
-    if (previewCanvas) {
-        const pCtx = previewCanvas.getContext('2d');
-        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-        renderMap(pCtx, previewCanvas.width, previewCanvas.height, lv, true);
-    }
-
-    const diffUnlocked = isDifficultyUnlocked(lv, 'difficult');
-    document.getElementById('diff-btn-easy')?.classList.toggle('active', lobbyState.selectedDifficulty === 'easy');
-    document.getElementById('diff-btn-difficult')?.classList.toggle('active', lobbyState.selectedDifficulty === 'difficult');
-    document.getElementById('diff-btn-difficult')?.classList.toggle('locked', !diffUnlocked);
-
-    const easySt = document.getElementById('diff-status-easy');
-    const diffSt = document.getElementById('diff-status-difficult');
-    if (easySt) easySt.textContent = isDifficultyCleared(lv, 'easy') ? '✓' : '★';
-    if (diffSt) diffSt.textContent = !diffUnlocked ? '🔒' : (isDifficultyCleared(lv, 'difficult') ? '✓' : '★');
-
-    document.getElementById('mode-btn-destroy')?.classList.toggle('active', lobbyState.selectedMode === 'destroy');
-    document.getElementById('mode-btn-survival')?.classList.toggle('active', lobbyState.selectedMode === 'survival');
-
-    const stDes = document.getElementById('mode-status-destroy');
-    const stSur = document.getElementById('mode-status-survival');
-    if (stDes) stDes.textContent = isDifficultyModeCleared(lv, lobbyState.selectedDifficulty, 'destroy') ? '✓' : '★';
-    if (stSur) stSur.textContent = isDifficultyModeCleared(lv, lobbyState.selectedDifficulty, 'survival') ? '✓' : '★';
-
-    document.querySelectorAll('.special-mode-pill').forEach(btn => {
-        btn.classList.toggle('active', lobbyState.selectedMode === btn.dataset.mode);
-    });
-
-    const endlessMini = document.getElementById('endless-best-mini');
-    if (endlessMini) endlessMini.textContent = `W:${metaState.endlessBestWave || 0}`;
-
-    const rewardCoins = calcStageRewardCoins(lv, lobbyState.selectedDifficulty, lobbyState.selectedMode);
-    const infoBanner = document.getElementById('diff-info-banner');
-    if (infoBanner) {
-        const goalLabel = lobbyState.selectedMode === 'survival' ? 'Sống sót 10 Wave' : 'Phá hủy Căn cứ Đỏ';
-        const medalNote = lobbyState.selectedDifficulty === 'difficult' ? ' + <b>🎖️ 3 Huy Chương</b>' : '';
-        infoBanner.innerHTML = `Mục tiêu: <b>${goalLabel}</b> • Thưởng: <b class="text-amber-300 vt323-num">🪙 ${rewardCoins.toLocaleString('en-US')} Coins</b>${medalNote}`;
-    }
-
-    const startBtn = document.getElementById('btn-start-battle');
-    if (startBtn) {
-        startBtn.disabled = !isMapUnlocked;
-        startBtn.textContent = isMapUnlocked ? 'START' : '🔒 KHÓA';
-    }
 }
 
 // ============================================================================
@@ -2095,9 +2849,29 @@ export function claimAllCodexMilestones() {
 }
 
 // ============================================================================
-// 11. GẮN TOÀN BỘ SỰ KIỆN GIAO DIỆN LOBBY (BIND LOBBY EVENTS)
+// 11. GẮN TOÀN BỘ SỰ KIỆN GIAO DIỆN LOBBY & HIỆU ỨNG RIPPLE (BIND LOBBY EVENTS)
 // ============================================================================
+function bindGlobalButtonRipples() {
+    document.addEventListener('pointerdown', e => {
+        const btn = e.target.closest('.btn-3d');
+        if (!btn || btn.disabled) return;
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const ripple = document.createElement('span');
+        ripple.className = 'ui-ripple-circle';
+        ripple.style.width = `${size}px`;
+        ripple.style.height = `${size}px`;
+        ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+        ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 500);
+    });
+}
+
 export function bindLobbyEvents(onStartBattleCallback) {
+    startBattleHandlerRef = onStartBattleCallback;
+    bindGlobalButtonRipples();
+
     // 1. Chuyển 5 Tab dưới đáy
     document.querySelectorAll('.nav-tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2106,7 +2880,29 @@ export function bindLobbyEvents(onStartBattleCallback) {
         });
     });
 
-    // 2. Hồ sơ Chỉ huy & Đổi tên
+    // 2. Mở World Campaign Roadmap Toàn Cảnh 54 Level với hiệu ứng Cloud-Dive
+    document.getElementById('lobby-world-viewport-card')?.addEventListener('click', () => {
+        openWorldRoadmapModal(getCurrentCampaignLevel());
+    });
+    document.getElementById('btn-open-world-roadmap')?.addEventListener('click', () => {
+        openWorldRoadmapModal(getCurrentCampaignLevel());
+    });
+    document.getElementById('btn-close-world-roadmap')?.addEventListener('click', () => {
+        closeWorldRoadmapModal();
+    });
+
+    // Nút START khổng lồ ở sảnh chính: Vào thẳng Level hiện tại
+    document.getElementById('btn-start-battle')?.addEventListener('click', () => {
+        const curLv = getCurrentCampaignLevel();
+        const defDiff = getDefaultDifficultyForMap(curLv);
+        if (typeof onStartBattleCallback === 'function') {
+            onStartBattleCallback(curLv, defDiff, 'destroy');
+        }
+    });
+
+    bindWorldRoadmapInteractions();
+
+    // 3. Hồ sơ Chỉ huy & Đổi tên
     document.getElementById('btn-edit-name')?.addEventListener('click', () => {
         const inp = document.getElementById('player-name-input');
         if (inp) inp.value = metaState.playerName || '';
@@ -2129,7 +2925,7 @@ export function bindLobbyEvents(onStartBattleCallback) {
         sfx.play('upgrade');
     });
 
-    // 3. Cài đặt & Admin Mode
+    // 4. Cài đặt & Admin Mode
     document.getElementById('btn-open-settings')?.addEventListener('click', () => {
         const badge = document.getElementById('settings-mode-badge');
         if (badge) {
@@ -2195,7 +2991,7 @@ export function bindLobbyEvents(onStartBattleCallback) {
         resetAllAccountData();
     });
 
-    // 4. Tab SHOP: Gacha Rương
+    // 5. Tab SHOP: Gacha Rương
     document.getElementById('btn-open-leg-1')?.addEventListener('click', () => triggerSingleOrTenGacha('legendary', 1));
     document.getElementById('btn-open-leg-10')?.addEventListener('click', () => triggerSingleOrTenGacha('legendary', 10));
     document.getElementById('btn-open-leg-custom')?.addEventListener('click', () => openCustomGachaConfirmModal('legendary'));
@@ -2227,7 +3023,7 @@ export function bindLobbyEvents(onStartBattleCallback) {
         document.getElementById('gacha-result-modal')?.classList.remove('active');
     });
 
-    // 5. Tab ARMY: Chuyển 3 chế độ ARMY / REVIEW / MERGE & Modal Nâng cấp / Hoàn cấp / Sandbox
+    // 6. Tab ARMY: ARMY / REVIEW / MERGE & Modal Nâng cấp / Hoàn cấp / Sandbox
     document.getElementById('btn-mode-army')?.addEventListener('click', () => {
         lobbyState.armyMode = 'army';
         renderArmyTab();
@@ -2307,7 +3103,7 @@ export function bindLobbyEvents(onStartBattleCallback) {
         renderMissionNotifDot();
     });
 
-    // Hoàn cấp O(1) đầy đủ nút LV.1, -, +, -1 CẤP
+    // Hoàn cấp O(1)
     document.getElementById('btn-open-level-refund')?.addEventListener('click', () => {
         const unitId = lobbyState.selectedUpgradeUnitId;
         const uSpec = UNIT_BY_ID[unitId] || UNIT_CATALOG[0];
@@ -2380,49 +3176,6 @@ export function bindLobbyEvents(onStartBattleCallback) {
         document.getElementById('level-refund-modal')?.classList.remove('active');
         refreshUnitUpgradeModalUI();
         renderArmyUnitsGrid();
-    });
-
-    // 6. Tab BATTLE: Chuyển 45 Map, Độ khó, Chế độ & START
-    document.getElementById('btn-prev-stage')?.addEventListener('click', () => {
-        lobbyState.selectedMapLevel = lobbyState.selectedMapLevel > 1 ? lobbyState.selectedMapLevel - 1 : LEVELS.length;
-        sfx.play('gas');
-        renderBattleStageView();
-    });
-    document.getElementById('btn-next-stage')?.addEventListener('click', () => {
-        lobbyState.selectedMapLevel = lobbyState.selectedMapLevel < LEVELS.length ? lobbyState.selectedMapLevel + 1 : 1;
-        sfx.play('gas');
-        renderBattleStageView();
-    });
-    document.getElementById('diff-btn-easy')?.addEventListener('click', () => {
-        lobbyState.selectedDifficulty = 'easy';
-        renderBattleStageView();
-    });
-    document.getElementById('diff-btn-difficult')?.addEventListener('click', () => {
-        if (!isDifficultyUnlocked(lobbyState.selectedMapLevel, 'difficult')) {
-            sfx.play('cannon');
-            return;
-        }
-        lobbyState.selectedDifficulty = 'difficult';
-        renderBattleStageView();
-    });
-    document.getElementById('mode-btn-destroy')?.addEventListener('click', () => {
-        lobbyState.selectedMode = 'destroy';
-        renderBattleStageView();
-    });
-    document.getElementById('mode-btn-survival')?.addEventListener('click', () => {
-        lobbyState.selectedMode = 'survival';
-        renderBattleStageView();
-    });
-    document.querySelectorAll('.special-mode-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            lobbyState.selectedMode = btn.dataset.mode;
-            renderBattleStageView();
-        });
-    });
-    document.getElementById('btn-start-battle')?.addEventListener('click', () => {
-        if (typeof onStartBattleCallback === 'function') {
-            onStartBattleCallback(lobbyState.selectedMapLevel, lobbyState.selectedDifficulty, lobbyState.selectedMode);
-        }
     });
 
     // 7. Các nút Sidebar: MISSION, TALENTS, VÒNG QUAY, INDEX, CODE, CHIP MOD, MINI-GAME, Ụ PHÁO
@@ -2667,7 +3420,7 @@ function bindArcadeMiniGames() {
         document.getElementById('btn-mg-mines-cashout').disabled = true;
     });
 
-    // Mini-Game 2: Hứng Tiếp Tế Dù 30s (Hỗ trợ cả nút bấm & vuốt cảm ứng trên Canvas)
+    // Mini-Game 2: Hứng Tiếp Tế Dù 30s
     let catcherActive = false;
     let catcherX = 160;
     let catcherDir = 0;

@@ -7,8 +7,7 @@ import {
     CRATE_CONFIG,
     MAX_CRATE_OPEN_QTY,
     UPGRADE_TIER_BASE_PRICES,
-    UNIT_CATALOG,
-    RARITY_CONFIG
+    UNIT_CATALOG
 } from './config.js';
 import { PRIMARY_INFANTRY_ID, normalizeUnitId } from './state.js';
 

@@ -1,9 +1,15 @@
 /* ============================================================================
-   TINY BATTLE - ENGINE CORE (js/engine-core.js)
-   100% Procedural Canvas 2D Art (Zero External Images) • 60-120 FPS Offscreen Cache
-   Web Audio SoundFX, Projectile Cache, ParticlePool, 18 Units (360° + Portrait),
-   14 Front-Top Zombies & Bosses, Base Turrets & Procedural UI Icons
+   TINY BATTLE - ENGINE CORE & MAP ASSET LOADER (js/engine-core.js)
+   MapAssetLoader (7 Ảnh Gốc assets/maps/*.png + Cắt Lưới 3x3 + Fallback)
+   Procedural Canvas 2D Art • 60-120 FPS Offscreen Cache • Web Audio SoundFX
+   Projectile Cache, ParticlePool, 18 Units (360° + Portrait), 14 Zombies & Bosses
    ============================================================================ */
+
+import {
+    MAP_IMAGE_ASSETS,
+    LOGICAL_WIDTH,
+    PLAYFIELD_HEIGHT
+} from './config.js';
 
 // Helper vẽ hình chữ nhật bo góc tương thích mọi trình duyệt / WebView
 export function drawRoundRectPath(ctx, x, y, w, h, r) {
@@ -25,6 +31,120 @@ export function drawRoundRectPath(ctx, x, y, w, h, r) {
 export const mapBufferCache = {
     canvas: null
 };
+
+// ============================================================================
+// 0. HỆ THỐNG NẠP 7 ẢNH BẢN ĐỒ GỐC (assets/maps/*.png) & CẮT LƯỚI 3x3 TỰ ĐỘNG
+// ============================================================================
+export class MapAssetLoader {
+    constructor() {
+        this.images = {};
+        this.loadedCount = 0;
+        this.totalCount = Object.keys(MAP_IMAGE_ASSETS).length;
+        this.isReady = false;
+        this._loadPromise = null;
+    }
+
+    loadSingleAsset(key, primaryUrl, onStepDone) {
+        return new Promise(resolve => {
+            const img = new Image();
+            img.decoding = 'async';
+
+            const finish = loadedImg => {
+                this.images[key] = loadedImg;
+                this.loadedCount++;
+                if (typeof onStepDone === 'function') {
+                    onStepDone(key, loadedImg);
+                }
+                resolve(loadedImg);
+            };
+
+            img.onload = () => finish(img);
+
+            img.onerror = () => {
+                // Fallback tự động sang đuôi .jpg cùng tên nếu file .png chưa tồn tại
+                if (/\.png$/i.test(primaryUrl)) {
+                    const fallbackUrl = primaryUrl.replace(/\.png$/i, '.jpg');
+                    const fbImg = new Image();
+                    fbImg.decoding = 'async';
+                    fbImg.onload = () => finish(fbImg);
+                    fbImg.onerror = () => finish(null);
+                    fbImg.src = fallbackUrl;
+                } else {
+                    finish(null);
+                }
+            };
+
+            img.src = primaryUrl;
+        });
+    }
+
+    loadAll(onProgress = null) {
+        if (this._loadPromise) return this._loadPromise;
+
+        const entries = Object.entries(MAP_IMAGE_ASSETS);
+        this.totalCount = entries.length;
+        this.loadedCount = 0;
+
+        this._loadPromise = Promise.all(
+            entries.map(([key, url]) =>
+                this.loadSingleAsset(key, url, currentKey => {
+                    const pct = Math.round((this.loadedCount / Math.max(1, this.totalCount)) * 100);
+                    if (typeof onProgress === 'function') {
+                        onProgress(this.loadedCount, this.totalCount, pct, currentKey);
+                    }
+                })
+            )
+        ).then(() => {
+            this.isReady = true;
+            return this.images;
+        });
+
+        return this._loadPromise;
+    }
+
+    getImage(key) {
+        const img = this.images[key];
+        if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) {
+            return null;
+        }
+        return img;
+    }
+
+    /**
+     * Cắt ô bản đồ tương ứng (1..54) từ 6 tấm sprite sheet 3x3 (biome_1.png -> biome_6.png)
+     * Có hệ số lẹm viền nhẹ (trimX, trimY) để loại bỏ đường kẻ phân cách giữa các ô.
+     */
+    drawSlicedMapTile(ctx, levelNum, dx = 0, dy = 0, dw = LOGICAL_WIDTH, dh = PLAYFIELD_HEIGHT) {
+        const lv = Math.max(1, Math.min(54, Math.floor(Number(levelNum) || 1)));
+        const biomeIndex = Math.floor((lv - 1) / 9) + 1;
+        const img = this.getImage(`biome_${biomeIndex}`);
+        if (!img) return false;
+
+        const localIdx = (lv - 1) % 9;
+        const col = localIdx % 3;
+        const row = Math.floor(localIdx / 3);
+
+        const cellW = img.naturalWidth / 3;
+        const cellH = img.naturalHeight / 3;
+        const trimX = cellW * 0.012;
+        const trimY = cellH * 0.008;
+
+        ctx.drawImage(
+            img,
+            col * cellW + trimX,
+            row * cellH + trimY,
+            cellW - trimX * 2,
+            cellH - trimY * 2,
+            dx,
+            dy,
+            dw,
+            dh
+        );
+        return true;
+    }
+}
+
+export const mapAssets = new MapAssetLoader();
 
 // ============================================================================
 // 1. HỆ THỐNG ÂM THANH WEB AUDIO API (SOUNDFX - CHỐNG RÈ KHI TUA X4)
@@ -506,10 +626,6 @@ export const particlePool = new ParticlePool(240);
 
 // ============================================================================
 // 4. BỘ VẼ PROCEDURAL CANVAS 2D CHO TOÀN BỘ 18 BINH CHỦNG + XƯƠNG (360° + PORTRAIT)
-//    - Quy ước góc vẽ thế giới (rotation !== null):
-//      0 rad = Hướng SANG PHẢI (+X), -Math.PI/2 = LÊN TRÊN (-Y), Math.PI/2 = XUỐNG (+Y)
-//    - Quy ước vẽ thẻ bài / Showcase / Sandbox (rotation === null):
-//      Vẽ góc chính diện / 3-4 hùng dũng, cân đối trong khung 32x32
 // ============================================================================
 export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'blue', animPhase = 0, rotation = null, opts = {}) {
     const unitId = rawUnitId === 'rifleman' ? 'infantry' : (rawUnitId || 'infantry');
@@ -518,7 +634,6 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
     const walkCycle = opts.walkCycle ?? animPhase * 6;
     const recoil = opts.recoilOffset ?? 0;
 
-    // Bảng màu phe Xanh / Đỏ
     const primaryCol   = isBlue ? '#0284c7' : '#dc2626';
     const secondaryCol = isBlue ? '#1e3a8a' : '#7f1d1d';
     const highlightCol = isBlue ? '#38bdf8' : '#fb7185';
@@ -536,9 +651,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.rotate(rotation);
     }
 
-    // ------------------------------------------------------------------------
-    // 1. BỘ BINH (infantry): Mũ sắt, áo giáp chiến thuật, súng trường tấn công
-    // ------------------------------------------------------------------------
+    // 1. BỘ BINH (infantry)
     if (unitId === 'infantry') {
         if (isPortrait) {
             const footShift = Math.sin(walkCycle) * 1.5;
@@ -619,9 +732,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         }
     }
 
-    // ------------------------------------------------------------------------
-    // 2. LÍNH TÊN LỬA (bazooka): Mũ nồi/băng đô, balo đạn, ống phóng RPG đầu đỏ
-    // ------------------------------------------------------------------------
+    // 2. LÍNH TÊN LỬA (bazooka)
     else if (unitId === 'bazooka') {
         if (isPortrait) {
             ctx.fillStyle = primaryCol;
@@ -699,9 +810,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         }
     }
 
-    // ------------------------------------------------------------------------
-    // 3. LÍNH BẮN TỈA (sniper): Áo choàng ngụy trang Ghillie, súng nòng dài + laser đỏ
-    // ------------------------------------------------------------------------
+    // 3. LÍNH BẮN TỈA (sniper)
     else if (unitId === 'sniper') {
         if (isPortrait) {
             ctx.fillStyle = '#15803d';
@@ -775,9 +884,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         }
     }
 
-    // ------------------------------------------------------------------------
-    // 4. XE HUMVEE (humvee): Xe bọc thép 4 bánh lốp gai, nóc gắn súng máy hạng nặng
-    // ------------------------------------------------------------------------
+    // 4. XE HUMVEE (humvee)
     else if (unitId === 'humvee') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -808,9 +915,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fillRect(-1 - recoil * 0.3, -1.4, 13, 2.8);
     }
 
-    // ------------------------------------------------------------------------
-    // 5. XE THIẾT GIÁP APC (apc): Thân xe 6 bánh dày, tháp pháo tự động
-    // ------------------------------------------------------------------------
+    // 5. XE THIẾT GIÁP APC (apc)
     else if (unitId === 'apc') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -841,9 +946,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.strokeRect(2 - recoil * 0.35, -1.8, 12, 3.6);
     }
 
-    // ------------------------------------------------------------------------
-    // 6. XE TĂNG CHIẾN ĐẤU (tank): Bánh xích động theo walkCycle, tháp pháo giật nòng
-    // ------------------------------------------------------------------------
+    // 6. XE TĂNG CHIẾN ĐẤU (tank)
     else if (unitId === 'tank') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -887,9 +990,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fill();
     }
 
-    // ------------------------------------------------------------------------
-    // 7. SIÊU TĂNG HẠNG NẶNG (heavy_tank): Thân rộng giáp ERA, tháp pháo nòng đôi
-    // ------------------------------------------------------------------------
+    // 7. SIÊU TĂNG HẠNG NẶNG (heavy_tank)
     else if (unitId === 'heavy_tank') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -937,9 +1038,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fill();
     }
 
-    // ------------------------------------------------------------------------
-    // 8. TRỰC THĂNG VŨ TRANG (heli): Thân khí động học, 2 cánh tên lửa, cánh quạt quay mờ
-    // ------------------------------------------------------------------------
+    // 8. TRỰC THĂNG VŨ TRANG (heli)
     else if (unitId === 'heli') {
         if (isPortrait) ctx.rotate(-Math.PI / 6);
 
@@ -996,9 +1095,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.restore();
     }
 
-    // ------------------------------------------------------------------------
-    // 9. THUYỀN TUẦN TRA (patrol_boat): Thân tàu nhọn rẽ sóng chữ V, súng máy mũi tàu
-    // ------------------------------------------------------------------------
+    // 9. THUYỀN TUẦN TRA (patrol_boat)
     else if (unitId === 'patrol_boat') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -1037,9 +1134,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fillRect(7, -1, 7, 2);
     }
 
-    // ------------------------------------------------------------------------
-    // 10. TÀU KHU TRỤC (destroyer): 2 tháp pháo trước-sau và radar xoay
-    // ------------------------------------------------------------------------
+    // 10. TÀU KHU TRỤC (destroyer)
     else if (unitId === 'destroyer') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -1083,9 +1178,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         });
     }
 
-    // ------------------------------------------------------------------------
-    // 11. THIẾT GIÁP HẠM (battleship): Chiến hạm khổng lồ 3 tháp pháo nhiều nòng
-    // ------------------------------------------------------------------------
+    // 11. THIẾT GIÁP HẠM (battleship)
     else if (unitId === 'battleship') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -1125,9 +1218,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         });
     }
 
-    // ------------------------------------------------------------------------
-    // 12. KHÔNG KÍCH (airstrike): Máy bay phản lực tiêm kích cánh xuôi + lửa phản lực
-    // ------------------------------------------------------------------------
+    // 12. KHÔNG KÍCH (airstrike)
     else if (unitId === 'airstrike') {
         if (isPortrait) ctx.rotate(-Math.PI / 5);
 
@@ -1179,9 +1270,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fill();
     }
 
-    // ------------------------------------------------------------------------
     // 13. PHÙ THỦY LỬA (pyromancer)
-    // ------------------------------------------------------------------------
     else if (unitId === 'pyromancer') {
         if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = isBlue ? '#b91c1c' : '#7f1d1d';
@@ -1244,9 +1333,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fill();
     }
 
-    // ------------------------------------------------------------------------
     // 14. PHÁP SƯ BĂNG GIÁ (cryomancer)
-    // ------------------------------------------------------------------------
     else if (unitId === 'cryomancer') {
         if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = isBlue ? '#0284c7' : '#be123c';
@@ -1313,9 +1400,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         }
     }
 
-    // ------------------------------------------------------------------------
     // 15. MỤC SƯ THÁNH QUANG (cleric)
-    // ------------------------------------------------------------------------
     else if (unitId === 'cleric') {
         if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.strokeStyle = 'rgba(52, 211, 153, 0.75)';
@@ -1363,9 +1448,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fill();
     }
 
-    // ------------------------------------------------------------------------
     // 16. PHÁP SƯ CHIÊU HỒN (necromancer)
-    // ------------------------------------------------------------------------
     else if (unitId === 'necromancer') {
         if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = 'rgba(147, 51, 234, 0.45)';
@@ -1416,9 +1499,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.fill();
     }
 
-    // ------------------------------------------------------------------------
     // 17. ROBOT HỘ VỆ TITAN (mecha_paladin)
-    // ------------------------------------------------------------------------
     else if (unitId === 'mecha_paladin') {
         if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = isBlue ? '#1e3a8a' : '#7f1d1d';
@@ -1477,9 +1558,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.restore();
     }
 
-    // ------------------------------------------------------------------------
     // 18. PHÁO ĐIỆN TỪ RAILGUN (railgun_walker)
-    // ------------------------------------------------------------------------
     else if (unitId === 'railgun_walker') {
         if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.strokeStyle = '#1e293b';
@@ -1519,9 +1598,7 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
         ctx.stroke();
     }
 
-    // ------------------------------------------------------------------------
     // 19. CHIẾN BINH XƯƠNG TRIỆU HỒI (skeleton)
-    // ------------------------------------------------------------------------
     else if (unitId === 'skeleton') {
         if (!isPortrait) ctx.rotate(Math.PI / 2);
         ctx.fillStyle = '#e2e8f0';
@@ -1560,7 +1637,6 @@ export function drawUnitArt(ctx, rawUnitId, cx = 0, cy = 0, size = 32, team = 'b
     ctx.restore();
 }
 
-// Giữ alias tương thích ngược với các module khác
 export const drawCustomUnitArt = drawUnitArt;
 export function isCustomArtUnit() {
     return true;
@@ -2162,7 +2238,6 @@ export function getUnitSpriteDataURL(unitOrId, teamOrRow = 'blue') {
     return url;
 }
 
-// Vẽ Bình Xăng (#icon-gas-can, .gas-inline-sprite) bằng Canvas 2D
 function createGasCanDataURL() {
     const c = document.createElement('canvas');
     c.width = 32;
@@ -2195,7 +2270,6 @@ function createGasCanDataURL() {
     return c.toDataURL();
 }
 
-// Vẽ Ổ Khóa (.lock-sprite) bằng Canvas 2D
 function createLockDataURL() {
     const c = document.createElement('canvas');
     c.width = 32;
@@ -2210,7 +2284,9 @@ function createLockDataURL() {
     cx.stroke();
 
     cx.fillStyle = '#f59e0b';
-    cx.strokeStyle = '#0f172a';
+    ctx_stroke_style: {
+        cx.strokeStyle = '#0f172a';
+    }
     cx.lineWidth = 2.2;
     drawRoundRectPath(cx, 7, 13, 18, 15, 3);
     cx.fill();
@@ -2225,7 +2301,6 @@ function createLockDataURL() {
     return c.toDataURL();
 }
 
-// Vẽ Trạm Bơm Nâng Cấp Xăng (#icon-upgrade-building) bằng Canvas 2D
 function createUpgradeBuildingDataURL() {
     const c = document.createElement('canvas');
     c.width = 36;

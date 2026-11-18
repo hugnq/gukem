@@ -1,7 +1,7 @@
 /* ============================================================================
    TINY BATTLE - RESPONSIVE STYLES (css/responsive.css)
    Tinh chỉnh giao diện cho màn hình điện thoại nhỏ (< 380px & < 720px height)
-   Hỗ trợ: Top Bar 4 tiền tệ, 5 Tabs, Nút LEVEL UP (+N), Deck 6 ô Challenge & Skill Tree
+   Hỗ trợ: Top Bar 4 tiền tệ, 5 Tabs, World Roadmap, Popover, Deck 6 ô & Skill Tree
    ============================================================================ */
 
 @media (max-width: 380px) {
@@ -129,11 +129,7 @@
         grid-template-columns: repeat(3, 1fr);
     }
 
-    /* 6. Màn hình Battle & Cột nút Sidebar */
-    .mode-pill-btn {
-        font-size: 8.8px;
-        padding: 4px 3px;
-    }
+    /* 6. Màn hình Battle, Cột nút Sidebar & World Roadmap */
     .commander-tactics-dock,
     .commander-tactics-bar {
         gap: 3.5px;
@@ -160,6 +156,14 @@
     }
     .side-btn-text {
         font-size: 7.5px;
+    }
+    .biome-jump-pill {
+        font-size: 7px !important;
+        padding: 3.5px 1px !important;
+    }
+    .popover-mode-pill {
+        font-size: 7.2px !important;
+        padding: 4px 1px !important;
     }
 
     /* 7. Cây Kỹ Năng Cổ Thụ (Skill Tree 4 Nhánh Tán Cây) */
@@ -190,9 +194,6 @@
     .bulk-custom-input-group {
         justify-content: space-between;
     }
-    .upg-deck-btns-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
     .lucky-wheel-stage {
         width: 216px;
         height: 216px;
@@ -211,9 +212,8 @@
         width: 84px;
         height: 84px;
     }
-    .map-canvas-frame {
-        width: 140px;
-        height: 164px;
+    .world-mini-viewport-card {
+        min-height: 220px !important;
     }
     .side-feature-btn {
         height: 48px;

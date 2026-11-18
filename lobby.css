@@ -1,10 +1,10 @@
 /* ============================================================================
    TINY BATTLE - LOBBY, TOP BAR, 5 TABS, SHOP, CHALLENGE & SKILL TREE (css/lobby.css)
-   Bright Mobile UI • 4 Currencies (White Pearl, Medals, Gems, Coins) • 5 Tabs
+   Bright Mobile UI • Glassmorphism Top Bar • 54 Maps • 5 Tabs Sliding Indicator
    ============================================================================ */
 
 /* ============================================================================
-   1. KHUNG SẢNH CHÍNH & TOP BAR 4 LOẠI TIỀN TỆ
+   1. KHUNG SẢNH CHÍNH & TOP BAR KÍNH MỜ 4 LOẠI TIỀN TỆ
    ============================================================================ */
 .lobby-wrapper {
     position: absolute;
@@ -12,7 +12,7 @@
     z-index: 40;
     display: none;
     flex-direction: column;
-    background: linear-gradient(180deg, #7dd3fc 0%, #bae6fd 58%, #65a30d 58%, #4d7c0f 100%);
+    background: linear-gradient(180deg, #38bdf8 0%, #bae6fd 56%, #65a30d 56%, #3f6212 100%);
     overflow: hidden;
 }
 
@@ -26,7 +26,9 @@
     justify-content: space-between;
     padding: 5px 6px;
     gap: 4px;
-    background: rgba(15, 23, 42, 0.24);
+    background: rgba(15, 23, 42, 0.74);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border-bottom: 3px solid #0f172a;
     flex-shrink: 0;
     z-index: 5;
@@ -108,7 +110,13 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.08s ease;
+    transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-settings-gear:hover .gear-icon {
+    transform: rotate(35deg);
+    display: inline-block;
+    transition: transform 0.25s ease;
 }
 
 .btn-settings-gear:active {
@@ -144,6 +152,7 @@
     border: 2px solid #475569;
     box-shadow: 0 2.5px 0 #020617;
     color: #ffffff;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .currency-pill.pearl-pill {
@@ -202,6 +211,7 @@
 
 .lobby-bottom-nav,
 .lobby-bottom-nav.five-tabs {
+    position: relative;
     height: 62px;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -222,7 +232,7 @@
     color: #94a3b8;
     cursor: pointer;
     padding: 2px 1px;
-    transition: background 0.12s ease, color 0.12s ease;
+    transition: background 0.14s ease, color 0.14s ease;
 }
 
 .nav-tab-btn:last-child {
@@ -247,6 +257,7 @@
 .nav-tab-icon {
     font-size: 18px;
     line-height: 1;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nav-tab-label {
@@ -587,7 +598,7 @@
 }
 
 /* ============================================================================
-   4. TAB 3: BATTLE (MÀN HÌNH CHÍNH GIỮA - 45 MAPS & SIDEBAR 4 NÚT PHẢI)
+   4. TAB 3: BATTLE (MÀN HÌNH CHÍNH GIỮA - AUTO-ZOOM WORLD VIEWPORT & SIDEBARS)
    ============================================================================ */
 .battle-tab-layout {
     flex: 1;
@@ -598,221 +609,7 @@
     overflow: hidden;
 }
 
-.battle-header-zone {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-.map-selector-row {
-    width: 100%;
-    max-width: 372px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-}
-
-.btn-nav-arrow {
-    width: 36px;
-    height: 36px;
-    background: linear-gradient(180deg, #fef08a 0%, #f59e0b 100%);
-    color: #0f172a;
-    font-size: 15px;
-    border-radius: 11px;
-    flex-shrink: 0;
-}
-
-.map-title-block {
-    flex: 1;
-    text-align: center;
-    background: rgba(15, 23, 42, 0.88);
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 3px 8px;
-    box-shadow: 0 3px 0 rgba(15, 23, 42, 0.5);
-}
-
-.map-big-title {
-    font-size: 13.5px;
-    font-weight: 900;
-    color: #fde047;
-    margin: 0;
-    line-height: 1.15;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.map-sub-progress {
-    font-size: 12.5px;
-    font-weight: 700;
-    color: #bae6fd;
-    margin: 0;
-    line-height: 1.1;
-}
-
-/* Chọn độ khó DỄ / KHÓ */
-.difficulty-selector-bar.two-modes {
-    width: 100%;
-    max-width: 356px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-}
-
-.diff-pill-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 4px 8px;
-    border-radius: 10px;
-    background: #1e293b;
-    border: 2.5px solid #0f172a;
-    color: #cbd5e1;
-    font-size: 11px;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 3px 0 #0f172a;
-}
-
-.diff-pill-btn.active {
-    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
-    color: #ffffff;
-    text-shadow: 0 1px 0 #0f172a;
-}
-
-.diff-pill-btn[data-diff="difficult"].active {
-    background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
-}
-
-.diff-pill-btn.locked {
-    opacity: 0.65;
-}
-
-/* Chọn 2 hình thức chuẩn */
-.battle-mode-selector-bar {
-    width: 100%;
-    max-width: 356px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px;
-}
-
-.mode-pill-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 4.5px 6px;
-    border-radius: 10px;
-    background: #1e293b;
-    border: 2.5px solid #0f172a;
-    color: #cbd5e1;
-    font-size: 10px;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 3px 0 #0f172a;
-}
-
-.mode-pill-btn.active {
-    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-    color: #ffffff;
-    text-shadow: 0 1px 0 #0f172a;
-}
-
-/* 4 Chế độ đặc biệt */
-.special-modes-bar {
-    width: 100%;
-    max-width: 356px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-}
-
-.special-mode-pill {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3px 2px;
-    border-radius: 9px;
-    background: #0f172a;
-    border: 2px solid #334155;
-    color: #e2e8f0;
-    font-size: 8.5px;
-    font-weight: 900;
-    cursor: pointer;
-}
-
-.special-mode-pill.active {
-    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
-    border-color: #fde047;
-    color: #ffffff;
-}
-
-/* Nút mở nhanh Ụ Pháo Căn Cứ Xanh */
-.lobby-quick-utility-bar.single-center {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    max-width: 356px;
-    margin-top: 1px;
-}
-
-.quick-utility-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 4px 14px;
-    border-radius: 10px;
-    border: 2px solid #0f172a;
-    font-size: 10px;
-    font-weight: 900;
-    color: #ffffff;
-    cursor: pointer;
-    box-shadow: 0 3px 0 #0f172a;
-    text-shadow: 0 1px 0 #0f172a;
-    transition: transform 0.08s ease;
-}
-
-.quick-utility-pill:active {
-    transform: scale(0.96) translateY(2px);
-}
-
-.utility-turret-btn {
-    background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
-}
-
-.diff-info-strip {
-    width: 100%;
-    max-width: 356px;
-    background: rgba(15, 23, 42, 0.88);
-    border: 1.5px solid #0f172a;
-    border-radius: 8px;
-    padding: 3px 8px;
-    font-size: 10px;
-    color: #f8fafc;
-    text-align: center;
-}
-
-.diff-mechanic-substrip {
-    width: 100%;
-    max-width: 356px;
-    background: rgba(254, 249, 195, 0.92);
-    border: 1.5px solid #0f172a;
-    border-radius: 8px;
-    padding: 2.5px 8px;
-    font-size: 9.5px;
-    color: #1e293b;
-    text-align: center;
-}
-
-/* Khu vực Trung tâm: Sidebar Trái (3 nút) | Map Demo | Sidebar Phải (4 nút: INDEX -> CODE -> CHIP MOD -> MINI-GAME) */
+/* Khu vực Trung tâm: Sidebar Trái (3 nút) | Auto-Zoom Map Card | Sidebar Phải (4 nút) */
 .battle-center-stage {
     flex: 1;
     display: flex;
@@ -820,7 +617,7 @@
     justify-content: space-between;
     gap: 6px;
     width: 100%;
-    max-width: 382px;
+    max-width: 386px;
     margin: 0 auto;
 }
 
@@ -849,13 +646,18 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform 0.08s ease;
+    transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease;
 }
 
 .battle-side-column.four-btns .side-feature-btn {
     width: 58px;
     height: 46px;
     border-radius: 12px;
+}
+
+.side-feature-btn:hover {
+    filter: brightness(1.06);
+    transform: translateY(-2px);
 }
 
 .side-feature-btn:active {
@@ -921,6 +723,7 @@
     align-items: center;
     justify-content: center;
     animation: notifPulse 0.75s ease-in-out infinite alternate;
+    z-index: 4;
 }
 
 .notif-badge.amber-notif {
@@ -928,79 +731,7 @@
     color: #0f172a;
 }
 
-/* Khung Demo Map ở trung tâm */
-.map-demo-card {
-    flex: 1;
-    background: #ffffff;
-    border: 3px solid #0f172a;
-    border-radius: 16px;
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 5px 0 #0f172a;
-}
-
-.map-canvas-frame {
-    position: relative;
-    width: 156px;
-    height: 196px;
-    border-radius: 11px;
-    border: 2.5px solid #0f172a;
-    overflow: hidden;
-    background: #1e293b;
-}
-
-.map-preview-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
-}
-
-.map-water-pill {
-    position: absolute;
-    top: 5px;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    padding: 2px 7px;
-    border-radius: 999px;
-    border: 1.5px solid #0f172a;
-    font-size: 8px;
-    font-weight: 900;
-    color: #ffffff;
-    background: #0284c7;
-}
-
-.map-water-pill.no-water {
-    background: #475569;
-}
-
-.map-cleared-ribbon {
-    position: absolute;
-    bottom: 6px;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    background: #16a34a;
-    border: 1.5px solid #0f172a;
-    color: #ffffff;
-    font-size: 8px;
-    font-weight: 900;
-    padding: 2px 8px;
-    border-radius: 999px;
-}
-
-.map-demo-desc {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: #334155;
-    text-align: center;
-    line-height: 1.25;
-    margin: 5px 0 0 0;
-}
-
-/* Nút START khổng lồ */
+/* Nút START khổng lồ với nhịp thở phát sáng */
 .battle-footer-zone {
     width: 100%;
     display: flex;
@@ -1009,8 +740,17 @@
     flex-shrink: 0;
 }
 
+@keyframes startBtnGlowBreath {
+    0%, 100% {
+        box-shadow: 0 5px 0 #0f172a, 0 8px 18px rgba(22, 163, 74, 0.45);
+    }
+    50% {
+        box-shadow: 0 5px 0 #0f172a, 0 8px 26px rgba(74, 222, 128, 0.85);
+    }
+}
+
 .btn-start-huge {
-    width: 230px;
+    width: 236px;
     height: 48px;
     background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
     color: #ffffff;
@@ -1018,11 +758,11 @@
     letter-spacing: 2px;
     border-radius: 16px;
     text-shadow: 0 2.5px 0 #0f172a;
-    box-shadow: 0 5px 0 #0f172a, 0 8px 18px rgba(22, 163, 74, 0.45);
+    animation: startBtnGlowBreath 2.2s ease-in-out infinite;
 }
 
 /* ============================================================================
-   5. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 45 MAP THỦ THÀNH ZOMBIE 20 WAVE)
+   5. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 54 MAP THỦ THÀNH ZOMBIE 20 WAVE)
    ============================================================================ */
 #tab-challenge {
     background:
@@ -1215,8 +955,12 @@
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 4px 0 #020617;
-    transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease, box-shadow 0.15s ease;
     padding: 2px;
+}
+
+.st-tree-node:hover {
+    transform: translate(-50%, -50%) scale(1.08);
 }
 
 .st-tree-node:active {

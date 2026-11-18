@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Battle - Tactical RTS, Zombie TD & Meta-Game (45 Maps, 18 Units & 41 Rarity Tiers)</title>
+    <title>Tiny Battle - 54 Campaign Roadmap, Tactical RTS & Zombie TD (18 Units & 41 Rarity Tiers)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700&family=VT323&display=swap" rel="stylesheet">
 
@@ -15,12 +15,75 @@
     <link rel="stylesheet" href="css/battle.css" onerror="this.onerror=null;this.href='battle.css';">
     <link rel="stylesheet" href="css/responsive.css" onerror="this.onerror=null;this.href='responsive.css';">
 
-    <!-- STYLE ĐỒNG BỘ CHO HỆ THỐNG MỚI (5 TABS, LEVEL UP BUTTON, 4-BRANCH SKILL TREE, SANDBOX & BASE HP HUD) -->
+    <!-- STYLE ĐỒNG BỘ CHO HỆ THỐNG 7 ẢNH MAP GỐC, CLOUD-DIVE ZOOM, POPOVER & ANIMATIONS 60-120 FPS -->
     <style>
-        /* Top Bar 4 loại tiền tệ gọn gàng trên màn hình dọc 420px */
+        /* ====================================================================
+           1. TACTICAL ASSET LOADING OVERLAY (NẠP 7 FILE assets/maps/*.png)
+           ==================================================================== */
+        .asset-loading-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 200;
+            background: radial-gradient(circle at 50% 35%, #1e293b 0%, #090d16 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
+        }
+        .asset-loading-overlay.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .loading-emblem-ring {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #0284c7 0%, #1e3a8a 100%);
+            border: 3.5px solid #fde047;
+            box-shadow: 0 0 28px rgba(56, 189, 248, 0.55), 0 6px 0 #020617;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 14px;
+            animation: lobbyFloatBob 1.8s ease-in-out infinite alternate;
+        }
+        @keyframes lobbyFloatBob {
+            from { transform: translateY(0) scale(0.98); }
+            to { transform: translateY(-6px) scale(1.03); }
+        }
+        .loading-bar-track {
+            width: 100%;
+            max-width: 270px;
+            height: 14px;
+            background: #020617;
+            border: 2.5px solid #38bdf8;
+            border-radius: 999px;
+            overflow: hidden;
+            padding: 2px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
+        }
+        .loading-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #38bdf8 0%, #4ade80 50%, #fde047 100%);
+            transition: width 0.16s ease-out;
+        }
+
+        /* ====================================================================
+           2. TOP BAR GLASSMORPHISM 4 LOẠI TIỀN TỆ & HIỆU ỨNG LERP COUNTER
+           ==================================================================== */
         .lobby-top-bar {
             padding: 5px 6px !important;
             gap: 4px;
+            background: rgba(15, 23, 42, 0.72) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 3px solid #0f172a;
         }
         .player-name-text {
             max-width: 64px !important;
@@ -34,6 +97,12 @@
             min-width: 44px !important;
             padding: 2.5px 5.5px 2.5px 4px !important;
             gap: 2.5px !important;
+            transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .currency-pill.currency-bump {
+            transform: scale(1.16);
+            border-color: #fde047 !important;
+            box-shadow: 0 0 14px rgba(250, 204, 21, 0.85) !important;
         }
         .currency-pill.pearl-pill {
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -46,17 +115,68 @@
         .currency-val {
             font-size: 14.5px !important;
         }
+        .currency-float-layer {
+            position: absolute;
+            top: 42px;
+            right: 8px;
+            z-index: 95;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+        @keyframes currencyFloatUp {
+            0% { opacity: 0; transform: translateY(6px) scale(0.85); }
+            20% { opacity: 1; transform: translateY(0) scale(1.05); }
+            100% { opacity: 0; transform: translateY(-22px) scale(0.95); }
+        }
+        .currency-delta-toast {
+            font-family: 'VT323', monospace;
+            font-size: 15px;
+            font-weight: 900;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1.5px solid #fde047;
+            color: #4ade80;
+            text-shadow: 0 1px 0 #000000;
+            animation: currencyFloatUp 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
 
-        /* Thanh điều hướng dưới đáy 5 Tab */
+        /* ====================================================================
+           3. THANH ĐIỀU HƯỚNG ĐÁY 5 TAB VỚI SLIDING PILL & SONAR RING BADGE
+           ==================================================================== */
         .lobby-bottom-nav.five-tabs {
+            position: relative;
             grid-template-columns: repeat(5, 1fr) !important;
+        }
+        .bottom-nav-slider {
+            position: absolute;
+            top: 2px;
+            left: 0;
+            width: 20%;
+            height: calc(100% - 4px);
+            background: rgba(255, 255, 255, 0.14);
+            border-top: 3.5px solid #ffffff;
+            box-shadow: 0 -2px 12px rgba(255, 255, 255, 0.65);
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 3;
+            pointer-events: none;
         }
         .lobby-bottom-nav.five-tabs .nav-tab-btn {
             border-right-width: 2px;
             padding: 2px 1px;
+            position: relative;
+            z-index: 2;
         }
         .lobby-bottom-nav.five-tabs .nav-tab-icon {
             font-size: 18px;
+            transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+        }
+        .lobby-bottom-nav.five-tabs .nav-tab-btn.active .nav-tab-icon {
+            transform: translateY(-3px) scale(1.18);
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85));
         }
         .lobby-bottom-nav.five-tabs .nav-tab-label {
             font-size: 8.5px;
@@ -72,14 +192,187 @@
             color: #ffffff;
         }
 
-        /* Cột Sidebar 4 nút bên phải màn hình Battle (INDEX -> CODE -> CHIP MOD -> MINI-GAME) */
+        @keyframes sonarRingExpand {
+            0% { transform: scale(0.95); opacity: 0.85; }
+            100% { transform: scale(1.85); opacity: 0; }
+        }
+        .notif-badge::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 999px;
+            border: 2px solid #ef4444;
+            animation: sonarRingExpand 1.4s ease-out infinite;
+            pointer-events: none;
+        }
+        .notif-badge.amber-notif::after {
+            border-color: #f59e0b;
+        }
+
+        /* ====================================================================
+           4. SẢNH CHÍNH TAB BATTLE: AUTO-ZOOM VIEWPORT TỐI GIẢN + SHEEN START
+           ==================================================================== */
+        .battle-tab-layout.world-focus-layout {
+            justify-content: space-between;
+            padding: 7px 8px 9px 8px;
+            gap: 6px;
+        }
+        .lobby-tactical-banner {
+            width: 100%;
+            max-width: 376px;
+            margin: 0 auto;
+            background: linear-gradient(90deg, rgba(15, 23, 42, 0.92) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(15, 23, 42, 0.92) 100%);
+            border: 2.5px solid #0f172a;
+            border-radius: 14px;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 0 rgba(15, 23, 42, 0.55);
+            flex-shrink: 0;
+        }
+        .lobby-biome-pill {
+            font-size: 9.5px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(56, 189, 248, 0.18);
+            border: 1.5px solid #38bdf8;
+            color: #7dd3fc;
+            letter-spacing: 0.3px;
+        }
+
+        /* Khung Viewport Bản Đồ Thế Giới Auto-Zoom 2.45x Vào Level Hiện Tại */
+        .world-mini-viewport-card {
+            flex: 1;
+            min-height: 265px;
+            max-height: 390px;
+            background: #0f172a;
+            border: 3.5px solid #0f172a;
+            border-radius: 20px;
+            padding: 5px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 6px 0 #0f172a, 0 12px 24px rgba(15, 23, 42, 0.45);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+        }
+        .world-mini-viewport-card:hover {
+            border-color: #fde047;
+        }
+        .world-mini-viewport-card:active {
+            transform: scale(0.98) translateY(2px);
+        }
+        .world-mini-ribbon-top {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid #38bdf8;
+            border-radius: 12px;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            margin-bottom: 5px;
+            z-index: 3;
+            flex-shrink: 0;
+        }
+        .world-mini-lv-badge {
+            background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
+            color: #0f172a;
+            font-size: 10.5px;
+            font-weight: 900;
+            padding: 1.5px 7px;
+            border-radius: 7px;
+            border: 1.5px solid #0f172a;
+            white-space: nowrap;
+        }
+        .world-mini-map-title {
+            flex: 1;
+            font-size: 11.5px;
+            font-weight: 900;
+            color: #ffffff;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 1px 0 #020617;
+        }
+        .world-mini-canvas-wrap {
+            flex: 1;
+            position: relative;
+            border-radius: 13px;
+            border: 2.5px solid #334155;
+            overflow: hidden;
+            background: #07131f;
+        }
+        .world-mini-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        @keyframes worldHintPulse {
+            0%, 100% {
+                transform: translateX(-50%) scale(0.97);
+                box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(56, 189, 248, 0.55);
+            }
+            50% {
+                transform: translateX(-50%) scale(1.02);
+                box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(250, 204, 21, 0.9);
+            }
+        }
+        .world-mini-tap-hint {
+            position: absolute;
+            bottom: 7px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1.5px solid #fde047;
+            color: #fef08a;
+            font-size: 8.2px;
+            font-weight: 900;
+            padding: 3px 9px;
+            border-radius: 999px;
+            letter-spacing: 0.25px;
+            animation: worldHintPulse 1.6s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        /* Hiệu ứng ánh sáng lướt ngang (Sheen Sweep) cho nút START & Xuất Kích */
+        @keyframes sheenSweepDiagonal {
+            0% { transform: translateX(-160%) skewX(-24deg); }
+            45%, 100% { transform: translateX(260%) skewX(-24deg); }
+        }
+        .btn-sheen-fx {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-sheen-fx::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 42%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.48) 50%, transparent 100%);
+            animation: sheenSweepDiagonal 2.5s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        /* Cột Sidebar 4 nút bên phải màn hình Battle */
         .battle-side-column.four-btns {
-            gap: 5px;
+            gap: 6px;
         }
         .battle-side-column.four-btns .side-feature-btn {
             width: 58px;
-            height: 46px;
+            height: 48px;
             border-radius: 12px;
+            transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+        }
+        .battle-side-column.four-btns .side-feature-btn:hover {
+            transform: translateY(-2px) rotate(-2deg);
         }
         .battle-side-column.four-btns .side-btn-icon {
             font-size: 16px;
@@ -93,22 +386,25 @@
             border-color: #0f172a;
         }
 
-        /* Thanh công cụ nhanh Ụ Pháo Căn Cứ ở Sảnh */
-        .lobby-quick-utility-bar.single-center {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-            max-width: 356px;
-            margin-top: 2px;
-        }
-        .quick-utility-pill {
+        /* Thanh công cụ nhanh Ụ Pháo Căn Cứ & Mở Bản Đồ ở Sảnh */
+        .lobby-quick-utility-bar.dual-center {
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 6px;
+            width: 100%;
+            max-width: 376px;
+            margin: 0 auto;
+            flex-shrink: 0;
+        }
+        .quick-utility-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             gap: 5px;
-            padding: 4px 14px;
-            border-radius: 10px;
-            border: 2px solid #0f172a;
+            padding: 5px 11px;
+            border-radius: 11px;
+            border: 2.5px solid #0f172a;
             font-size: 10px;
             font-weight: 900;
             color: #ffffff;
@@ -124,580 +420,430 @@
         .utility-turret-btn {
             background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
         }
-
-        /* Cửa hàng Chip Mod trong Tab SHOP */
-        .shop-chips-card {
-            background: #1e293b;
-            border: 3.5px solid #0f172a;
-            border-radius: 18px;
-            overflow: hidden;
-            box-shadow: 0 6px 0 rgba(15, 23, 42, 0.65);
-            flex-shrink: 0;
-        }
-        .shop-chips-header {
-            background: linear-gradient(90deg, #0284c7 0%, #0ea5e9 100%);
-            padding: 6px 12px;
-            border-bottom: 2.5px solid #0f172a;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 13px;
-            font-weight: 900;
-            color: #ffffff;
-            text-shadow: 0 2px 0 #0f172a;
-        }
-        .shop-chips-list {
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-        }
-        .shop-chip-item-row {
-            background: #0f172a;
-            border: 2px solid #334155;
-            border-radius: 12px;
-            padding: 7px 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        /* Thanh HP 2 Căn Cứ Xanh & Đỏ trên HUD trong trận */
-        .base-hp-hud-strip {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 5px;
-            margin-top: 2px;
-            width: 248px;
-        }
-        .base-hp-box {
-            background: rgba(15, 23, 42, 0.92);
-            border: 1.5px solid #475569;
-            border-radius: 7px;
-            padding: 2px 5px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
-        }
-        .base-hp-box.blue-base-box {
-            border-color: #38bdf8;
-        }
-        .base-hp-box.red-base-box {
-            border-color: #fb7185;
-        }
-        .base-hp-label-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 9px;
-            font-weight: 900;
-            line-height: 1.1;
-            margin-bottom: 2px;
-        }
-        .base-hp-track {
-            width: 100%;
-            height: 5px;
-            background: #020617;
-            border-radius: 999px;
-            overflow: hidden;
-        }
-        .base-hp-fill {
-            height: 100%;
-            background: #22c55e;
-            transition: width 0.12s ease, background-color 0.2s ease;
-        }
-        .base-hp-fill.hp-warn {
-            background: #facc15;
-        }
-        .base-hp-fill.hp-danger {
-            background: #ef4444;
-            animation: bossPulse 0.35s ease-in-out infinite alternate;
-        }
-
-        /* Nút LEVEL UP (+N) nổi bên trái trong trận đấu */
-        @keyframes levelUpGlowPulse {
-            0% {
-                transform: scale(0.97);
-                box-shadow: 0 4px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.75);
-            }
-            100% {
-                transform: scale(1.04);
-                box-shadow: 0 4px 0 #0f172a, 0 0 22px rgba(253, 224, 71, 1), 0 0 32px rgba(245, 158, 11, 0.8);
-            }
-        }
-        .battle-levelup-float-btn {
-            position: absolute;
-            left: 8px;
-            top: 148px;
-            z-index: 32;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 10px 6px 7px;
-            border-radius: 14px;
-            background: linear-gradient(180deg, #fde047 0%, #f59e0b 55%, #d97706 100%);
-            border: 2.5px solid #ffffff;
-            outline: 2px solid #0f172a;
-            color: #0f172a;
-            cursor: pointer;
-            animation: levelUpGlowPulse 0.65s ease-in-out infinite alternate;
-            pointer-events: auto;
-        }
-        .battle-levelup-float-btn:active {
-            transform: scale(0.93) translateY(2px);
-        }
-        .lvup-icon {
-            font-size: 18px;
-            line-height: 1;
-            filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.7));
-        }
-        .lvup-text-col {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            line-height: 1.05;
-        }
-        .lvup-title {
-            font-size: 9.5px;
-            font-weight: 900;
-            letter-spacing: 0.3px;
-            color: #422006;
-        }
-        .lvup-count-pill {
-            font-size: 16px;
-            font-weight: 900;
-            color: #ffffff;
-            background: #0f172a;
-            padding: 0 6px;
-            border-radius: 999px;
-            margin-top: 1px;
-        }
-        .draft-queue-badge {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(16, 185, 129, 0.22);
-            border: 1.5px solid #34d399;
-            color: #6ee7b7;
-            font-size: 10px;
-            font-weight: 900;
-            padding: 2px 8px;
-            border-radius: 999px;
-        }
-
-        /* Deck 6 Ô trong chế độ CHALLENGE Tower Defense */
-        .battle-deck-slots.challenge-6-slots {
-            grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-            gap: 2.5px !important;
-        }
-        .battle-deck-slots.challenge-6-slots .unit-card-name {
-            font-size: 7.5px;
-        }
-        .battle-deck-slots.challenge-6-slots .unit-card-art {
-            width: 34px;
-            height: 34px;
-        }
-        .battle-deck-slots.challenge-6-slots .unit-card-art img {
-            width: 32px;
-            height: 32px;
-        }
-
-        /* Lưới 6 thẻ Roll trong chế độ Challenge */
-        .draft-cards-grid.six-cards {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 5px;
-        }
-        .draft-cards-grid.six-cards .draft-card {
-            min-height: 132px;
-            padding: 5px 4px;
-        }
-
-        /* Ô quân đang được chọn để đặt trong chế độ Auto-Battler */
-        .unit-btn.ab-selected-slot {
-            outline: 3.5px solid #fde047 !important;
-            border-color: #fde047 !important;
-            transform: translateY(-4px);
-            box-shadow: 0 6px 0 #0f172a, 0 0 18px rgba(250, 204, 21, 0.95) !important;
-        }
-
-        /* Thanh hiển thị Cộng Hưởng Đội Hình (In-Battle Synergy) trên HUD */
-        .hud-synergy-strip {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 3px;
-            margin-top: 2px;
-            pointer-events: none;
-        }
-        .synergy-hud-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            padding: 1.5px 6px;
-            border-radius: 999px;
-            font-size: 9px;
-            font-weight: 900;
-            color: #ffffff;
-            border: 1.5px solid #0f172a;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
-            text-shadow: 0 1px 0 #000000;
-            animation: popIn 0.2s ease-out;
-        }
-        .synergy-thermal {
-            background: linear-gradient(90deg, #ea580c 0%, #0284c7 100%);
-            border-color: #fde047;
-        }
-        .synergy-fortress {
-            background: linear-gradient(90deg, #059669 0%, #0284c7 100%);
-            border-color: #a7f3d0;
-        }
-        .synergy-darklegion {
-            background: linear-gradient(90deg, #4c1d95 0%, #9333ea 100%);
-            border-color: #f0abfc;
+        .utility-worldmap-btn {
+            background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
         }
 
         /* ====================================================================
-           TAB 4: CHALLENGE (TOWER DEFENSE 20 WAVE ZOMBIE - LỘ TRÌNH DỌC 45 MAP)
+           5. MÀN HÌNH WORLD CAMPAIGN ROADMAP TOÀN CẢNH & CLOUD-DIVE PARALLAX
            ==================================================================== */
-        #tab-challenge {
-            background:
-                radial-gradient(circle at 50% 15%, rgba(225, 29, 72, 0.28) 0%, transparent 55%),
-                linear-gradient(180deg, #1f1024 0%, #090d16 100%);
-        }
-        .challenge-header-banner {
-            background: linear-gradient(90deg, #881337 0%, #be123c 50%, #881337 100%);
-            border-bottom: 3.5px solid #0f172a;
-            padding: 8px 12px;
-            text-align: center;
-            flex-shrink: 0;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-        }
-        .challenge-roadmap-scroll {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px 14px 24px 14px;
-            position: relative;
-        }
-        .challenge-roadmap-list {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding-left: 24px;
-        }
-        .challenge-roadmap-list::before {
-            content: '';
+        .world-roadmap-overlay {
             position: absolute;
-            top: 16px;
-            bottom: 16px;
-            left: 11px;
-            width: 4px;
-            background: linear-gradient(180deg, #f43f5e 0%, #a855f7 50%, #38bdf8 100%);
-            border-radius: 999px;
-            box-shadow: 0 0 10px rgba(244, 63, 94, 0.65);
+            inset: 0;
+            z-index: 75;
+            display: none;
+            flex-direction: column;
+            background: #07131f;
+            overflow: hidden;
         }
-        .challenge-stage-node {
-            position: relative;
+        .world-roadmap-overlay.active {
+            display: flex !important;
+            animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .world-roadmap-header {
             background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            border: 3px solid #334155;
-            border-radius: 16px;
-            padding: 9px 10px;
+            border-bottom: 3px solid #38bdf8;
+            padding: 7px 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 6px;
+            z-index: 15;
+            flex-shrink: 0;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75);
+        }
+        .world-header-title-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+        .world-header-main-title {
+            font-size: 11.5px;
+            font-weight: 900;
+            color: #38bdf8;
+            letter-spacing: 0.4px;
+            text-shadow: 0 1.5px 0 #020617;
+        }
+        .world-header-stats-row {
+            display: flex;
+            align-items: center;
             gap: 8px;
-            box-shadow: 0 5px 0 #020617;
-            transition: transform 0.1s ease, border-color 0.15s ease;
+            margin-top: 1px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #fde047;
         }
-        .challenge-stage-node::before {
-            content: '';
-            position: absolute;
-            left: -20px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #475569;
-            border: 3px solid #0f172a;
-            z-index: 2;
-        }
-        .challenge-stage-node.unlocked {
-            border-color: #fb7185;
-        }
-        .challenge-stage-node.unlocked::before {
-            background: #f43f5e;
-            box-shadow: 0 0 10px #f43f5e;
-        }
-        .challenge-stage-node.cleared {
-            border-color: #4ade80;
-            background: linear-gradient(180deg, #064e3b 0%, #0f172a 100%);
-        }
-        .challenge-stage-node.cleared::before {
-            background: #4ade80;
-            box-shadow: 0 0 10px #4ade80;
-        }
-        .challenge-stage-node.locked {
-            opacity: 0.58;
-            filter: grayscale(65%);
-        }
-
-        /* ====================================================================
-           TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY - 40 KỸ NĂNG)
-           ==================================================================== */
-        #tab-skilltree {
-            background:
-                radial-gradient(circle at 50% 75%, rgba(16, 185, 129, 0.25) 0%, transparent 60%),
-                linear-gradient(180deg, #042f2e 0%, #022c22 50%, #090d16 100%);
-        }
-        .skilltree-top-banner {
-            background: linear-gradient(90deg, #065f46 0%, #047857 50%, #065f46 100%);
-            border-bottom: 3px solid #0f172a;
-            padding: 7px 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-        }
-        .skilltree-branch-bar {
+        .world-biome-jump-bar {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 4px;
-            padding: 5px 8px;
-            background: rgba(15, 23, 42, 0.9);
-            border-bottom: 2px solid #0f172a;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 3px;
+            padding: 5px 6px;
+            background: rgba(15, 23, 42, 0.96);
+            border-bottom: 2px solid #1e293b;
+            z-index: 15;
             flex-shrink: 0;
         }
-        .st-branch-jump-btn {
-            padding: 3px 2px;
+        .biome-jump-pill {
+            padding: 4px 2px;
             border-radius: 8px;
             border: 1.5px solid #334155;
             background: #1e293b;
             color: #cbd5e1;
-            font-size: 8.5px;
+            font-size: 8px;
             font-weight: 900;
             text-align: center;
             cursor: pointer;
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
         }
-        .st-branch-jump-btn.active {
+        .biome-jump-pill:active {
+            transform: scale(0.94);
+        }
+        .biome-jump-pill.active {
             border-color: #fde047;
-            background: #065f46;
+            background: linear-gradient(180deg, #0284c7 0%, #1e3a8a 100%);
             color: #ffffff;
         }
-        .skilltree-scroll-viewport {
+        .world-roadmap-viewport {
             flex: 1;
-            overflow: auto;
             position: relative;
+            overflow: hidden;
+            background: #07131f;
             cursor: grab;
-            touch-action: pan-x pan-y;
+            touch-action: none;
         }
-        .skilltree-scroll-viewport:active {
+        .world-roadmap-viewport:active {
             cursor: grabbing;
         }
-        .skilltree-canopy-world {
-            position: relative;
-            width: 720px;
-            height: 760px;
-            margin: 0 auto;
-        }
-        .skilltree-svg-bg {
-            position: absolute;
-            inset: 0;
+        #worldRoadmapCanvas {
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            z-index: 1;
+            display: block;
         }
-        .skilltree-nodes-layer {
+
+        /* 8 Cụm Mây Parallax Tiền Cảnh & Trung Cảnh Cho Hiệu Ứng Bay Xuyên Mây */
+        .cloud-dive-layer {
             position: absolute;
             inset: 0;
-            z-index: 2;
+            pointer-events: none;
+            z-index: 14;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.25s ease;
         }
-        .st-tree-node {
+        .cloud-dive-layer.active {
+            opacity: 1;
+        }
+        .parallax-cloud-puff {
             position: absolute;
-            transform: translate(-50%, -50%);
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-            border: 3px solid #475569;
+            border-radius: 999px;
+            background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.96) 0%, rgba(226, 232, 240, 0.85) 60%, rgba(148, 163, 184, 0) 100%);
+            filter: blur(4px);
+            will-change: transform, opacity;
+            transition: transform 0.95s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.95s ease;
+        }
+        .cloud-dive-wind {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 50%, transparent 32%, rgba(224, 242, 254, 0.35) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .cloud-dive-layer.active .cloud-dive-wind {
+            opacity: 1;
+        }
+
+        .world-zoom-controls {
+            position: absolute;
+            right: 10px;
+            top: 12px;
+            z-index: 16;
             display: flex;
             flex-direction: column;
+            gap: 6px;
+        }
+        .world-zoom-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 11px;
+            background: rgba(15, 23, 42, 0.92);
+            border: 2px solid #38bdf8;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 900;
+            display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             box-shadow: 0 4px 0 #020617;
-            transition: transform 0.1s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-            padding: 2px;
+            transition: transform 0.08s ease;
         }
-        .st-tree-node:active {
-            transform: translate(-50%, -50%) scale(0.92);
-        }
-        .st-tree-node.unlocked {
-            border-color: #38bdf8;
-        }
-        .st-tree-node.leveled {
-            border-color: #4ade80;
-            background: linear-gradient(180deg, #065f46 0%, #0f172a 100%);
-            box-shadow: 0 4px 0 #020617, 0 0 12px rgba(74, 222, 128, 0.55);
-        }
-        .st-tree-node.selected-node {
-            outline: 3px solid #fde047;
-            z-index: 5;
-        }
-        .st-tree-node.locked {
-            opacity: 0.55;
-            filter: grayscale(75%);
-        }
-        .st-tree-node.special-keystone {
-            width: 68px;
-            height: 68px;
-            border-width: 3.5px;
-            border-color: #facc15;
-            background: radial-gradient(circle, #78350f 0%, #1e1b4b 75%, #090d16 100%);
-            box-shadow: 0 5px 0 #020617, 0 0 18px rgba(250, 204, 21, 0.65);
-        }
-        .st-tree-node.special-keystone.leveled {
-            border-color: #00f2fe;
-            background: radial-gradient(circle, #065f46 0%, #0284c7 65%, #090d16 100%);
-            box-shadow: 0 5px 0 #020617, 0 0 24px rgba(0, 242, 254, 0.9);
-        }
-        .st-node-lv-tag {
-            font-family: var(--font-pixel, monospace);
-            font-size: 11px;
-            line-height: 1;
-            color: #fde047;
-            background: rgba(2, 6, 23, 0.85);
-            padding: 0 4px;
-            border-radius: 999px;
-            margin-top: 1px;
-        }
-        .skilltree-inspector-dock {
-            position: relative;
-            z-index: 4;
-            background: #0f172a;
-            border-top: 3px solid #38bdf8;
-            padding: 8px 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            flex-shrink: 0;
+        .world-zoom-btn:active {
+            transform: scale(0.92) translateY(2px);
         }
 
-        /* Thẻ chọn Ụ Pháo Căn Cứ Xanh */
-        .turret-option-card {
-            background: #ffffff;
-            border: 3px solid #0f172a;
-            border-radius: 14px;
-            padding: 8px 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            box-shadow: 0 4px 0 #cbd5e1;
+        /* ====================================================================
+           6. UI POPOVER CHỌN CHẾ ĐỘ KHI CHẠM VÀO ĐIỂM LEVEL (#stage-action-popover)
+           ==================================================================== */
+        @keyframes slideUpSpring {
+            0% { transform: translateY(105%); opacity: 0; }
+            75% { transform: translateY(-4px); opacity: 1; }
+            100% { transform: translateY(0); opacity: 1; }
         }
-        .turret-option-card.active-turret {
-            background: #ecfeff;
-            border-color: #0284c7;
-            box-shadow: 0 4px 0 #0284c7, 0 0 10px rgba(14, 165, 233, 0.35);
-        }
-
-        /* Sổ tay INDEX (Codex) & Mốc sưu tầm */
-        .codex-unit-row {
-            background: #ffffff;
-            border: 2.5px solid #0f172a;
-            border-radius: 12px;
-            padding: 7px 9px;
-            display: flex;
+        .stage-action-popover {
+            position: absolute;
+            left: 8px;
+            right: 8px;
+            bottom: 10px;
+            z-index: 25;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            border: 3.5px solid #fde047;
+            border-radius: 20px;
+            padding: 10px 11px;
+            box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.85), 0 0 24px rgba(250, 204, 21, 0.25);
+            display: none;
             flex-direction: column;
-            gap: 5px;
-            box-shadow: 0 3px 0 #cbd5e1;
+            gap: 8px;
         }
-        .codex-milestones-grid {
+        .stage-action-popover.active {
+            display: flex !important;
+            animation: slideUpSpring 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .popover-stage-header {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            background: rgba(2, 6, 23, 0.65);
+            border: 2px solid #334155;
+            border-radius: 13px;
+            padding: 6px 8px;
+        }
+        .popover-thumb-frame {
+            width: 56px;
+            height: 76px;
+            border-radius: 9px;
+            border: 2px solid #38bdf8;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: #090d16;
+        }
+        .popover-mode-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 4px;
         }
-        .codex-ms-btn {
-            padding: 3px 2px;
-            font-size: 8.5px;
+        .popover-mode-pill {
+            padding: 5px 2px;
+            border-radius: 9px;
+            border: 2px solid #334155;
+            background: #0f172a;
+            color: #cbd5e1;
+            font-size: 8px;
             font-weight: 900;
-            border-radius: 7px;
-            border: 1.5px solid #0f172a;
             text-align: center;
             cursor: pointer;
-        }
-        .codex-ms-btn.ms-locked {
-            background: #e2e8f0;
-            color: #64748b;
-            cursor: not-allowed;
-        }
-        .codex-ms-btn.ms-claimable {
-            background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
-            color: #ffffff;
-            animation: notifPulse 0.75s ease-in-out infinite alternate;
-        }
-        .codex-ms-btn.ms-claimed {
-            background: #0f172a;
-            color: #fde047;
-            cursor: default;
-        }
-
-        /* Lịch sử nổ Jackpot Vòng Quay & Skip Spin */
-        .wheel-history-box {
-            background: #0f172a;
-            border: 2px solid #334155;
-            border-radius: 10px;
-            padding: 5px 8px;
-            margin-top: 6px;
-            text-align: left;
-            max-height: 68px;
-            overflow-y: auto;
-        }
-        .wheel-skip-toggle-bar {
-            display: inline-flex;
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 6px;
-            background: #f1f5f9;
-            border: 2px solid #0f172a;
-            border-radius: 999px;
-            padding: 3px 12px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            font-size: 10.5px;
-            font-weight: 900;
-            color: #0f172a;
+            gap: 1px;
+            transition: all 0.12s ease;
+        }
+        .popover-mode-pill.active {
+            background: linear-gradient(180deg, #0284c7 0%, #1e3a8a 100%);
+            border-color: #38bdf8;
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+        }
+        .popover-mode-pill[data-pop-mode="challenge"].active {
+            background: linear-gradient(180deg, #e11d48 0%, #881337 100%);
+            border-color: #fda4af;
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.55);
         }
 
-        /* Sandbox Shooting Range Canvas trong Modal Review */
-        .sandbox-canvas-frame {
-            width: 100%;
-            background: #0f172a;
-            border: 3px solid #0f172a;
-            border-radius: 14px;
-            overflow: hidden;
-            box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.75);
-        }
-        .sandbox-rarity-strip {
+        /* ====================================================================
+           7. MÀN CHUYỂN CẢNH BAY XUYÊN MÂY VÀO TRẬN (TACTICAL CLOUD CURTAIN)
+           ==================================================================== */
+        .tactical-scene-transition {
+            position: absolute;
+            inset: 0;
+            z-index: 120;
+            pointer-events: none;
             display: flex;
-            flex-wrap: wrap;
+            flex-direction: column;
+            align-items: center;
             justify-content: center;
-            gap: 4px;
-            margin: 6px 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.24s ease, visibility 0.24s ease;
+            overflow: hidden;
         }
-        .sb-rarity-pill {
-            padding: 2.5px 7px;
-            border-radius: 999px;
-            border: 1.5px solid #0f172a;
-            font-size: 9px;
-            font-weight: 900;
-            color: #ffffff;
-            cursor: pointer;
-            text-shadow: 0 1px 0 #000000;
+        .tactical-scene-transition.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
         }
-        .sb-rarity-pill.active {
-            outline: 2.5px solid #fde047;
-            transform: scale(1.06);
+        .cloud-curtain-half {
+            position: absolute;
+            top: -15%;
+            bottom: -15%;
+            width: 75%;
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #e0f2fe 55%, #bae6fd 85%, rgba(186, 230, 253, 0) 100%);
+            filter: blur(8px);
+            transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .cloud-curtain-left {
+            left: -20%;
+            transform: translateX(-110%);
+        }
+        .cloud-curtain-right {
+            right: -20%;
+            transform: translateX(110%);
+        }
+        .tactical-scene-transition.active .cloud-curtain-left,
+        .tactical-scene-transition.active .cloud-curtain-right {
+            transform: translateX(0%);
+        }
+        .transition-banner-card {
+            position: relative;
+            z-index: 5;
+            background: rgba(15, 23, 42, 0.94);
+            border: 3px solid #fde047;
+            border-radius: 18px;
+            padding: 12px 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.75);
+        }
+
+        /* ====================================================================
+           8. COMBO KILL STREAK HUD TRONG TRẬN & HOLO-FOIL + SKILL TREE SVG
+           ==================================================================== */
+        @keyframes comboSlidePop {
+            0% { transform: translateX(120%) scale(0.85); opacity: 0; }
+            70% { transform: translateX(-6px) scale(1.06); opacity: 1; }
+            100% { transform: translateX(0) scale(1); opacity: 1; }
+        }
+        .combo-streak-hud {
+            position: absolute;
+            right: 8px;
+            top: 86px;
+            z-index: 33;
+            background: linear-gradient(90deg, rgba(127, 29, 29, 0.94) 0%, rgba(220, 38, 38, 0.96) 100%);
+            border: 2px solid #fde047;
+            border-radius: 12px;
+            padding: 4px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            box-shadow: 0 4px 14px rgba(220, 38, 38, 0.65);
+            pointer-events: none;
+            animation: comboSlidePop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes holoFoilSweep {
+            0% { transform: translateX(-140%) rotate(25deg); }
+            100% { transform: translateX(240%) rotate(25deg); }
+        }
+        .army-unit-card {
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        .army-unit-card.rarity-epic::after,
+        .army-unit-card.rarity-epic1::after,
+        .army-unit-card.rarity-epic2::after,
+        .army-unit-card.rarity-legendary::after,
+        .army-unit-card.rarity-legendary1::after,
+        .army-unit-card.rarity-legendary2::after,
+        .army-unit-card.rarity-legendary3::after,
+        .army-unit-card.rarity-mythic::after,
+        .army-unit-card.rarity-mythic1::after,
+        .army-unit-card.rarity-mythic2::after,
+        .army-unit-card.rarity-mythic3::after,
+        .army-unit-card.rarity-mythic4::after,
+        .army-unit-card.rarity-secret::after,
+        .army-unit-card.rarity-secret1::after,
+        .army-unit-card.rarity-secret2::after,
+        .army-unit-card.rarity-secret3::after,
+        .army-unit-card.rarity-secret4::after,
+        .army-unit-card.rarity-secret5::after,
+        .army-unit-card.rarity-master::after,
+        .army-unit-card.rarity-master1::after,
+        .army-unit-card.rarity-master2::after,
+        .army-unit-card.rarity-master3::after,
+        .army-unit-card.rarity-master4::after,
+        .army-unit-card.rarity-master5::after,
+        .army-unit-card.rarity-master6::after,
+        .army-unit-card.rarity-master7::after,
+        .army-unit-card.rarity-master8::after,
+        .army-unit-card.rarity-demon::after,
+        .army-unit-card.rarity-demon1::after,
+        .army-unit-card.rarity-demon2::after,
+        .army-unit-card.rarity-demon3::after,
+        .army-unit-card.rarity-demon4::after,
+        .army-unit-card.rarity-demon5::after,
+        .army-unit-card.rarity-demon6::after,
+        .army-unit-card.rarity-demon7::after,
+        .army-unit-card.rarity-demon8::after,
+        .army-unit-card.rarity-demon9::after,
+        .army-unit-card.rarity-demon10::after {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: 0;
+            width: 45%;
+            height: 160%;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.38) 50%, transparent 100%);
+            animation: holoFoilSweep 2.6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        @keyframes cardFlipReveal {
+            0% { transform: perspective(600px) rotateY(90deg) scale(0.82); opacity: 0; }
+            100% { transform: perspective(600px) rotateY(0deg) scale(1); opacity: 1; }
+        }
+
+        @keyframes treeEnergyFlow {
+            to { stroke-dashoffset: -36; }
+        }
+        .st-branch-energy-active {
+            stroke-dasharray: 10 8;
+            animation: treeEnergyFlow 1.05s linear infinite;
+        }
+        @keyframes keystoneRuneSpin {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        @keyframes keystoneRuneCounterSpin {
+            from { transform: translate(-50%, -50%) rotate(360deg); }
+            to { transform: translate(-50%, -50%) rotate(0deg); }
+        }
+        .st-tree-node.special-keystone.leveled::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 78px;
+            height: 78px;
+            border-radius: 50%;
+            border: 2px dashed #00f2fe;
+            animation: keystoneRuneSpin 7s linear infinite;
+            pointer-events: none;
+        }
+        .st-tree-node.special-keystone.leveled::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            border: 1.5px dotted #fde047;
+            animation: keystoneRuneCounterSpin 10s linear infinite;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -705,12 +851,39 @@
 
     <div id="game-wrapper">
 
+        <!-- TACTICAL ASSET LOADING OVERLAY (NẠP 7 FILE assets/maps/*.png) -->
+        <div id="asset-loading-overlay" class="asset-loading-overlay">
+            <div class="loading-emblem-ring">🗺️</div>
+            <div class="text-base font-black text-amber-300 tracking-wider uppercase mb-1">
+                TINY BATTLE: 54 CAMPAIGN
+            </div>
+            <div id="loading-status-text" class="text-[11px] font-bold text-sky-200 mb-3">
+                Đang nạp bản đồ chiến thuật (0/7)...
+            </div>
+            <div class="loading-bar-track">
+                <div id="loading-progress-bar" class="loading-bar-fill"></div>
+            </div>
+            <div id="loading-progress-text" class="vt323-num text-lg text-white mt-1.5">0%</div>
+        </div>
+
+        <!-- HIỆU ỨNG MÀN MÂY CHUYỂN CẢNH CHIẾN THUẬT (TACTICAL CLOUD CURTAIN) -->
+        <div id="tactical-scene-transition" class="tactical-scene-transition">
+            <div class="cloud-curtain-half cloud-curtain-left"></div>
+            <div class="cloud-curtain-half cloud-curtain-right"></div>
+            <div class="transition-banner-card">
+                <div class="text-3xl mb-1.5 animate-bounce">⚔️</div>
+                <div id="transition-scene-label" class="text-xs font-black text-amber-300 tracking-widest uppercase">
+                    ĐANG TRIỂN KHAI CHIẾN TRƯỜNG...
+                </div>
+            </div>
+        </div>
+
         <!-- ============================================================== -->
         <!-- SẢNH CHÍNH META-GAME (LOBBY WRAPPER - BRIGHT MOBILE UI)        -->
         <!-- ============================================================== -->
         <div id="lobby-wrapper" class="lobby-wrapper active">
 
-            <!-- 1. TOP BAR: AVATAR + TÊN + SETTING | NGỌC TRAI TRẮNG + MEDALS + GEMS + COINS -->
+            <!-- 1. TOP BAR GLASSMORPHISM: AVATAR + TÊN + SETTING | NGỌC TRAI + MEDALS + GEMS + COINS -->
             <div class="lobby-top-bar">
                 <div class="profile-settings-group">
                     <div id="btn-edit-name" class="player-profile-pill" title="Đổi tên nhân vật">
@@ -751,6 +924,9 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Lớp hiển thị số tiền +X bay lên khi nhận thưởng -->
+            <div id="currency-float-layer" class="currency-float-layer"></div>
 
             <!-- 2. MAIN CONTENT VIEW (CHỨA 5 TAB: SHOP - ARMY - BATTLE - CHALLENGE - SKILL TREE) -->
             <div class="lobby-main-content">
@@ -1011,85 +1187,19 @@
                     </div>
                 </div>
 
-                <!-- ==================== TAB 3: BATTLE (MÀN HÌNH CHÍNH GIỮA - 45 MAPS) ==================== -->
+                <!-- ==================== TAB 3: BATTLE (AUTO-ZOOM WORLD CAMPAIGN VIEWPORT - TỐI GIẢN) ==================== -->
                 <div id="tab-battle" class="lobby-tab-pane active">
-                    <div class="battle-tab-layout">
+                    <div class="battle-tab-layout world-focus-layout">
 
-                        <div class="battle-header-zone">
-                            <div class="map-selector-row">
-                                <button id="btn-prev-stage" class="btn-3d btn-nav-arrow" title="Map trước">◀</button>
-                                <div class="map-title-block">
-                                    <h2 id="stage-map-title" class="map-big-title">1. CẦU QUA SÔNG</h2>
-                                    <p id="stage-progress-text" class="map-sub-progress vt323-num">MỞ KHÓA: MAP 1 / 45</p>
-                                </div>
-                                <button id="btn-next-stage" class="btn-3d btn-nav-arrow" title="Map tiếp theo">▶</button>
-                            </div>
-
-                            <!-- Cụm 1: Chọn 2 Độ khó: DỄ & KHÓ -->
-                            <div class="difficulty-selector-bar two-modes">
-                                <button id="diff-btn-easy" data-diff="easy" class="diff-pill-btn active">
-                                    <span class="diff-icon">⚔️</span>
-                                    <span class="diff-name">DỄ</span>
-                                    <span id="diff-status-easy" class="diff-status">★</span>
-                                </button>
-                                <button id="diff-btn-difficult" data-diff="difficult" class="diff-pill-btn">
-                                    <span class="diff-icon">💀</span>
-                                    <span class="diff-name">KHÓ</span>
-                                    <span id="diff-status-difficult" class="diff-status">🔒</span>
-                                </button>
-                            </div>
-
-                            <!-- Cụm 2: Chọn 2 Chế Độ Chuẩn (Phá Căn Cứ & Sinh Tồn 10 Wave) -->
-                            <div class="battle-mode-selector-bar">
-                                <button id="mode-btn-destroy" data-mode="destroy" class="mode-pill-btn active">
-                                    <span class="mode-icon">🏰</span>
-                                    <span class="mode-name">PHÁ CĂN CỨ</span>
-                                    <span id="mode-status-destroy" class="mode-status">★</span>
-                                </button>
-                                <button id="mode-btn-survival" data-mode="survival" class="mode-pill-btn">
-                                    <span class="mode-icon">🛡️</span>
-                                    <span class="mode-name">SINH TỒN 10 WAVE</span>
-                                    <span id="mode-status-survival" class="mode-status">★</span>
-                                </button>
-                            </div>
-
-                            <!-- Cụm 3: Chọn 4 Chế Độ Đặc Biệt -->
-                            <div class="special-modes-bar">
-                                <button id="mode-btn-endless" data-special="endless" data-mode="endless" class="special-mode-pill">
-                                    <span>♾️ VÔ TẬN</span>
-                                    <span id="endless-best-mini" class="vt323-num text-amber-300">W:0</span>
-                                </button>
-                                <button id="mode-btn-autobattler" data-special="autobattler" data-mode="autobattler" class="special-mode-pill">
-                                    <span>♟️ ĐẶT TRẬN</span>
-                                    <span class="text-[8px] text-emerald-300">AUTO</span>
-                                </button>
-                                <button id="btn-toggle-fog-mode" data-special="night_fog" data-mode="night_fog" class="special-mode-pill">
-                                    <span>🌑 ĐÊM MÙ</span>
-                                    <span id="fog-mode-status" class="text-[8px] text-sky-300">FOG</span>
-                                </button>
-                                <button id="mode-btn-bossrush" data-special="raid_boss" data-mode="raid_boss" class="special-mode-pill">
-                                    <span>👹 SIÊU BOSS</span>
-                                    <span class="text-[8px] text-rose-300">RAID</span>
-                                </button>
-                            </div>
-
-                            <!-- Cụm 4: Nút mở nhanh Ụ Pháo Căn Cứ Xanh -->
-                            <div class="lobby-quick-utility-bar single-center">
-                                <button type="button" id="btn-open-turret-modal" class="quick-utility-pill utility-turret-btn" title="Nâng cấp & Đổi Ụ Pháo Bảo Vệ Căn Cứ Xanh">
-                                    <span>🗼 Ụ PHÁO CĂN CỨ:</span>
-                                    <span id="lobby-turret-short-label" class="text-amber-200">GATLING LV.1</span>
-                                </button>
-                            </div>
-
-                            <div id="diff-info-banner" class="diff-info-strip">
-                                Mục tiêu: <b>Phá hủy Căn cứ Đỏ</b> • Thưởng: <b class="text-amber-300 vt323-num">🪙 265 Coins</b>
-                            </div>
-                            <div id="diff-mode-mechanic-badge" class="diff-mechanic-substrip">
-                                🎯 Kéo thả thẻ bài hoặc chạm sân cắm <b>🚩 Cờ Tập Kết</b> để chọn điểm xuất quân chính xác!
-                            </div>
+                        <!-- Header Tối Giản: Huy hiệu Vùng Đất & Tiến Độ Sao Chiến Dịch -->
+                        <div class="lobby-tactical-banner">
+                            <span id="lobby-current-biome-tag" class="lobby-biome-pill">🌿 VÙNG 1 • THẢO NGUYÊN</span>
+                            <span id="lobby-campaign-progress-pill" class="vt323-num text-sm font-black text-amber-300">
+                                ⭐ <b id="lobby-total-stars-count">0</b> / 162 • MAP <b id="lobby-unlocked-maps-count">1</b>/54
+                            </span>
                         </div>
 
-                        <!-- Khu vực Trung tâm: Cột Trái (3 nút) | Map Demo | Cột Phải (4 nút: INDEX -> CODE -> CHIP MOD -> MINI-GAME) -->
+                        <!-- Khu vực Trung tâm: Cột Trái (3 nút) | Auto-Zoom Mini World-Map Card | Cột Phải (4 nút) -->
                         <div class="battle-center-stage">
                             <!-- Left Sidebar: MISSION, TALENTS, VÒNG QUAY -->
                             <div class="battle-side-column">
@@ -1112,16 +1222,16 @@
                                 </button>
                             </div>
 
-                            <!-- Khung Demo Map ở chính giữa -->
-                            <div class="map-demo-card">
-                                <div class="map-canvas-frame">
-                                    <canvas id="selected-map-preview" width="168" height="224" class="map-preview-canvas pixel-art"></canvas>
-                                    <div id="select-map-water-badge" class="map-water-pill has-water">🌊 CÓ THỦY QUÂN</div>
-                                    <div id="stage-cleared-stamp" class="map-cleared-ribbon hidden">✓ ĐÃ HOÀN THÀNH</div>
+                            <!-- Khung Auto-Zoom World Campaign Viewport (Render trực tiếp world_map.png zoom 2.45x) -->
+                            <div id="lobby-world-viewport-card" class="world-mini-viewport-card" title="Chạm vào bản đồ để bay xuyên mây & chọn chế độ">
+                                <div class="world-mini-ribbon-top">
+                                    <span id="lobby-current-lv-tag" class="world-mini-lv-badge">LEVEL 01</span>
+                                    <span id="lobby-current-map-name" class="world-mini-map-title">CẦU QUA SÔNG</span>
                                 </div>
-                                <p id="select-map-desc" class="map-demo-desc">
-                                    Sông lớn cắt ngang chiến trường. Quân bộ phải qua cầu đá chiến lược ở chính giữa.
-                                </p>
+                                <div class="world-mini-canvas-wrap">
+                                    <canvas id="lobbyWorldMiniCanvas" width="220" height="285" class="world-mini-canvas pixel-art"></canvas>
+                                    <div class="world-mini-tap-hint">☁️ CHẠM VÀO BẢN ĐỒ ĐỂ BAY XUYÊN MÂY</div>
+                                </div>
                             </div>
 
                             <!-- Right Sidebar: INDEX -> CODE -> CHIP MOD -> MINI-GAME -->
@@ -1150,8 +1260,20 @@
                             </div>
                         </div>
 
+                        <!-- Thanh Công Cụ Nhanh: Ụ Pháo Căn Cứ & Nút Mở Bản Đồ 54 Ải -->
+                        <div class="lobby-quick-utility-bar dual-center">
+                            <button type="button" id="btn-open-turret-modal" class="quick-utility-pill utility-turret-btn" title="Nâng cấp & Đổi Ụ Pháo Bảo Vệ Căn Cứ Xanh">
+                                <span>🗼 Ụ PHÁO:</span>
+                                <span id="lobby-turret-short-label" class="text-amber-200">GATLING LV.1</span>
+                            </button>
+                            <button type="button" id="btn-open-world-roadmap" class="quick-utility-pill utility-worldmap-btn" title="Mở Bản Đồ Toàn Cảnh 54 Màn Chơi">
+                                <span>🗺️ BẢN ĐỒ 54 ẢI</span>
+                            </button>
+                        </div>
+
+                        <!-- Nút START Xuất Kích Nhanh Vào Level Hiện Tại -->
                         <div class="battle-footer-zone">
-                            <button id="btn-start-battle" class="btn-3d btn-start-huge">
+                            <button id="btn-start-battle" class="btn-3d btn-start-huge btn-sheen-fx">
                                 START
                             </button>
                         </div>
@@ -1159,11 +1281,11 @@
                     </div>
                 </div>
 
-                <!-- ==================== TAB 4: CHALLENGE (TOWER DEFENSE 20 WAVE ZOMBIE - LỘ TRÌNH DỌC 45 MAP) ==================== -->
+                <!-- ==================== TAB 4: CHALLENGE (TOWER DEFENSE 20 WAVE ZOMBIE - LỘ TRÌNH DỌC 54 MAP) ==================== -->
                 <div id="tab-challenge" class="lobby-tab-pane">
                     <div class="challenge-header-banner">
                         <div class="text-sm font-black text-white tracking-wider drop-shadow">
-                            ☠️ THỦ THÀNH ZOMBIE 20 WAVE (HARDCORE TD)
+                            ☠️ THỦ THÀNH ZOMBIE 20 WAVE (54 CHIẾN TRƯỜNG)
                         </div>
                         <div class="text-[10px] font-bold text-rose-200 mt-0.5">
                             Lưới 7x11 Full Map • Giữ <b>3.0s</b> lên Tower để đổi vị trí • Vượt 20 Wave nhận <b class="text-white">⚪ Ngọc Trai Trắng</b>!
@@ -1221,28 +1343,169 @@
 
             <!-- 3. BOTTOM NAVIGATION BAR: 5 TAB (SHOP - ARMY - BATTLE - CHALLENGE - SKILL TREE) -->
             <div class="lobby-bottom-nav five-tabs">
-                <button class="nav-tab-btn" data-tab="shop">
+                <div id="bottom-nav-slider" class="bottom-nav-slider" style="transform: translateX(200%);"></div>
+                <button class="nav-tab-btn" data-tab="shop" data-tab-index="0">
                     <span class="nav-tab-icon">🏪</span>
                     <span class="nav-tab-label">SHOP</span>
                 </button>
-                <button class="nav-tab-btn" data-tab="army">
+                <button class="nav-tab-btn" data-tab="army" data-tab-index="1">
                     <span class="nav-tab-icon">⚔️</span>
                     <span class="nav-tab-label">ARMY</span>
                 </button>
-                <button class="nav-tab-btn active" data-tab="battle">
+                <button class="nav-tab-btn active" data-tab="battle" data-tab-index="2">
                     <span class="nav-tab-icon">⭐</span>
                     <span class="nav-tab-label">BATTLE</span>
                 </button>
-                <button class="nav-tab-btn" data-tab="challenge">
+                <button class="nav-tab-btn" data-tab="challenge" data-tab-index="3">
                     <span class="nav-tab-icon">☠️</span>
                     <span class="nav-tab-label">CHALLENGE</span>
                 </button>
-                <button class="nav-tab-btn" data-tab="skilltree">
+                <button class="nav-tab-btn" data-tab="skilltree" data-tab-index="4">
                     <span class="nav-tab-icon">🌳</span>
                     <span class="nav-tab-label">SKILL TREE</span>
                 </button>
             </div>
 
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- MÀN HÌNH BẢN ĐỒ TỔNG TOÀN CẢNH 54 LEVEL (#world-roadmap-modal) -->
+        <!-- ============================================================== -->
+        <div id="world-roadmap-modal" class="world-roadmap-overlay">
+            <!-- Header chiến thuật trên cùng -->
+            <div class="world-roadmap-header">
+                <button type="button" id="btn-close-world-roadmap" class="btn-3d btn-3d-slate px-2.5 py-1.5 text-[11px] flex-shrink-0">
+                    ◀ SẢNH
+                </button>
+                <div class="world-header-title-col">
+                    <div class="world-header-main-title">BẢN ĐỒ CHIẾN DỊCH (54 MAP)</div>
+                    <div class="world-header-stats-row vt323-num">
+                        <span>⭐ <b id="world-total-stars">0 / 162</b></span>
+                        <span class="text-slate-500">|</span>
+                        <span class="text-sky-300">🗺️ <b id="world-map-progress">MAP 1 / 54</b></span>
+                    </div>
+                </div>
+                <button type="button" id="btn-world-overview" class="btn-3d btn-3d-cyan px-2.5 py-1.5 text-[10.5px] flex-shrink-0" title="Thu nhỏ xem toàn cảnh 6 vùng đất">
+                    🌐 TOÀN CẢNH
+                </button>
+            </div>
+
+            <!-- Thanh chọn nhanh 6 Vùng Đất (Biome Quick-Jump Pills) -->
+            <div class="world-biome-jump-bar">
+                <button type="button" data-biome-jump="1" class="biome-jump-pill active">🌿 Thảo Nguyên</button>
+                <button type="button" data-biome-jump="2" class="biome-jump-pill">🏜️ Hoang Mạc</button>
+                <button type="button" data-biome-jump="3" class="biome-jump-pill">❄️ Băng Giá</button>
+                <button type="button" data-biome-jump="4" class="biome-jump-pill">🌋 Núi Lửa</button>
+                <button type="button" data-biome-jump="5" class="biome-jump-pill">☣️ Đầm Lầy</button>
+                <button type="button" data-biome-jump="6" class="biome-jump-pill">🌸 Anh Đào</button>
+            </div>
+
+            <!-- Viewport Pan & Pinch Zoom 60-120 FPS + Lớp Mây Parallax Bay Xuyên Mây -->
+            <div id="world-roadmap-viewport" class="world-roadmap-viewport">
+                <canvas id="worldRoadmapCanvas"></canvas>
+
+                <!-- Lớp 8 Cụm Mây Parallax Tiền Cảnh & Trung Cảnh (Cloud-Dive Zoom Transition) -->
+                <div id="cloud-dive-layer" class="cloud-dive-layer">
+                    <div class="cloud-dive-wind"></div>
+                    <div id="cloud-dive-c1" class="parallax-cloud-puff" style="width:240px;height:130px;top:6%;left:-30px;"></div>
+                    <div id="cloud-dive-c2" class="parallax-cloud-puff" style="width:260px;height:140px;top:10%;right:-40px;"></div>
+                    <div id="cloud-dive-c3" class="parallax-cloud-puff" style="width:280px;height:150px;top:34%;left:10%;"></div>
+                    <div id="cloud-dive-c4" class="parallax-cloud-puff" style="width:270px;height:145px;top:38%;right:8%;"></div>
+                    <div id="cloud-dive-c5" class="parallax-cloud-puff" style="width:250px;height:135px;bottom:22%;left:-20px;"></div>
+                    <div id="cloud-dive-c6" class="parallax-cloud-puff" style="width:265px;height:145px;bottom:18%;right:-25px;"></div>
+                    <div id="cloud-dive-c7" class="parallax-cloud-puff" style="width:220px;height:120px;top:24%;left:32%;"></div>
+                    <div id="cloud-dive-c8" class="parallax-cloud-puff" style="width:230px;height:125px;bottom:32%;left:28%;"></div>
+                </div>
+
+                <!-- Cụm nút điều khiển Zoom & Căn giữa Level hiện tại -->
+                <div class="world-zoom-controls">
+                    <button type="button" id="btn-world-zoom-in" class="world-zoom-btn" title="Phóng to">➕</button>
+                    <button type="button" id="btn-world-zoom-out" class="world-zoom-btn" title="Thu nhỏ">➖</button>
+                    <button type="button" id="btn-world-recenter" class="world-zoom-btn" title="Về Level hiện tại">🎯</button>
+                </div>
+
+                <!-- UI POPOVER CHỌN CHẾ ĐỘ KHI CHẠM VÀO ĐIỂM LEVEL -->
+                <div id="stage-action-popover" class="stage-action-popover">
+                    <div class="popover-stage-header">
+                        <div class="popover-thumb-frame">
+                            <canvas id="popover-map-thumb" width="84" height="114" class="w-full h-full pixel-art"></canvas>
+                        </div>
+                        <div class="flex-1 text-left min-w-0">
+                            <div class="flex items-center justify-between gap-1">
+                                <span id="popover-stage-biome" class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400 text-sky-300">
+                                    🌿 VÙNG 1
+                                </span>
+                                <button type="button" id="btn-close-stage-popover" class="w-6 h-6 rounded-md bg-rose-600 border border-slate-950 text-white text-xs font-black flex items-center justify-center">
+                                    ✕
+                                </button>
+                            </div>
+                            <div id="popover-stage-title" class="text-sm font-black text-amber-300 truncate mt-1">
+                                LEVEL 01: CẦU QUA SÔNG
+                            </div>
+                            <div id="popover-stage-stars" class="text-xs text-amber-400 tracking-wider">
+                                ☆☆☆
+                            </div>
+                            <div id="popover-stage-desc" class="text-[9.5px] font-bold text-slate-300 line-clamp-2 leading-tight mt-0.5">
+                                Sông xanh cắt ngang chiến trường qua cây cầu gỗ trung tâm.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chọn Độ Khó (Dễ / Khó) -->
+                    <div class="grid grid-cols-2 gap-1.5">
+                        <button type="button" id="popover-diff-easy" data-pop-diff="easy" class="diff-pill-btn active py-1.5">
+                            <span>⚔️ DỄ</span>
+                            <span id="popover-easy-status" class="text-[10px]">★</span>
+                        </button>
+                        <button type="button" id="popover-diff-difficult" data-pop-diff="difficult" class="diff-pill-btn py-1.5">
+                            <span>💀 KHÓ</span>
+                            <span id="popover-hard-status" class="text-[10px]">🔒</span>
+                        </button>
+                    </div>
+
+                    <!-- Chọn 7 Chế Độ Chơi / Mini-Game Tương Ứng Với Map -->
+                    <div class="popover-mode-grid">
+                        <button type="button" data-pop-mode="destroy" class="popover-mode-pill active">
+                            <span class="text-xs">🏰</span>
+                            <span>Phá Căn Cứ</span>
+                        </button>
+                        <button type="button" data-pop-mode="survival" class="popover-mode-pill">
+                            <span class="text-xs">🛡️</span>
+                            <span>Sinh Tồn 10W</span>
+                        </button>
+                        <button type="button" data-pop-mode="endless_siege" class="popover-mode-pill">
+                            <span class="text-xs">♾️</span>
+                            <span>Vô Tận</span>
+                        </button>
+                        <button type="button" data-pop-mode="auto_battler" class="popover-mode-pill">
+                            <span class="text-xs">♟️</span>
+                            <span>Đặt Trận</span>
+                        </button>
+                        <button type="button" data-pop-mode="fog_of_war" class="popover-mode-pill">
+                            <span class="text-xs">🌑</span>
+                            <span>Đêm Mù</span>
+                        </button>
+                        <button type="button" data-pop-mode="raid_boss" class="popover-mode-pill">
+                            <span class="text-xs">👹</span>
+                            <span>Siêu Boss</span>
+                        </button>
+                        <button type="button" data-pop-mode="challenge" class="popover-mode-pill col-span-2">
+                            <span class="text-xs">☠️</span>
+                            <span>Zombie TD (20W)</span>
+                        </button>
+                    </div>
+
+                    <!-- Thông tin phần thưởng & Nút Xuất Kích -->
+                    <div class="flex items-center justify-between gap-2 pt-0.5">
+                        <div id="popover-reward-preview" class="text-[10px] font-black text-amber-200 bg-slate-950/80 border border-slate-700 rounded-xl px-2.5 py-2 flex-1 text-left vt323-num">
+                            Thưởng: +265 🪙
+                        </div>
+                        <button type="button" id="btn-popover-launch-stage" class="btn-3d btn-3d-green btn-sheen-fx px-4 py-2.5 text-xs tracking-wider">
+                            ⚔️ XUẤT KÍCH (START)
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ============================================================== -->
@@ -1324,7 +1587,7 @@
                         <ul class="text-[11px] font-bold text-slate-700 space-y-1 mb-3 pl-2">
                             <li>• Ngọc Trai (⚪), Huy chương (🎖️), Gems (💎) & Vàng (🪙) vô tận (<b>∞</b>)</li>
                             <li>• Mở 1 Tỷ Rương, Mua Chip, Nâng Skill Tree & Talents miễn phí</li>
-                            <li>• Mở khóa toàn bộ <b>45/45 Map</b> Battle & Challenge</li>
+                            <li>• Mở khóa toàn bộ <b>54/54 Map</b> Battle & Challenge</li>
                         </ul>
                         <button id="btn-Return-normal-mode" class="btn-3d btn-3d-rose w-full py-2.5 text-xs">
                             🔄 QUAY LẠI CHẾ ĐỘ NGƯỜI CHƠI THƯỜNG
@@ -2044,6 +2307,12 @@
                 <span id="battle-levelup-badge" class="lvup-count-pill vt323-num">+1</span>
             </div>
         </button>
+
+        <!-- HUD COMBO KILL STREAK (DOUBLE KILL / TRIPLE KILL / RAMPAGE / GODLIKE) -->
+        <div id="combo-streak-hud" class="combo-streak-hud hidden">
+            <span id="combo-streak-title" class="text-[10.5px] font-black text-amber-300 tracking-wider uppercase">🔥 DOUBLE KILL!</span>
+            <span id="combo-streak-count" class="vt323-num text-sm text-white leading-none">2 KILLS STREAK</span>
+        </div>
 
         <!-- BANNER CẢNH BÁO BOSS KHỔNG LỒ -->
         <div id="boss-warning-banner" class="boss-alert-banner hidden">
