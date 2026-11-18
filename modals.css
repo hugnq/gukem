@@ -1,1297 +1,571 @@
-/* ============================================================================
-   TINY BATTLE - MODALS & POPUPS STYLES (css/modals.css)
-   Spring Modal Transitions, Gacha Crate Burst, 6-Branch Talents, Chips (Slot 2),
-   Sandbox Review, Lucky Wheel (Skip Spin + History), Turrets, Index & Arcade
-   ============================================================================ */
-
-/* ============================================================================
-   1. MODALS / POPUPS PHONG CÁCH SÁNG (BRIGHT MOBILE MODALS + SPRING ANIMATION)
-   ============================================================================ */
-.bright-modal-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 80;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    padding: 14px;
-    background: rgba(15, 23, 42, 0.78);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
-}
-
-.bright-modal-overlay.active {
-    display: flex !important;
-    animation: backdropFadeIn 0.2s ease-out forwards;
-}
-
-.bright-modal-box {
-    width: 100%;
-    max-width: 344px;
-    background: #f8fafc;
-    border: 4px solid #0f172a;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 12px 0 #0f172a, 0 20px 40px rgba(0, 0, 0, 0.65);
-    animation: modalSpringIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.bright-modal-box.modal-wide {
-    max-width: 386px;
-}
-
-.bright-modal-header {
-    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-    border-bottom: 3.5px solid #0f172a;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.bright-modal-header.settings-header-grad {
-    background: linear-gradient(180deg, #64748b 0%, #334155 100%);
-}
-
-.bright-modal-header.danger-header-grad {
-    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
-}
-
-.bright-modal-header.refund-header-grad {
-    background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
-}
-
-.bright-modal-header.talents-header-grad,
-.bright-modal-header.talent-header-grad {
-    background: linear-gradient(180deg, #a855f7 0%, #6b21a8 100%);
-}
-
-.bright-modal-header.wheel-header-grad {
-    background: linear-gradient(90deg, #d97706 0%, #9333ea 50%, #0284c7 100%);
-}
-
-.bright-modal-header.arcade-header-grad {
-    background: linear-gradient(90deg, #059669 0%, #0284c7 50%, #7e22ce 100%);
-}
-
-.bright-modal-title {
-    margin: 0;
-    font-size: 15.5px;
-    font-weight: 900;
-    color: #ffffff;
-    letter-spacing: 0.6px;
-    text-shadow: 0 2px 0 #0f172a;
-}
-
-.bright-close-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    border: 2.5px solid #0f172a;
-    background: #ef4444;
-    color: #ffffff;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 2px 0 #0f172a;
-    transition: transform 0.1s ease, filter 0.12s ease;
-}
-
-.bright-close-btn:hover {
-    filter: brightness(1.08);
+/**
+ * ============================================================================
+ * TINY BATTLE - POPUP MODALS, TURRETS, WHEEL, INDEX & DRAFT (css/modals.css)
+ * Chuẩn hóa tương phản cao WCAG AA (>= 4.5:1), không trùng lặp class
+ * ============================================================================
+ */
+
+/* --------------------------------------------------------------------------
+ * 1. KHUNG BACKDROP & MODAL CARD CHUNG
+ * -------------------------------------------------------------------------- */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  background: rgba(5, 8, 17, 0.84);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  animation: modalFadeIn 0.16s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 410px;
+  max-height: 86dvh;
+  background: linear-gradient(180deg, #111827 0%, #0B1120 100%);
+  border: 1.5px solid var(--border-gold);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-card.modal-lg {
+  max-height: 90dvh;
+}
+
+.modal-header {
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.96);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.modal-title {
+  font-size: 14.5px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.modal-footer {
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.96);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------------------
+ * 2. MODAL CHI TIẾT BINH CHỦNG & Ổ CHIP (#modal-unit-detail)
+ * -------------------------------------------------------------------------- */
+.unit-detail-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: rgba(30, 41, 59, 0.65);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 10px;
+}
+
+.unit-detail-sprite {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  background: rgba(5, 8, 17, 0.78);
+  border-radius: 10px;
+  border: 1px solid var(--border-gold);
+  padding: 4px;
+  flex-shrink: 0;
 }
 
-.bright-close-btn:active {
-    transform: scale(0.96) translateY(2px);
-    box-shadow: 0 1px 0 #0f172a;
+.unit-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
 }
 
-.bright-modal-body {
-    padding: 14px;
+.rarity-pill {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(5, 8, 17, 0.9);
+  border: 1px solid currentColor;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
 }
 
-.settings-modal-scroll {
-    max-height: 76dvh;
-    overflow-y: auto;
+.unit-detail-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  line-height: 1.4;
 }
 
-.bright-input-field {
-    width: 100%;
-    padding: 10px 12px;
-    border: 3px solid #0f172a;
-    border-radius: 12px;
-    background: #ffffff;
-    color: #0f172a;
-    font-size: 14px;
-    font-weight: 800;
-    text-align: center;
-    outline: none;
+.unit-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
-.bright-input-field:focus {
-    border-color: #0284c7;
-    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+.stat-box-item {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
 }
 
-/* ============================================================================
-   2. MODAL CÀI ĐẶT, ADMIN MODE & DANGER ZONE (RESET ACCOUNT)
-   ============================================================================ */
-.settings-status-card {
-    background: #e2e8f0;
-    border: 2.5px solid #0f172a;
-    border-radius: 14px;
-    padding: 10px 12px;
+.stat-box-label {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.stat-box-val {
+  color: var(--text-primary);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
-.mode-pill-normal {
-    background: #334155;
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 900;
-    padding: 2px 8px;
-    border-radius: 999px;
-    border: 1.5px solid #0f172a;
+.unit-sockets-section {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(5, 8, 17, 0.75);
+  border: 1px solid var(--border-cyan);
 }
 
-.mode-pill-admin {
-    background: linear-gradient(90deg, #f59e0b 0%, #ef4444 100%);
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 900;
-    padding: 2px 8px;
-    border-radius: 999px;
-    border: 1.5px solid #0f172a;
+.sockets-title {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--text-cyan);
+  margin-bottom: 8px;
 }
 
-.admin-panel-box {
-    background: #ffffff;
-    border: 2.5px solid #0f172a;
-    border-radius: 14px;
-    padding: 10px;
-}
-
-.admin-panel-box.active-admin-box {
-    background: #fef9c3;
-    border-color: #d97706;
-}
-
-.admin-pass-form {
-    background: #f1f5f9;
-    border: 2px dashed #64748b;
-    border-radius: 12px;
-    padding: 10px;
-}
-
-.settings-danger-zone {
-    background: #fef2f2;
-    border: 2.5px solid #dc2626;
-    border-radius: 14px;
-    padding: 10px;
-    box-shadow: inset 0 0 8px rgba(220, 38, 38, 0.08);
-}
-
-.danger-zone-title {
-    font-size: 11px;
-    font-weight: 900;
-    color: #991b1b;
-    letter-spacing: 0.4px;
-}
+.unit-sockets-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
 
-.danger-zone-desc {
-    font-size: 10px;
-    font-weight: 700;
-    color: #7f1d1d;
-    margin: 3px 0 0 0;
-    line-height: 1.3;
+.socket-slot-btn {
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-primary);
+  font-size: 10.5px;
+  font-weight: 800;
+  text-align: center;
 }
 
-.danger-warning-icon-box {
-    width: 54px;
-    height: 54px;
-    margin: 0 auto 10px auto;
-    border-radius: 999px;
-    background: #fee2e2;
-    border: 3px solid #dc2626;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
-}
-
-/* ============================================================================
-   3. MODAL HOÀN LẠI CẤP ĐỘ (LEVEL REFUND MODAL)
-   ============================================================================ */
-.refund-summary-card {
-    background: #ffffff;
-    border: 2.5px solid #0f172a;
-    border-radius: 14px;
-    padding: 10px 12px;
-}
-
-.refund-level-compare-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.refund-lv-box {
-    flex: 1;
-    background: #f1f5f9;
-    border: 2px solid #0f172a;
-    border-radius: 10px;
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.refund-lv-box.target-box {
-    background: #ecfdf5;
-    border-color: #059669;
-}
-
-.refund-lv-label {
-    font-size: 9px;
-    font-weight: 800;
-    color: #64748b;
-}
-
-.refund-lv-val {
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 21px;
-    margin-top: 1px;
-}
-
-.refund-input-controls {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-}
-
-.refund-level-input {
-    width: 72px;
-    padding: 6px 8px;
-    border: 2.5px solid #0f172a;
-    border-radius: 10px;
-    background: #fffbeb;
-    color: #0f172a;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 19px;
-    text-align: center;
-    outline: none;
-}
-
-.refund-level-input:focus {
-    border-color: #d97706;
-    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35);
-}
-
-.refund-total-coins-box {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 2px dashed #cbd5e1;
-    padding-top: 8px;
-    font-size: 11.5px;
-    font-weight: 900;
-    color: #0f172a;
-}
-
-.refund-coins-badge {
-    background: #0f172a;
-    color: #fde047;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 18px;
-}
-
-/* ============================================================================
-   4. MODAL XÁC NHẬN & KẾT QUẢ MỞ RƯƠNG GACHA, GIFTCODE, NHIỆM VỤ
-   ============================================================================ */
-.gacha-confirm-summary-card {
-    background: #ffffff;
-    border: 2.5px solid #0f172a;
-    border-radius: 14px;
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.gacha-calc-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 11.5px;
-    color: #475569;
-    font-weight: 700;
-}
-
-.gacha-calc-total-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-top: 2px dashed #cbd5e1;
-    padding-top: 8px;
-    margin-top: 2px;
-    font-size: 12.5px;
-    font-weight: 900;
-    color: #0f172a;
-}
-
-.gacha-final-price-badge {
-    background: #0f172a;
-    color: #fde047;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 18px;
-}
-
-.gacha-result-summary-strip {
-    position: relative;
-    background: linear-gradient(90deg, #fef9c3 0%, #fde047 50%, #fef9c3 100%);
-    border: 2.5px solid #0f172a;
-    border-radius: 10px;
-    padding: 5px 10px;
-    font-size: 11.5px;
-    font-weight: 800;
-    color: #1e293b;
-    margin-bottom: 8px;
-    box-shadow: 0 3px 0 #0f172a;
-}
-
-.gacha-rarity-breakdown {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 4px;
-    margin-bottom: 8px;
-    padding: 5px 6px;
-    background: #0f172a;
-    border: 2px solid #334155;
-    border-radius: 10px;
-}
-
-.gacha-rarity-stat-pill {
-    font-size: 9.5px;
-    font-weight: 900;
-    padding: 2px 7px;
-    border-radius: 999px;
-    color: #ffffff;
-    border: 1.5px solid rgba(255, 255, 255, 0.25);
-    text-shadow: 0 1px 0 #000000;
-}
-
-/* Giftcode Tags */
-.giftcode-tags-wrap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    max-height: 68px;
-    overflow-y: auto;
-}
-
-.used-code-pill {
-    background: #dcfce7;
-    border: 1.5px solid #16a34a;
-    color: #15803d;
-    font-size: 9.5px;
-    font-weight: 800;
-    padding: 1px 6px;
-    border-radius: 6px;
-}
-
-/* Danh sách Nhiệm vụ (Mission List) */
-.mission-scroll-list {
-    max-height: 360px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.mission-item-card {
-    background: #ffffff;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 8px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    box-shadow: 0 3px 0 #cbd5e1;
-}
-
-.mission-progress-track {
-    width: 100%;
-    height: 8px;
-    background: #e2e8f0;
-    border: 1.5px solid #0f172a;
-    border-radius: 999px;
-    overflow: hidden;
-    margin-top: 4px;
-}
-
-.mission-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
-}
-
-/* Kết quả mở rương Gacha & Auto Merge */
-.gacha-results-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-    gap: 8px;
-    max-height: 300px;
-    overflow-y: auto;
-    padding: 4px;
-}
-
-/* ============================================================================
-   5. CHI TIẾT NÂNG CẤP TƯỚNG, BULK LEVEL UP & KHE CHIP (MỞ KHE 2 = 500 💎)
-   ============================================================================ */
-.upg-unit-preview-row {
-    display: flex;
-    align-items: center;
-    background: #e2e8f0;
-    border: 2.5px solid #0f172a;
-    border-radius: 14px;
-    padding: 8px;
-    margin-bottom: 8px;
-}
-
-.upg-unit-avatar-box {
-    width: 66px;
-    height: 66px;
-    border: 3px solid #0f172a;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.upg-lv-pill {
-    background: #0f172a;
-    color: #fde047;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 15px;
-    padding: 1.5px 7px;
-    border-radius: 999px;
-}
-
-.upg-stats-compare-box {
-    background: #ffffff;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 8px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.upg-stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-}
-
-.upg-stat-label {
-    font-weight: 700;
-    color: #475569;
-}
-
-/* Thanh chọn số cấp nâng hàng loạt (+1, +5, +10, MAX & Ô nhập số Level tùy ý) */
-.bulk-upgrade-control-box {
-    background: #1e293b;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 7px 8px;
-    color: #ffffff;
-}
-
-.bulk-upg-top-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.bulk-quick-btns-group {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.upg-quick-lv-btn {
-    padding: 5px 8px;
-    font-size: 11px;
-    border-radius: 9px;
-    border-width: 2px;
-    min-width: 38px;
-}
-
-.upg-quick-lv-btn.active {
-    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-    border-color: #bae6fd;
-    color: #ffffff;
-}
-
-.bulk-custom-input-group {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: #0f172a;
-    border: 1.5px solid #475569;
-    border-radius: 9px;
-    padding: 3px 6px;
-    flex: 1;
-    justify-content: flex-end;
-}
-
-.bulk-input-label {
-    font-size: 9.5px;
-    font-weight: 800;
-    color: #cbd5e1;
-    white-space: nowrap;
-}
-
-.bulk-add-lv-input {
-    width: 72px;
-    background: #1e293b;
-    border: 2px solid #f59e0b;
-    border-radius: 7px;
-    padding: 2px 5px;
-    color: #fde047;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 18px;
-    text-align: center;
-    outline: none;
-}
-
-.bulk-add-lv-input:focus {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.4);
-}
-
-/* Hệ thống Chip / Ngọc bổ trợ binh chủng (Unit Sockets) */
-.unit-sockets-section,
-.unit-chip-sockets-panel {
-    margin-top: 8px;
-    background: #f1f5f9;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 7px 9px;
-}
-
-.unit-sockets-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 10px;
-    font-weight: 900;
-    color: #0f172a;
-    margin-bottom: 5px;
-}
-
-.unit-sockets-row,
-.chip-sockets-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-}
-
-.chip-slot-btn {
-    background: #ffffff;
-    border: 2px dashed #64748b;
-    border-radius: 10px;
-    padding: 6px 8px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    cursor: pointer;
-    transition: all 0.12s ease;
-    text-align: left;
-}
-
-.chip-slot-btn:hover {
-    border-color: #0284c7;
-    background: #f0f9ff;
-}
-
-.chip-slot-btn.locked-slot2 {
-    border-style: dashed;
-    border-color: #f59e0b;
-    background: #fffbeb;
-}
-
-.chip-slot-btn.equipped {
-    border-style: solid;
-    border-width: 2.5px;
-    border-color: #0f172a;
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    color: #ffffff;
-    box-shadow: 0 3px 0 #020617;
-}
-
-.chip-slot-btn.equipped[data-chip="napalm_rocket"] {
-    border-color: #f97316;
-}
-
-.chip-slot-btn.equipped[data-chip="tactical_radar"] {
-    border-color: #06b6d4;
-}
-
-.chip-slot-btn.equipped[data-chip="reactive_armor"] {
-    border-color: #a855f7;
-}
-
-.chip-slot-btn.equipped[data-chip="overclock_core"] {
-    border-color: #22c55e;
-}
-
-.chip-slot-icon {
-    width: 28px;
-    height: 28px;
-    border-radius: 7px;
-    background: rgba(15, 23, 42, 0.12);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-}
-
-.chip-slot-btn.equipped .chip-slot-icon {
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.chip-slot-text-wrap {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.chip-slot-name {
-    font-size: 10px;
-    font-weight: 900;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.chip-slot-effect {
-    font-size: 8.5px;
-    font-weight: 700;
-    color: #64748b;
-    line-height: 1.15;
-}
-
-.chip-slot-btn.equipped .chip-slot-effect {
-    color: #fde047;
+.socket-slot-btn.has-chip {
+  border-style: solid;
+  border-color: var(--border-gold);
+}
+
+/* --------------------------------------------------------------------------
+ * 3. MODAL Ụ PHÁO MANSION (#modal-turrets)
+ * -------------------------------------------------------------------------- */
+.turret-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.turret-item-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: rgba(30, 41, 59, 0.72);
+  border: 1.5px solid var(--border-subtle);
+}
+
+.turret-item-card.equipped {
+  border-color: #4ADE80;
+  background: rgba(20, 83, 45, 0.28);
+}
+
+.turret-sprite-thumb {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  background: rgba(5, 8, 17, 0.82);
+  border-radius: 10px;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.turret-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.turret-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. MODAL NHIỆM VỤ & RƯƠNG SAO (#modal-mission)
+ * -------------------------------------------------------------------------- */
+.star-chest-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(161, 98, 7, 0.35) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid var(--border-gold);
+  margin-bottom: 10px;
+}
+
+.chest-art-md {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.mission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mission-row-card {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------------------
+ * 5. MODAL THIÊN PHÚ (#modal-talents) & VÒNG QUAY (#modal-wheel)
+ * -------------------------------------------------------------------------- */
+.talent-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.talent-row-card {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wheel-stage {
+  position: relative;
+  width: 210px;
+  height: 210px;
+  margin: 6px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  font-size: 20px;
+  color: #F43F5E;
+  text-shadow: 0 2px 4px #000000;
+}
+
+.wheel-art {
+  width: 196px;
+  height: 196px;
+  object-fit: contain;
+  transition: transform 3.2s cubic-bezier(0.15, 0.85, 0.22, 1);
+  will-change: transform;
+}
+
+/* --------------------------------------------------------------------------
+ * 6. MODAL SỔ TAY INDEX (#modal-index) & BẢNG 41 BẬC HIẾM (#modal-rarity)
+ * -------------------------------------------------------------------------- */
+.index-filter-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.index-tab-btn {
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.index-tab-btn.active {
+  background: rgba(250, 204, 21, 0.2);
+  border-color: var(--border-gold);
+  color: var(--text-gold);
+}
+
+.index-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.index-entry-card {
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+
+.index-entry-card img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.rarity-tiers-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.rarity-tier-row {
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------------------------------
+ * 7. MODAL SETTINGS, GIFTCODE, CHIP MOD & MINI-GAME
+ * -------------------------------------------------------------------------- */
+.giftcode-box {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid var(--border-gold);
+}
+
+.giftcode-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+#input-giftcode {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #050811;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.65);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.admin-banner {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(136, 19, 55, 0.45);
+  border: 1px solid #FB7185;
+  text-align: center;
 }
 
 .chip-inventory-grid {
-    display: grid;
-    grid-template-columns: repeat(1, 1fr);
-    gap: 6px;
-    max-height: 195px;
-    overflow-y: auto;
-    margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
-.chip-item-card {
-    background: #ffffff;
-    border: 2px solid #0f172a;
-    border-radius: 10px;
-    padding: 6px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    box-shadow: 0 2px 0 #cbd5e1;
-}
-
-.chip-item-card.compatible {
-    border-color: #16a34a;
-    background: #f0fdf4;
-}
-
-/* ============================================================================
-   6. PHÒNG TẬP BẮN THỬ SANDBOX (#sandbox-review-modal)
-   ============================================================================ */
-.sandbox-canvas-frame {
-    width: 100%;
-    background: #0f172a;
-    border: 3px solid #0f172a;
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8);
-}
-
-.sandbox-canvas-frame canvas {
-    width: 100%;
-    height: auto;
-    display: block;
-}
-
-.sandbox-rarity-strip {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 4px;
-    margin: 6px 0;
-}
-
-.sb-rarity-pill {
-    padding: 2.5px 7px;
-    border-radius: 999px;
-    border: 1.5px solid #0f172a;
-    font-size: 9px;
-    font-weight: 900;
-    color: #ffffff;
-    cursor: pointer;
-    text-shadow: 0 1px 0 #000000;
-    transition: transform 0.08s ease;
-}
-
-.sb-rarity-pill.active {
-    outline: 2.5px solid #fde047;
-    transform: scale(1.06);
-}
-
-/* ============================================================================
-   7. CÂY KỸ NĂNG BỊ ĐỘNG CHỈ HUY (6 NHÁNH META-TALENTS - MAX LV.10)
-   ============================================================================ */
-.talents-header-summary,
-.talent-top-summary-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #1e293b;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 8px 10px;
-    margin-bottom: 10px;
-    color: #ffffff;
-}
-
-.talents-medal-balance {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 800;
-    color: #fda4af;
-}
-
-.talent-medal-count-badge {
-    background: #0f172a;
-    color: #fde047;
-    padding: 2px 9px;
-    border-radius: 999px;
-    border: 1.5px solid #fde047;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 16px;
-}
-
-.talents-scroll-list,
-.talent-tree-container {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-    max-height: 360px;
-    overflow-y: auto;
-    padding-right: 2px;
-}
-
-.talent-node-card {
-    background: #ffffff;
-    border: 3px solid #0f172a;
-    border-radius: 14px;
-    padding: 9px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 9px;
-    box-shadow: 0 4px 0 #cbd5e1;
-    transition: border-color 0.15s ease;
-}
-
-.talent-node-card.talent-maxed {
-    background: linear-gradient(180deg, #fef9c3 0%, #fef08a 100%);
-    border-color: #ca8a04;
-}
-
-.talent-node-icon {
-    width: 46px;
-    height: 46px;
-    border-radius: 12px;
-    border: 2.5px solid #0f172a;
-    background: linear-gradient(180deg, #334155 0%, #0f172a 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    flex-shrink: 0;
-    box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.2);
-}
-
-.talent-node-info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    text-align: left;
-}
-
-.talent-node-title {
-    font-size: 12px;
-    font-weight: 900;
-    color: #0f172a;
-}
-
-.talent-node-desc {
-    font-size: 9.5px;
-    font-weight: 700;
-    color: #475569;
-    line-height: 1.25;
-}
-
-.talent-node-stat-preview {
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 14px;
-    color: #0284c7;
-    margin-top: 1px;
-}
-
-.talent-level-pips {
-    display: flex;
-    gap: 2.5px;
-    margin-top: 4px;
-}
-
-.talent-pip {
-    width: 11px;
-    height: 6px;
-    border-radius: 3px;
-    background: #cbd5e1;
-    border: 1.2px solid #0f172a;
-}
-
-.talent-pip.active {
-    background: linear-gradient(90deg, #facc15 0%, #f59e0b 100%);
-    box-shadow: 0 0 4px rgba(245, 158, 11, 0.8);
-}
-
-.talent-upgrade-btn {
-    padding: 6px 9px;
-    font-size: 10px;
-    min-width: 74px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.talent-cost-num {
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 15px;
-    color: #fef08a;
-}
-
-/* ============================================================================
-   8. VÒNG QUAY MAY MẮN 8 Ô (#lucky-wheel-modal), SKIP SPIN & LỊCH SỬ JACKPOT
-   ============================================================================ */
-.lucky-pity-box {
-    background: #f3e8ff;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 7px 10px;
-    margin-bottom: 7px;
-}
-
-.lucky-pity-track {
-    width: 100%;
-    height: 10px;
-    background: #0f172a;
-    border-radius: 999px;
-    overflow: hidden;
-    border: 1.5px solid #581c87;
-}
-
-.lucky-pity-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #00f2fe 0%, #a855f7 50%, #ec4899 100%);
-    transition: width 0.25s ease;
-}
-
-.wheel-skip-toggle-bar {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: #f1f5f9;
-    border: 2px solid #0f172a;
-    border-radius: 999px;
-    padding: 3px 12px;
-    margin-bottom: 6px;
-    cursor: pointer;
-    font-size: 10.5px;
-    font-weight: 900;
-    color: #0f172a;
-}
-
-.lucky-wheel-stage {
-    position: relative;
-    width: 246px;
-    height: 246px;
-    margin: 4px auto 8px auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.lucky-wheel-pointer {
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 6;
-    font-size: 24px;
-    color: #ef4444;
-    -webkit-text-stroke: 1.5px #0f172a;
-    filter: drop-shadow(0 3px 0 #0f172a);
-}
-
-.lucky-wheel-canvas {
-    width: 240px;
-    height: 240px;
-    border-radius: 50%;
-    border: 5px solid #0f172a;
-    box-shadow: 0 6px 0 #0f172a, 0 0 20px rgba(168, 85, 247, 0.45);
-    background: #1e293b;
-}
-
-.lucky-wheel-canvas.spinning {
-    box-shadow: 0 6px 0 #0f172a, 0 0 28px rgba(0, 242, 254, 0.75), 0 0 44px rgba(217, 70, 239, 0.65);
-}
-
-.lucky-wheel-center-cap {
-    position: absolute;
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: linear-gradient(180deg, #fde047 0%, #ea580c 100%);
-    border: 3.5px solid #0f172a;
-    color: #ffffff;
-    font-family: var(--font-ui);
-    font-size: 11px;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.5);
-    z-index: 5;
-    text-shadow: 0 1.5px 0 #0f172a;
-}
-
-.lucky-wheel-center-cap:active {
-    transform: scale(0.93);
-}
-
-@keyframes jackpotBannerFlash {
-    0% {
-        background: linear-gradient(90deg, #001e4d 0%, #0284c7 50%, #00f2fe 100%);
-        border-color: #00f2fe;
-        box-shadow: 0 0 12px rgba(0, 242, 254, 0.8);
-    }
-    100% {
-        background: linear-gradient(90deg, #3b0764 0%, #9333ea 50%, #d946ef 100%);
-        border-color: #f0abfc;
-        box-shadow: 0 0 18px rgba(217, 70, 239, 0.95);
-    }
-}
-
-.lucky-wheel-result-strip {
-    background: #1e293b;
-    border: 2px solid #0f172a;
-    border-radius: 10px;
-    padding: 5px 8px;
-    color: #fde047;
-    font-size: 11px;
-    font-weight: 800;
-    margin-bottom: 6px;
-}
-
-.lucky-wheel-result-strip.jackpot-hit {
-    color: #ffffff;
-    font-size: 12px;
-    animation: jackpotBannerFlash 0.6s ease-in-out infinite alternate;
-}
-
-.lucky-wheel-odds-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 3px 8px;
-    background: #f1f5f9;
-    border: 2px solid #0f172a;
-    border-radius: 10px;
-    padding: 6px 8px;
-    font-size: 9.5px;
-    font-weight: 800;
-    color: #334155;
-    text-align: left;
-}
-
-.wheel-history-box {
-    background: #0f172a;
-    border: 2px solid #334155;
-    border-radius: 10px;
-    padding: 5px 8px;
-    margin-top: 6px;
-    text-align: left;
-    max-height: 70px;
-    overflow-y: auto;
-}
-
-/* ============================================================================
-   9. TRUNG TÂM 3 MINI-GAME GIẢI TRÍ (#minigame-arcade-modal)
-   ============================================================================ */
-.arcade-tabs-bar {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
-    background: #1e293b;
-    padding: 4px;
-    border-radius: 12px;
-    border: 2.5px solid #0f172a;
-    margin-bottom: 8px;
-}
-
-.arcade-tab-btn {
-    background: #334155;
-    border: 2px solid #0f172a;
-    border-radius: 8px;
-    padding: 5px 4px;
-    color: #cbd5e1;
-    font-size: 10px;
-    font-weight: 900;
-    cursor: pointer;
-    transition: all 0.12s ease;
-}
-
-.arcade-tab-btn.active {
-    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-    color: #0f172a;
-    text-shadow: none;
-}
-
-.arcade-game-pane {
-    display: none;
-    flex-direction: column;
-}
-
-.arcade-game-pane.active {
-    display: flex;
-    animation: popIn 0.15s ease-out;
-}
-
-.arcade-info-banner {
-    background: #e2e8f0;
-    border: 2px solid #0f172a;
-    border-radius: 10px;
-    padding: 6px 8px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #1e293b;
-    margin-bottom: 8px;
-    line-height: 1.3;
-}
-
-/* Mini-Game 1: Bàn cờ Đập Mìn Công Binh 5x5 */
-.mg-mines-board {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
-    background: #0f172a;
-    border: 3px solid #0f172a;
-    border-radius: 12px;
-    padding: 6px;
-}
-
-.mg-mine-cell {
-    aspect-ratio: 1 / 1;
-    background: linear-gradient(180deg, #475569 0%, #1e293b 100%);
-    border: 2px solid #64748b;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    font-weight: 900;
-    color: #ffffff;
-    cursor: pointer;
-    box-shadow: 0 3px 0 #020617;
-    transition: transform 0.08s ease, background 0.12s ease;
-}
-
-.mg-mine-cell:hover:not(.revealed) {
-    border-color: #38bdf8;
-    filter: brightness(1.1);
-}
-
-.mg-mine-cell:active:not(.revealed) {
-    transform: scale(0.93) translateY(2px);
-}
-
-.mg-mine-cell.revealed.safe {
-    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
-    border-color: #bbf7d0;
-}
-
-.mg-mine-cell.revealed.mine {
-    background: linear-gradient(180deg, #ef4444 0%, #991b1b 100%);
-    border-color: #fecaca;
-    animation: bossPulse 0.35s ease-in-out 2;
-}
-
-/* Mini-Game 2: Hứng Tiếp Tế Dù (Airdrop Catcher 30s) */
-.mg-catcher-canvas-wrap {
-    width: 100%;
-    background: #0f172a;
-    border: 3px solid #0f172a;
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-}
-
-.mg-catcher-canvas {
-    width: 100%;
-    max-width: 340px;
-    height: 210px;
-    background: linear-gradient(180deg, #0284c7 0%, #38bdf8 65%, #15803d 65%, #166534 100%);
-}
-
-#btn-mg-catcher-left:active,
-#btn-mg-catcher-right:active {
-    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-    color: #ffffff;
-}
-
-/* Mini-Game 3: Đoán Bài Chiến Thuật (High-Low Rarity Flip) */
-.mg-hl-cards-arena {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 6px 2px;
-}
-
-.mg-hl-card-box {
-    flex: 1;
-    min-height: 124px;
-    border: 3px solid #0f172a;
-    border-radius: 14px;
-    padding: 8px 6px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 0 #0f172a;
-}
-
-.mg-hl-card-box.card-revealed {
-    animation: cardFlipReveal 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.mg-hl-card-box.mystery-card {
-    background: repeating-linear-gradient(
-        45deg,
-        #1e293b,
-        #1e293b 10px,
-        #0f172a 10px,
-        #0f172a 20px
-    );
-    border-color: #facc15;
-}
-
-.mg-hl-card-label {
-    font-size: 9px;
-    font-weight: 900;
-    color: #f8fafc;
-    background: rgba(15, 23, 42, 0.65);
-    padding: 1.5px 6px;
-    border-radius: 999px;
-}
-
-/* ============================================================================
-   10. Ụ PHÁO CĂN CỨ XANH (#base-turret-modal) & SỔ TAY INDEX (#codex-modal)
-   ============================================================================ */
-.turret-option-card {
-    background: #ffffff;
-    border: 3px solid #0f172a;
-    border-radius: 14px;
-    padding: 8px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    box-shadow: 0 4px 0 #cbd5e1;
-}
-
-.turret-option-card.active-turret {
-    background: #ecfeff;
-    border-color: #0284c7;
-    box-shadow: 0 4px 0 #0284c7, 0 0 10px rgba(14, 165, 233, 0.35);
-}
-
-.codex-unit-row {
-    background: #ffffff;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 7px 9px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    box-shadow: 0 3px 0 #cbd5e1;
-}
-
-.codex-milestones-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-}
-
-.codex-ms-btn {
-    padding: 3px 2px;
-    font-size: 8.5px;
-    font-weight: 900;
-    border-radius: 7px;
-    border: 1.5px solid #0f172a;
-    text-align: center;
-    cursor: pointer;
-}
-
-.codex-ms-btn.ms-locked {
-    background: #e2e8f0;
-    color: #64748b;
-    cursor: not-allowed;
-}
-
-.codex-ms-btn.ms-claimable {
-    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
-    color: #ffffff;
-    animation: notifPulse 0.75s ease-in-out infinite alternate;
-}
+.minigame-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+.minigame-cell {
+  aspect-ratio: 1 / 1;
+  border-radius: 8px;
+  background: #1E293B;
+  border: 1px solid var(--border-strong);
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.minigame-cell.safe {
+  background: rgba(22, 163, 74, 0.35);
+  border-color: #4ADE80;
+}
+
+.minigame-cell.bomb {
+  background: rgba(225, 29, 72, 0.45);
+  border-color: #FB7185;
+}
+
+/* --------------------------------------------------------------------------
+ * 8. MODAL ROGUELIKE DRAFT & KẾT QUẢ TRẬN ĐẤU (#modal-battle-result)
+ * -------------------------------------------------------------------------- */
+.roguelike-draft-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.draft-option-card {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  border: 1.5px solid var(--border-cyan);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.draft-option-card:hover {
+  border-color: var(--border-gold);
+  transform: translateY(-1px);
+}
+
+.result-title {
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.result-stars {
+  font-size: 28px;
+  color: var(--text-gold);
+  text-shadow: 0 2px 8px rgba(250, 204, 21, 0.6);
+  margin: 6px 0;
+}
+
+.result-rewards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reward-pill-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid var(--border-gold);
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--text-gold);
+}
+
+.gacha-result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
 
-.codex-ms-btn.ms-claimed {
-    background: #0f172a;
-    color: #fde047;
-    cursor: default;
+.gacha-drop-card {
+  padding: 8px 6px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1.5px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+}
+
+.gacha-drop-card img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
 }

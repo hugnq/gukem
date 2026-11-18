@@ -1,227 +1,187 @@
-/* ============================================================================
-   TINY BATTLE - RESPONSIVE STYLES (css/responsive.css)
-   Tinh chỉnh giao diện cho màn hình điện thoại nhỏ (< 380px & < 720px height)
-   Hỗ trợ: Top Bar 4 tiền tệ, 5 Tabs, World Roadmap, Popover, Deck 6 ô & Skill Tree
-   ============================================================================ */
+/**
+ * ============================================================================
+ * TINY BATTLE - RESPONSIVE & VIEWPORT ADAPTATION (css/responsive.css)
+ * Tối ưu hiển thị trên cả màn hình điện thoại hẹp (<= 375px), màn hình ngắn
+ * (<= 680px) và trình duyệt máy tính để bàn (>= 768px)
+ * ============================================================================
+ */
 
-@media (max-width: 380px) {
-    /* 1. Top Bar 4 loại tiền tệ (Ngọc Trai Trắng, Huy Chương, Gems, Vàng) */
-    .lobby-top-bar {
-        padding: 4px 5px !important;
-        gap: 3px;
-    }
-    .profile-settings-group {
-        gap: 4px;
-    }
-    .player-profile-pill {
-        padding: 2px 5px 2px 3px;
-        gap: 4px;
-    }
-    .avatar-box {
-        width: 28px;
-        height: 28px;
-    }
-    .player-name-text {
-        max-width: 48px !important;
-        font-size: 10px !important;
-    }
-    .btn-settings-gear {
-        width: 32px;
-        height: 32px;
-    }
-    .currency-group {
-        gap: 2px !important;
-    }
-    .currency-pill {
-        min-width: 38px !important;
-        padding: 2px 4px 2px 3px !important;
-        gap: 2px !important;
-    }
-    .currency-icon {
-        font-size: 10.5px !important;
-    }
-    .currency-val {
-        font-size: 13px !important;
-    }
+/* --------------------------------------------------------------------------
+ * 1. MÀN HÌNH ĐIỆN THOẠI SIÊU HẸP (WIDTH <= 375PX)
+ * -------------------------------------------------------------------------- */
+@media (max-width: 375px) {
+  :root {
+    --top-bar-h: 50px;
+    --bottom-nav-h: 58px;
+  }
 
-    /* 2. Thanh điều hướng đáy 5 Tab */
-    .lobby-bottom-nav.five-tabs .nav-tab-icon {
-        font-size: 16px;
-    }
-    .lobby-bottom-nav.five-tabs .nav-tab-label {
-        font-size: 7.5px;
-        letter-spacing: 0;
-    }
+  .profile-name {
+    max-width: 56px;
+    font-size: 10.5px;
+  }
 
-    /* 3. Thanh HUD máu 2 căn cứ Xanh & Đỏ & Nút LEVEL UP (+N) */
-    .base-hp-hud-strip {
-        width: min(216px, calc(100vw - 144px)) !important;
-        gap: 3px;
-    }
-    .base-hp-label-row {
-        font-size: 8px;
-    }
-    .battle-levelup-float-btn {
-        left: 6px;
-        top: 136px;
-        padding: 5px 8px 5px 6px;
-        gap: 4px;
-    }
-    .lvup-icon {
-        font-size: 15px;
-    }
-    .lvup-title {
-        font-size: 8.5px;
-    }
-    .lvup-count-pill {
-        font-size: 14px;
-        padding: 0 5px;
-    }
+  .profile-rank {
+    font-size: 9px;
+  }
 
-    /* 4. Thanh Deck đáy (5 ô Battle & 6 ô Challenge) */
-    .bottom-deck {
-        grid-template-columns: 0.88fr 0.74fr 4.38fr;
-        gap: 2.5px;
-        padding: 5px 3px 6px 3px;
-    }
-    .battle-deck-slots,
-    #unitDeckContainer,
-    #battle-deck-slots {
-        gap: 2.5px;
-    }
-    .battle-deck-slots.challenge-6-slots {
-        gap: 1.5px !important;
-    }
-    .battle-deck-slots.challenge-6-slots .hotkey-badge,
-    .battle-deck-slots.challenge-6-slots .unit-lv-badge {
-        font-size: 9px;
-        padding: 0 2px;
-    }
-    .battle-deck-slots.challenge-6-slots .unit-card-art {
-        width: 28px;
-        height: 28px;
-    }
-    .battle-deck-slots.challenge-6-slots .unit-card-art img {
-        width: 26px;
-        height: 26px;
-    }
-    .battle-deck-slots.challenge-6-slots .unit-card-name {
-        font-size: 6.8px;
-    }
-    .battle-deck-slots.challenge-6-slots .cost-badge {
-        font-size: 11px;
-        padding: 0 3px;
-    }
+  .currency-pill {
+    padding: 2px 5px;
+    gap: 2px;
+  }
 
-    /* 5. Bảng Roll thẻ bài & Kho tướng */
-    .draft-cards-grid {
-        gap: 4px;
-    }
-    .draft-card {
-        min-height: 164px;
-        padding: 6px 3px;
-    }
-    .draft-cards-grid.six-cards .draft-card {
-        min-height: 122px;
-        padding: 4px 2px;
-    }
-    .army-cards-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
+  .currency-val {
+    font-size: 10px;
+  }
 
-    /* 6. Màn hình Battle, Cột nút Sidebar & World Roadmap */
-    .commander-tactics-dock,
-    .commander-tactics-bar {
-        gap: 3.5px;
-        bottom: 128px;
-    }
-    .tactic-skill-btn {
-        height: 40px;
-        padding: 2px 4px;
-    }
-    .tactic-title-short,
-    .tactic-label {
-        font-size: 8px;
-    }
-    .side-feature-btn {
-        width: 52px;
-        height: 50px;
-    }
-    .battle-side-column.four-btns .side-feature-btn {
-        width: 52px;
-        height: 43px;
-    }
-    .side-btn-icon {
-        font-size: 16px;
-    }
-    .side-btn-text {
-        font-size: 7.5px;
-    }
-    .biome-jump-pill {
-        font-size: 7px !important;
-        padding: 3.5px 1px !important;
-    }
-    .popover-mode-pill {
-        font-size: 7.2px !important;
-        padding: 4px 1px !important;
-    }
+  .ui-icon {
+    width: 15px;
+    height: 15px;
+  }
 
-    /* 7. Cây Kỹ Năng Cổ Thụ (Skill Tree 4 Nhánh Tán Cây) */
-    .st-branch-jump-btn {
-        font-size: 7.5px;
-        padding: 3px 1px;
-    }
-    .st-tree-node {
-        width: 48px;
-        height: 48px;
-    }
-    .st-tree-node.special-keystone {
-        width: 62px;
-        height: 62px;
-    }
+  .lobby-side-col {
+    width: 58px;
+    gap: 6px;
+  }
 
-    /* 8. Modal Nâng cấp & Vòng quay */
-    .bulk-upg-top-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .bulk-quick-btns-group {
-        justify-content: space-between;
-    }
-    .upg-quick-lv-btn {
-        flex: 1;
-    }
-    .bulk-custom-input-group {
-        justify-content: space-between;
-    }
-    .lucky-wheel-stage {
-        width: 216px;
-        height: 216px;
-    }
-    .lucky-wheel-canvas {
-        width: 210px;
-        height: 210px;
-    }
+  .lobby-icon-btn {
+    width: 58px;
+    min-height: 52px;
+    padding: 4px 2px;
+  }
+
+  .lobby-btn-art {
+    width: 24px;
+    height: 24px;
+  }
+
+  .lobby-btn-glyph {
+    font-size: 17px;
+  }
+
+  .lobby-btn-label {
+    font-size: 8.5px;
+  }
+
+  .lobby-map-viewport {
+    max-width: 192px;
+  }
+
+  .tactic-skill-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .gas-generator-box {
+    max-width: 165px;
+    padding: 4px 6px;
+  }
+
+  .battle-deck-card {
+    height: 60px;
+  }
+
+  .battle-deck-card img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .army-deck-slots {
+    gap: 3px;
+  }
+
+  .deck-slot-card img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .army-unit-grid {
+    gap: 6px;
+  }
+
+  .unit-card-sprite-box {
+    width: 52px;
+    height: 52px;
+  }
+
+  .unit-card-sprite {
+    width: 44px;
+    height: 44px;
+  }
 }
 
-@media (max-height: 720px) {
-    .army-Hero-stage {
-        height: 122px;
-    }
-    .army-showcase-canvas {
-        width: 84px;
-        height: 84px;
-    }
-    .world-mini-viewport-card {
-        min-height: 220px !important;
-    }
-    .side-feature-btn {
-        height: 48px;
-    }
-    .battle-side-column.four-btns .side-feature-btn {
-        height: 41px;
-    }
-    .battle-levelup-float-btn {
-        top: 132px;
-    }
+/* --------------------------------------------------------------------------
+ * 2. MÀN HÌNH CHIỀU CAO NGẮN (HEIGHT <= 680PX)
+ * -------------------------------------------------------------------------- */
+@media (max-height: 680px) {
+  .lobby-stage-banner {
+    padding: 5px 12px;
+  }
+
+  .stage-main-title {
+    font-size: 13.5px;
+  }
+
+  .lobby-map-viewport {
+    max-width: 185px;
+  }
+
+  .lobby-icon-btn {
+    min-height: 50px;
+    padding: 4px 3px;
+  }
+
+  .btn-start-main {
+    padding: 8px 12px;
+  }
+
+  .start-title {
+    font-size: 16px;
+  }
+
+  .battle-top-hud {
+    padding: 5px 8px;
+    gap: 3px;
+  }
+
+  .battle-bottom-hud {
+    padding: 5px 6px 6px;
+    gap: 4px;
+  }
+
+  .battle-deck-card {
+    height: 58px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * 3. TRÌNH DUYỆT DESKTOP / TABLET (MIN-WIDTH: 768PX)
+ * Giữ khung dọc 9:18 sắc nét ở trung tâm với hiệu ứng viền phát sáng nhẹ
+ * -------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  body {
+    background: radial-gradient(circle at 50% 35%, #111827 0%, #030712 100%);
+  }
+
+  #game-viewport {
+    height: min(96dvh, 880px);
+    border-radius: 22px;
+    border: 2px solid rgba(250, 204, 21, 0.35);
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.95),
+      0 0 32px rgba(56, 189, 248, 0.14);
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * 4. HỖ TRỢ VÙNG AN TOÀN NOTCH / HOME BAR (SAFE AREA INSETS)
+ * -------------------------------------------------------------------------- */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #lobby-bottom-nav {
+    height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .battle-bottom-hud {
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
 }

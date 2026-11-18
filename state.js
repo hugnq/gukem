@@ -1,1136 +1,630 @@
-/* ============================================================================
-   TINY BATTLE - META-GAME STATE & PERSISTENCE (js/state.js)
-   Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100% với save cũ)
-   Hỗ trợ: 54 Maps (6 Biomes) • Hệ thống 0-3 Sao (metaState.mapStars & 162 Sao) •
-           18 Binh Chủng • Ngọc Trai Trắng • Kho Chip • Challenge •
-           Cây Cổ Thụ 4 Nhánh (40 Kỹ Năng & 4 Kỹ Năng Đặc Biệt)
-   ============================================================================ */
+/**
+ * ============================================================================
+ * TINY BATTLE - META & BATTLE STATE MANAGEMENT (js/state.js)
+ * Quản lý dữ liệu người chơi (localStorage), Cây Kỹ Năng 6 nhánh, Ụ Pháo,
+ * Đội hình 5/6 ô, Trạng thái trận đấu & Hitbox hai Mansion
+ * ============================================================================
+ */
 
-import {
-    STORAGE_KEY,
-    RARITY_ORDER,
-    MAX_RARITY_RANK,
-    RARITY_CONFIG,
-    LEVELS,
-    UNIT_CATALOG,
-    UNIT_BY_ID,
-    UNIT_CHIPS,
-    CHIP_SOCKET_2_UNLOCK_GEMS,
-    CHIP_BUY_COST_COINS,
-    CHIP_BUY_COST_GEMS,
-    BASE_TURRET_CONFIG,
-    CODEX_MILESTONES,
-    ANCIENT_SKILL_TREE,
-    getSkillTreeNodeCost
-} from './config.js';
-import { getUnitUpgradeCost, calcTotalRefundCoinsFast } from './math.js';
+'use strict';
 
-export const PRIMARY_INFANTRY_ID = UNIT_CATALOG[0]?.id || 'infantry';
+const SAVE_STORAGE_KEY = 'tiny_battle_save_v2_2026';
 
-export function normalizeUnitId(unitId) {
-    if (unitId === 'infantry' || unitId === 'rifleman') {
-        return PRIMARY_INFANTRY_ID;
-    }
-    return unitId;
-}
-
-export function createDefaultChipInventory() {
-    return {
-        napalm_rocket: 1,
-        tactical_radar: 1,
-        reactive_armor: 1,
-        overclock_core: 1
-    };
-}
-
-export function createDefaultAncientSkillTree() {
-    const tree = {};
-    Object.keys(ANCIENT_SKILL_TREE).forEach(nodeId => {
-        tree[nodeId] = 0;
+/* --------------------------------------------------------------------------
+ * 1. KHỞI TẠO TRẠNG THÁI META-GAME MẶC ĐỊNH
+ * -------------------------------------------------------------------------- */
+function createDefaultMetaState() {
+  const units = {};
+  UNIT_CATALOG.forEach((u, idx) => {
+    const unlockedByDefault = idx < 3; // Mở sẵn Infantry, Bazooka, Sniper
+    const rarityCounts = {};
+    RARITY_TIERS.forEach((r) => {
+      rarityCounts[r.id] = 0;
     });
-    return tree;
-}
-
-export function createDefaultMapStars() {
-    const starsMap = {};
-    for (let i = 1; i <= LEVELS.length; i++) {
-        starsMap[i] = 0;
+    if (unlockedByDefault) {
+      rarityCounts.common = 1;
     }
-    return starsMap;
+
+    units[u.id] = {
+      unlocked: unlockedByDefault,
+      level: 1,
+      shards: 0,
+      rarityId: 'common',
+      rarityCounts,
+      sockets: [null, null, null] // 3 ổ khảm Chip bổ trợ
+    };
+  });
+
+  const turrets = {};
+  TURRET_CATALOG.forEach((t, idx) => {
+    turrets[t.id] = {
+      unlocked: idx === 0, // Mở sẵn Ụ Pháo Gatling
+      level: 1
+    };
+  });
+
+  const skillTree = {};
+  ANCIENT_SKILL_TREE.forEach((node) => {
+    skillTree[node.id] = 0;
+  });
+
+  const metaTalents = {};
+  META_TALENTS.forEach((t) => {
+    metaTalents[t.id] = 0;
+  });
+
+  const chipInventory = {};
+  CHIP_CATALOG.forEach((c) => {
+    chipInventory[c.id] = 0;
+  });
+
+  return {
+    playerName: 'Commander',
+    playerLevel: 1,
+    playerExp: 0,
+
+    // 4 loại tiền tệ chính
+    coins: 600,
+    gems: 150,
+    medals: 0,
+    pearls: 3,
+
+    // Tiến độ 54 màn Campaign & 54 màn Challenge
+    selectedStage: 1,
+    maxUnlockedStage: 1,
+    stageStars: {},          // { [level]: 1..3 }
+    challengeCleared: {},    // { [level]: true }
+    starChestClaimed: 0,
+
+    // Chế độ chơi đang chọn ở Sảnh
+    selectedMode: 'campaign',
+
+    // Dữ liệu Binh Chủng & Đội hình
+    units,
+    battleDeck: ['infantry', 'bazooka', 'sniper', null, null],
+    challengeDeck: ['infantry', 'bazooka', 'sniper', null, null, null],
+
+    // Ụ pháo gắn trên nóc Mansion Xanh
+    turrets,
+    equippedTurret: 'turret_gatling',
+
+    // Cây Kỹ Năng 6 nhánh (36 nodes) & Thiên Phú
+    skillTree,
+    metaTalents,
+
+    // Kho Chip & Gacha Pity
+    chipInventory,
+    gachaPity: 0,
+
+    // Thống kê Nhiệm vụ & Giftcode đã nhập
+    stats: {
+      totalKills: 0,
+      totalWins: 0,
+      totalSummons: 0,
+      totalCrates: 0
+    },
+    claimedMissions: {},
+    redeemedCodes: {},
+
+    // Cài đặt & Admin
+    settings: {
+      sfxEnabled: true,
+      showDamageNumbers: true
+    },
+    isAdminMode: false
+  };
 }
 
-export let metaState = {
-    playerName: '',
-    coins: 350,
-    gems: 400,
-    medals: 5,
-    pearls: 0, // ⚪ Ngọc Trai Trắng
-    isAdminMode: false,
-    usedCodes: [],
-    mapStars: createDefaultMapStars(),
-    mapDifficultyProgress: {},
-    inventoryStacks: {},
-    inventory: [],
-    armyPermanentLevels: {},
-    missionsProgress: {
-        kills: 0,
-        diffWins: 0,
-        spawns: 0,
-        cratesOpened: 0,
-        merges: 0,
-        wins: 0,
-        upgrades: 0,
-        claimed: {}
-    },
-    // 6 Nhánh Cây Bị Động Chỉ Huy (Max Lv.10 - dùng 🎖️ Huy Chương)
-    metaTalents: {
-        oil_refining: 0,
-        high_grade_steel: 0,
-        optimal_logistics: 0,
-        critical_firepower: 0,
-        battlefield_harvest: 0,
-        immortal_bastion: 0
-    },
-    // Hệ thống Chip & Mở khóa Khe 2 (500 Gems / binh chủng)
-    chipInventory: createDefaultChipInventory(),
-    unitSockets: {},
-    unitSocket2Unlocked: {},
-    talents: {},
-    equippedChips: {},
-    selectedDeck: [PRIMARY_INFANTRY_ID, 'bazooka', 'humvee', 'tank', 'airstrike'],
-    endlessBestWave: 0,
-    autobattlerWins: 0,
-    raidBossClears: 0,
+let metaState = createDefaultMetaState();
 
-    // Tiến trình Chế độ CHALLENGE (Tower Defense 20 Wave Zombie - 54 Map)
-    challengeClearedMaps: {},
-    challengeBestWave: {},
+/* --------------------------------------------------------------------------
+ * 2. LƯU & TẢI DỮ LIỆU TIẾN TRÌNH (LOCALSTORAGE + SCHEMA MIGRATION)
+ * -------------------------------------------------------------------------- */
+function saveProgress() {
+  try {
+    // Không lưu cờ isAdminMode=true xuống ổ cứng để tránh tự bật lại khi tải trang
+    const payload = Object.assign({}, metaState, {
+      isAdminMode: false
+    });
+    localStorage.setItem(SAVE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (err) {
+    console.warn('[State] Không thể lưu tiến trình vào localStorage:', err);
+  }
+}
 
-    // Cây Kỹ Năng Cổ Thụ 4 Nhánh (40 Kỹ Năng - dùng ⚪ Ngọc Trai Trắng)
-    ancientSkillTree: createDefaultAncientSkillTree(),
+function loadProgress() {
+  const base = createDefaultMetaState();
+  try {
+    const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+    if (!raw) {
+      metaState = base;
+      return;
+    }
+    const parsed = JSON.parse(raw);
 
-    // Vòng quay may mắn & Lịch sử nổ Jackpot
-    wheelPity: 0,
-    wheelSkipAnim: false,
-    wheelJackpotTotal: 0,
-    wheelJackpotHistory: [],
+    // Hợp nhất an toàn từng nhánh dữ liệu để tương thích phiên bản mới
+    metaState = Object.assign({}, base, parsed);
+    metaState.stats = Object.assign({}, base.stats, parsed.stats || {});
+    metaState.settings = Object.assign({}, base.settings, parsed.settings || {});
+    metaState.stageStars = Object.assign({}, parsed.stageStars || {});
+    metaState.challengeCleared = Object.assign({}, parsed.challengeCleared || {});
+    metaState.claimedMissions = Object.assign({}, parsed.claimedMissions || {});
+    metaState.redeemedCodes = Object.assign({}, parsed.redeemedCodes || {});
+    metaState.isAdminMode = false;
 
-    // Ụ pháo phòng thủ Căn Cứ Xanh
-    baseTurret: {
-        type: 'gatling',
-        level: 1
-    },
+    // Đồng bộ danh sách binh chủng
+    UNIT_CATALOG.forEach((u) => {
+      const savedU = (parsed.units && parsed.units[u.id]) || {};
+      const defU = base.units[u.id];
+      metaState.units[u.id] = {
+        unlocked: Boolean(savedU.unlocked || defU.unlocked),
+        level: Math.max(1, Number(savedU.level) || 1),
+        shards: Math.max(0, Number(savedU.shards) || 0),
+        rarityId: savedU.rarityId || defU.rarityId,
+        rarityCounts: Object.assign({}, defU.rarityCounts, savedU.rarityCounts || {}),
+        sockets: Array.isArray(savedU.sockets) && savedU.sockets.length === 3
+          ? savedU.sockets.slice()
+          : [null, null, null]
+      };
+    });
 
-    // Sổ tay INDEX (Codex) & Mốc độ hiếm cao nhất từng đạt
-    highestRarityEverOwned: {},
-    codexClaimed: {}
+    // Đồng bộ 4 ụ pháo
+    TURRET_CATALOG.forEach((t, idx) => {
+      const savedT = (parsed.turrets && parsed.turrets[t.id]) || {};
+      metaState.turrets[t.id] = {
+        unlocked: Boolean(savedT.unlocked || idx === 0),
+        level: Math.max(1, Number(savedT.level) || 1)
+      };
+    });
+
+    // Đồng bộ toàn bộ 36 node Cây Kỹ Năng 6 nhánh
+    const mergedTree = {};
+    ANCIENT_SKILL_TREE.forEach((node) => {
+      const lv = parsed.skillTree ? Number(parsed.skillTree[node.id]) : 0;
+      mergedTree[node.id] = clamp(Number.isFinite(lv) ? lv : 0, 0, node.maxLv);
+    });
+    metaState.skillTree = mergedTree;
+
+    // Đồng bộ Thiên Phú
+    const mergedTalents = {};
+    META_TALENTS.forEach((t) => {
+      const lv = parsed.metaTalents ? Number(parsed.metaTalents[t.id]) : 0;
+      mergedTalents[t.id] = clamp(Number.isFinite(lv) ? lv : 0, 0, t.maxLv);
+    });
+    metaState.metaTalents = mergedTalents;
+
+    // Đảm bảo độ dài Deck chuẩn (5 ô Battle, 6 ô Challenge)
+    if (!Array.isArray(metaState.battleDeck) || metaState.battleDeck.length !== BASE_DECK_SIZE_BATTLE) {
+      metaState.battleDeck = base.battleDeck.slice();
+    }
+    if (!Array.isArray(metaState.challengeDeck) || metaState.challengeDeck.length !== BASE_DECK_SIZE_CHALLENGE) {
+      metaState.challengeDeck = base.challengeDeck.slice();
+    }
+  } catch (err) {
+    console.warn('[State] Dữ liệu lưu bị lỗi, khôi phục mặc định:', err);
+    metaState = base;
+  }
+}
+
+function resetAllProgress() {
+  localStorage.removeItem(SAVE_STORAGE_KEY);
+  metaState = createDefaultMetaState();
+  saveProgress();
+}
+
+/* --------------------------------------------------------------------------
+ * 3. TỔNG HỢP CHỈ SỐ TỪ CÂY KỸ NĂNG 6 NHÁNH (36 NODES) & THIÊN PHÚ
+ * -------------------------------------------------------------------------- */
+function getSkillTreeBonuses() {
+  const bonuses = {
+    // Nhánh 1: Công sự & Pháo đài
+    baseHpPct: 0,
+    baseArmorPct: 0,
+    turretAtkPct: 0,
+    turretSpdPct: 0,
+    fortressShieldPct: 0,
+
+    // Nhánh 2: Hỏa lực & Tinh nhuệ
+    unitAtkPct: 0,
+    unitAtkSpdPct: 0,
+    unitHpPct: 0,
+    armorPierceBonus: 0,
+    lowHpFrenzyPct: 0,
+
+    // Nhánh 3: Chiêu hồn & Quân đoàn
+    skeletonStatPct: 0,
+    summonCdRedPct: 0,
+    healPowerPct: 0,
+    maxSkeletonBonus: 0,
+    deathGasRefundPct: 0,
+    bloodSiphonPct: 0,
+
+    // Nhánh 4: Hậu cần & Kinh tế
+    gasRegenPct: 0,
+    coinRewardPct: 0,
+    deployCostRedPct: 0,
+    maxGasBonus: 0,
+    gemRewardPct: 0,
+    startGasBonus: 0,
+
+    // Nhánh 5: Nghệ thuật Chỉ huy Q-W-E-R
+    skillCdRedPct: 0,
+    extraMinesCount: 0,
+    empStunBonus: 0,
+    airdropGasBonus: 0,
+    blitzDurationBonus: 0,
+    airstrikeProcChance: 0,
+
+    // Nhánh 6: Nguyên tố & Chí mạng
+    critRateBonus: 0,
+    critDmgBonus: 0,
+    burnDmgPct: 0,
+    slowEffectBonus: 0,
+    aoeRadiusPct: 0,
+    thermalShockPct: 0
+  };
+
+  for (let i = 0; i < ANCIENT_SKILL_TREE.length; i++) {
+    const node = ANCIENT_SKILL_TREE[i];
+    const lv = Number(metaState.skillTree[node.id]) || 0;
+    if (lv > 0 && Object.prototype.hasOwnProperty.call(bonuses, node.statKey)) {
+      bonuses[node.statKey] += lv * node.valPerLv;
+    }
+  }
+
+  // Cộng thêm từ Thiên Phú Chỉ Huy (META_TALENTS)
+  const masonryLv = Number(metaState.metaTalents.fortress_masonry) || 0;
+  const logisticsLv = Number(metaState.metaTalents.command_logistics) || 0;
+  const warfareLv = Number(metaState.metaTalents.tactical_warfare) || 0;
+
+  bonuses.baseHpPct += masonryLv * 0.12;
+  bonuses.gasRegenPct += logisticsLv * 0.06;
+  bonuses.unitAtkPct += warfareLv * 0.08;
+
+  return bonuses;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. HÀM THAO TÁC TÀI NGUYÊN, NÂNG CẤP SKILL TREE, Ụ PHÁO & ĐỘI HÌNH
+ * -------------------------------------------------------------------------- */
+function canAfford(currencyType, amount) {
+  if (metaState.isAdminMode) return true;
+  return (Number(metaState[currencyType]) || 0) >= amount;
+}
+
+function spendCurrency(currencyType, amount) {
+  if (metaState.isAdminMode) return true;
+  const cur = Number(metaState[currencyType]) || 0;
+  if (cur < amount) return false;
+  metaState[currencyType] = cur - amount;
+  return true;
+}
+
+function addCurrency(currencyType, amount) {
+  const val = Math.floor(Number(amount) || 0);
+  if (val <= 0) return;
+  metaState[currencyType] = (Number(metaState[currencyType]) || 0) + val;
+}
+
+function getSkillUpgradeCost(node) {
+  const curLv = Number(metaState.skillTree[node.id]) || 0;
+  return node.baseCost + curLv * (node.costStep || 1);
+}
+
+function isSkillNodeUnlocked(node) {
+  if (!node.requires) return true;
+  return (Number(metaState.skillTree[node.requires]) || 0) >= 1;
+}
+
+function upgradeSkillTreeNode(nodeId) {
+  const node = ANCIENT_SKILL_TREE.find((n) => n.id === nodeId);
+  if (!node) return { ok: false, reason: 'Không tìm thấy kỹ năng.' };
+
+  const curLv = Number(metaState.skillTree[node.id]) || 0;
+  if (curLv >= node.maxLv) return { ok: false, reason: 'Kỹ năng đã đạt cấp tối đa.' };
+  if (!isSkillNodeUnlocked(node)) return { ok: false, reason: 'Cần mở khóa nút kỹ năng phía trước.' };
+
+  const cost = getSkillUpgradeCost(node);
+  if (!spendCurrency('pearls', cost)) {
+    return { ok: false, reason: 'Không đủ Ngọc Trai Cổ Đại!' };
+  }
+
+  metaState.skillTree[node.id] = curLv + 1;
+  saveProgress();
+  return { ok: true, newLevel: curLv + 1 };
+}
+
+function upgradeOrUnlockTurret(turretId) {
+  const spec = TURRET_CATALOG.find((t) => t.id === turretId);
+  if (!spec) return { ok: false, reason: 'Ụ pháo không tồn tại.' };
+
+  const state = metaState.turrets[turretId];
+  if (!state.unlocked) {
+    if (!spendCurrency('coins', spec.unlockCost)) {
+      return { ok: false, reason: 'Không đủ Vàng để mở khóa ụ pháo!' };
+    }
+    state.unlocked = true;
+    state.level = 1;
+    metaState.equippedTurret = turretId;
+    saveProgress();
+    return { ok: true, action: 'unlocked' };
+  }
+
+  const upgCost = Math.round(spec.upgBaseCost * Math.pow(1.35, state.level - 1));
+  if (!spendCurrency('coins', upgCost)) {
+    return { ok: false, reason: 'Không đủ Vàng để nâng cấp ụ pháo!' };
+  }
+  state.level += 1;
+  saveProgress();
+  return { ok: true, action: 'upgraded', level: state.level };
+}
+
+function equipTurret(turretId) {
+  const state = metaState.turrets[turretId];
+  if (!state || !state.unlocked) return false;
+  metaState.equippedTurret = turretId;
+  saveProgress();
+  return true;
+}
+
+function toggleUnitInDeck(unitId, isChallenge = false) {
+  const uState = metaState.units[unitId];
+  if (!uState || !uState.unlocked) return false;
+
+  const deck = isChallenge ? metaState.challengeDeck : metaState.battleDeck;
+  const existingIdx = deck.indexOf(unitId);
+
+  if (existingIdx !== -1) {
+    // Không cho tháo nếu chỉ còn 1 đơn vị duy nhất trong đội hình
+    const filledCount = deck.filter(Boolean).length;
+    if (filledCount <= 1) return false;
+    deck[existingIdx] = null;
+    saveProgress();
+    return true;
+  }
+
+  const emptyIdx = deck.indexOf(null);
+  if (emptyIdx !== -1) {
+    deck[emptyIdx] = unitId;
+  } else {
+    deck[deck.length - 1] = unitId;
+  }
+  saveProgress();
+  return true;
+}
+
+function upgradeUnitLevel(unitId) {
+  const uState = metaState.units[unitId];
+  if (!uState || !uState.unlocked) return { ok: false, reason: 'Chưa mở khóa binh chủng.' };
+
+  const reqShards = computeShardRequirement(uState.level);
+  const coinCost = 80 + uState.level * 45;
+
+  if (!metaState.isAdminMode && uState.shards < reqShards) {
+    return { ok: false, reason: `Cần ${reqShards} mảnh ghép!` };
+  }
+  if (!spendCurrency('coins', coinCost)) {
+    return { ok: false, reason: `Cần ${coinCost} Vàng!` };
+  }
+
+  if (!metaState.isAdminMode) {
+    uState.shards -= reqShards;
+  }
+  uState.level += 1;
+  saveProgress();
+  return { ok: true, newLevel: uState.level };
+}
+
+function applyGachaDropsToMeta(drops, newPity) {
+  metaState.gachaPity = newPity;
+  for (let i = 0; i < drops.length; i++) {
+    const d = drops[i];
+    const uState = metaState.units[d.unitId];
+    if (!uState) continue;
+
+    uState.unlocked = true;
+    uState.shards += d.count;
+    uState.rarityCounts[d.rarityId] = (uState.rarityCounts[d.rarityId] || 0) + d.count;
+
+    // Tự động cập nhật độ hiếm hiển thị cao nhất của đơn vị
+    if (getRarityIndex(d.rarityId) > getRarityIndex(uState.rarityId)) {
+      uState.rarityId = d.rarityId;
+    }
+  }
+  saveProgress();
+}
+
+function redeemGiftcode(rawCode) {
+  const code = String(rawCode || '').trim().toUpperCase();
+  if (!code) return { ok: false, msg: 'Vui lòng nhập mã quà tặng.' };
+
+  const entry = GIFTCODES[code];
+  if (!entry) return { ok: false, msg: 'Mã không hợp lệ hoặc đã hết hạn.' };
+
+  if (entry.admin) {
+    metaState.isAdminMode = true;
+    return { ok: true, msg: entry.label, isAdmin: true };
+  }
+
+  if (metaState.redeemedCodes[code]) {
+    return { ok: false, msg: 'Bạn đã sử dụng mã này rồi!' };
+  }
+
+  metaState.redeemedCodes[code] = true;
+  if (entry.coins) addCurrency('coins', entry.coins);
+  if (entry.gems) addCurrency('gems', entry.gems);
+  if (entry.pearls) addCurrency('pearls', entry.pearls);
+  saveProgress();
+
+  return { ok: true, msg: entry.label };
+}
+
+/* --------------------------------------------------------------------------
+ * 5. TRẠNG THÁI TRẬN ĐẤU HIỆN TẠI (IN-BATTLE STATE)
+ * -------------------------------------------------------------------------- */
+const game = {
+  active: false,
+  paused: false,
+  mode: 'campaign',
+  stageLevel: 1,
+  speedMult: 1,
+  autoDeploy: false,
+
+  // Kích thước logic chiến trường & Hitbox hai Mansion
+  mapWidth: 420,
+  mapHeight: 760,
+  blueMansion: null,
+  redMansion: null,
+
+  // HP & Lá chắn Pháo đài Mansion Xanh
+  playerHp: 1000,
+  playerMaxHp: 1000,
+  playerShield: 0,
+  playerMaxShield: 0,
+  shieldRegenTimer: 0,
+
+  // HP Mansion Đỏ
+  enemyHp: 1000,
+  enemyMaxHp: 1000,
+
+  // Hệ thống Xăng / Năng lượng triển khai
+  gas: 50,
+  maxGas: 100,
+  gasTimer: 0,
+  gasUpgLevel: 1,
+  gasIncomePerSec: 12,
+  gasUpgCost: 45,
+
+  // Tiến trình Wave & Đợt sinh quái
+  wave: 1,
+  maxWaves: 3,
+  waveTimer: 0,
+  spawnQueue: [],
+  elapsedTime: 0,
+  timeLimit: 0,
+
+  // Hệ thống EXP & Roguelike Draft trong trận
+  battleLv: 1,
+  battleExp: 0,
+  nextLvExp: 100,
+  pendingLevelUps: 0,
+  roguelikeBuffs: {
+    atkPct: 0,
+    hpPct: 0,
+    atkSpdPct: 0,
+    gasRegenPct: 0,
+    critRate: 0
+  },
+
+  // Kỹ năng Chỉ huy Q-W-E-R & Điểm tập kết Rally Flag
+  skillCooldowns: { Q: 0, W: 0, E: 0, R: 0 },
+  blitzTimer: 0,
+  aimingSkill: null,
+  rallyPoint: null, // { x, y, ttl }
+
+  // Ụ pháo gắn trên nóc Mansion Xanh
+  turret: {
+    id: 'turret_gatling',
+    angle: -Math.PI / 2,
+    cooldown: 0,
+    recoil: 0
+  },
+
+  // Danh sách thực thể trên sân
+  units: [],
+  enemies: [],
+  projectiles: [],
+  props: [],
+  particles: [],
+  floatingTexts: [],
+  deckCooldowns: []
 };
 
-let uidCounter = 1;
-
-export function nextCompactUid(prefix = 'c') {
-    uidCounter = (uidCounter + 1) % 1000000000;
-    return `${prefix}_${Date.now().toString(36)}_${uidCounter.toString(36)}`;
-}
-
-export function createDefaultInventoryStacks() {
-    const starterUnits = [PRIMARY_INFANTRY_ID, 'bazooka', 'humvee', 'apc'];
-    const stacks = {};
-    starterUnits.forEach(uId => {
-        const normId = normalizeUnitId(uId);
-        stacks[`${normId}__common`] = 1;
-    });
-    return stacks;
-}
-
-export function createDefaultInventory() {
-    const starterUnits = [PRIMARY_INFANTRY_ID, 'bazooka', 'humvee', 'apc'];
-    return starterUnits.map((unitId, idx) => ({
-        uid: 'init_card_' + idx + '_' + Date.now(),
-        unitId: normalizeUnitId(unitId),
-        rarity: 'common'
-    }));
-}
-
-export function recordHighestRarityForUnit(rawUnitId, rarityId) {
-    const unitId = normalizeUnitId(rawUnitId);
-    if (!UNIT_BY_ID[unitId] || !RARITY_CONFIG[rarityId]) return;
-    if (!metaState.highestRarityEverOwned || typeof metaState.highestRarityEverOwned !== 'object') {
-        metaState.highestRarityEverOwned = {};
-    }
-    const curBest = metaState.highestRarityEverOwned[unitId];
-    const curRank = curBest && RARITY_CONFIG[curBest] ? RARITY_CONFIG[curBest].rank : -1;
-    const newRank = RARITY_CONFIG[rarityId].rank ?? 0;
-    if (newRank > curRank) {
-        metaState.highestRarityEverOwned[unitId] = rarityId;
-    }
-}
-
-export function syncHighestRarityEverOwnedFromStacks() {
-    if (!metaState.highestRarityEverOwned || typeof metaState.highestRarityEverOwned !== 'object') {
-        metaState.highestRarityEverOwned = {};
-    }
-    if (metaState.inventoryStacks && typeof metaState.inventoryStacks === 'object') {
-        for (const [key, rawCount] of Object.entries(metaState.inventoryStacks)) {
-            const count = Math.floor(Number(rawCount) || 0);
-            if (count <= 0) continue;
-            const [rawUnitId, rarity] = key.split('__');
-            recordHighestRarityForUnit(rawUnitId, rarity);
-        }
-    }
-}
-
-export function syncRepresentativeInventoryFromStacks() {
-    if (!metaState.inventoryStacks || typeof metaState.inventoryStacks !== 'object') {
-        metaState.inventoryStacks = createDefaultInventoryStacks();
-    }
-
-    const existingMap = new Map();
-    if (Array.isArray(metaState.inventory)) {
-        for (let i = 0; i < metaState.inventory.length; i++) {
-            const c = metaState.inventory[i];
-            if (!c) continue;
-            const normId = normalizeUnitId(c.unitId);
-            const key = `${normId}__${c.rarity}`;
-            let list = existingMap.get(key);
-            if (!list) {
-                list = [];
-                existingMap.set(key, list);
-            }
-            if (list.length < 2) {
-                c.unitId = normId;
-                list.push(c);
-            }
-        }
-    }
-
-    const repInventory = [];
-    for (const [key, rawCount] of Object.entries(metaState.inventoryStacks)) {
-        const count = Math.floor(Number(rawCount) || 0);
-        if (count <= 0) {
-            delete metaState.inventoryStacks[key];
-            continue;
-        }
-        const [rawUnitId, rarity] = key.split('__');
-        const unitId = normalizeUnitId(rawUnitId);
-        if (!UNIT_BY_ID[unitId] || !RARITY_CONFIG[rarity]) {
-            delete metaState.inventoryStacks[key];
-            continue;
-        }
-
-        recordHighestRarityForUnit(unitId, rarity);
-
-        const repCount = Math.min(2, count);
-        const existingCards = existingMap.get(`${unitId}__${rarity}`) || [];
-        for (let i = 0; i < repCount; i++) {
-            if (existingCards[i]) {
-                repInventory.push(existingCards[i]);
-            } else {
-                repInventory.push({
-                    uid: nextCompactUid('rep'),
-                    unitId,
-                    rarity
-                });
-            }
-        }
-    }
-
-    metaState.inventory = repInventory;
-}
-
-export function addCardToStacks(rawUnitId, rarity, deltaCount = 1) {
-    const unitId = normalizeUnitId(rawUnitId);
-    if (!UNIT_BY_ID[unitId] || !RARITY_CONFIG[rarity]) return;
-    const key = `${unitId}__${rarity}`;
-    const cur = Math.floor(Number(metaState.inventoryStacks[key]) || 0);
-    const delta = Math.floor(Number(deltaCount) || 0);
-    const nextVal = Math.max(0, cur + delta);
-    if (nextVal > 0) {
-        metaState.inventoryStacks[key] = nextVal;
-        if (delta > 0) {
-            recordHighestRarityForUnit(unitId, rarity);
-        }
-    } else {
-        delete metaState.inventoryStacks[key];
-    }
-}
-
-export function getTotalCardsInInventory() {
-    if (!metaState.inventoryStacks || typeof metaState.inventoryStacks !== 'object') {
-        return metaState.inventory?.length || 0;
-    }
-    let total = 0;
-    for (const qty of Object.values(metaState.inventoryStacks)) {
-        const n = Math.floor(Number(qty) || 0);
-        if (n > 0) total += n;
-    }
-    return total;
-}
-
-export function createDefaultArmyLevels() {
-    const lvMap = {};
-    UNIT_CATALOG.forEach(u => {
-        lvMap[u.id] = 1;
-    });
-    lvMap['infantry'] = 1;
-    lvMap['rifleman'] = 1;
-    lvMap['airstrike'] = 1;
-    return lvMap;
-}
-
-export function createDefaultUnitSockets() {
-    const sockMap = {};
-    UNIT_CATALOG.forEach(u => {
-        sockMap[u.id] = [null, null];
-    });
-    sockMap['infantry'] = [null, null];
-    sockMap['rifleman'] = [null, null];
-    return sockMap;
-}
-
-export function createDefaultMapDifficultyProgress() {
-    const prog = {};
-    for (let i = 1; i <= LEVELS.length; i++) {
-        prog[i] = {
-            stars: 0,
-            easy: false,
-            difficult: false,
-            easy_destroy: false,
-            easy_survival: false,
-            difficult_destroy: false,
-            difficult_survival: false
-        };
-    }
-    return prog;
-}
-
-export function normalizeMapProgressEntry(rawEntry, externalStars = 0) {
-    if (!rawEntry || typeof rawEntry !== 'object') {
-        const baseStars = Math.max(0, Math.min(3, Math.floor(Number(externalStars) || 0)));
-        return {
-            stars: baseStars,
-            easy: baseStars >= 1,
-            difficult: baseStars >= 2,
-            easy_destroy: baseStars >= 1,
-            easy_survival: false,
-            difficult_destroy: baseStars >= 2,
-            difficult_survival: false
-        };
-    }
-    const easyDestroy = !!rawEntry.easy_destroy || (!!rawEntry.easy && !rawEntry.easy_survival);
-    const easySurvival = !!rawEntry.easy_survival;
-    const diffDestroy = !!rawEntry.difficult_destroy;
-    const diffSurvival = !!rawEntry.difficult_survival || (!!rawEntry.difficult && !rawEntry.difficult_destroy);
-
-    const easy = !!rawEntry.easy || easyDestroy || easySurvival;
-    const difficult = !!rawEntry.difficult || diffDestroy || diffSurvival;
-
-    // Suy diễn số sao tối thiểu từ tiến trình lưu cũ (0 -> 3 sao)
-    let inferredStars = 0;
-    if (easy) inferredStars = 1;
-    if (difficult) inferredStars = 2;
-    if (
-        difficult &&
-        (diffSurvival ||
-            rawEntry.difficult_endless_siege ||
-            rawEntry.difficult_raid_boss ||
-            rawEntry.difficult_fog_of_war ||
-            rawEntry.difficult_auto_battler ||
-            rawEntry.difficult_challenge)
-    ) {
-        inferredStars = 3;
-    }
-
-    const savedStars = Math.max(
-        0,
-        Math.min(3, Math.floor(Math.max(Number(rawEntry.stars) || 0, Number(externalStars) || 0)))
-    );
-
-    return {
-        ...rawEntry,
-        stars: Math.max(inferredStars, savedStars),
-        easy,
-        difficult,
-        easy_destroy: easyDestroy,
-        easy_survival: easySurvival,
-        difficult_destroy: diffDestroy,
-        difficult_survival: diffSurvival
-    };
-}
-
 /**
- * Đồng bộ thuộc tính stars giữa metaState.mapStars, metaState.mapDifficultyProgress và mảng LEVELS
+ * Khởi tạo lại toàn bộ trạng thái trận đấu trước khi vào ải
  */
-export function syncLevelsMetadata() {
-    if (!metaState.mapStars || typeof metaState.mapStars !== 'object') {
-        metaState.mapStars = createDefaultMapStars();
-    }
-    for (let i = 1; i <= LEVELS.length; i++) {
-        const entry = metaState.mapDifficultyProgress?.[i];
-        const progStars = entry ? Math.max(0, Math.min(3, Math.floor(Number(entry.stars) || 0))) : 0;
-        const mapStarsVal = Math.max(0, Math.min(3, Math.floor(Number(metaState.mapStars[i]) || 0)));
-        const bestStars = Math.max(progStars, mapStarsVal);
-
-        metaState.mapStars[i] = bestStars;
-        if (entry) {
-            entry.stars = bestStars;
-        }
-        if (LEVELS[i - 1]) {
-            LEVELS[i - 1].stars = bestStars;
-        }
-    }
-}
-
-export function normalizeSelectedDeck(rawDeck) {
-    const defaultDeck = [PRIMARY_INFANTRY_ID, 'bazooka', 'humvee', 'tank', 'airstrike'];
-    if (!Array.isArray(rawDeck) || rawDeck.length < 4) {
-        return [...defaultDeck];
-    }
-    const chosen = [];
-    for (let i = 0; i < 4; i++) {
-        const uId = normalizeUnitId(rawDeck[i]);
-        if (uId && uId !== 'airstrike' && UNIT_BY_ID[uId] && !chosen.includes(uId)) {
-            chosen.push(uId);
-        }
-    }
-    const fallbackPool = [PRIMARY_INFANTRY_ID, 'bazooka', 'humvee', 'tank', 'sniper', 'apc'];
-    for (const fb of fallbackPool) {
-        if (chosen.length >= 4) break;
-        if (!chosen.includes(fb)) chosen.push(fb);
-    }
-    return [chosen[0], chosen[1], chosen[2], chosen[3], 'airstrike'];
-}
-
-/**
- * Chuyển đổi tương thích ngược từ sơ đồ Skill Tree 7 nút cũ sang sơ đồ 4 nhánh 40 nút mới
- */
-function migrateLegacySkillTree(rawTree) {
-    const normalized = createDefaultAncientSkillTree();
-    if (!rawTree || typeof rawTree !== 'object') return normalized;
-
-    const legacyMap = {
-        vital_roots: 'ft_1',
-        supply_roots: 'ec_1',
-        iron_trunk: 'fp_1',
-        arcane_trunk: 'fp_3',
-        undead_slayer: 'sm_1',
-        elite_lineage: 'sm_3',
-        ancient_heart: 'ft_4'
-    };
-
-    for (const [key, val] of Object.entries(rawTree)) {
-        const lv = Math.max(0, Math.floor(Number(val) || 0));
-        if (lv <= 0) continue;
-        if (ANCIENT_SKILL_TREE[key]) {
-            normalized[key] = Math.min(ANCIENT_SKILL_TREE[key].maxLevel, lv);
-        } else if (legacyMap[key] && ANCIENT_SKILL_TREE[legacyMap[key]]) {
-            const targetId = legacyMap[key];
-            normalized[targetId] = Math.min(
-                ANCIENT_SKILL_TREE[targetId].maxLevel,
-                Math.max(normalized[targetId], lv)
-            );
-        }
-    }
-    return normalized;
-}
-
-export function syncLegacyEngineBridges() {
-    const infLv = Math.max(
-        metaState.armyPermanentLevels?.infantry || 1,
-        metaState.armyPermanentLevels?.rifleman || 1
-    );
-    metaState.armyPermanentLevels.infantry = infLv;
-    metaState.armyPermanentLevels.rifleman = infLv;
-
-    if (!metaState.unitSocket2Unlocked || typeof metaState.unitSocket2Unlocked !== 'object') {
-        metaState.unitSocket2Unlocked = {};
-    }
-
-    UNIT_CATALOG.forEach(u => {
-        if (!metaState.armyPermanentLevels[u.id] || metaState.armyPermanentLevels[u.id] < 1) {
-            metaState.armyPermanentLevels[u.id] = 1;
-        }
-        if (!Array.isArray(metaState.unitSockets[u.id])) {
-            metaState.unitSockets[u.id] = [null, null];
-        }
-        if (metaState.unitSockets[u.id][1]) {
-            metaState.unitSocket2Unlocked[u.id] = true;
-        }
-    });
-
-    const infSockets =
-        metaState.unitSockets?.[PRIMARY_INFANTRY_ID] ||
-        metaState.unitSockets?.infantry ||
-        metaState.unitSockets?.rifleman ||
-        [null, null];
-    metaState.unitSockets.infantry = infSockets;
-    metaState.unitSockets.rifleman = infSockets;
-
-    if (metaState.unitSocket2Unlocked[PRIMARY_INFANTRY_ID]) {
-        metaState.unitSocket2Unlocked.infantry = true;
-        metaState.unitSocket2Unlocked.rifleman = true;
-    }
-
-    if (!metaState.chipInventory || typeof metaState.chipInventory !== 'object') {
-        metaState.chipInventory = createDefaultChipInventory();
-    }
-    Object.keys(UNIT_CHIPS).forEach(cId => {
-        metaState.chipInventory[cId] = Math.max(0, Math.floor(Number(metaState.chipInventory[cId]) || 0));
-    });
-
-    const eq = {};
-    Object.keys(metaState.unitSockets || {}).forEach(uId => {
-        const arr = metaState.unitSockets[uId];
-        if (Array.isArray(arr)) {
-            eq[uId] = arr[0] || arr[1] || null;
-        }
-    });
-    metaState.equippedChips = eq;
-
-    const oilLv = Number(metaState.metaTalents?.oil_refining) || 0;
-    const steelLv = Number(metaState.metaTalents?.high_grade_steel) || 0;
-    const logiLv = Number(metaState.metaTalents?.optimal_logistics) || 0;
-
-    metaState.talents = {
-        gas_speed: oilLv,
-        infantry_hp: steelLv,
-        vehicle_dmg: steelLv,
-        base_fortify: steelLv,
-        starting_gas: logiLv,
-        tactic_cd: logiLv,
-        air_naval_cd: logiLv,
-        gold_rush: logiLv
-    };
-
-    metaState.ancientSkillTree = migrateLegacySkillTree(metaState.ancientSkillTree);
-
-    if (!metaState.challengeClearedMaps || typeof metaState.challengeClearedMaps !== 'object') {
-        metaState.challengeClearedMaps = {};
-    }
-    if (!metaState.challengeBestWave || typeof metaState.challengeBestWave !== 'object') {
-        metaState.challengeBestWave = {};
-    }
-
-    if (!metaState.baseTurret || typeof metaState.baseTurret !== 'object') {
-        metaState.baseTurret = { type: 'gatling', level: 1 };
-    }
-    if (!BASE_TURRET_CONFIG[metaState.baseTurret.type]) {
-        metaState.baseTurret.type = 'gatling';
-    }
-    metaState.baseTurret.level = Math.max(1, Math.floor(Number(metaState.baseTurret.level) || 1));
-
-    metaState.selectedDeck = normalizeSelectedDeck(metaState.selectedDeck);
-    syncHighestRarityEverOwnedFromStacks();
-    syncLevelsMetadata();
-}
-
-export function loadProgress() {
-    const defaultLevels = createDefaultArmyLevels();
-    const defaultMapProg = createDefaultMapDifficultyProgress();
-    const defaultStars = createDefaultMapStars();
-    const defaultSockets = createDefaultUnitSockets();
-
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            metaState.playerName = typeof parsed.playerName === 'string' ? parsed.playerName : '';
-            metaState.coins = typeof parsed.coins === 'number' ? parsed.coins : 350;
-            metaState.gems = typeof parsed.gems === 'number' ? parsed.gems : 400;
-            metaState.medals = typeof parsed.medals === 'number' ? parsed.medals : 5;
-            metaState.pearls = typeof parsed.pearls === 'number' ? parsed.pearls : 0;
-            metaState.isAdminMode = !!parsed.isAdminMode;
-            metaState.usedCodes = Array.isArray(parsed.usedCodes) ? parsed.usedCodes : [];
-            metaState.endlessBestWave = Number(parsed.endlessBestWave) || 0;
-            metaState.autobattlerWins = Number(parsed.autobattlerWins) || 0;
-            metaState.raidBossClears = Number(parsed.raidBossClears) || 0;
-
-            metaState.challengeClearedMaps =
-                parsed.challengeClearedMaps && typeof parsed.challengeClearedMaps === 'object'
-                    ? { ...parsed.challengeClearedMaps }
-                    : {};
-            metaState.challengeBestWave =
-                parsed.challengeBestWave && typeof parsed.challengeBestWave === 'object'
-                    ? { ...parsed.challengeBestWave }
-                    : {};
-
-            metaState.ancientSkillTree = migrateLegacySkillTree(parsed.ancientSkillTree);
-
-            metaState.chipInventory =
-                parsed.chipInventory && typeof parsed.chipInventory === 'object'
-                    ? { ...createDefaultChipInventory(), ...parsed.chipInventory }
-                    : createDefaultChipInventory();
-
-            metaState.unitSocket2Unlocked =
-                parsed.unitSocket2Unlocked && typeof parsed.unitSocket2Unlocked === 'object'
-                    ? { ...parsed.unitSocket2Unlocked }
-                    : {};
-
-            metaState.wheelPity = Math.max(0, Math.min(100, Number(parsed.wheelPity) || 0));
-            metaState.wheelSkipAnim = !!parsed.wheelSkipAnim;
-            metaState.wheelJackpotTotal = Math.max(0, Math.floor(Number(parsed.wheelJackpotTotal) || 0));
-            metaState.wheelJackpotHistory = Array.isArray(parsed.wheelJackpotHistory)
-                ? parsed.wheelJackpotHistory.slice(0, 15)
-                : [];
-
-            metaState.baseTurret = {
-                type: BASE_TURRET_CONFIG[parsed.baseTurret?.type] ? parsed.baseTurret.type : 'gatling',
-                level: Math.max(1, Math.floor(Number(parsed.baseTurret?.level) || 1))
-            };
-
-            metaState.highestRarityEverOwned =
-                parsed.highestRarityEverOwned && typeof parsed.highestRarityEverOwned === 'object'
-                    ? { ...parsed.highestRarityEverOwned }
-                    : {};
-
-            metaState.codexClaimed =
-                parsed.codexClaimed && typeof parsed.codexClaimed === 'object'
-                    ? { ...parsed.codexClaimed }
-                    : {};
-
-            metaState.mapStars = defaultStars;
-            metaState.mapDifficultyProgress = defaultMapProg;
-            const parsedStars = parsed.mapStars && typeof parsed.mapStars === 'object' ? parsed.mapStars : {};
-
-            for (let i = 1; i <= LEVELS.length; i++) {
-                const extStar = Number(parsedStars[i]) || 0;
-                const rawProg = parsed.mapDifficultyProgress?.[i] || null;
-                const normEntry = normalizeMapProgressEntry(rawProg, extStar);
-                if (metaState.challengeClearedMaps[i] && normEntry.stars < 3) {
-                    normEntry.stars = 3;
-                }
-                metaState.mapDifficultyProgress[i] = normEntry;
-                metaState.mapStars[i] = normEntry.stars;
-            }
-
-            const loadedStacks = {};
-            if (parsed.inventoryStacks && typeof parsed.inventoryStacks === 'object') {
-                for (const [key, count] of Object.entries(parsed.inventoryStacks)) {
-                    const [rawUnitId, rarity] = key.split('__');
-                    const unitId = normalizeUnitId(rawUnitId);
-                    const qty = Math.max(0, Math.floor(Number(count) || 0));
-                    if (UNIT_BY_ID[unitId] && RARITY_CONFIG[rarity] && qty > 0) {
-                        const normKey = `${unitId}__${rarity}`;
-                        loadedStacks[normKey] = (loadedStacks[normKey] || 0) + qty;
-                    }
-                }
-            }
-            if (Object.keys(loadedStacks).length === 0 && Array.isArray(parsed.inventory) && parsed.inventory.length > 0) {
-                parsed.inventory.forEach(item => {
-                    if (!item) return;
-                    const normId = normalizeUnitId(item.unitId);
-                    if (UNIT_BY_ID[normId] && RARITY_CONFIG[item.rarity]) {
-                        const key = `${normId}__${item.rarity}`;
-                        loadedStacks[key] = (loadedStacks[key] || 0) + 1;
-                    }
-                });
-            }
-
-            metaState.inventoryStacks = Object.keys(loadedStacks).length > 0
-                ? loadedStacks
-                : createDefaultInventoryStacks();
-            syncRepresentativeInventoryFromStacks();
-
-            metaState.armyPermanentLevels = { ...defaultLevels, ...(parsed.armyPermanentLevels || {}) };
-
-            const mp = parsed.missionsProgress || {};
-            metaState.missionsProgress = {
-                kills: Number(mp.kills) || 0,
-                diffWins: Number(mp.diffWins) || 0,
-                spawns: Number(mp.spawns) || 0,
-                cratesOpened: Number(mp.cratesOpened) || 0,
-                merges: Number(mp.merges) || 0,
-                wins: Number(mp.wins) || 0,
-                upgrades: Number(mp.upgrades) || 0,
-                claimed: mp.claimed && typeof mp.claimed === 'object' ? mp.claimed : {}
-            };
-
-            metaState.metaTalents = {
-                oil_refining: 0,
-                high_grade_steel: 0,
-                optimal_logistics: 0,
-                critical_firepower: 0,
-                battlefield_harvest: 0,
-                immortal_bastion: 0,
-                ...(parsed.metaTalents || {})
-            };
-
-            metaState.unitSockets = {
-                ...defaultSockets,
-                ...(parsed.unitSockets || {})
-            };
-
-            metaState.selectedDeck = normalizeSelectedDeck(parsed.selectedDeck);
-        } else {
-            metaState.playerName = '';
-            metaState.coins = 350;
-            metaState.gems = 400;
-            metaState.medals = 5;
-            metaState.pearls = 0;
-            metaState.isAdminMode = false;
-            metaState.usedCodes = [];
-            metaState.mapStars = defaultStars;
-            metaState.mapDifficultyProgress = defaultMapProg;
-            metaState.inventoryStacks = createDefaultInventoryStacks();
-            syncRepresentativeInventoryFromStacks();
-            metaState.armyPermanentLevels = defaultLevels;
-            metaState.unitSockets = defaultSockets;
-            metaState.unitSocket2Unlocked = {};
-            metaState.chipInventory = createDefaultChipInventory();
-            metaState.ancientSkillTree = createDefaultAncientSkillTree();
-            metaState.challengeClearedMaps = {};
-            metaState.challengeBestWave = {};
-            metaState.selectedDeck = normalizeSelectedDeck(null);
-            metaState.wheelPity = 0;
-            metaState.wheelSkipAnim = false;
-            metaState.wheelJackpotTotal = 0;
-            metaState.wheelJackpotHistory = [];
-            metaState.baseTurret = { type: 'gatling', level: 1 };
-            metaState.highestRarityEverOwned = {};
-            metaState.codexClaimed = {};
-        }
-    } catch (e) {
-        metaState.mapStars = defaultStars;
-        metaState.mapDifficultyProgress = defaultMapProg;
-        metaState.inventoryStacks = createDefaultInventoryStacks();
-        syncRepresentativeInventoryFromStacks();
-        metaState.armyPermanentLevels = defaultLevels;
-        metaState.unitSockets = defaultSockets;
-        metaState.unitSocket2Unlocked = {};
-        metaState.chipInventory = createDefaultChipInventory();
-        metaState.ancientSkillTree = createDefaultAncientSkillTree();
-        metaState.challengeClearedMaps = {};
-        metaState.challengeBestWave = {};
-        metaState.selectedDeck = normalizeSelectedDeck(null);
-        metaState.baseTurret = { type: 'gatling', level: 1 };
-        metaState.highestRarityEverOwned = {};
-        metaState.codexClaimed = {};
-    }
-
-    syncLegacyEngineBridges();
-}
-
-export function saveProgress() {
-    syncLegacyEngineBridges();
-    syncRepresentativeInventoryFromStacks();
-    try {
-        const compactPayload = {
-            ...metaState,
-            inventory: metaState.inventory,
-            inventoryStacks: metaState.inventoryStacks,
-            mapStars: metaState.mapStars
-        };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(compactPayload));
-    } catch (e) {}
-}
-
-export function resetAllAccountData() {
-    try {
-        localStorage.removeItem(STORAGE_KEY);
-    } catch (e) {}
-    window.location.reload();
-}
-
-// ============================================================================
-// CÁC HÀM QUẢN LÝ CHIP MOD & MỞ KHE CHIP THỨ 2 (500 💎 GEMS)
-// ============================================================================
-export function isUnitSocket2Unlocked(rawUnitId) {
-    if (metaState.isAdminMode) return true;
-    const unitId = normalizeUnitId(rawUnitId);
-    return !!metaState.unitSocket2Unlocked?.[unitId];
-}
-
-export function unlockUnitSocket2(rawUnitId) {
-    const unitId = normalizeUnitId(rawUnitId);
-    if (!UNIT_BY_ID[unitId]) return false;
-    if (isUnitSocket2Unlocked(unitId)) return true;
-    if (!metaState.isAdminMode && metaState.gems < CHIP_SOCKET_2_UNLOCK_GEMS) {
-        return false;
-    }
-    if (!metaState.isAdminMode) {
-        metaState.gems -= CHIP_SOCKET_2_UNLOCK_GEMS;
-    }
-    if (!metaState.unitSocket2Unlocked) metaState.unitSocket2Unlocked = {};
-    metaState.unitSocket2Unlocked[unitId] = true;
-    if (unitId === PRIMARY_INFANTRY_ID) {
-        metaState.unitSocket2Unlocked.infantry = true;
-        metaState.unitSocket2Unlocked.rifleman = true;
-    }
-    saveProgress();
-    return true;
-}
-
-export function getChipOwnedCount(chipId) {
-    if (!UNIT_CHIPS[chipId]) return 0;
-    return Math.max(0, Math.floor(Number(metaState.chipInventory?.[chipId]) || 0));
-}
-
-export function buyChipItem(chipId, currencyType = 'coins') {
-    const chip = UNIT_CHIPS[chipId];
-    if (!chip) return false;
-    if (!metaState.chipInventory) metaState.chipInventory = createDefaultChipInventory();
-
-    if (!metaState.isAdminMode) {
-        if (currencyType === 'gems') {
-            const cost = chip.buyGems || CHIP_BUY_COST_GEMS;
-            if (metaState.gems < cost) return false;
-            metaState.gems -= cost;
-        } else {
-            const cost = chip.buyCoins || CHIP_BUY_COST_COINS;
-            if (metaState.coins < cost) return false;
-            metaState.coins -= cost;
-        }
-    }
-
-    metaState.chipInventory[chipId] = getChipOwnedCount(chipId) + 1;
-    saveProgress();
-    return true;
-}
-
-export function equipChipToUnitSlot(rawUnitId, slotIdx, chipId) {
-    const unitId = normalizeUnitId(rawUnitId);
-    if (!UNIT_BY_ID[unitId] || !UNIT_CHIPS[chipId]) return { ok: false, reason: 'invalid' };
-    if (slotIdx !== 0 && slotIdx !== 1) return { ok: false, reason: 'invalid_slot' };
-    if (slotIdx === 1 && !isUnitSocket2Unlocked(unitId)) {
-        return { ok: false, reason: 'locked_slot2' };
-    }
-
-    if (!Array.isArray(metaState.unitSockets[unitId])) {
-        metaState.unitSockets[unitId] = [null, null];
-    }
-
-    const prevChipId = metaState.unitSockets[unitId][slotIdx];
-    if (prevChipId === chipId) {
-        return { ok: true };
-    }
-
-    const owned = getChipOwnedCount(chipId);
-    if (!metaState.isAdminMode && owned <= 0) {
-        return { ok: false, reason: 'no_stock' };
-    }
-
-    if (prevChipId && UNIT_CHIPS[prevChipId]) {
-        metaState.chipInventory[prevChipId] = getChipOwnedCount(prevChipId) + 1;
-    }
-
-    if (!metaState.isAdminMode) {
-        metaState.chipInventory[chipId] = Math.max(0, owned - 1);
-    }
-
-    metaState.unitSockets[unitId][slotIdx] = chipId;
-    saveProgress();
-    return { ok: true };
-}
-
-export function unequipChipFromUnitSlot(rawUnitId, slotIdx) {
-    const unitId = normalizeUnitId(rawUnitId);
-    if (!UNIT_BY_ID[unitId]) return false;
-    if (slotIdx !== 0 && slotIdx !== 1) return false;
-    if (!Array.isArray(metaState.unitSockets[unitId])) return false;
-
-    const prevChipId = metaState.unitSockets[unitId][slotIdx];
-    if (!prevChipId) return false;
-
-    if (UNIT_CHIPS[prevChipId]) {
-        metaState.chipInventory[prevChipId] = getChipOwnedCount(prevChipId) + 1;
-    }
-    metaState.unitSockets[unitId][slotIdx] = null;
-    saveProgress();
-    return true;
-}
-
-// ============================================================================
-// CÁC HÀM TIẾN TRÌNH 54 MAP, 0-3 SAO, CHALLENGE & CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH
-// ============================================================================
-export function isDifficultyCleared(mapLv, diffId) {
-    const prog = metaState.mapDifficultyProgress[mapLv];
-    if (!prog) return false;
-    if (diffId === 'easy') {
-        return !!(prog.easy || prog.easy_destroy || prog.easy_survival || (metaState.mapStars?.[mapLv] || 0) >= 1);
-    }
-    if (diffId === 'difficult') {
-        return !!(prog.difficult || prog.difficult_destroy || prog.difficult_survival || (metaState.mapStars?.[mapLv] || 0) >= 2);
-    }
-    return false;
-}
-
-export function isDifficultyModeCleared(mapLv, diffId, modeId) {
-    const prog = metaState.mapDifficultyProgress[mapLv];
-    if (!prog) return false;
-    const key = `${diffId}_${modeId}`;
-    return !!prog[key];
-}
-
-export function getStageStars(mapLv) {
-    const progStars = metaState.mapDifficultyProgress?.[mapLv]?.stars || 0;
-    const directStars = metaState.mapStars?.[mapLv] || 0;
-    return Math.max(0, Math.min(3, Math.floor(Math.max(Number(progStars) || 0, Number(directStars) || 0))));
-}
-
-export function recordStageStars(mapLv, earnedStars) {
-    const lv = Math.max(1, Math.min(LEVELS.length, Math.floor(Number(mapLv) || 1)));
-    const clamped = Math.max(0, Math.min(3, Math.floor(Number(earnedStars) || 0)));
-    if (!metaState.mapDifficultyProgress[lv]) {
-        metaState.mapDifficultyProgress[lv] = normalizeMapProgressEntry(null);
-    }
-    if (!metaState.mapStars || typeof metaState.mapStars !== 'object') {
-        metaState.mapStars = createDefaultMapStars();
-    }
-    const prev = getStageStars(lv);
-    if (clamped > prev) {
-        metaState.mapDifficultyProgress[lv].stars = clamped;
-        metaState.mapStars[lv] = clamped;
-    }
-    syncLevelsMetadata();
-    return getStageStars(lv);
-}
-
-export function getTotalCampaignStars() {
-    let total = 0;
-    for (let i = 1; i <= LEVELS.length; i++) {
-        total += getStageStars(i);
-    }
-    return total;
-}
-
-export function getMaxUnlockedMapLevel() {
-    if (metaState.isAdminMode) return LEVELS.length;
-    let maxLv = 1;
-    for (let i = 1; i < LEVELS.length; i++) {
-        if (isDifficultyCleared(i, 'easy')) {
-            maxLv = i + 1;
-        } else {
-            break;
-        }
-    }
-    return maxLv;
-}
-
-/**
- * Lấy Level hiện tại mà người chơi đang đứng (màn chưa thắng tiếp theo trên lộ trình 54 màn)
- */
-export function getCurrentCampaignLevel() {
-    for (let i = 1; i <= LEVELS.length; i++) {
-        if (!isDifficultyCleared(i, 'easy')) {
-            return i;
-        }
-    }
-    return LEVELS.length;
-}
-
-export function isDifficultyUnlocked(mapLv, diffId) {
-    if (metaState.isAdminMode) return true;
-    if (mapLv > getMaxUnlockedMapLevel()) return false;
-    if (diffId === 'easy') return true;
-    if (diffId === 'difficult') return isDifficultyCleared(mapLv, 'easy');
-    return false;
-}
-
-export function getDefaultDifficultyForMap(mapLv) {
-    if (!isDifficultyCleared(mapLv, 'easy')) return 'easy';
-    return 'difficult';
-}
-
-export function isChallengeMapCleared(mapLv) {
-    return !!metaState.challengeClearedMaps?.[mapLv];
-}
-
-export function getMaxUnlockedChallengeMapLevel() {
-    if (metaState.isAdminMode) return LEVELS.length;
-    let maxLv = 1;
-    for (let i = 1; i < LEVELS.length; i++) {
-        if (isChallengeMapCleared(i)) {
-            maxLv = i + 1;
-        } else {
-            break;
-        }
-    }
-    return maxLv;
-}
-
-export function isChallengeMapUnlocked(mapLv) {
-    if (metaState.isAdminMode) return true;
-    return mapLv >= 1 && mapLv <= getMaxUnlockedChallengeMapLevel();
-}
-
-export function getSkillTreeNodeLevel(nodeId) {
-    return Math.max(0, Math.floor(Number(metaState.ancientSkillTree?.[nodeId]) || 0));
-}
-
-export function isSkillTreeNodeUnlocked(nodeId) {
-    const node = ANCIENT_SKILL_TREE[nodeId];
-    if (!node) return false;
-    if (!Array.isArray(node.requires) || node.requires.length === 0) return true;
-    return node.requires.every(reqId => getSkillTreeNodeLevel(reqId) >= 1);
-}
-
-export function canUpgradeSkillTreeNode(nodeId) {
-    const node = ANCIENT_SKILL_TREE[nodeId];
-    if (!node) return false;
-    const curLv = getSkillTreeNodeLevel(nodeId);
-    if (curLv >= node.maxLevel) return false;
-    if (!isSkillTreeNodeUnlocked(nodeId)) return false;
-    const cost = getSkillTreeNodeCost(nodeId, curLv);
-    return metaState.isAdminMode || (metaState.pearls || 0) >= cost;
-}
-
-export function upgradeSkillTreeNode(nodeId) {
-    if (!canUpgradeSkillTreeNode(nodeId)) return false;
-    const curLv = getSkillTreeNodeLevel(nodeId);
-    const cost = getSkillTreeNodeCost(nodeId, curLv);
-    if (!metaState.isAdminMode) {
-        metaState.pearls = Math.max(0, (metaState.pearls || 0) - cost);
-    }
-    if (!metaState.ancientSkillTree) metaState.ancientSkillTree = createDefaultAncientSkillTree();
-    metaState.ancientSkillTree[nodeId] = curLv + 1;
-    saveProgress();
-    return true;
-}
-
-export function hasAnyUpgradableSkillTreeNode() {
-    return Object.keys(ANCIENT_SKILL_TREE).some(nodeId => canUpgradeSkillTreeNode(nodeId));
-}
-
-/**
- * Tổng hợp toàn bộ chỉ số cộng thêm & 4 Kỹ Năng Đặc Biệt từ Cây Kỹ Năng Cổ Thụ 4 Nhánh
- */
-export function getAncientSkillTreeBonuses() {
-    const bonuses = {
-        physDmgPct: 0,
-        elemDmgPct: 0,
-        allDmgPct: 0,
-        critChance: 0,
-        fireRatePct: 0,
-        splashBonus: 0,
-        burnBonusPct: 0,
-        rangeBonus: 0,
-
-        hpPct: 0,
-        armorPct: 0,
-        baseHpPct: 0,
-        hpRegenPct: 0,
-        turretDmgPct: 0,
-        lifestealPct: 0,
-        healBonusPct: 0,
-        ccResistPct: 0,
-
-        zombieDmgPct: 0,
-        ccDurationPct: 0,
-        cdReductionPct: 0,
-        stunChanceBonus: 0,
-        skeletonStatPct: 0,
-        tacticCdPct: 0,
-        extraSkeletonCap: 0,
-        moveSpeedPct: 0,
-
-        startGasFlat: 0,
-        gasRegenPct: 0,
-        goldBonusPct: 0,
-        expGainPct: 0,
-        pearlBonusPct: 0,
-        deathGasRefundPct: 0,
-        maxGasFlat: 0,
-        killGasChance: 0,
-
-        // 4 Kỹ Năng Đặc Biệt Mốc 10
-        meteor_storm: false,
-        eternal_shield: false,
-        void_lord: false,
-        infinite_reactor: false
-    };
-
-    for (const node of Object.values(ANCIENT_SKILL_TREE)) {
-        const lv = getSkillTreeNodeLevel(node.id);
-        if (lv <= 0) continue;
-        if (node.specialKey) {
-            bonuses[node.specialKey] = true;
-        } else if (node.statType && Object.prototype.hasOwnProperty.call(bonuses, node.statType)) {
-            bonuses[node.statType] += lv * (node.perLevel || 0);
-        }
-    }
-
-    return bonuses;
-}
-
-export function getHighestRarityForUnit(unitId) {
-    const targetId = normalizeUnitId(unitId);
-    let bestRarity = 'common';
-    let bestRank = -1;
-
-    if (metaState.inventoryStacks && typeof metaState.inventoryStacks === 'object') {
-        for (let rIdx = RARITY_ORDER.length - 1; rIdx >= 0; rIdx--) {
-            const rKey = RARITY_ORDER[rIdx];
-            const stackCount = metaState.inventoryStacks[`${targetId}__${rKey}`] || 0;
-            if (stackCount > 0) {
-                return rKey;
-            }
-        }
-    }
-
-    for (let i = 0; i < metaState.inventory.length; i++) {
-        const card = metaState.inventory[i];
-        if (normalizeUnitId(card.unitId) === targetId) {
-            const cfg = RARITY_CONFIG[card.rarity];
-            if (cfg && cfg.rank > bestRank) {
-                bestRank = cfg.rank;
-                bestRarity = card.rarity;
-                if (bestRank >= MAX_RARITY_RANK) break;
-            }
-        }
-    }
-    return bestRarity;
-}
-
-export function getHighestEverRarityRankForUnit(unitId) {
-    const targetId = normalizeUnitId(unitId);
-    const currentBest = getHighestRarityForUnit(targetId);
-    const curRank = hasUnitInInventory(targetId)
-        ? (RARITY_CONFIG[currentBest]?.rank ?? 0)
-        : -1;
-    const histRarity = metaState.highestRarityEverOwned?.[targetId];
-    const histRank = histRarity && RARITY_CONFIG[histRarity] ? RARITY_CONFIG[histRarity].rank : -1;
-    return Math.max(curRank, histRank);
-}
-
-export function hasClaimableCodexMilestones() {
-    for (const u of UNIT_CATALOG) {
-        const maxRank = getHighestEverRarityRankForUnit(u.id);
-        for (const ms of CODEX_MILESTONES) {
-            const claimKey = `${u.id}__${ms.id}`;
-            if (maxRank >= ms.minRank && !metaState.codexClaimed?.[claimKey]) {
-                return true;
-            }
-        }
-    }
-    return false;
-}
-
-export function hasUnitInInventory(unitId) {
-    const targetId = normalizeUnitId(unitId);
-    if (metaState.inventoryStacks && typeof metaState.inventoryStacks === 'object') {
-        for (let rIdx = 0; rIdx < RARITY_ORDER.length; rIdx++) {
-            if ((metaState.inventoryStacks[`${targetId}__${RARITY_ORDER[rIdx]}`] || 0) > 0) {
-                return true;
-            }
-        }
-    }
-    return metaState.inventory.some(c => normalizeUnitId(c.unitId) === targetId);
-}
-
-export function calcTotalRefundCoins(targetLv, currentLv) {
-    return calcTotalRefundCoinsFast(targetLv, Math.max(1, Math.floor(Number(currentLv) || 1)));
-}
-
-export function getUpgradeTierBracketText(currentLv) {
-    const block = Math.floor((currentLv - 1) / 5);
-    const startLv = block * 5 + 1;
-    const endLv = startLv + 4;
-    const stepPrice = getUnitUpgradeCost(currentLv);
-    return `Khung giá Cấp ${startLv}-${endLv}: 🪙 ${stepPrice.toLocaleString('en-US')} / cấp`;
-}
-
-export function formatCurrency(val) {
-    if (metaState.isAdminMode) return '∞';
-    const n = Math.floor(Number(val) || 0);
-    return n.toLocaleString('en-US');
+function resetBattleState(mode = 'campaign', stageLevel = 1, canvasW = 420, canvasH = 760) {
+  const stage = STAGE_CATALOG[clamp(stageLevel - 1, 0, STAGE_CATALOG.length - 1)];
+  const tree = getSkillTreeBonuses();
+
+  game.active = true;
+  game.paused = false;
+  game.mode = mode;
+  game.stageLevel = stage.level;
+  game.mapWidth = canvasW;
+  game.mapHeight = canvasH;
+
+  // Khởi tạo Hitbox & Tâm ngắm chuẩn xác cho 2 Mansion (Phần 2)
+  game.blueMansion = getMansionHitbox('blue', canvasW, canvasH);
+  game.redMansion = getMansionHitbox('red', canvasW, canvasH);
+
+  // Tính HP Mansion Xanh (kèm bonus Nhánh 1 Công Sự & Thiên Phú)
+  const basePlayerHp = 1200 + metaState.playerLevel * 120;
+  game.playerMaxHp = Math.round(basePlayerHp * (1 + tree.baseHpPct));
+  game.playerHp = game.playerMaxHp;
+
+  // Giáp ảo Lá Chắn Pháo Đài (Tối thượng Nhánh 1)
+  game.playerMaxShield = Math.round(game.playerMaxHp * tree.fortressShieldPct);
+  game.playerShield = game.playerMaxShield;
+  game.shieldRegenTimer = 20;
+
+  // Tính HP Mansion Đỏ theo ải & chế độ chơi
+  let enemyHpMult = 1.0;
+  if (mode === 'challenge') enemyHpMult = 1.35;
+  if (mode === 'raid') enemyHpMult = 2.2;
+  if (mode === 'bossrush') enemyHpMult = 1.8;
+  game.enemyMaxHp = Math.round(stage.enemyBaseHp * enemyHpMult);
+  game.enemyHp = game.enemyMaxHp;
+
+  // Năng lượng Xăng ban đầu (kèm Tiếp Viện Tức Thì Nhánh 4)
+  game.maxGas = 100 + Math.round(tree.maxGasBonus);
+  game.gas = Math.min(game.maxGas, 50 + Math.round(tree.startGasBonus));
+  game.gasTimer = 0;
+  game.gasUpgLevel = 1;
+  game.gasIncomePerSec = 12 * (1 + tree.gasRegenPct);
+  game.gasUpgCost = 45;
+
+  // Cấu hình Wave & Thời gian
+  game.wave = 1;
+  game.maxWaves = mode === 'challenge' ? 20 : (mode === 'endless' ? 999 : 3);
+  game.waveTimer = 1.2;
+  game.spawnQueue = [];
+  game.elapsedTime = 0;
+  game.timeLimit = mode === 'timeattack' ? 90 : 0;
+
+  // Roguelike trong trận
+  game.battleLv = 1;
+  game.battleExp = 0;
+  game.nextLvExp = 90;
+  game.pendingLevelUps = 0;
+  game.roguelikeBuffs = {
+    atkPct: 0,
+    hpPct: 0,
+    atkSpdPct: 0,
+    gasRegenPct: 0,
+    critRate: 0
+  };
+
+  // Kỹ năng Q-W-E-R & Ụ pháo Mansion
+  game.skillCooldowns = { Q: 0, W: 0, E: 0, R: 0 };
+  game.blitzTimer = 0;
+  game.aimingSkill = null;
+  game.rallyPoint = null;
+
+  game.turret = {
+    id: metaState.equippedTurret || 'turret_gatling',
+    angle: -Math.PI / 2,
+    cooldown: 0,
+    recoil: 0
+  };
+
+  game.units = [];
+  game.enemies = [];
+  game.projectiles = [];
+  game.props = [];
+  game.particles = [];
+  game.floatingTexts = [];
+
+  const deckLen = mode === 'challenge' ? BASE_DECK_SIZE_CHALLENGE : BASE_DECK_SIZE_BATTLE;
+  game.deckCooldowns = new Array(deckLen).fill(0);
 }

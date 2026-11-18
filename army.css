@@ -1,963 +1,441 @@
-/* ============================================================================
-   TINY BATTLE - ARMY, REVIEW SANDBOX, MERGE & 41 RARITY TIERS (css/army.css)
-   Tab Army, Hero Showcase, 3 Subviews (ARMY / REVIEW / MERGE), Chip Dots,
-   Holographic 3D Tilt Cards & 41 Rarity Tiers (Common -> Master -> Demon +10)
-   ============================================================================ */
-
-/* ============================================================================
-   1. BỐ CỤC CHÍNH TAB ARMY & SÂN KHẤU HERO ĐẠI DIỆN
-   ============================================================================ */
-.army-tab-layout {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background:
-        radial-gradient(circle at 50% 18%, rgba(56, 189, 248, 0.25) 0%, transparent 58%),
-        linear-gradient(180deg, #0f172a 0%, #1e293b 45%, #0f172a 100%);
-}
-
-.army-Hero-stage {
-    height: 156px;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background: radial-gradient(circle at 50% 62%, rgba(14, 165, 233, 0.22) 0%, transparent 72%);
-}
-
-.army-pedestal-circle {
-    position: absolute;
-    bottom: 18px;
-    width: 124px;
-    height: 32px;
-    background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.45) 0%, rgba(15, 23, 42, 0.65) 85%);
-    border: 3px solid #0f172a;
-    border-radius: 50%;
-    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.55);
-    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-/* Bệ đứng Hero tự đổi hào quang theo bậc Master / Demon */
-.army-pedestal-circle.pedestal-master {
-    background: radial-gradient(circle, rgba(0, 242, 254, 0.65) 0%, rgba(2, 132, 199, 0.42) 65%, rgba(15, 23, 42, 0.6) 100%);
-    border-color: #00f2fe;
-    box-shadow: 0 0 20px #00f2fe, inset 0 0 12px #38bdf8;
-}
-
-.army-pedestal-circle.pedestal-demon {
-    background: radial-gradient(circle, rgba(217, 70, 239, 0.68) 0%, rgba(126, 34, 206, 0.48) 65%, rgba(9, 0, 20, 0.78) 100%);
-    border-color: #d946ef;
-    box-shadow: 0 0 24px #a855f7, 0 0 38px #7e22ce, inset 0 0 14px #f0abfc;
-}
-
-.army-showcase-canvas {
-    width: 106px;
-    height: 106px;
-    z-index: 2;
-    filter: drop-shadow(0 6px 0 rgba(15, 23, 42, 0.6));
-}
-
-.army-showcase-caption {
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 2px;
-    background: rgba(15, 23, 42, 0.75);
-    padding: 2px 10px;
-    border-radius: 999px;
-    border: 1.5px solid rgba(148, 163, 184, 0.35);
-}
-
-.showcase-unit-name {
-    font-size: 14px;
-    font-weight: 900;
-    color: #ffffff;
-    -webkit-text-stroke: 0.8px #0f172a;
-    text-shadow: 0 2px 0 #0f172a;
-    letter-spacing: 0.4px;
-}
-
-/* ============================================================================
-   2. BẢNG QUẢN LÝ DƯỚI (3 NÚT CHẾ ĐỘ: ARMY / REVIEW / MERGE)
-   ============================================================================ */
-.army-bottom-panel {
-    flex: 1;
-    background: #334155;
-    border-top: 4px solid #0f172a;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.army-mode-header {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    background: #1e293b;
-    border-bottom: 3px solid #0f172a;
-    flex-shrink: 0;
-}
-
-.army-mode-btn {
-    padding: 6px 6px;
-    font-size: 11px;
-    font-weight: 900;
-    background: linear-gradient(180deg, #475569 0%, #334155 100%);
-    color: #cbd5e1;
-    border-radius: 10px;
-    letter-spacing: 0.3px;
-}
-
-.army-mode-btn.active {
-    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-    color: #0f172a;
-    border-color: #0f172a;
-    text-shadow: none;
-    box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.45);
-}
-
-.army-mode-btn[data-mode="review"].active,
-#btn-mode-review.active {
-    background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-    color: #ffffff;
-    text-shadow: 0 1px 0 #0f172a;
-}
-
-.army-panel-heading {
-    font-size: 12.5px;
-    font-weight: 900;
-    color: #ffffff;
-    letter-spacing: 0.5px;
-    text-shadow: 0 2px 0 #0f172a;
-}
-
-.army-subview {
-    flex: 1;
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 6px 8px;
-}
-
-.army-subview.active {
-    display: flex;
+/**
+ * ============================================================================
+ * TINY BATTLE - ARMY DECK, UNIT CARDS, SANDBOX DPS & MERGE LAB (css/army.css)
+ * Chuẩn hóa tương phản cao WCAG AA, thẻ bài Pixel-Art & Phòng tập Sandbox
+ * ============================================================================
+ */
+
+/* --------------------------------------------------------------------------
+ * 1. THANH CHUYỂN CHẾ ĐỘ CON TRONG TAB ARMY (ARMY / REVIEW / MERGE)
+ * -------------------------------------------------------------------------- */
+.army-subnav-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(11, 17, 32, 0.96);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.army-subtab {
+  padding: 7px 6px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  text-align: center;
+}
+
+.army-subtab.active {
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.25) 0%, rgba(2, 132, 199, 0.4) 100%);
+  border-color: var(--border-cyan);
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+}
+
+/* --------------------------------------------------------------------------
+ * 2. KHUNG ĐỘI HÌNH XUẤT TRẬN (ACTIVE DECK) & NÚT Ụ PHÁO MANSION
+ * -------------------------------------------------------------------------- */
+.active-deck-container {
+  padding: 8px 12px 10px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(11, 17, 32, 0.9) 100%);
+  border-bottom: 1px solid var(--border-gold);
+}
+
+.deck-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.deck-label {
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  color: var(--text-gold);
+  text-shadow: var(--shadow-text);
+}
+
+.btn-turret-equip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid var(--border-cyan);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: var(--shadow-text);
+}
+
+.btn-turret-equip:hover {
+  border-color: var(--border-gold);
+  background: rgba(56, 189, 248, 0.28);
+}
+
+.army-deck-slots {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+}
+
+.deck-slot-card {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 9px;
+  background: rgba(5, 8, 17, 0.85);
+  border: 1.5px dashed rgba(148, 163, 184, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  overflow: hidden;
+  cursor: pointer;
 }
 
-.army-cost-rule-banner {
-    background: rgba(15, 23, 42, 0.72);
-    border: 1.5px solid #0f172a;
-    color: #fef08a;
-    font-size: 9.5px;
-    font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 6px;
-    line-height: 1.3;
-    flex-shrink: 0;
+.deck-slot-card.filled {
+  border-style: solid;
+  border-color: var(--border-gold);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
 }
 
-.army-cards-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 7px;
-    overflow-y: auto;
-    padding: 2px 1px 10px 1px;
-    align-content: start;
-}
-
-/* ============================================================================
-   3. THẺ TƯỚNG HOLOGRAPHIC 3D TILT, CHẤM CHIP & 41 BẬC ĐỘ HIẾM
-   ============================================================================ */
-.army-unit-card {
-    position: relative;
-    border: 3px solid #0f172a;
-    border-radius: 12px;
-    padding: 5px 4px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    min-height: 92px;
-    box-shadow: 0 3px 0 #0f172a, inset 0 2px 0 rgba(255, 255, 255, 0.35);
-    transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1), filter 0.12s ease, box-shadow 0.15s ease;
-    overflow: hidden;
-    transform-style: preserve-3d;
+.deck-slot-card.challenge-only {
+  border-color: rgba(251, 113, 133, 0.55);
 }
-
-.army-unit-card.tilting {
-    transition: none;
-    z-index: 6;
-    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.65), 0 0 12px rgba(250, 204, 21, 0.45);
-}
-
-.army-unit-card:hover {
-    filter: brightness(1.07);
-}
-
-.army-unit-card:active {
-    transform: scale(0.95) translateY(2px);
-}
-
-.army-unit-card.selected-for-merge {
-    outline: 3px solid #fde047;
-    transform: translateY(-3px);
-}
-
-.army-unit-card.dimmed-unmatch {
-    opacity: 0.32;
-    filter: grayscale(75%);
-}
 
-/* Chấm trạng thái 2 Khe Chip gắn trên góc trái thẻ binh chủng */
-.card-socket-dots {
-    position: absolute;
-    left: 4px;
-    bottom: 22px;
-    display: flex;
-    flex-direction: column;
-    gap: 2.5px;
-    z-index: 4;
+.deck-slot-card img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
 }
 
-.socket-dot {
-    width: 6.5px;
-    height: 6.5px;
-    border-radius: 50%;
-    background: rgba(15, 23, 42, 0.78);
-    border: 1.2px solid #cbd5e1;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+.deck-slot-badge {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 8.5px;
+  font-weight: 900;
+  color: var(--text-gold);
+  text-shadow: var(--shadow-text);
 }
 
-.socket-dot.chip-napalm {
-    background: #f97316;
-    border-color: #fef08a;
+.deck-slot-cost {
+  font-size: 9.5px;
+  font-weight: 900;
+  color: var(--text-cyan);
+  text-shadow: var(--shadow-text);
 }
 
-.socket-dot.chip-radar {
-    background: #38bdf8;
-    border-color: #e0f2fe;
+.deck-slot-empty-hint {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.1;
 }
 
-.socket-dot.chip-armor {
-    background: #c084fc;
-    border-color: #fae8ff;
+/* --------------------------------------------------------------------------
+ * 3. LƯỚI DANH SÁCH 17 BINH CHỦNG (#army-unit-grid)
+ * -------------------------------------------------------------------------- */
+.army-unit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
-.socket-dot.chip-overclock {
-    background: #4ade80;
-    border-color: #dcfce7;
+.unit-card-item {
+  position: relative;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-subtle);
+  padding: 8px 6px 7px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
+  transition: transform 0.14s ease, border-color 0.14s ease;
+}
+
+.unit-card-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-gold);
+}
+
+.unit-card-item.equipped {
+  border-color: #4ADE80;
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.28);
 }
-
-/* Badge số lượng gộp khi mở số lượng lớn rương */
-.card-qty-badge {
-    position: absolute;
-    bottom: 22px;
-    right: 3px;
-    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
-    color: #fde047;
-    border: 1.5px solid #fde047;
-    border-radius: 999px;
-    padding: 0.5px 5px;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 13px;
-    line-height: 1.05;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.75);
-    z-index: 4;
-    max-width: 92%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* 1. Common (Rank 0 - 1.0x) */
-.rarity-common {
-    background: linear-gradient(180deg, #cbd5e1 0%, #64748b 100%);
-    border-color: #0f172a;
-}
-
-/* 2. Uncommon (Rank 1 - 1.20x) */
-.rarity-uncommon {
-    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
-    border-color: #0f172a;
+
+.unit-card-item.locked {
+  opacity: 0.58;
+  filter: grayscale(0.65);
+}
+
+.unit-card-top-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9.5px;
+  font-weight: 900;
+}
+
+.unit-card-cost-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(5, 8, 17, 0.88);
+  color: var(--text-gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.unit-card-lv-tag {
+  color: var(--text-cyan);
+  text-shadow: var(--shadow-text);
+}
+
+.unit-card-sprite-box {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, rgba(5, 8, 17, 0.72) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.unit-card-sprite {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
 }
-
-/* 3. Rare (Rank 2 - 1.42x) */
-.rarity-rare {
-    background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
-    border-color: #0f172a;
-}
-
-/* 4. Epic (Rank 3 - 1.65x) */
-.rarity-epic {
-    background: linear-gradient(180deg, #c084fc 0%, #7e22ce 100%);
-    border-color: #0f172a;
-}
-
-/* 5. Epic +1 (Rank 4 - 1.88x) */
-.rarity-epic1 {
-    background: linear-gradient(180deg, #d8b4fe 0%, #9333ea 100%);
-    border-color: #f0abfc;
-    box-shadow: 0 3px 0 #0f172a, 0 0 8px rgba(192, 132, 252, 0.7);
-}
-
-/* 6. Epic +2 (Rank 5 - 2.15x) */
-.rarity-epic2 {
-    background: linear-gradient(180deg, #f0abfc 0%, #a21caf 100%);
-    border-color: #fde047;
-    box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.75);
-}
-
-/* 7. Legendary (Rank 6 - 2.60x) */
-.rarity-legendary {
-    background: linear-gradient(180deg, #fde047 0%, #ea580c 100%);
-    border-color: #fef08a;
-    box-shadow: 0 3px 0 #0f172a, 0 0 12px rgba(245, 158, 11, 0.85);
-}
-
-/* 8. Legendary +1 (Rank 7 - 3.05x) */
-.rarity-legendary1 {
-    background: linear-gradient(180deg, #fef08a 0%, #f59e0b 45%, #c2410c 100%);
-    border-color: #fde047;
-    box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(251, 191, 36, 0.9);
-}
-
-/* 9. Legendary +2 (Rank 8 - 3.55x) */
-.rarity-legendary2 {
-    background: linear-gradient(180deg, #fef9c3 0%, #fbbf24 40%, #b45309 100%);
-    border-color: #ffffff;
-    box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(250, 204, 21, 0.95);
-}
-
-/* 10. Legendary +3 (Rank 9 - 4.10x) */
-.rarity-legendary3 {
-    background: linear-gradient(180deg, #ffffff 0%, #facc15 35%, #ea580c 85%, #9a3412 100%);
-    border-color: #fef08a;
-    box-shadow: 0 3px 0 #0f172a, 0 0 18px rgba(249, 115, 22, 1);
-}
-
-@keyframes mythicCrimsonPulse {
-    0% {
-        box-shadow: 0 3px 0 #0f172a, 0 0 12px rgba(225, 29, 72, 0.85);
-    }
-    100% {
-        box-shadow: 0 3px 0 #0f172a, 0 0 22px rgba(239, 68, 68, 1), inset 0 0 8px rgba(254, 205, 211, 0.55);
-    }
-}
-
-/* 11. Mythic (Rank 10 - 5.00x) */
-.rarity-mythic {
-    background: linear-gradient(180deg, #fb7185 0%, #e11d48 50%, #881337 100%);
-    border-color: #fda4af;
-    box-shadow: 0 3px 0 #0f172a, 0 0 14px rgba(225, 29, 72, 0.9);
-}
-
-/* 12. Mythic +1 (Rank 11 - 5.90x) */
-.rarity-mythic1 {
-    background: linear-gradient(180deg, #fda4af 0%, #f43f5e 45%, #9f1239 100%);
-    border-color: #fecdd3;
-    box-shadow: 0 3px 0 #0f172a, 0 0 16px rgba(244, 63, 94, 0.95);
-}
-
-/* 13. Mythic +2 (Rank 12 - 6.90x) */
-.rarity-mythic2 {
-    background: linear-gradient(180deg, #fecdd3 0%, #ef4444 45%, #991b1b 90%, #450a0a 100%);
-    border-color: #fde047;
-    box-shadow: 0 3px 0 #0f172a, 0 0 18px rgba(239, 68, 68, 1);
-}
-
-/* 14. Mythic +3 (Rank 13 - 8.00x) */
-.rarity-mythic3 {
-    background: linear-gradient(180deg, #fde047 0%, #ef4444 40%, #b91c1c 85%, #450a0a 100%);
-    border-color: #fef08a;
-    animation: mythicCrimsonPulse 1.6s ease-in-out infinite alternate;
-}
-
-/* 15. Mythic +4 (Rank 14 - 9.20x) */
-.rarity-mythic4 {
-    background: linear-gradient(135deg, #fef08a 0%, #f97316 25%, #dc2626 60%, #7f1d1d 100%);
-    border-color: #ffffff;
-    animation: mythicCrimsonPulse 1.2s ease-in-out infinite alternate;
-}
-
-/* ============================================================================
-   HIỆU ỨNG VIỀN MÀU ĐEN TỎA SÁNG (DARK VOID GLOW) CHO BẬC SECRET (RANK 15 -> 20)
-   ============================================================================ */
-@keyframes secretBlackGlowPulse {
-    0% {
-        background-position: 0% 50%;
-        border-color: #000000;
-        box-shadow:
-            0 0 10px rgba(0, 0, 0, 0.92),
-            0 0 20px rgba(30, 30, 30, 0.82),
-            0 0 35px rgba(0, 0, 0, 0.96),
-            inset 0 0 12px rgba(255, 255, 255, 0.14);
-    }
-    50% {
-        background-position: 100% 50%;
-        border-color: #171717;
-        box-shadow:
-            0 0 14px rgba(0, 0, 0, 0.98),
-            0 0 26px rgba(15, 23, 42, 0.92),
-            0 0 42px rgba(0, 0, 0, 1),
-            0 0 6px rgba(255, 255, 255, 0.25),
-            inset 0 0 16px rgba(255, 255, 255, 0.24);
-    }
-    100% {
-        background-position: 0% 50%;
-        border-color: #000000;
-        box-shadow:
-            0 0 18px rgba(0, 0, 0, 1),
-            0 0 32px rgba(24, 24, 27, 0.95),
-            0 0 48px rgba(0, 0, 0, 1),
-            inset 0 0 18px rgba(255, 255, 255, 0.28);
-    }
-}
-
-/* 16. Secret (Rank 15 - 11.50x) */
-.rarity-secret {
-    background: linear-gradient(135deg, #000000 0%, #090d16 35%, #1e1b4b 50%, #090d16 65%, #000000 100%);
-    background-size: 240% 240%;
-    border: 2.5px solid #000000;
-    animation: secretBlackGlowPulse 2s ease-in-out infinite alternate;
-}
-
-/* 17. Secret +1 (Rank 16 - 13.80x) */
-.rarity-secret1 {
-    background: linear-gradient(135deg, #000000 0%, #0a0a0a 30%, #27272a 50%, #09090b 70%, #000000 100%);
-    background-size: 240% 240%;
-    border: 2.5px solid #000000;
-    animation: secretBlackGlowPulse 1.85s ease-in-out infinite alternate;
-}
-
-/* 18. Secret +2 (Rank 17 - 16.40x) */
-.rarity-secret2 {
-    background: linear-gradient(135deg, #000000 0%, #020617 28%, #1e293b 50%, #020617 72%, #000000 100%);
-    background-size: 240% 240%;
-    border: 2.5px solid #000000;
-    animation: secretBlackGlowPulse 1.7s ease-in-out infinite alternate;
-}
-
-/* 19. Secret +3 (Rank 18 - 19.30x) */
-.rarity-secret3 {
-    background: linear-gradient(135deg, #000000 0%, #111827 25%, #31102f 50%, #090d16 75%, #000000 100%);
-    background-size: 240% 240%;
-    border: 2.5px solid #000000;
-    animation: secretBlackGlowPulse 1.55s ease-in-out infinite alternate;
-}
-
-/* 20. Secret +4 (Rank 19 - 22.50x) */
-.rarity-secret4 {
-    background: linear-gradient(135deg, #000000 0%, #09090b 22%, #2e1065 50%, #09090b 78%, #000000 100%);
-    background-size: 240% 240%;
-    border: 2.5px solid #000000;
-    animation: secretBlackGlowPulse 1.4s ease-in-out infinite alternate;
-}
-
-/* 21. Secret +5 (Rank 20 - 26.00x) */
-.rarity-secret5 {
-    background: linear-gradient(135deg, #000000 0%, #050505 20%, #18181b 45%, #3f3f46 50%, #18181b 55%, #050505 80%, #000000 100%);
-    background-size: 260% 260%;
-    border: 2.5px solid #000000;
-    animation: secretBlackGlowPulse 1.25s ease-in-out infinite alternate;
-    outline: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-/* ============================================================================
-   CHUỖI 9 BẬC MASTER (RANK 21 -> 29 | master -> master8 | 33.0x -> 120.0x)
-   Màu chủ đạo: Xanh nước biển đại dương rực lửa (Aqua Ocean Flame)
-   ============================================================================ */
-@keyframes masterAquaFlamePulse {
-    0% {
-        background-position: 0% 50%;
-        border-color: #38bdf8;
-        box-shadow:
-            0 0 14px #00f2fe,
-            0 0 28px #0284c7,
-            inset 0 0 14px rgba(224, 242, 254, 0.65);
-    }
-    50% {
-        background-position: 100% 50%;
-        border-color: #e0f2fe;
-        box-shadow:
-            0 0 20px #00f2fe,
-            0 0 38px #0284c7,
-            0 0 52px rgba(0, 242, 254, 0.75),
-            inset 0 0 20px rgba(255, 255, 255, 0.85);
-    }
-    100% {
-        background-position: 0% 50%;
-        border-color: #38bdf8;
-        box-shadow:
-            0 0 16px #00f2fe,
-            0 0 32px #0369a1,
-            inset 0 0 16px rgba(224, 242, 254, 0.72);
-    }
-}
-
-.rarity-master,
-.rarity-master1,
-.rarity-master2,
-.rarity-master3,
-.rarity-master4,
-.rarity-master5,
-.rarity-master6,
-.rarity-master7,
-.rarity-master8 {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 35%, #00f2fe 50%, #0369a1 70%, #001233 100%);
-    background-size: 260% 260%;
-    border: 2.5px solid #38bdf8;
-    box-shadow: 0 0 14px #00f2fe, 0 0 28px #0284c7, inset 0 0 14px rgba(224, 242, 254, 0.65);
-    animation: masterAquaFlamePulse 1.75s ease-in-out infinite alternate;
-    color: #ffffff;
-}
-
-.rarity-master {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 35%, #00f2fe 50%, #0369a1 70%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #38bdf8;
-    animation: masterAquaFlamePulse 1.95s ease-in-out infinite alternate;
-}
-
-.rarity-master1 {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 32%, #00f2fe 50%, #0284c7 68%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #38bdf8;
-    animation: masterAquaFlamePulse 1.85s ease-in-out infinite alternate;
-}
-
-.rarity-master2 {
-    background: linear-gradient(135deg, #001a42 0%, #0369a1 30%, #00f2fe 50%, #0284c7 70%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #7dd3fc;
-    animation: masterAquaFlamePulse 1.75s ease-in-out infinite alternate;
-}
-
-.rarity-master3 {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 28%, #38bdf8 45%, #00f2fe 50%, #0369a1 72%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #7dd3fc;
-    animation: masterAquaFlamePulse 1.65s ease-in-out infinite alternate;
-    outline: 1px solid rgba(125, 211, 252, 0.65);
-}
-
-.rarity-master4 {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 26%, #00f2fe 48%, #e0f2fe 50%, #0284c7 74%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #bae6fd;
-    animation: masterAquaFlamePulse 1.55s ease-in-out infinite alternate;
-    outline: 1px solid rgba(125, 211, 252, 0.65);
-}
-
-.rarity-master5 {
-    background: linear-gradient(135deg, #001233 0%, #0284c7 25%, #00f2fe 46%, #ffffff 50%, #00f2fe 54%, #0369a1 75%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #bae6fd;
-    animation: masterAquaFlamePulse 1.45s ease-in-out infinite alternate;
-    outline: 1px solid rgba(125, 211, 252, 0.65);
-}
-
-.rarity-master6 {
-    background: linear-gradient(135deg, #001e4d 0%, #0ea5e9 25%, #00f2fe 45%, #ffffff 50%, #00f2fe 55%, #0284c7 75%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #e0f2fe;
-    animation: masterAquaFlamePulse 1.32s ease-in-out infinite alternate;
-    outline: 1.5px solid rgba(224, 242, 254, 0.9);
-}
-
-.rarity-master7 {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 22%, #00f2fe 42%, #ffffff 50%, #38bdf8 58%, #0369a1 78%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #e0f2fe;
-    animation: masterAquaFlamePulse 1.2s ease-in-out infinite alternate;
-    outline: 1.5px solid rgba(224, 242, 254, 0.9);
-}
-
-.rarity-master8 {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 20%, #00f2fe 40%, #ffffff 50%, #00f2fe 60%, #0284c7 80%, #001233 100%);
-    background-size: 260% 260%;
-    border-color: #ffffff;
-    animation: masterAquaFlamePulse 1.08s ease-in-out infinite alternate;
-    outline: 2px solid #00f2fe;
-}
-
-/* ============================================================================
-   CHUỖI 11 BẬC DEMON (RANK 30 -> 40 | demon -> demon10 | 155.0x -> 777.0x)
-   Màu chủ đạo: Tím Hắc Ám Ma Giới (Abyssal Demon Purple Aura)
-   ============================================================================ */
-@keyframes demonPurpleAbyssPulse {
-    0% {
-        background-position: 0% 50%;
-        border-color: #d946ef;
-        box-shadow:
-            0 0 16px #a855f7,
-            0 0 34px #7e22ce,
-            0 0 50px #4c1d95,
-            inset 0 0 18px rgba(240, 171, 252, 0.7);
-    }
-    50% {
-        background-position: 100% 50%;
-        border-color: #f0abfc;
-        box-shadow:
-            0 0 22px #d946ef,
-            0 0 44px #9333ea,
-            0 0 64px #581c87,
-            inset 0 0 24px rgba(250, 232, 255, 0.92);
-    }
-    100% {
-        background-position: 0% 50%;
-        border-color: #a855f7;
-        box-shadow:
-            0 0 18px #c084fc,
-            0 0 38px #6b21a8,
-            0 0 56px #3b0764,
-            inset 0 0 20px rgba(240, 171, 252, 0.8);
-    }
-}
-
-.rarity-demon,
-.rarity-demon1,
-.rarity-demon2,
-.rarity-demon3,
-.rarity-demon4,
-.rarity-demon5,
-.rarity-demon6,
-.rarity-demon7,
-.rarity-demon8,
-.rarity-demon9,
-.rarity-demon10 {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 30%, #9333ea 48%, #f0abfc 50%, #6b21a8 72%, #090014 100%);
-    background-size: 280% 280%;
-    border: 2.5px solid #d946ef;
-    box-shadow: 0 0 16px #a855f7, 0 0 34px #7e22ce, 0 0 50px #4c1d95, inset 0 0 18px rgba(240, 171, 252, 0.7);
-    animation: demonPurpleAbyssPulse 1.6s ease-in-out infinite alternate;
-    color: #ffffff;
-}
-
-.rarity-demon {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 30%, #9333ea 48%, #f0abfc 50%, #6b21a8 72%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #a855f7;
-    animation: demonPurpleAbyssPulse 1.85s ease-in-out infinite alternate;
-}
-
-.rarity-demon1 {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 28%, #9333ea 47%, #f0abfc 50%, #6b21a8 72%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #c084fc;
-    animation: demonPurpleAbyssPulse 1.75s ease-in-out infinite alternate;
-}
-
-.rarity-demon2 {
-    background: linear-gradient(135deg, #090014 0%, #4c1d95 28%, #a855f7 47%, #f0abfc 50%, #7e22ce 72%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #c084fc;
-    animation: demonPurpleAbyssPulse 1.65s ease-in-out infinite alternate;
-}
-
-.rarity-demon3 {
-    background: linear-gradient(135deg, #090014 0%, #4c1d95 26%, #9333ea 46%, #f0abfc 50%, #6b21a8 74%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #d946ef;
-    animation: demonPurpleAbyssPulse 1.55s ease-in-out infinite alternate;
-}
-
-.rarity-demon4 {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 25%, #a855f7 45%, #fae8ff 50%, #7e22ce 75%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #d946ef;
-    animation: demonPurpleAbyssPulse 1.45s ease-in-out infinite alternate;
-    outline: 1px solid rgba(232, 121, 249, 0.75);
-}
-
-.rarity-demon5 {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 24%, #c084fc 45%, #ffffff 50%, #9333ea 75%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #e879f9;
-    animation: demonPurpleAbyssPulse 1.35s ease-in-out infinite alternate;
-    outline: 1px solid rgba(232, 121, 249, 0.75);
-}
-
-.rarity-demon6 {
-    background: linear-gradient(135deg, #090014 0%, #581c87 22%, #d946ef 44%, #ffffff 50%, #7e22ce 76%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #e879f9;
-    animation: demonPurpleAbyssPulse 1.25s ease-in-out infinite alternate;
-    outline: 1px solid rgba(232, 121, 249, 0.75);
-}
-
-.rarity-demon7 {
-    background: linear-gradient(135deg, #090014 0%, #4c1d95 20%, #d946ef 43%, #ffffff 50%, #9333ea 78%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #f0abfc;
-    animation: demonPurpleAbyssPulse 1.15s ease-in-out infinite alternate;
-    outline: 1px solid rgba(232, 121, 249, 0.75);
-}
-
-.rarity-demon8 {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 18%, #9333ea 38%, #f0abfc 48%, #ffffff 50%, #d946ef 58%, #581c87 82%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #f0abfc;
-    animation: demonPurpleAbyssPulse 1.05s ease-in-out infinite alternate;
-    outline: 2px solid #f0abfc;
-}
-
-.rarity-demon9 {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 16%, #a855f7 36%, #f0abfc 47%, #ffffff 50%, #e879f9 58%, #6b21a8 84%, #090014 100%);
-    background-size: 280% 280%;
-    border-color: #fae8ff;
-    animation: demonPurpleAbyssPulse 0.95s ease-in-out infinite alternate;
-    outline: 2px solid #f0abfc;
-}
-
-/* Demon +10: Bậc Tối Thượng 777.0x */
-.rarity-demon10 {
-    background: linear-gradient(135deg, #090014 0%, #3b0764 15%, #9333ea 34%, #d946ef 45%, #ffffff 50%, #f0abfc 55%, #7e22ce 75%, #090014 100%);
-    background-size: 300% 300%;
-    border: 2.5px solid #ffffff;
-    box-shadow:
-        0 0 18px #d946ef,
-        0 0 38px #a855f7,
-        0 0 60px #6b21a8,
-        inset 0 0 22px rgba(250, 232, 255, 0.9);
-    animation: demonPurpleAbyssPulse 0.85s ease-in-out infinite alternate;
-    outline: 2px solid #d946ef;
-}
-
-/* Huy hiệu Rarity (Badge) chuyên biệt cho Mythic, Secret, Master & Demon */
-.rarity-badge {
-    font-size: 9px;
-    font-weight: 900;
-    padding: 1.5px 7px;
-    border-radius: 999px;
-    border: 2px solid #0f172a;
-    color: #ffffff;
-    text-shadow: 0 1px 0 #0f172a;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.rarity-badge.rarity-mythic,
-.rarity-badge.rarity-mythic1,
-.rarity-badge.rarity-mythic2,
-.rarity-badge.rarity-mythic3,
-.rarity-badge.rarity-mythic4 {
-    border-color: #fde047;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.85);
-}
-
-.rarity-badge.rarity-secret,
-.rarity-badge.rarity-secret1,
-.rarity-badge.rarity-secret2,
-.rarity-badge.rarity-secret3,
-.rarity-badge.rarity-secret4,
-.rarity-badge.rarity-secret5 {
-    background: linear-gradient(135deg, #000000 0%, #18181b 50%, #000000 100%);
-    border: 2px solid #000000;
-    color: #f8fafc;
-    text-shadow: 0 0 6px rgba(255, 255, 255, 0.55), 0 1px 0 #000000;
-    animation: secretBlackGlowPulse 2s ease-in-out infinite alternate;
-}
-
-.rarity-badge.rarity-master,
-.rarity-badge.rarity-master1,
-.rarity-badge.rarity-master2,
-.rarity-badge.rarity-master3,
-.rarity-badge.rarity-master4,
-.rarity-badge.rarity-master5,
-.rarity-badge.rarity-master6,
-.rarity-badge.rarity-master7,
-.rarity-badge.rarity-master8 {
-    background: linear-gradient(135deg, #001e4d 0%, #0284c7 40%, #00f2fe 55%, #001233 100%);
-    background-size: 240% 240%;
-    border: 2px solid #38bdf8;
-    color: #ffffff;
-    text-shadow: 0 0 8px #00f2fe, 0 1px 0 #001233;
-    animation: masterAquaFlamePulse 1.8s ease-in-out infinite alternate;
-}
-
-.rarity-badge.rarity-demon,
-.rarity-badge.rarity-demon1,
-.rarity-badge.rarity-demon2,
-.rarity-badge.rarity-demon3,
-.rarity-badge.rarity-demon4,
-.rarity-badge.rarity-demon5,
-.rarity-badge.rarity-demon6,
-.rarity-badge.rarity-demon7,
-.rarity-badge.rarity-demon8,
-.rarity-badge.rarity-demon9,
-.rarity-badge.rarity-demon10 {
-    background: linear-gradient(135deg, #090014 0%, #6b21a8 45%, #d946ef 55%, #090014 100%);
-    background-size: 260% 260%;
-    border: 2px solid #f0abfc;
-    color: #ffffff;
-    text-shadow: 0 0 10px #d946ef, 0 1px 0 #090014;
-    animation: demonPurpleAbyssPulse 1.5s ease-in-out infinite alternate;
-}
-
-.card-top-lv {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 13px;
-    color: #ffffff;
-    text-shadow: 0 1px 0 #0f172a;
-    gap: 2px;
-}
-
-.card-plus-tag {
-    background: #0f172a;
-    color: #fde047;
-    padding: 0 4px;
-    border-radius: 4px;
-    font-family: var(--font-pixel, var(--font-num, monospace));
-    font-size: 12px;
-    flex-shrink: 0;
-    border: 1px solid rgba(254, 240, 138, 0.35);
-}
-
-/* Tag + cấp độ trên thẻ Master & Demon nổi bật */
-.rarity-master .card-plus-tag,
-.rarity-master1 .card-plus-tag,
-.rarity-master2 .card-plus-tag,
-.rarity-master3 .card-plus-tag,
-.rarity-master4 .card-plus-tag,
-.rarity-master5 .card-plus-tag,
-.rarity-master6 .card-plus-tag,
-.rarity-master7 .card-plus-tag,
-.rarity-master8 .card-plus-tag {
-    background: #001233;
-    color: #00f2fe;
-    border-color: #38bdf8;
-    box-shadow: 0 0 6px rgba(0, 242, 254, 0.7);
-}
-
-.rarity-demon .card-plus-tag,
-.rarity-demon1 .card-plus-tag,
-.rarity-demon2 .card-plus-tag,
-.rarity-demon3 .card-plus-tag,
-.rarity-demon4 .card-plus-tag,
-.rarity-demon5 .card-plus-tag,
-.rarity-demon6 .card-plus-tag,
-.rarity-demon7 .card-plus-tag,
-.rarity-demon8 .card-plus-tag,
-.rarity-demon9 .card-plus-tag,
-.rarity-demon10 .card-plus-tag {
-    background: #090014;
-    color: #f0abfc;
-    border-color: #d946ef;
-    box-shadow: 0 0 8px rgba(217, 70, 239, 0.85);
-}
-
-.card-unit-title {
-    font-size: 9.5px;
-    font-weight: 800;
-    color: #ffffff;
-    text-shadow: 0 1px 0 #0f172a;
-    text-align: center;
-    line-height: 1.1;
-    margin-top: 2px;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* ============================================================================
-   4. GIAO DIỆN BÀN GHÉP TƯỚNG (MERGE WORKBENCH + AUTO MERGE)
-   ============================================================================ */
-.merge-workbench {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #1e293b;
-    border: 3px solid #0f172a;
-    border-radius: 14px;
-    padding: 6px 7px;
-    gap: 4px;
-    flex-shrink: 0;
-}
-
-.merge-slot {
-    width: 54px;
-    height: 62px;
-    border: 2.5px dashed #64748b;
-    border-radius: 10px;
-    background: #0f172a;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-    flex-shrink: 0;
-    padding: 2px;
-    transition: transform 0.1s ease, border-color 0.15s ease;
-}
-
-.merge-slot:hover {
-    border-color: #94a3b8;
-}
-
-.merge-slot:active {
-    transform: scale(0.96) translateY(2px);
-}
-
-.merge-slot.result-slot {
-    border-style: solid;
-    border-color: #facc15;
-}
-
-.merge-slot-placeholder {
-    font-size: 8px;
-    font-weight: 800;
-    color: #64748b;
-    text-align: center;
-}
-
-.merge-plus-symbol {
-    font-size: 14px;
-    font-weight: 900;
-    color: #fde047;
-}
-
-.merge-btns-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.merge-action-btn {
-    padding: 5px 8px;
-    font-size: 10px;
-    border-radius: 10px;
-}
-
-.auto-merge-action-btn {
-    padding: 5px 8px;
-    font-size: 9.5px;
-    border-radius: 10px;
-    white-space: nowrap;
-}
-
-.merge-hint-bar {
-    font-size: 9.5px;
-    color: #cbd5e1;
-    text-align: center;
-    margin: 4px 0;
-    flex-shrink: 0;
-}
-
-.merge-inv-scroll {
-    flex: 1;
-    overflow-y: auto;
+
+.unit-card-name {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+  text-align: center;
+  line-height: 1.2;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.unit-card-rarity-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  text-shadow: var(--shadow-text);
+}
+
+/* Thanh tiến trình mảnh ghép nâng cấp sao */
+.unit-shard-bar {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: #050811;
+  border: 1px solid var(--border-subtle);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unit-shard-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #0284C7 0%, #38BDF8 100%);
+}
+
+.unit-shard-fill.ready {
+  background: linear-gradient(90deg, #16A34A 0%, #4ADE80 100%);
+}
+
+.unit-shard-text {
+  position: relative;
+  z-index: 1;
+  font-size: 9px;
+  font-weight: 900;
+  color: #FFFFFF;
+  text-shadow: 0 1px 2px #000000;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. PHÒNG TẬP SANDBOX ĐO DPS (#army-subpanel-review)
+ * -------------------------------------------------------------------------- */
+.sandbox-card {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-cyan);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sandbox-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sandbox-header h3 {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.sandbox-header p {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.sandbox-canvas-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  background: #0B1120;
+}
+
+#sandboxCanvas {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+
+.sandbox-dps-hud {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(5, 8, 17, 0.86);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sandbox-unit-picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.sandbox-pick-btn {
+  padding: 5px 3px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.sandbox-pick-btn:hover {
+  border-color: var(--border-gold);
+}
+
+.sandbox-pick-btn img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.sandbox-pick-btn span {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+ * 5. LÒ RÈN HỢP NHẤT THẺ BÀI (#army-subpanel-merge)
+ * -------------------------------------------------------------------------- */
+.merge-header-card {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(14, 116, 144, 0.35) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid var(--border-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.merge-header-card h3 {
+  font-size: 13.5px;
+  font-weight: 900;
+}
+
+.merge-header-card p {
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.army-merge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.merge-row-card {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.merge-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.merge-row-left img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  background: rgba(5, 8, 17, 0.75);
+  border-radius: 8px;
+  padding: 3px;
 }

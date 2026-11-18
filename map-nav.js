@@ -1,1521 +1,686 @@
-/* ============================================================================
-   TINY BATTLE - NAVIGATION FLOW-FIELD, 54 MAPS & WORLD ROADMAP (js/map-nav.js)
-   Tích hợp trực tiếp 7 ảnh bản đồ gốc (assets/maps/*.png) + Cắt lưới 3x3
-   Lưới điều hướng ngầm NavSystem 42x71 khớp 100% 54 chiến trường •
-   1440x900 World Campaign Roadmap • Hiệu ứng môi trường động 60-120 FPS
-   ============================================================================ */
+/**
+ * ============================================================================
+ * TINY BATTLE - TERRAIN NAVGRID, A* PATHFINDING & WORLD MAP UX (js/map-nav.js)
+ * - Lưới địa hình 24x40 khớp 54 bản đồ (Đất liền, Cầu, Nước/Dung nham/Axit)
+ * - Thuật toán A* né nước + Hard Collision Check chặn Zombie lội xuyên nước
+ * - Điều hướng World_map với bán kính bắt điểm 46px, Hào quang xoay & Tooltip
+ * ============================================================================
+ */
 
-import {
-    LOGICAL_WIDTH,
-    PLAYFIELD_HEIGHT,
-    NAV_CELL,
-    GRID_W,
-    GRID_H,
-    T_OPEN,
-    T_ROAD,
-    T_WATER,
-    T_BRIDGE,
-    T_OBSTACLE,
-    WORLD_MAP_WIDTH,
-    WORLD_MAP_HEIGHT,
-    LEVELS
-} from './config.js';
-import { mapBufferCache, mapAssets, drawRoundRectPath } from './engine-core.js';
+'use strict';
 
-export const worldMapBufferCache = {
-    canvas: null,
-    hasRealImage: false
+/* --------------------------------------------------------------------------
+ * 1. HẰNG SỐ ĐỊA HÌNH (TERRAIN CELL TYPES)
+ * -------------------------------------------------------------------------- */
+const TERRAIN_TYPE = {
+  LAND: 0,          // Đất liền, đường mòn (Bộ binh, xe tăng, zombie đi được)
+  BRIDGE: 1,        // Cầu bắc qua sông/dung nham/axit (Nút thắt chiến thuật)
+  WATER_HAZARD: 2   // Nước sâu, sông băng, dung nham, hồ axit (CẤM đơn vị ground)
 };
 
-// ============================================================================
-// 1. HỆ THỐNG LƯỚI ĐỊA HÌNH VÀ TÌM ĐƯỜNG DIJKSTRA FLOW-FIELD (NAVSYSTEM 42x71)
-// ============================================================================
-export class NavSystem {
-    constructor() {
-        this.grid = new Uint8Array(GRID_W * GRID_H);
-        this.waterMask = new Uint8Array(GRID_W * GRID_H);
-        this.obstacles = [];
-        this.bridges = [];
-        this.waterBoxes = [];
-        this.lavaBoxes = [];
-        this.acidBoxes = [];
-        this.iceZones = [];
-        this.toxicZones = [];
-        this.campfires = [];
-        this.flowBlueLand = new Float32Array(GRID_W * GRID_H);
-        this.flowRedLand = new Float32Array(GRID_W * GRID_H);
-        this.flowBlueNaval = new Float32Array(GRID_W * GRID_H);
-        this.flowRedNaval = new Float32Array(GRID_W * GRID_H);
-    }
+const NAV_GRID_COLS = 24;
+const NAV_GRID_ROWS = 40;
 
-    reset() {
-        this.grid.fill(T_OPEN);
-        this.waterMask.fill(0);
-        this.obstacles = [];
-        this.bridges = [];
-        this.waterBoxes = [];
-        this.lavaBoxes = [];
-        this.acidBoxes = [];
-        this.iceZones = [];
-        this.toxicZones = [];
-        this.campfires = [];
-    }
+/* --------------------------------------------------------------------------
+ * 2. LƯỚI ĐỊA HÌNH & TÌM ĐƯỜNG A* NÉ NƯỚC (TERRAIN NAV GRID - PHẦN 4)
+ * -------------------------------------------------------------------------- */
+class TerrainNavGrid {
+  constructor(stageLevel = 1, mapWidth = 420, mapHeight = 760) {
+    this.cols = NAV_GRID_COLS;
+    this.rows = NAV_GRID_ROWS;
+    this.mapWidth = mapWidth;
+    this.mapHeight = mapHeight;
+    this.cellW = mapWidth / this.cols;
+    this.cellH = mapHeight / this.rows;
 
-    idx(gx, gy) {
-        return gy * GRID_W + gx;
-    }
+    const stage = STAGE_CATALOG[clamp(stageLevel - 1, 0, STAGE_CATALOG.length - 1)];
+    this.stageLevel = stage.level;
+    this.profile = stage.terrainProfile || 'open_land';
 
-    inBounds(gx, gy) {
-        return gx >= 0 && gx < GRID_W && gy >= 0 && gy < GRID_H;
-    }
+    this.grid = new Uint8Array(this.cols * this.rows);
+    this.bridges = []; // Danh sách tọa độ tâm các cây cầu { x, y, col, row }
 
-    getCellAtPixel(x, y) {
-        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
-        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
-        return this.grid[this.idx(gx, gy)];
-    }
+    this.buildTerrainFromProfile(this.profile);
+  }
 
-    isNavalWaterIndex(i) {
-        const ct = this.grid[i];
-        return ct === T_WATER || (ct === T_BRIDGE && this.waterMask[i] === 1);
-    }
+  indexOf(col, row) {
+    return row * this.cols + col;
+  }
 
-    isNavalWaterCell(gx, gy) {
-        if (!this.inBounds(gx, gy)) return false;
-        return this.isNavalWaterIndex(this.idx(gx, gy));
-    }
+  inBounds(col, row) {
+    return col >= 0 && col < this.cols && row >= 0 && row < this.rows;
+  }
 
-    hasNavigableWater() {
-        for (let i = 0; i < this.grid.length; i++) {
-            if (this.isNavalWaterIndex(i)) return true;
-        }
-        return false;
-    }
+  worldToGrid(x, y) {
+    const col = clamp(Math.floor(x / this.cellW), 0, this.cols - 1);
+    const row = clamp(Math.floor(y / this.cellH), 0, this.rows - 1);
+    return { col, row };
+  }
 
-    isValidBattleDeployPoint(spec, x, y) {
-        if (!spec) return false;
-        if (x < 26 || x > LOGICAL_WIDTH - 26) return false;
-        if (y < PLAYFIELD_HEIGHT * 0.48 || y > PLAYFIELD_HEIGHT - 95) return false;
+  gridToWorld(col, row) {
+    return {
+      x: (col + 0.5) * this.cellW,
+      y: (row + 0.5) * this.cellH
+    };
+  }
 
-        if (spec.isAir) return true;
+  /**
+   * Dựng bản đồ ô địa hình khớp chính xác với bố cục hình ảnh 54 map
+   */
+  buildTerrainFromProfile(profile) {
+    this.grid.fill(TERRAIN_TYPE.LAND);
+    this.bridges = [];
 
-        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
-        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
+    for (let r = 0; r < this.rows; r++) {
+      const ny = (r + 0.5) / this.rows; // 0 (trên) -> 1 (dưới)
+      for (let c = 0; c < this.cols; c++) {
+        const nx = (c + 0.5) / this.cols; // 0 (trái) -> 1 (phải)
+        const idx = this.indexOf(c, r);
 
-        if (spec.isNaval) {
-            for (let dy = -1; dy <= 1; dy++) {
-                for (let dx = -1; dx <= 1; dx++) {
-                    if (this.isNavalWaterCell(gx + dx, gy + dy)) return true;
-                }
+        if (profile === 'river_center_bridge') {
+          // Sông/vực ngang ở giữa bản đồ (ny: 0.44..0.54), cầu ở chính giữa (nx: 0.41..0.59)
+          if (ny >= 0.44 && ny <= 0.54) {
+            if (nx >= 0.41 && nx <= 0.59) {
+              this.grid[idx] = TERRAIN_TYPE.BRIDGE;
+            } else {
+              this.grid[idx] = TERRAIN_TYPE.WATER_HAZARD;
             }
-            return false;
-        }
+          }
+        } else if (profile === 'lake_center_ring') {
+          // Hồ nước / Miệng núi lửa / Hồ axit tròn ở trung tâm, đường vòng 2 bên trái & phải
+          const dx = (nx - 0.5) / 0.24;
+          const dy = (ny - 0.48) / 0.16;
+          if (dx * dx + dy * dy <= 1.0) {
+            this.grid[idx] = TERRAIN_TYPE.WATER_HAZARD;
+          }
+        } else if (profile === 'lake_island_dual_bridge') {
+          // Hồ lớn có đảo trung tâm và 2 cây cầu hai bên trái/phải (như map7)
+          const outerDx = (nx - 0.5) / 0.36;
+          const outerDy = (ny - 0.48) / 0.16;
+          const innerDx = (nx - 0.5) / 0.14;
+          const innerDy = (ny - 0.48) / 0.08;
+          const inOuter = outerDx * outerDx + outerDy * outerDy <= 1.0;
+          const inIsland = innerDx * innerDx + innerDy * innerDy <= 1.0;
 
-        const cell = this.grid[this.idx(gx, gy)];
-        if (cell === T_WATER || cell === T_OBSTACLE) return false;
-
-        const effR = Math.max(8, (spec.radius || 12) * 0.72);
-        for (const obs of this.obstacles) {
-            if (obs.type === 'circle') {
-                if (Math.hypot(x - obs.x, y - obs.y) < obs.r + effR) return false;
-            } else if (obs.type === 'box') {
-                const cx = Math.max(obs.x, Math.min(x, obs.x + obs.w));
-                const cy = Math.max(obs.y, Math.min(y, obs.y + obs.h));
-                if (Math.hypot(x - cx, y - cy) < effR) return false;
-            }
+          if (inOuter && !inIsland) {
+            const onLeftBridge = nx >= 0.16 && nx <= 0.29 && ny >= 0.42 && ny <= 0.54;
+            const onRightBridge = nx >= 0.71 && nx <= 0.84 && ny >= 0.42 && ny <= 0.54;
+            this.grid[idx] = (onLeftBridge || onRightBridge)
+              ? TERRAIN_TYPE.BRIDGE
+              : TERRAIN_TYPE.WATER_HAZARD;
+          }
+        } else if (profile === 'diagonal_river_dual_bridge') {
+          // Dòng sông/nham thạch/axit chéo qua sân với 2 cầu bắc qua (như map14, 19, 32, 37, 46, 50)
+          const riverCenterY = 0.68 - nx * 0.38;
+          if (Math.abs(ny - riverCenterY) <= 0.055) {
+            const onBridge1 = nx >= 0.26 && nx <= 0.42;
+            const onBridge2 = nx >= 0.62 && nx <= 0.78;
+            this.grid[idx] = (onBridge1 || onBridge2)
+              ? TERRAIN_TYPE.BRIDGE
+              : TERRAIN_TYPE.WATER_HAZARD;
+          }
+        } else if (profile === 'side_ponds') {
+          // Hai hồ nước bên sườn trái & phải (như map52)
+          const leftPond = Math.hypot((nx - 0.14) / 0.14, (ny - 0.62) / 0.11) <= 1.0;
+          const rightPond = Math.hypot((nx - 0.86) / 0.14, (ny - 0.54) / 0.11) <= 1.0;
+          if (leftPond || rightPond) {
+            this.grid[idx] = TERRAIN_TYPE.WATER_HAZARD;
+          }
         }
-        return true;
+      }
     }
 
-    isValidChallengeTileTerrain(spec, x, y) {
-        if (!spec) return false;
-        if (spec.isAir) return true;
-
-        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
-        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
-        const cell = this.grid[this.idx(gx, gy)];
-
-        if (spec.isNaval) {
-            return cell === T_WATER;
+    // Lưu danh sách điểm cầu để hỗ trợ điều hướng nhanh
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        if (this.grid[this.indexOf(c, r)] === TERRAIN_TYPE.BRIDGE) {
+          const wp = this.gridToWorld(c, r);
+          this.bridges.push({ col: c, row: r, x: wp.x, y: wp.y });
         }
-        return cell !== T_WATER && cell !== T_OBSTACLE;
+      }
+    }
+  }
+
+  getCellTypeAt(x, y) {
+    const { col, row } = this.worldToGrid(x, y);
+    return this.grid[this.indexOf(col, row)];
+  }
+
+  /**
+   * Kiểm tra một ô có đi được với loại di chuyển (ground / air / naval) hay không
+   */
+  isCellWalkable(col, row, movementType = 'ground') {
+    if (!this.inBounds(col, row)) return false;
+    if (movementType === 'air') return true;
+
+    const cell = this.grid[this.indexOf(col, row)];
+    if (movementType === 'naval') {
+      // Nếu bản đồ có vùng nước, tàu chỉ chạy trên nước; nếu bản đồ cạn hoàn toàn, cho phép chạy trên hành lang trung tâm
+      return cell === TERRAIN_TYPE.WATER_HAZARD || this.profile === 'open_land';
     }
 
-    markRect(x, y, w, h, type, overrideAll = true) {
-        const c0 = Math.max(0, Math.floor(x / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((x + w) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor(y / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((y + h) / NAV_CELL));
+    // Đơn vị ground (Zombie, Bộ binh, Xe tăng, Boss): tuyệt đối cấm WATER_HAZARD
+    return cell === TERRAIN_TYPE.LAND || cell === TERRAIN_TYPE.BRIDGE;
+  }
 
-        for (let r = r0; r <= r1; r++) {
-            for (let c = c0; c <= c1; c++) {
-                const i = this.idx(c, r);
-                if (type === T_WATER) {
-                    this.waterMask[i] = 1;
-                }
-                if (overrideAll || this.grid[i] === T_OPEN) {
-                    this.grid[i] = type;
-                }
-            }
+  isWalkableAt(x, y, movementType = 'ground') {
+    const { col, row } = this.worldToGrid(x, y);
+    return this.isCellWalkable(col, row, movementType);
+  }
+
+  /**
+   * Tìm tâm cây cầu gần nhất với vị trí (x, y)
+   */
+  findNearestBridgeCenter(x, y) {
+    if (this.bridges.length === 0) return null;
+    let best = null;
+    let bestD2 = Infinity;
+    for (let i = 0; i < this.bridges.length; i++) {
+      const b = this.bridges[i];
+      const d2 = distSq(x, y, b.x, b.y);
+      if (d2 < bestD2) {
+        bestD2 = d2;
+        best = b;
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Tìm ô đi được gần nhất nếu điểm xuất phát/đích vô tình rơi vào ô nước
+   */
+  findNearestWalkableCell(col, row, movementType = 'ground') {
+    if (this.isCellWalkable(col, row, movementType)) {
+      return { col, row };
+    }
+    for (let radius = 1; radius <= 8; radius++) {
+      for (let dr = -radius; dr <= radius; dr++) {
+        for (let dc = -radius; dc <= radius; dc++) {
+          const nc = col + dc;
+          const nr = row + dr;
+          if (this.isCellWalkable(nc, nr, movementType)) {
+            return { col: nc, row: nr };
+          }
         }
+      }
+    }
+    return { col: Math.floor(this.cols / 2), row };
+  }
+
+  /**
+   * Thuật toán tìm đường A* 8 hướng né nước & ưu tiên băng qua cầu (Phần 4)
+   */
+  findPathAStar(startX, startY, goalX, goalY, movementType = 'ground') {
+    if (movementType === 'air') {
+      return [{ x: goalX, y: goalY }];
     }
 
-    markCircle(cx, cy, radius, type, overrideAll = true) {
-        const c0 = Math.max(0, Math.floor((cx - radius) / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((cx + radius) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor((cy - radius) / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((cy + radius) / NAV_CELL));
+    const rawStart = this.worldToGrid(startX, startY);
+    const rawGoal = this.worldToGrid(goalX, goalY);
+    const start = this.findNearestWalkableCell(rawStart.col, rawStart.row, movementType);
+    const goal = this.findNearestWalkableCell(rawGoal.col, rawGoal.row, movementType);
 
-        for (let r = r0; r <= r1; r++) {
-            for (let c = c0; c <= c1; c++) {
-                const px = (c + 0.5) * NAV_CELL;
-                const py = (r + 0.5) * NAV_CELL;
-                if (Math.hypot(px - cx, py - cy) <= radius) {
-                    const i = this.idx(c, r);
-                    if (type === T_WATER) {
-                        this.waterMask[i] = 1;
-                    }
-                    if (overrideAll || this.grid[i] === T_OPEN) {
-                        this.grid[i] = type;
-                    }
-                }
-            }
-        }
+    if (start.col === goal.col && start.row === goal.row) {
+      return [{ x: goalX, y: goalY }];
     }
 
-    markPolyline(pts, width, type, overrideAll = false) {
-        const halfW = width * 0.5;
-        for (let i = 0; i < pts.length - 1; i++) {
-            const [x1, y1] = pts[i];
-            const [x2, y2] = pts[i + 1];
-            const len = Math.hypot(x2 - x1, y2 - y1);
-            const steps = Math.max(1, Math.ceil(len / (NAV_CELL * 0.45)));
-            for (let s = 0; s <= steps; s++) {
-                const t = s / steps;
-                const px = x1 + (x2 - x1) * t;
-                const py = y1 + (y2 - y1) * t;
-                this.markCircle(px, py, halfW, type, overrideAll);
-            }
+    const totalNodes = this.cols * this.rows;
+    const gScore = new Float32Array(totalNodes);
+    const fScore = new Float32Array(totalNodes);
+    const cameFrom = new Int32Array(totalNodes);
+    const closed = new Uint8Array(totalNodes);
+
+    gScore.fill(Infinity);
+    fScore.fill(Infinity);
+    cameFrom.fill(-1);
+
+    const startIdx = this.indexOf(start.col, start.row);
+    const goalIdx = this.indexOf(goal.col, goal.row);
+
+    gScore[startIdx] = 0;
+    fScore[startIdx] = Math.hypot(goal.col - start.col, goal.row - start.row);
+
+    const openList = [startIdx];
+
+    const dirs = [
+      [0, -1, 1.0], [1, 0, 1.0], [0, 1, 1.0], [-1, 0, 1.0],
+      [1, -1, 1.414], [1, 1, 1.414], [-1, 1, 1.414], [-1, -1, 1.414]
+    ];
+
+    let iterations = 0;
+    const maxIterations = 1400;
+
+    while (openList.length > 0 && iterations < maxIterations) {
+      iterations++;
+
+      // Lấy nút có fScore nhỏ nhất trong openList
+      let bestOpenPos = 0;
+      let current = openList[0];
+      for (let i = 1; i < openList.length; i++) {
+        const idx = openList[i];
+        if (fScore[idx] < fScore[current]) {
+          current = idx;
+          bestOpenPos = i;
         }
+      }
+
+      if (current === goalIdx) {
+        return this.reconstructPath(cameFrom, current, goalX, goalY);
+      }
+
+      openList.splice(bestOpenPos, 1);
+      closed[current] = 1;
+
+      const curCol = current % this.cols;
+      const curRow = (current - curCol) / this.cols;
+
+      for (let d = 0; d < dirs.length; d++) {
+        const dc = dirs[d][0];
+        const dr = dirs[d][1];
+        const stepCost = dirs[d][2];
+
+        const nCol = curCol + dc;
+        const nRow = curRow + dr;
+        if (!this.isCellWalkable(nCol, nRow, movementType)) continue;
+
+        // Ngăn cắt góc chéo qua ô nước/chướng ngại vật
+        if (dc !== 0 && dr !== 0) {
+          if (
+            !this.isCellWalkable(curCol + dc, curRow, movementType) ||
+            !this.isCellWalkable(curCol, curRow + dr, movementType)
+          ) {
+            continue;
+          }
+        }
+
+        const nIdx = this.indexOf(nCol, nRow);
+        if (closed[nIdx]) continue;
+
+        // Ưu tiên đi trên cầu (giảm nhẹ chi phí) để các đơn vị hội tụ qua cầu mượt mà
+        const bridgeBonus = this.grid[nIdx] === TERRAIN_TYPE.BRIDGE ? 0.85 : 1.0;
+        const tentativeG = gScore[current] + stepCost * bridgeBonus;
+
+        if (tentativeG < gScore[nIdx]) {
+          cameFrom[nIdx] = current;
+          gScore[nIdx] = tentativeG;
+          fScore[nIdx] = tentativeG + Math.hypot(goal.col - nCol, goal.row - nRow);
+          if (openList.indexOf(nIdx) === -1) {
+            openList.push(nIdx);
+          }
+        }
+      }
     }
 
-    markRing(cx, cy, r, width, type) {
-        const halfW = width * 0.5;
-        const steps = Math.max(24, Math.ceil((2 * Math.PI * r) / (NAV_CELL * 0.45)));
-        for (let s = 0; s < steps; s++) {
-            const a = (s / steps) * Math.PI * 2;
-            const px = cx + Math.cos(a) * r;
-            const py = cy + Math.sin(a) * r;
-            this.markCircle(px, py, halfW, type, false);
-        }
+    // Fallback: nếu chưa chạm đích do giới hạn vòng lặp, hướng tới cầu gần nhất
+    const bridge = this.findNearestBridgeCenter(startX, startY);
+    if (bridge) {
+      return [{ x: bridge.x, y: bridge.y }, { x: goalX, y: goalY }];
+    }
+    return [{ x: goalX, y: goalY }];
+  }
+
+  reconstructPath(cameFrom, currentIdx, finalGoalX, finalGoalY) {
+    const waypoints = [];
+    let curr = currentIdx;
+    while (curr !== -1 && cameFrom[curr] !== -1) {
+      const col = curr % this.cols;
+      const row = (curr - col) / this.cols;
+      waypoints.push(this.gridToWorld(col, row));
+      curr = cameFrom[curr];
+    }
+    waypoints.reverse();
+    waypoints.push({ x: finalGoalX, y: finalGoalY });
+    return waypoints;
+  }
+
+  /**
+   * Lớp kiểm tra va chạm cứng (Hard Collision Check - Phần 4):
+   * Đảm bảo đơn vị ground tuyệt đối không bao giờ bước chân lên ô WATER_HAZARD.
+   * Nếu vị trí tiếp theo rơi vào nước, trượt dọc theo bờ hướng về cầu gần nhất.
+   */
+  resolveHardCollision(curX, curY, nextX, nextY, movementType = 'ground') {
+    const clampedX = clamp(nextX, 16, this.mapWidth - 16);
+    const clampedY = clamp(nextY, 24, this.mapHeight - 24);
+
+    if (movementType === 'air') {
+      return { x: clampedX, y: clampedY, blockedByWater: false };
     }
 
-    isRoadOrBridgeOrSpawn(cx, cy, pad = 18) {
-        if (cy < 118 || cy > PLAYFIELD_HEIGHT - 118) {
-            if (cx > 58 && cx < LOGICAL_WIDTH - 58) return true;
-        }
-        const c0 = Math.max(0, Math.floor((cx - pad) / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((cx + pad) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor((cy - pad) / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((cy + pad) / NAV_CELL));
-
-        for (let r = r0; r <= r1; r++) {
-            for (let c = c0; c <= c1; c++) {
-                const cell = this.grid[this.idx(c, r)];
-                if (cell === T_ROAD || cell === T_BRIDGE || cell === T_WATER) return true;
-            }
-        }
-        return false;
+    // Nếu điểm kế tiếp hợp lệ, cho phép di chuyển bình thường
+    if (this.isWalkableAt(clampedX, clampedY, movementType)) {
+      return { x: clampedX, y: clampedY, blockedByWater: false };
     }
 
-    hasObstacleNear(cx, cy, minDist = 24) {
-        for (const obs of this.obstacles) {
-            if (obs.type === 'circle') {
-                if (Math.hypot(cx - obs.x, cy - obs.y) < obs.r + minDist) return true;
-            } else if (obs.type === 'box') {
-                const bx = Math.max(obs.x, Math.min(cx, obs.x + obs.w));
-                const by = Math.max(obs.y, Math.min(cy, obs.y + obs.h));
-                if (Math.hypot(cx - bx, cy - by) < minDist) return true;
-            }
-        }
-        return false;
+    // Thử trượt theo trục X (giữ nguyên Y) để men theo bờ sông/hồ
+    if (this.isWalkableAt(clampedX, curY, movementType)) {
+      return { x: clampedX, y: curY, blockedByWater: true };
     }
 
-    addCircleObstacle(x, y, r, kind = 'tree') {
-        this.obstacles.push({ type: 'circle', kind, x, y, r });
-        const c0 = Math.max(0, Math.floor((x - (r + 2)) / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((x + (r + 2)) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor((y - (r + 2)) / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((y + (r + 2)) / NAV_CELL));
-        for (let gy = r0; gy <= r1; gy++) {
-            for (let gx = c0; gx <= c1; gx++) {
-                const px = (gx + 0.5) * NAV_CELL;
-                const py = (gy + 0.5) * NAV_CELL;
-                if (Math.hypot(px - x, py - y) <= r + 2) {
-                    const i = this.idx(gx, gy);
-                    this.grid[i] = T_OBSTACLE;
-                    this.waterMask[i] = 0;
-                }
-            }
-        }
+    // Thử trượt theo trục Y (giữ nguyên X)
+    if (this.isWalkableAt(curX, clampedY, movementType)) {
+      return { x: curX, y: clampedY, blockedByWater: true };
     }
 
-    addBoxObstacle(x, y, w, h, kind = 'building') {
-        this.obstacles.push({ type: 'box', kind, x, y, w, h });
-        const c0 = Math.max(0, Math.floor((x - 2) / NAV_CELL));
-        const c1 = Math.min(GRID_W - 1, Math.floor((x + w + 2) / NAV_CELL));
-        const r0 = Math.max(0, Math.floor((y - 2) / NAV_CELL));
-        const r1 = Math.min(GRID_H - 1, Math.floor((y + h + 2) / NAV_CELL));
-        for (let gy = r0; gy <= r1; gy++) {
-            for (let gx = c0; gx <= c1; gx++) {
-                const i = this.idx(gx, gy);
-                this.grid[i] = T_OBSTACLE;
-                this.waterMask[i] = 0;
-            }
-        }
+    // Nếu cả 2 hướng đều vướng bờ nước, đẩy nhẹ dọc bờ hướng về phía cây cầu gần nhất
+    const bridge = this.findNearestBridgeCenter(curX, curY);
+    if (bridge) {
+      const stepDist = Math.hypot(nextX - curX, nextY - curY) || 1.2;
+      const angleToBridge = Math.atan2(bridge.y - curY, bridge.x - curX);
+      const slideX = clamp(curX + Math.cos(angleToBridge) * stepDist, 16, this.mapWidth - 16);
+      if (this.isWalkableAt(slideX, curY, movementType)) {
+        return { x: slideX, y: curY, blockedByWater: true };
+      }
     }
 
-    addBridge(cx, cy, w, h, isVertical = true, angleRad = 0, style = 'wood') {
-        const bw = isVertical ? w : h;
-        const bh = isVertical ? h : w;
-        const bx = cx - bw / 2;
-        const by = cy - bh / 2;
-        this.bridges.push({ x: bx, y: by, cx, cy, w: bw, h: bh, isVertical, angleRad, style });
-        const padX = isVertical ? 4 : 12;
-        const padY = isVertical ? 12 : 4;
-        this.markRect(bx - padX, by - padY, bw + padX * 2, bh + padY * 2, T_BRIDGE, true);
-    }
-
-    isPointOnBridge(x, y, margin = 5) {
-        for (const br of this.bridges) {
-            if (
-                x >= br.x - margin &&
-                x <= br.x + br.w + margin &&
-                y >= br.y - margin &&
-                y <= br.y + br.h + margin
-            ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    isPointInWaterRaw(x, y) {
-        if (this.isPointOnBridge(x, y, 5)) return false;
-        const cell = this.getCellAtPixel(x, y);
-        return cell === T_WATER;
-    }
-
-    isPointOnIce(x, y) {
-        for (const iz of this.iceZones) {
-            if (x >= iz.x && x <= iz.x + iz.w && y >= iz.y && y <= iz.y + iz.h) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    isPointInToxicSwamp(x, y) {
-        if (this.isPointOnBridge(x, y, 5)) return false;
-        const cell = this.getCellAtPixel(x, y);
-        if (cell === T_ROAD || cell === T_BRIDGE) return false;
-        for (const tz of this.toxicZones) {
-            if (x >= tz.x && x <= tz.x + tz.w && y >= tz.y && y <= tz.y + tz.h) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    buildFlowFields() {
-        this.markRect(75, 92, 270, 26, T_ROAD, false);
-        this.markRect(75, PLAYFIELD_HEIGHT - 118, 270, 26, T_ROAD, false);
-
-        const blueLandGoals = [];
-        for (let c = 8; c <= GRID_W - 9; c++) {
-            blueLandGoals.push([c, 9], [c, 10]);
-        }
-        this.computeDijkstra(this.flowBlueLand, blueLandGoals, false);
-
-        const redLandGoals = [];
-        const by = Math.floor((PLAYFIELD_HEIGHT - 95) / NAV_CELL);
-        for (let c = 8; c <= GRID_W - 9; c++) {
-            redLandGoals.push([c, by], [c, by - 1]);
-        }
-        this.computeDijkstra(this.flowRedLand, redLandGoals, false);
-
-        const blueNavalGoals = [];
-        const redNavalGoals = [];
-        let minWaterRow = GRID_H;
-        let maxWaterRow = -1;
-        for (let r = 0; r < GRID_H; r++) {
-            for (let c = 0; c < GRID_W; c++) {
-                const i = this.idx(c, r);
-                if (this.isNavalWaterIndex(i)) {
-                    if (r < minWaterRow) minWaterRow = r;
-                    if (r > maxWaterRow) maxWaterRow = r;
-                }
-            }
-        }
-        if (maxWaterRow >= minWaterRow) {
-            for (let r = minWaterRow; r <= Math.min(GRID_H - 1, minWaterRow + 3); r++) {
-                for (let c = 0; c < GRID_W; c++) {
-                    if (this.isNavalWaterCell(c, r)) blueNavalGoals.push([c, r]);
-                }
-            }
-            for (let r = Math.max(0, maxWaterRow - 3); r <= maxWaterRow; r++) {
-                for (let c = 0; c < GRID_W; c++) {
-                    if (this.isNavalWaterCell(c, r)) redNavalGoals.push([c, r]);
-                }
-            }
-        }
-        this.computeDijkstra(this.flowBlueNaval, blueNavalGoals, true);
-        this.computeDijkstra(this.flowRedNaval, redNavalGoals, true);
-    }
-
-    computeDijkstra(distArr, goals, isNaval) {
-        distArr.fill(1e9);
-        const queue = [];
-
-        for (const [gx, gy] of goals) {
-            if (!this.inBounds(gx, gy)) continue;
-            const i = this.idx(gx, gy);
-            distArr[i] = 0;
-            queue.push(i);
-        }
-
-        const dirs = [
-            [-1, 0, 1.0], [1, 0, 1.0], [0, -1, 1.0], [0, 1, 1.0],
-            [-1, -1, 1.414], [1, -1, 1.414], [-1, 1, 1.414], [1, 1, 1.414]
-        ];
-
-        let head = 0;
-        while (head < queue.length) {
-            const curr = queue[head++];
-            const cx = curr % GRID_W;
-            const cy = (curr / GRID_W) | 0;
-            const baseDist = distArr[curr];
-
-            for (const [dx, dy, stepLen] of dirs) {
-                const nx = cx + dx;
-                const ny = cy + dy;
-                if (!this.inBounds(nx, ny)) continue;
-
-                const nIdx = this.idx(nx, ny);
-                const cellType = this.grid[nIdx];
-                let terrainCost = 1.0;
-
-                if (isNaval) {
-                    if (!this.isNavalWaterIndex(nIdx)) continue;
-                    if (dx !== 0 && dy !== 0) {
-                        if (!this.isNavalWaterCell(cx + dx, cy) || !this.isNavalWaterCell(cx, cy + dy)) {
-                            continue;
-                        }
-                    }
-                    terrainCost = 1.0;
-                } else {
-                    if (cellType === T_OBSTACLE || cellType === T_WATER) continue;
-                    if (cellType === T_BRIDGE) terrainCost = 0.70;
-                    else if (cellType === T_ROAD) terrainCost = 0.80;
-                    else terrainCost = 1.40;
-                }
-
-                const newDist = baseDist + stepLen * terrainCost;
-                if (newDist < distArr[nIdx]) {
-                    distArr[nIdx] = newDist;
-                    queue.push(nIdx);
-                }
-            }
-        }
-    }
-
-    getFlowDirection(x, y, team, isNaval) {
-        const distArr = isNaval
-            ? (team === 'blue' ? this.flowBlueNaval : this.flowRedNaval)
-            : (team === 'blue' ? this.flowBlueLand : this.flowRedLand);
-
-        const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(x / NAV_CELL)));
-        const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(y / NAV_CELL)));
-
-        const bestVal = distArr[this.idx(gx, gy)];
-        if (bestVal >= 1e8) {
-            return { dirX: 0, dirY: team === 'blue' ? -1 : 1 };
-        }
-
-        let gradX = 0;
-        let gradY = 0;
-        const radius = isNaval ? 1 : 2;
-        for (let dy = -radius; dy <= radius; dy++) {
-            for (let dx = -radius; dx <= radius; dx++) {
-                if (dx === 0 && dy === 0) continue;
-                const nx = gx + dx;
-                const ny = gy + dy;
-                if (!this.inBounds(nx, ny)) continue;
-                const nIdx = this.idx(nx, ny);
-                if (isNaval && !this.isNavalWaterIndex(nIdx)) continue;
-                const nVal = distArr[nIdx];
-                if (nVal >= 1e8) continue;
-
-                const diff = bestVal - nVal;
-                if (diff > 0) {
-                    const d = Math.hypot(dx, dy);
-                    const w = diff / d;
-                    gradX += (dx / d) * w;
-                    gradY += (dy / d) * w;
-                }
-            }
-        }
-
-        const len = Math.hypot(gradX, gradY);
-        if (len > 0.001) {
-            return { dirX: gradX / len, dirY: gradY / len };
-        }
-        return { dirX: 0, dirY: team === 'blue' ? -1 : 1 };
-    }
-
-    resolveHardCollisions(u) {
-        if (u.isAir) {
-            u.x = Math.max(26, Math.min(LOGICAL_WIDTH - 26, u.x));
-            u.y = Math.max(30, Math.min(PLAYFIELD_HEIGHT - 24, u.y));
-            return;
-        }
-
-        const effR = Math.max(8, u.radius * 0.68);
-
-        for (let iter = 0; iter < 2; iter++) {
-            for (const obs of this.obstacles) {
-                if (obs.type === 'circle') {
-                    const dx = u.x - obs.x;
-                    const dy = u.y - obs.y;
-                    const dist = Math.hypot(dx, dy);
-                    const minDist = obs.r + effR;
-                    if (dist < minDist) {
-                        const nx = dist > 0.001 ? dx / dist : (u.x < LOGICAL_WIDTH / 2 ? 1 : -1);
-                        const ny = dist > 0.001 ? dy / dist : (u.team === 'blue' ? 1 : -1);
-                        u.x = obs.x + nx * minDist;
-                        u.y = obs.y + ny * minDist;
-                    }
-                } else if (obs.type === 'box') {
-                    const closestX = Math.max(obs.x, Math.min(u.x, obs.x + obs.w));
-                    const closestY = Math.max(obs.y, Math.min(u.y, obs.y + obs.h));
-                    const dx = u.x - closestX;
-                    const dy = u.y - closestY;
-                    const dist = Math.hypot(dx, dy);
-
-                    if (dist < effR && dist > 0.001) {
-                        u.x = closestX + (dx / dist) * effR;
-                        u.y = closestY + (dy / dist) * effR;
-                    }
-                }
-            }
-        }
-
-        if (!u.isNaval && this.isPointInWaterRaw(u.x, u.y)) {
-            const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(u.x / NAV_CELL)));
-            const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(u.y / NAV_CELL)));
-            let bestX = u.x;
-            let bestY = u.y;
-            let minD = Infinity;
-
-            for (let r = -5; r <= 5; r++) {
-                for (let c = -5; c <= 5; c++) {
-                    const nx = gx + c;
-                    const ny = gy + r;
-                    if (!this.inBounds(nx, ny)) continue;
-                    const ct = this.grid[this.idx(nx, ny)];
-                    if (ct === T_BRIDGE || ct === T_ROAD || ct === T_OPEN) {
-                        const px = (nx + 0.5) * NAV_CELL;
-                        const py = (ny + 0.5) * NAV_CELL;
-                        const d = Math.hypot(px - u.x, py - u.y) - (ct === T_BRIDGE ? 8 : 0);
-                        if (d < minD) {
-                            minD = d;
-                            bestX = px;
-                            bestY = py;
-                        }
-                    }
-                }
-            }
-            u.x = bestX;
-            u.y = bestY;
-        } else if (u.isNaval) {
-            const gx = Math.max(0, Math.min(GRID_W - 1, Math.floor(u.x / NAV_CELL)));
-            const gy = Math.max(0, Math.min(GRID_H - 1, Math.floor(u.y / NAV_CELL)));
-            if (!this.isNavalWaterCell(gx, gy)) {
-                let bestX = u.x;
-                let bestY = u.y;
-                let minD = Infinity;
-
-                for (let r = -6; r <= 6; r++) {
-                    for (let c = -6; c <= 6; c++) {
-                        const nx = gx + c;
-                        const ny = gy + r;
-                        if (!this.inBounds(nx, ny)) continue;
-                        if (this.isNavalWaterCell(nx, ny)) {
-                            const px = (nx + 0.5) * NAV_CELL;
-                            const py = (ny + 0.5) * NAV_CELL;
-                            const d = Math.hypot(px - u.x, py - u.y);
-                            if (d < minD) {
-                                minD = d;
-                                bestX = px;
-                                bestY = py;
-                            }
-                        }
-                    }
-                }
-                u.x += (bestX - u.x) * 0.65;
-                u.y += (bestY - u.y) * 0.65;
-            }
-        }
-
-        u.x = Math.max(24, Math.min(LOGICAL_WIDTH - 24, u.x));
-        u.y = Math.max(30, Math.min(PLAYFIELD_HEIGHT - 24, u.y));
-    }
-
-    findValidSpawnPoint(team, spec, prefX, prefY, exactPref = false) {
-        if (spec.isAir) return { x: prefX, y: prefY };
-
-        if (spec.isNaval) {
-            let bestX = prefX;
-            let bestY = prefY;
-            let bestScore = Infinity;
-            const targetY = exactPref ? prefY : (team === 'blue' ? PLAYFIELD_HEIGHT - 120 : 120);
-            for (let r = 4; r < GRID_H - 4; r++) {
-                for (let c = 2; c < GRID_W - 2; c++) {
-                    if (this.isNavalWaterCell(c, r)) {
-                        const px = (c + 0.5) * NAV_CELL;
-                        const py = (r + 0.5) * NAV_CELL;
-                        const score = exactPref
-                            ? Math.hypot(px - prefX, py - prefY)
-                            : Math.abs(py - targetY) * 1.5 + Math.abs(px - prefX) * 0.35 + (Math.random() * 14);
-                        if (score < bestScore) {
-                            bestScore = score;
-                            bestX = px;
-                            bestY = py;
-                        }
-                    }
-                }
-            }
-            return { x: bestX, y: bestY };
-        }
-
-        if (exactPref && this.isValidBattleDeployPoint(spec, prefX, prefY)) {
-            return { x: prefX, y: prefY };
-        }
-
-        const gx = Math.max(2, Math.min(GRID_W - 3, Math.floor(prefX / NAV_CELL)));
-        const gy = Math.max(3, Math.min(GRID_H - 4, Math.floor(prefY / NAV_CELL)));
-        const distArr = team === 'blue' ? this.flowBlueLand : this.flowRedLand;
-
-        let bestX = prefX;
-        let bestY = prefY;
-        let minScore = Infinity;
-        for (let r = -4; r <= 4; r++) {
-            for (let c = -14; c <= 14; c++) {
-                const nx = gx + c;
-                const ny = gy + r;
-                if (!this.inBounds(nx, ny)) continue;
-                const i = this.idx(nx, ny);
-                const ct = this.grid[i];
-                if ((ct === T_ROAD || ct === T_OPEN || ct === T_BRIDGE) && distArr[i] < 1e8) {
-                    const px = (nx + 0.5) * NAV_CELL;
-                    const py = (ny + 0.5) * NAV_CELL;
-                    const roadBonus = (!exactPref && ct === T_ROAD) ? -12 : 0;
-                    const score = Math.hypot(px - prefX, (py - prefY) * (exactPref ? 1.0 : 2.0)) + roadBonus;
-                    if (score < minScore) {
-                        minScore = score;
-                        bestX = px;
-                        bestY = py;
-                    }
-                }
-            }
-        }
-        return { x: bestX, y: bestY };
-    }
+    // Giữ nguyên vị trí an toàn trên bờ
+    return { x: curX, y: curY, blockedByWater: true };
+  }
 }
 
-export const nav = new NavSystem();
+/* --------------------------------------------------------------------------
+ * 3. BỘ ĐIỀU KHIỂN BẢN ĐỒ THẾ GIỚI 54 ẢI & TOOLTIP HOVER (PHẦN 3)
+ * -------------------------------------------------------------------------- */
+const WorldRoadmapController = {
+  canvas: null,
+  ctx: null,
+  tooltipEl: null,
+  hoveredNode: null,
+  screenNodes: [],
+  animFrameId: null,
+  haloAngle: 0,
+  isOpen: false,
 
-// ============================================================================
-// 2. LỚP HIỆU ỨNG MÔI TRƯỜNG ĐỘNG PHỦ TRÊN ẢNH MAP .PNG (60-120 FPS)
-// ============================================================================
-export function calcProceduralWaveOffset(time, x) {
-    return Math.sin(time * 2.5 + x * 0.05) * 3 + Math.sin(-time * 1.8 + x * 0.08) * 1.5;
-}
+  init() {
+    this.canvas = document.getElementById('worldRoadmapCanvas');
+    this.tooltipEl = document.getElementById('world-node-tooltip');
+    if (!this.canvas) return;
+    this.ctx = this.canvas.getContext('2d');
 
-export function drawDynamicSineWater(targetCtx, timeSec, levelNum) {
-    const lv = Math.max(1, Number(levelNum) || 1);
-    const biomeId = Math.ceil(lv / 9);
-    const hasPngSheet = !!mapAssets.getImage(`biome_${biomeId}`);
+    this.bindEvents();
+  },
 
-    // 1. Sóng lăn tăn nhẹ nhàng trên vùng nước (không che đè cầu/đất của ảnh gốc)
-    if (nav.waterBoxes && nav.waterBoxes.length > 0) {
-        for (const wb of nav.waterBoxes) {
-            targetCtx.save();
-            drawRoundRectPath(targetCtx, wb.x, wb.y, wb.w, wb.h, wb.rounded || 0);
-            targetCtx.clip();
+  bindEvents() {
+    if (!this.canvas) return;
 
-            targetCtx.fillStyle = hasPngSheet ? 'rgba(224, 242, 254, 0.36)' : 'rgba(224, 242, 254, 0.78)';
-            for (let baseRowY = wb.y + 14; baseRowY < wb.y + wb.h - 6; baseRowY += 22) {
-                for (let x = wb.x + 8; x < wb.x + wb.w - 10; x += 14) {
-                    const yOff = calcProceduralWaveOffset(timeSec, x + baseRowY * 0.35);
-                    targetCtx.fillRect(x, Math.round(baseRowY + yOff), 7, 2);
-                }
-            }
-            targetCtx.restore();
-        }
-    }
-
-    // 2. Tia lửa & bong bóng nham thạch sôi sục (Vùng 4: Map 28–36)
-    if (nav.lavaBoxes && nav.lavaBoxes.length > 0) {
-        for (const lb of nav.lavaBoxes) {
-            targetCtx.save();
-            drawRoundRectPath(targetCtx, lb.x, lb.y, lb.w, lb.h, lb.rounded || 0);
-            targetCtx.clip();
-
-            targetCtx.fillStyle = hasPngSheet ? 'rgba(254, 240, 138, 0.55)' : '#fef08a';
-            for (let i = 0; i < 7; i++) {
-                const bx = lb.x + 10 + ((i * 53 + Math.floor(timeSec * 14)) % Math.max(14, lb.w - 20));
-                const by = lb.y + 10 + ((i * 37 + Math.floor(timeSec * 10)) % Math.max(14, lb.h - 20));
-                const r = 1.8 + Math.abs(Math.sin(timeSec * 4.2 + i)) * 2.2;
-                targetCtx.beginPath();
-                targetCtx.arc(bx, by, r, 0, Math.PI * 2);
-                targetCtx.fill();
-            }
-            targetCtx.restore();
-        }
-    }
-
-    // 3. Bong bóng axit nổi lên và vỡ (Vùng 5: Map 37–45)
-    if (nav.acidBoxes && nav.acidBoxes.length > 0) {
-        for (const ab of nav.acidBoxes) {
-            targetCtx.save();
-            drawRoundRectPath(targetCtx, ab.x, ab.y, ab.w, ab.h, ab.rounded || 0);
-            targetCtx.clip();
-
-            for (let i = 0; i < 8; i++) {
-                const cycle = (timeSec * 1.4 + i * 0.37) % 1;
-                const bx = ab.x + 8 + ((i * 43) % Math.max(12, ab.w - 16));
-                const by = ab.y + 8 + ((i * 31) % Math.max(12, ab.h - 16));
-                const r = 1.8 + cycle * 3.6;
-                targetCtx.strokeStyle = `rgba(217, 249, 157, ${(1 - cycle) * 0.85})`;
-                targetCtx.lineWidth = 1.4;
-                targetCtx.beginPath();
-                targetCtx.arc(bx, by, r, 0, Math.PI * 2);
-                targetCtx.stroke();
-            }
-            targetCtx.restore();
-        }
-    }
-
-    // Chỉ vẽ cầu thủ công khi dùng nền dự phòng (không có ảnh .png)
-    if (!hasPngSheet) {
-        for (const br of nav.bridges) {
-            targetCtx.save();
-            targetCtx.translate(br.cx, br.cy);
-            if (br.angleRad) targetCtx.rotate(br.angleRad);
-            targetCtx.fillStyle = '#78350f';
-            targetCtx.strokeStyle = '#0f172a';
-            targetCtx.lineWidth = 2;
-            targetCtx.fillRect(-br.w / 2, -br.h / 2, br.w, br.h);
-            targetCtx.strokeRect(-br.w / 2, -br.h / 2, br.w, br.h);
-            targetCtx.restore();
-        }
-    }
-
-    // 4. Đống lửa trại bập bùng (Map 11)
-    if (nav.campfires && nav.campfires.length > 0) {
-        for (const cf of nav.campfires) {
-            targetCtx.save();
-            const flicker = 1 + Math.sin(timeSec * 14 + cf.x) * 0.22;
-            targetCtx.fillStyle = 'rgba(249, 115, 22, 0.85)';
-            targetCtx.beginPath();
-            targetCtx.arc(cf.x, cf.y - 2, 5 * flicker, 0, Math.PI * 2);
-            targetCtx.fill();
-            targetCtx.restore();
-        }
-    }
-
-    // 5. Khói trắng bay lên nhẹ từ ống khói Dinh Thự Đỏ & Xanh trên ảnh gốc
-    targetCtx.save();
-    [[238, 22], [238, PLAYFIELD_HEIGHT - 84]].forEach(([sx, sy], idx) => {
-        for (let s = 0; s < 3; s++) {
-            const age = (timeSec * 0.55 + s * 0.33 + idx * 0.2) % 1;
-            targetCtx.globalAlpha = (1 - age) * 0.36;
-            targetCtx.fillStyle = '#f8fafc';
-            targetCtx.beginPath();
-            targetCtx.arc(sx + Math.sin(timeSec * 1.8 + s) * 5, sy - age * 24, 3.2 + age * 4.2, 0, Math.PI * 2);
-            targetCtx.fill();
-        }
+    // Di chuột / chạm để bắt điểm từ tính trong bán kính hitRadius = 46px
+    this.canvas.addEventListener('pointermove', (e) => {
+      if (!this.isOpen) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+      this.handlePointerHover(px, py);
     });
-    targetCtx.restore();
 
-    // 6. Hạt thời tiết đặc trưng từng Quần Xã (6 Biomes) phủ nhẹ bên trên ảnh map .png
-    targetCtx.save();
-    if (biomeId === 1) {
-        // Thảo nguyên: Đom đóm vàng nhẹ
-        targetCtx.fillStyle = 'rgba(254, 240, 138, 0.72)';
-        for (let i = 0; i < 12; i++) {
-            const fx = (i * 61 + Math.sin(timeSec * 1.5 + i) * 22 + LOGICAL_WIDTH) % LOGICAL_WIDTH;
-            const fy = (i * 53 + Math.cos(timeSec * 1.2 + i) * 18 + PLAYFIELD_HEIGHT) % PLAYFIELD_HEIGHT;
-            targetCtx.fillRect(fx, fy, 2.4, 2.4);
+    this.canvas.addEventListener('pointerleave', () => {
+      this.hoveredNode = null;
+      this.canvas.style.cursor = 'default';
+      if (this.tooltipEl) this.tooltipEl.classList.add('hidden');
+    });
+
+    // Click chọn ải ngay lập tức; click lần 2 vào ải đang chọn sẽ vào trận nhanh
+    this.canvas.addEventListener('pointerdown', (e) => {
+      if (!this.isOpen) return;
+      const rect = this.canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+
+      const hit = findNearestWorldNode(px, py, this.screenNodes, WORLD_MAP_CONFIG.hitRadius);
+      if (!hit) return;
+
+      if (!hit.unlocked && !metaState.isAdminMode) {
+        if (typeof showFloatingCurrencyToast === 'function') {
+          showFloatingCurrencyToast(`Cần vượt Màn ${hit.level - 1} để mở khóa!`, '#FB7185');
         }
-    } else if (biomeId === 2) {
-        // Hoang mạc: Gió cát sa mạc bay ngang
-        targetCtx.fillStyle = 'rgba(253, 186, 116, 0.38)';
-        for (let i = 0; i < 18; i++) {
-            const sx = ((i * 67 + Math.floor(timeSec * 115)) % (LOGICAL_WIDTH + 30)) - 15;
-            const sy = (i * 83 + Math.floor(Math.sin(timeSec * 2 + i) * 14)) % PLAYFIELD_HEIGHT;
-            targetCtx.fillRect(sx, sy, 12, 2);
-        }
-    } else if (biomeId === 3) {
-        // Băng giá: Bông tuyết rơi lất phất
-        targetCtx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-        for (let i = 0; i < 26; i++) {
-            const sx = (i * 43 + Math.sin(timeSec * 2 + i) * 16 + LOGICAL_WIDTH) % LOGICAL_WIDTH;
-            const sy = (i * 37 + timeSec * 42) % PLAYFIELD_HEIGHT;
-            targetCtx.beginPath();
-            targetCtx.arc(sx, sy, 2, 0, Math.PI * 2);
-            targetCtx.fill();
-        }
-    } else if (biomeId === 4) {
-        // Núi lửa: Tàn lửa cam bay lên
-        targetCtx.fillStyle = 'rgba(251, 146, 60, 0.82)';
-        for (let i = 0; i < 22; i++) {
-            const ax = (i * 59 + Math.sin(timeSec * 1.8 + i) * 18 + LOGICAL_WIDTH) % LOGICAL_WIDTH;
-            const ay = PLAYFIELD_HEIGHT - ((i * 47 + timeSec * 40) % PLAYFIELD_HEIGHT);
-            targetCtx.fillRect(ax, ay, 2.8, 2.8);
-        }
-    } else if (biomeId === 5) {
-        // Đầm lầy: Bào tử khí độc xanh neon lơ lửng
-        targetCtx.fillStyle = 'rgba(163, 230, 53, 0.72)';
-        for (let i = 0; i < 18; i++) {
-            const px = (i * 53 + Math.sin(timeSec * 1.6 + i) * 20 + LOGICAL_WIDTH) % LOGICAL_WIDTH;
-            const py = PLAYFIELD_HEIGHT - ((i * 41 + timeSec * 22) % PLAYFIELD_HEIGHT);
-            targetCtx.beginPath();
-            targetCtx.arc(px, py, 2.5, 0, Math.PI * 2);
-            targetCtx.fill();
-        }
-    } else if (biomeId === 6) {
-        // Anh đào: Cánh hoa anh đào hồng bay theo gió
-        targetCtx.fillStyle = 'rgba(244, 114, 182, 0.88)';
-        for (let i = 0; i < 24; i++) {
-            const px = (i * 49 + Math.sin(timeSec * 2.2 + i) * 26 + timeSec * 18) % LOGICAL_WIDTH;
-            const py = (i * 39 + timeSec * 28) % PLAYFIELD_HEIGHT;
-            targetCtx.beginPath();
-            targetCtx.ellipse(px, py, 3.2, 1.8, timeSec * 2 + i, 0, Math.PI * 2);
-            targetCtx.fill();
-        }
+        return;
+      }
+
+      const wasAlreadySelected = metaState.selectedStage === hit.level;
+      metaState.selectedStage = hit.level;
+      saveProgress();
+
+      this.updateSelectedFooterLabel();
+      if (typeof syncLobbyStageDisplay === 'function') {
+        syncLobbyStageDisplay();
+      }
+
+      if (wasAlreadySelected && typeof launchBattleWithCloudDive === 'function') {
+        this.close();
+        launchBattleWithCloudDive(metaState.selectedMode || 'campaign', hit.level);
+      }
+    });
+  },
+
+  open() {
+    const overlay = document.getElementById('world-roadmap-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    this.isOpen = true;
+    this.resizeCanvas();
+    this.updateSelectedFooterLabel();
+    this.startRenderLoop();
+  },
+
+  close() {
+    const overlay = document.getElementById('world-roadmap-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    if (this.tooltipEl) this.tooltipEl.classList.add('hidden');
+    this.isOpen = false;
+    this.hoveredNode = null;
+    if (this.animFrameId) {
+      cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = null;
+    }
+  },
+
+  resizeCanvas() {
+    if (!this.canvas) return;
+    const container = this.canvas.parentElement;
+    if (!container) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = container.clientWidth || 420;
+    const h = container.clientHeight || 620;
+    this.canvas.width = Math.round(w * dpr);
+    this.canvas.height = Math.round(h * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.logicalW = w;
+    this.logicalH = h;
+    this.recomputeScreenNodes();
+  },
+
+  recomputeScreenNodes() {
+    const w = this.logicalW || 420;
+    const h = this.logicalH || 620;
+    this.screenNodes = STAGE_CATALOG.map((stage) => ({
+      ...stage,
+      screenX: stage.worldPos.x * w,
+      screenY: stage.worldPos.y * h,
+      unlocked: stage.level <= metaState.maxUnlockedStage || metaState.isAdminMode,
+      stars: Number(metaState.stageStars[stage.level]) || 0
+    }));
+  },
+
+  jumpToBiome(biomeId) {
+    const bId = Number(biomeId) || 1;
+    const firstLevel = (bId - 1) * 9 + 1;
+    const targetNode = this.screenNodes.find((n) => n.level === firstLevel);
+    if (targetNode) {
+      if (targetNode.unlocked) {
+        metaState.selectedStage = targetNode.level;
+        saveProgress();
+        this.updateSelectedFooterLabel();
+        if (typeof syncLobbyStageDisplay === 'function') syncLobbyStageDisplay();
+      }
+      this.hoveredNode = targetNode;
+      this.positionTooltipForNode(targetNode);
+    }
+  },
+
+  handlePointerHover(px, py) {
+    const hit = findNearestWorldNode(px, py, this.screenNodes, WORLD_MAP_CONFIG.hitRadius);
+    if (!hit) {
+      this.hoveredNode = null;
+      this.canvas.style.cursor = 'default';
+      if (this.tooltipEl) this.tooltipEl.classList.add('hidden');
+      return;
     }
 
-    // 7. Bóng mây trôi nhẹ qua sân đấu
-    targetCtx.fillStyle = 'rgba(15, 23, 42, 0.08)';
-    const cloudX = ((timeSec * 14) % (LOGICAL_WIDTH + 260)) - 130;
-    targetCtx.beginPath();
-    targetCtx.ellipse(cloudX, PLAYFIELD_HEIGHT * 0.36, 95, 36, 0.15, 0, Math.PI * 2);
-    targetCtx.fill();
-    targetCtx.restore();
-}
+    this.hoveredNode = hit;
+    this.canvas.style.cursor = 'pointer';
+    this.positionTooltipForNode(hit);
+  },
 
-// ============================================================================
-// 3. RENDER 54 CHIẾN TRƯỜNG TỪ ẢNH GỐC (.PNG) + ĐỒNG BỘ LƯỚI NAVSYSTEM 42x71
-// ============================================================================
-export function renderMap(targetCtx, targetW, targetH, levelNum) {
-    const W = LOGICAL_WIDTH;
-    const H = PLAYFIELD_HEIGHT;
-    const registerNav = targetW === LOGICAL_WIDTH && targetH === PLAYFIELD_HEIGHT;
+  positionTooltipForNode(node) {
+    if (!this.tooltipEl) return;
+    const biomeEl = document.getElementById('tooltip-biome-name');
+    const titleEl = document.getElementById('tooltip-stage-title');
+    const starsEl = document.getElementById('tooltip-stars');
 
-    if (registerNav) {
-        nav.reset();
+    if (biomeEl) biomeEl.textContent = node.biomeName;
+    if (titleEl) titleEl.textContent = `Level ${String(node.level).padStart(2, '0')} • ${node.name}`;
+    if (starsEl) {
+      const s = node.stars || 0;
+      const starIcons = `${s >= 1 ? '★' : '☆'} ${s >= 2 ? '★' : '☆'} ${s >= 3 ? '★' : '☆'}`;
+      starsEl.textContent = node.unlocked ? `${starIcons} (${s}/3)` : '🔒 Chưa mở khóa';
     }
 
-    targetCtx.save();
-    targetCtx.scale(targetW / W, targetH / H);
-    targetCtx.imageSmoothingEnabled = false;
+    const w = this.logicalW || 420;
+    const clampedX = clamp(node.screenX, 95, w - 95);
+    const clampedY = Math.max(76, node.screenY);
 
-    const lv = Math.max(1, Math.min(54, Number(levelNum) || 1));
-    const biomeId = Math.ceil(lv / 9);
+    this.tooltipEl.style.left = `${clampedX}px`;
+    this.tooltipEl.style.top = `${clampedY}px`;
+    this.tooltipEl.classList.remove('hidden');
+  },
 
-    // 1. Cắt trực tiếp ô bản đồ từ 6 tấm sprite sheet gốc (assets/maps/biome_1..6.png)
-    const hasPngTile = mapAssets.drawSlicedMapTile(targetCtx, lv, 0, 0, W, H);
+  updateSelectedFooterLabel() {
+    const lbl = document.getElementById('roadmap-selected-label');
+    if (!lbl) return;
+    const stage = STAGE_CATALOG[clamp(metaState.selectedStage - 1, 0, STAGE_CATALOG.length - 1)];
+    lbl.textContent = `Màn ${String(stage.level).padStart(2, '0')} - ${stage.name}`;
+  },
 
-    // 2. Nếu ảnh chưa kịp nạp (fallback), vẽ nền màu quần xã dự phòng để không bị màn hình đen
-    if (!hasPngTile) {
-        const fallbackGround = ['#65a30d', '#c2410c', '#bae6fd', '#262223', '#3f4a2c', '#6ec256'][biomeId - 1] || '#65a30d';
-        targetCtx.fillStyle = fallbackGround;
-        targetCtx.fillRect(0, 0, W, H);
-    }
-
-    // Helper đăng ký lưới địa hình ngầm cho NavSystem (không vẽ đè lên ảnh gốc nếu đã có ảnh .png)
-    const regRoad = (pts, width = 34) => {
-        if (registerNav) nav.markPolyline(pts, width + 8, T_ROAD);
-        if (!hasPngTile) {
-            targetCtx.save();
-            targetCtx.strokeStyle = '#ca8a04';
-            targetCtx.lineWidth = width;
-            targetCtx.lineCap = 'round';
-            targetCtx.lineJoin = 'round';
-            targetCtx.beginPath();
-            pts.forEach((p, i) => (i === 0 ? targetCtx.moveTo(p[0], p[1]) : targetCtx.lineTo(p[0], p[1])));
-            targetCtx.stroke();
-            targetCtx.restore();
-        }
+  startRenderLoop() {
+    if (this.animFrameId) cancelAnimationFrame(this.animFrameId);
+    const tick = () => {
+      if (!this.isOpen) return;
+      this.haloAngle += 0.045;
+      this.render();
+      this.animFrameId = requestAnimationFrame(tick);
     };
+    this.animFrameId = requestAnimationFrame(tick);
+  },
 
-    const regRing = (cx, cy, r, width = 34) => {
-        if (registerNav) nav.markRing(cx, cy, r, width + 8, T_ROAD);
-        if (!hasPngTile) {
-            targetCtx.save();
-            targetCtx.strokeStyle = '#ca8a04';
-            targetCtx.lineWidth = width;
-            targetCtx.beginPath();
-            targetCtx.arc(cx, cy, r, 0, Math.PI * 2);
-            targetCtx.stroke();
-            targetCtx.restore();
-        }
-    };
+  render() {
+    if (!this.ctx) return;
+    const ctx = this.ctx;
+    const w = this.logicalW || 420;
+    const h = this.logicalH || 620;
 
-    const regWaterRect = (x, y, w, h, rounded = 0) => {
-        if (registerNav) {
-            nav.markRect(x, y, w, h, T_WATER, true);
-            nav.waterBoxes.push({ x, y, w, h, rounded });
-        }
-        if (!hasPngTile) {
-            targetCtx.fillStyle = '#0284c7';
-            targetCtx.fillRect(x, y, w, h);
-        }
-    };
+    ctx.clearRect(0, 0, w, h);
 
-    const regLavaRect = (x, y, w, h, rounded = 12) => {
-        if (registerNav) {
-            nav.markRect(x, y, w, h, T_WATER, true);
-            nav.lavaBoxes.push({ x, y, w, h, rounded });
-        }
-        if (!hasPngTile) {
-            targetCtx.fillStyle = '#ea580c';
-            targetCtx.fillRect(x, y, w, h);
-        }
-    };
-
-    const regAcidRect = (x, y, w, h, rounded = 14) => {
-        if (registerNav) {
-            nav.markRect(x, y, w, h, T_OBSTACLE, true);
-            nav.acidBoxes.push({ x, y, w, h, rounded });
-        }
-        if (!hasPngTile) {
-            targetCtx.fillStyle = '#4ade80';
-            targetCtx.fillRect(x, y, w, h);
-        }
-    };
-
-    const regDiagonalStream = (pts, width = 62, kind = 'water') => {
-        if (!registerNav) return;
-        for (let i = 0; i < pts.length - 1; i++) {
-            const [x1, y1] = pts[i];
-            const [x2, y2] = pts[i + 1];
-            const len = Math.hypot(x2 - x1, y2 - y1);
-            const steps = Math.max(1, Math.ceil(len / 10));
-            for (let s = 0; s <= steps; s++) {
-                const t = s / steps;
-                const px = x1 + (x2 - x1) * t;
-                const py = y1 + (y2 - y1) * t;
-                if (kind === 'acid') {
-                    nav.markCircle(px, py, width * 0.45, T_OBSTACLE, true);
-                    nav.acidBoxes.push({ x: px - width / 2, y: py - width / 2, w: width, h: width, rounded: width / 2 });
-                } else {
-                    nav.markCircle(px, py, width * 0.46, T_WATER, true);
-                    if (kind === 'lava') {
-                        nav.lavaBoxes.push({ x: px - width / 2, y: py - width / 2, w: width, h: width, rounded: width / 2 });
-                    } else {
-                        nav.waterBoxes.push({ x: px - width / 2, y: py - width / 2, w: width, h: width, rounded: width / 2 });
-                    }
-                }
-            }
-        }
-    };
-
-    const regBridge = (cx, cy, w = 48, h = 88, isVertical = true, style = 'wood', angleRad = 0) => {
-        if (registerNav) {
-            nav.addBridge(cx, cy, w, h, isVertical, angleRad, style);
-        }
-    };
-
-    const regCircleObs = (x, y, r, kind = 'rock') => {
-        if (registerNav) nav.addCircleObstacle(x, y, r, kind);
-    };
-
-    const regBoxObs = (x, y, w, h, kind = 'ruins') => {
-        if (registerNav) nav.addBoxObstacle(x, y, w, h, kind);
-    };
-
-    // ========================================================================
-    // 3. ĐĂNG KÝ ĐỊA HÌNH NGẦM KHỚP 100% VỚI 54 Ô TRÊN 6 ẢNH .PNG
-    // ========================================================================
-    if (registerNav) {
-        switch (lv) {
-            // ==================== BIOME 1 (01 – 09) ====================
-            case 1:
-                regWaterRect(0, H / 2 - 44, W, 88, 0);
-                regRoad([[210, 90], [115, 155], [115, 235], [210, 285]], 30);
-                regRoad([[210, 90], [305, 155], [305, 235], [210, 285]], 30);
-                regRoad([[210, 285], [210, H - 285]], 36);
-                regRoad([[210, H - 285], [115, H - 235], [115, H - 155], [210, H - 90]], 30);
-                regRoad([[210, H - 285], [305, H - 235], [305, H - 155], [210, H - 90]], 30);
-                regBridge(210, H / 2, 52, 98, true, 'wood');
-                break;
-            case 2:
-                regRoad([[210, 85], [285, 130], [285, 195], [125, 255], [125, 345], [295, 415], [295, 505], [140, 565], [210, H - 85]], 36);
-                regCircleObs(175, 190, 18);
-                regCircleObs(255, 315, 20);
-                regCircleObs(175, 455, 18);
-                break;
-            case 3:
-                regRoad([[95, 90], [95, H - 90]], 32);
-                regRoad([[325, 90], [325, H - 90]], 32);
-                regRoad([[95, 115], [325, 115]], 28);
-                regRoad([[95, H - 115], [325, H - 115]], 28);
-                regBoxObs(152, 235, 116, 26);
-                regBoxObs(152, 261, 26, 190);
-                regBoxObs(242, 261, 26, 190);
-                regBoxObs(152, 451, 116, 26);
-                break;
-            case 4:
-                regRing(210, H / 2, 118, 34);
-                regRoad([[210, 85], [210, H / 2 - 118]], 34);
-                regRoad([[210, H / 2 + 118], [210, H - 85]], 34);
-                regWaterRect(132, H / 2 - 78, 156, 156, 78);
-                break;
-            case 5:
-                regRoad([[210, 85], [115, 145], [285, 215], [325, 360], [285, 505], [125, 565], [210, H - 85]], 34);
-                [[165, 285], [215, 275], [145, 340], [195, 355], [240, 345], [160, 415], [215, 425]].forEach(([x, y]) => regCircleObs(x, y, 14));
-                break;
-            case 6:
-                regRoad([[210, 85], [210, H - 85]], 34);
-                regRoad([[75, 235], [345, 235]], 30);
-                regRoad([[75, 475], [345, 475]], 30);
-                regBoxObs(95, 275, 42, 36);
-                regBoxObs(148, 335, 42, 36);
-                regBoxObs(265, 275, 42, 36);
-                regBoxObs(275, 385, 42, 36);
-                regBoxObs(95, 395, 42, 36);
-                break;
-            case 7:
-                regRoad([[95, 185], [325, 185], [325, H - 185], [95, H - 185], [95, 185]], 32);
-                regRoad([[210, 85], [210, 185]], 34);
-                regRoad([[210, H - 185], [210, H - 85]], 34);
-                regWaterRect(65, H / 2 - 64, W - 130, 128, 34);
-                regBridge(95, H / 2, 46, 138, true, 'wood');
-                regBridge(325, H / 2, 46, 138, true, 'wood');
-                break;
-            case 8:
-                regRing(210, H / 2, 108, 34);
-                regRoad([[210, 85], [210, H / 2 - 108]], 34);
-                regRoad([[210, H / 2 + 108], [210, H - 85]], 34);
-                regRoad([[45, H / 2], [210 - 108, H / 2]], 30);
-                regRoad([[210 + 108, H / 2], [W - 45, H / 2]], 30);
-                regBoxObs(186, H / 2 - 28, 48, 56);
-                break;
-            case 9:
-                regRoad([[105, 145], [210, H / 2], [315, 145]], 32);
-                regRoad([[105, H - 145], [210, H / 2], [315, H - 145]], 32);
-                regRoad([[210, 85], [210, H - 85]], 34);
-                regRoad([[45, H / 2], [W - 45, H / 2]], 30);
-                break;
-
-            // ==================== BIOME 2 (10 – 18) ====================
-            case 10:
-                nav.markRect(0, H / 2 - 48, W, 96, T_OBSTACLE, true);
-                regRoad([[210, 85], [210, H - 85]], 36);
-                regBridge(210, H / 2, 50, 122, true, 'steel');
-                break;
-            case 11:
-                regRoad([[210, 85], [295, 155], [125, 245], [295, 345], [125, 445], [285, 535], [210, H - 85]], 34);
-                nav.campfires.push({ x: 146, y: 169 }, { x: 296, y: 469 });
-                break;
-            case 12:
-                regRoad([[95, 185], [325, 185], [325, H - 185], [95, H - 185], [95, 185]], 32);
-                regRoad([[210, 85], [210, 185]], 34);
-                regRoad([[210, H - 185], [210, H - 85]], 34);
-                regBoxObs(145, H / 2 - 68, 130, 24);
-                regBoxObs(145, H / 2 + 44, 130, 24);
-                regBoxObs(145, H / 2 - 44, 24, 88);
-                regBoxObs(251, H / 2 - 44, 24, 88);
-                break;
-            case 13:
-                regRing(210, H / 2, 114, 34);
-                regRoad([[210, 85], [210, H / 2 - 114]], 34);
-                regRoad([[210, H / 2 + 114], [210, H - 85]], 34);
-                regCircleObs(210, H / 2, 24, 'derrick');
-                break;
-            case 14:
-                regDiagonalStream([[45, 110], [165, 275], [255, 435], [375, 605]], 64, 'water');
-                regRoad([[210, 85], [295, 185], [145, 345], [275, 465], [210, H - 85]], 34);
-                regBridge(195, 315, 46, 78, true, 'wood', -0.55);
-                regBridge(235, 415, 46, 78, true, 'wood', -0.55);
-                break;
-            case 15:
-                regRoad([[88, 90], [88, H - 90]], 30);
-                regRoad([[210, 90], [210, H - 90]], 32);
-                regRoad([[332, 90], [332, H - 90]], 30);
-                regBoxObs(28, 175, 132, 22);
-                regBoxObs(260, 175, 132, 22);
-                regCircleObs(150, H / 2 - 20, 18);
-                regCircleObs(270, H / 2 + 20, 18);
-                regBoxObs(28, H - 197, 132, 22);
-                regBoxObs(260, H - 197, 132, 22);
-                break;
-            case 16:
-                regRoad([[210, 85], [295, 185], [125, 345], [295, 485], [210, H - 85]], 34);
-                regCircleObs(115, 245, 18);
-                regCircleObs(310, 355, 18);
-                break;
-            case 17:
-                regRoad([[105, 90], [105, H - 90]], 32);
-                regRoad([[315, 90], [315, H - 90]], 32);
-                regRoad([[105, 145], [315, 145]], 28);
-                regRoad([[105, H - 145], [315, H - 145]], 28);
-                regBoxObs(168, 215, 84, H - 430);
-                break;
-            case 18:
-                regRoad([[210, 85], [305, 185], [115, 345], [305, 495], [210, H - 85]], 34);
-                regBoxObs(121, 231, 28, 28);
-                regBoxObs(271, 231, 28, 28);
-                regBoxObs(261, 441, 28, 28);
-                break;
-
-            // ==================== BIOME 3 (19 – 27) ====================
-            case 19:
-                regDiagonalStream([[385, 130], [255, 285], [165, 435], [35, 585]], 64, 'water');
-                regRoad([[210, 85], [135, 185], [275, 345], [145, 475], [210, H - 85]], 34);
-                regBridge(265, 275, 46, 78, true, 'wood', 0.55);
-                regBridge(155, 445, 46, 78, true, 'wood', 0.55);
-                break;
-            case 20:
-                regRoad([[210, 85], [315, 145], [105, 235], [315, 335], [105, 435], [305, 525], [210, H - 85]], 34);
-                regCircleObs(125, 155, 16);
-                regCircleObs(295, 245, 16);
-                regCircleObs(125, 345, 16);
-                break;
-            case 21:
-                regRoad([[95, 185], [325, 185], [325, H - 185], [95, H - 185], [95, 185]], 32);
-                regRoad([[210, 85], [210, 185]], 34);
-                regRoad([[210, H - 185], [210, H - 85]], 34);
-                regBoxObs(145, H / 2 - 68, 130, 24);
-                regBoxObs(145, H / 2 + 44, 130, 24);
-                regBoxObs(145, H / 2 - 44, 24, 88);
-                regBoxObs(251, H / 2 - 44, 24, 88);
-                break;
-            case 22:
-                nav.iceZones.push({ x: 128, y: H / 2 - 82, w: 164, h: 164 });
-                regRing(210, H / 2, 118, 34);
-                regRoad([[210, 85], [210, H / 2 - 118]], 34);
-                regRoad([[210, H / 2 + 118], [210, H - 85]], 34);
-                regCircleObs(185, H / 2 - 15, 14);
-                regCircleObs(235, H / 2 + 18, 13);
-                break;
-            case 23:
-                regDiagonalStream([[75, 155], [210, 325], [210, 565]], 54, 'water');
-                regDiagonalStream([[345, 155], [210, 325]], 54, 'water');
-                regRoad([[210, 85], [125, 245], [285, 365], [145, 495], [210, H - 85]], 34);
-                regBridge(238, 285, 46, 72, true, 'wood', -0.45);
-                regBridge(182, 425, 46, 72, true, 'wood', 0.45);
-                break;
-            case 24:
-                regRoad([[210, 85], [305, 185], [115, 345], [305, 495], [210, H - 85]], 34);
-                [[130, 210, 18], [175, 235, 16], [245, 445, 18], [290, 420, 16]].forEach(([x, y, r]) => regCircleObs(x, y, r));
-                break;
-            case 25:
-                regRoad([[210, 85], [315, 225], [315, 485], [210, H - 85]], 34);
-                regCircleObs(195, H / 2, 22);
-                break;
-            case 26:
-                regRoad([[210, 85], [105, 165], [295, 265], [105, 395], [295, 505], [210, H - 85]], 34);
-                [[245, 165], [155, 295], [245, 415], [155, 515]].forEach(([x, y]) => regCircleObs(x, y, 14));
-                break;
-            case 27:
-                regRoad([[95, 90], [95, H - 90]], 30);
-                regRoad([[210, 90], [210, H - 90]], 32);
-                regRoad([[325, 90], [325, H - 90]], 30);
-                regRoad([[95, 235], [325, 235]], 28);
-                regRoad([[95, 465], [325, 465]], 28);
-                regBoxObs(131, 161, 28, 28);
-                regBoxObs(261, 161, 28, 28);
-                regBoxObs(145, 315, 130, 26);
-                break;
-
-            // ==================== BIOME 4 (28 – 36) ====================
-            case 28:
-                regLavaRect(0, H / 2 - 48, W, 96, 0);
-                regRoad([[210, 85], [105, 185], [105, H - 185], [210, H - 85]], 32);
-                regRoad([[210, 85], [315, 185], [315, H - 185], [210, H - 85]], 32);
-                regRoad([[210, 85], [210, H - 85]], 32);
-                regBridge(105, H / 2, 46, 108, true, 'steel');
-                regBridge(210, H / 2, 46, 108, true, 'steel');
-                regBridge(315, H / 2, 46, 108, true, 'steel');
-                break;
-            case 29:
-                regLavaRect(12, 145, 58, H - 290, 14);
-                regLavaRect(W - 70, 145, 58, H - 290, 14);
-                regRoad([[210, 85], [295, 185], [125, 345], [295, 495], [210, H - 85]], 34);
-                break;
-            case 30:
-                regLavaRect(85, 175, W - 170, H - 350, 22);
-                regRoad([[70, 160], [350, 160], [350, H - 160], [70, H - 160], [70, 160]], 32);
-                regRoad([[210, 85], [210, 160]], 34);
-                regRoad([[210, H - 160], [210, H - 85]], 34);
-                regBoxObs(152, H / 2 - 58, 116, 116);
-                break;
-            case 31:
-                regRing(210, H / 2, 118, 34);
-                regRoad([[210, 85], [210, H / 2 - 118]], 34);
-                regRoad([[210, H / 2 + 118], [210, H - 85]], 34);
-                regLavaRect(132, H / 2 - 78, 156, 156, 78);
-                break;
-            case 32:
-                regDiagonalStream([[385, 130], [255, 285], [165, 435], [35, 585]], 68, 'lava');
-                regRoad([[210, 85], [135, 185], [275, 345], [145, 475], [210, H - 85]], 34);
-                regBridge(265, 275, 48, 82, true, 'steel', 0.55);
-                regBridge(155, 445, 48, 82, true, 'steel', 0.55);
-                break;
-            case 33:
-                regLavaRect(45, 235, 135, 36, 12);
-                regLavaRect(240, 425, 135, 36, 12);
-                regRoad([[210, 85], [295, 175], [115, 345], [295, 515], [210, H - 85]], 34);
-                break;
-            case 34:
-                regLavaRect(65, 275, 95, 95, 28);
-                regLavaRect(235, 385, 105, 85, 24);
-                regRoad([[210, 85], [305, 195], [115, 455], [210, H - 85]], 34);
-                break;
-            case 35:
-                regLavaRect(0, H / 2 - 44, W, 88, 0);
-                regRoad([[210, 85], [115, 175], [285, 255], [285, H - 235], [210, H - 85]], 34);
-                regBridge(285, H / 2, 52, 102, true, 'steel');
-                break;
-            case 36:
-                regRoad([[95, 90], [95, H - 90]], 32);
-                regRoad([[210, 90], [210, H - 90]], 34);
-                regRoad([[325, 90], [325, H - 90]], 32);
-                regRoad([[95, 245], [325, 245]], 30);
-                regRoad([[95, 465], [325, 465]], 30);
-                regBoxObs(131, 171, 28, 28);
-                regBoxObs(261, 171, 28, 28);
-                regBoxObs(131, 331, 28, 28);
-                regBoxObs(261, 331, 28, 28);
-                break;
-
-            // ==================== BIOME 5 (37 – 45) ====================
-            case 37:
-                nav.toxicZones.push({ x: 0, y: 120, w: W, h: H - 240 });
-                regDiagonalStream([[365, 120], [185, 245], [255, 395], [95, 565]], 66, 'acid');
-                regRoad([[210, 85], [125, 215], [285, 345], [145, 485], [210, H - 85]], 34);
-                regBridge(245, 215, 48, 76, true, 'wood', 0.45);
-                regBridge(210, 355, 48, 76, true, 'wood', -0.45);
-                regBridge(155, 495, 48, 76, true, 'wood', 0.45);
-                break;
-            case 38:
-                nav.toxicZones.push({ x: 0, y: 120, w: W, h: H - 240 });
-                regAcidRect(16, 155, 56, H - 310, 16);
-                regAcidRect(W - 72, 155, 56, H - 310, 16);
-                regRoad([[210, 85], [295, 185], [125, 345], [295, 495], [210, H - 85]], 34);
-                break;
-            case 39:
-                nav.toxicZones.push({ x: 0, y: 120, w: W, h: H - 240 });
-                regAcidRect(82, 175, W - 164, H - 350, 22);
-                regRoad([[68, 160], [352, 160], [352, H - 160], [68, H - 160], [68, 160]], 32);
-                regRoad([[210, 85], [210, 160]], 34);
-                regRoad([[210, H - 160], [210, H - 85]], 34);
-                regBoxObs(152, H / 2 - 58, 116, 116);
-                break;
-            case 40:
-                nav.toxicZones.push({ x: 0, y: 120, w: W, h: H - 240 });
-                regRing(210, H / 2, 118, 34);
-                regRoad([[210, 85], [210, H / 2 - 118]], 34);
-                regRoad([[210, H / 2 + 118], [210, H - 85]], 34);
-                regAcidRect(132, H / 2 - 78, 156, 156, 78);
-                break;
-            case 41:
-                nav.toxicZones.push({ x: 0, y: 120, w: W, h: H - 240 });
-                regDiagonalStream([[45, 130], [210, 355], [375, 580]], 58, 'acid');
-                regDiagonalStream([[375, 130], [210, 355], [45, 580]], 58, 'acid');
-                regRoad([[210, 85], [115, 255], [210, 355], [305, 465], [210, H - 85]], 34);
-                regBridge(125, 240, 46, 72, true, 'wood', -0.5);
-                regBridge(210, 355, 50, 74, true, 'wood', 0);
-                regBridge(295, 470, 46, 72, true, 'wood', -0.5);
-                break;
-            case 42:
-                regAcidRect(245, 195, 125, 45, 14);
-                regAcidRect(55, 435, 125, 45, 14);
-                regRoad([[210, 85], [125, 195], [295, 355], [125, 505], [210, H - 85]], 34);
-                break;
-            case 43:
-                regAcidRect(45, 365, 115, 95, 24);
-                regAcidRect(285, 215, 95, 85, 20);
-                regRoad([[210, 85], [305, 215], [115, 465], [210, H - 85]], 34);
-                break;
-            case 44:
-                nav.toxicZones.push({ x: 0, y: 120, w: W, h: H - 240 });
-                regAcidRect(55, 225, 120, 44, 14);
-                regAcidRect(245, 345, 120, 44, 14);
-                regAcidRect(65, 465, 120, 44, 14);
-                regRoad([[210, 85], [305, 155], [115, 295], [305, 425], [115, 535], [210, H - 85]], 34);
-                break;
-            case 45:
-                nav.toxicZones.push({ x: 0, y: 120, w: W, h: H - 240 });
-                regAcidRect(42, 165, W - 84, 38, 12);
-                regAcidRect(42, H - 203, W - 84, 38, 12);
-                regRoad([[210, 85], [210, H - 85]], 36);
-                regRoad([[95, 255], [325, 255], [325, H - 255], [95, H - 255], [95, 255]], 30);
-                regBridge(210, 184, 48, 52, true, 'wood');
-                regBridge(210, H - 184, 48, 52, true, 'wood');
-                regBoxObs(121, 221, 28, 28);
-                regBoxObs(271, 221, 28, 28);
-                regBoxObs(121, H - 249, 28, 28);
-                regBoxObs(271, H - 249, 28, 28);
-                break;
-
-            // ==================== BIOME 6 (46 – 54) ====================
-            case 46:
-                regDiagonalStream([[365, 120], [185, 245], [255, 395], [95, 565]], 64, 'water');
-                regRoad([[210, 85], [125, 215], [285, 345], [145, 485], [210, H - 85]], 34);
-                regBridge(245, 215, 46, 74, true, 'sakura_arch', 0.45);
-                regBridge(210, 355, 46, 74, true, 'sakura_arch', -0.45);
-                regBridge(155, 495, 46, 74, true, 'sakura_arch', 0.45);
-                break;
-            case 47:
-                regRoad([[210, 85], [295, 185], [125, 345], [295, 495], [210, H - 85]], 34);
-                break;
-            case 48:
-                regRoad([[95, 185], [325, 185], [325, H - 185], [95, H - 185], [95, 185]], 32);
-                regRoad([[210, 85], [210, 185]], 34);
-                regRoad([[210, H - 185], [210, H - 85]], 34);
-                regBoxObs(152, H / 2 - 58, 116, 116);
-                break;
-            case 49:
-                regRing(210, H / 2, 118, 34);
-                regRoad([[210, 85], [210, H / 2 - 118]], 34);
-                regRoad([[210, H / 2 + 118], [210, H - 85]], 34);
-                regWaterRect(132, H / 2 - 78, 156, 156, 78);
-                break;
-            case 50:
-                regDiagonalStream([[385, 130], [255, 285], [165, 435], [35, 585]], 64, 'water');
-                regRoad([[210, 85], [135, 185], [275, 345], [145, 475], [210, H - 85]], 34);
-                regBridge(265, 275, 46, 78, true, 'sakura_arch', 0.55);
-                regBridge(155, 445, 46, 78, true, 'sakura_arch', 0.55);
-                break;
-            case 51:
-                regWaterRect(255, 195, 48, H - 390, 18);
-                regRoad([[210, 85], [135, 195], [185, 355], [135, 505], [210, H - 85]], 34);
-                break;
-            case 52:
-                regWaterRect(36, 225, 105, 115, 24);
-                regWaterRect(W - 141, H - 340, 105, 115, 24);
-                regRoad([[210, 85], [285, 215], [135, 455], [210, H - 85]], 34);
-                regBoxObs(265, 155, 42, 36);
-                break;
-            case 53:
-                regWaterRect(0, 415, W, 64, 0);
-                regRoad([[210, 85], [125, 175], [295, 265], [125, 355], [295, 445], [145, 545], [210, H - 85]], 34);
-                regBridge(295, 447, 46, 74, true, 'sakura_arch');
-                regCircleObs(210, 265, 18);
-                break;
-            case 54:
-            default:
-                regWaterRect(0, H - 225, W, 62, 0);
-                regRoad([[115, 85], [115, H - 85]], 32);
-                regRoad([[305, 85], [305, H - 85]], 32);
-                regRoad([[115, 265], [305, 265]], 30);
-                regBridge(115, H - 194, 46, 72, true, 'sakura_arch');
-                regBridge(305, H - 194, 46, 72, true, 'sakura_arch');
-                regBoxObs(61, 181, 28, 28);
-                regBoxObs(196, 181, 28, 28);
-                regBoxObs(331, 181, 28, 28);
-                break;
-        }
-    }
-
-    targetCtx.restore();
-
-    if (registerNav) {
-        nav.buildFlowFields();
-    }
-}
-
-export function buildStaticMapCanvas(levelNum) {
-    if (!mapBufferCache.canvas) {
-        mapBufferCache.canvas = document.createElement('canvas');
-        mapBufferCache.canvas.width = LOGICAL_WIDTH;
-        mapBufferCache.canvas.height = PLAYFIELD_HEIGHT;
-    }
-    const bCtx = mapBufferCache.canvas.getContext('2d');
-    bCtx.clearRect(0, 0, LOGICAL_WIDTH, PLAYFIELD_HEIGHT);
-    renderMap(bCtx, LOGICAL_WIDTH, PLAYFIELD_HEIGHT, levelNum);
-}
-
-// ============================================================================
-// 4. BỘ VẼ WORLD CAMPAIGN ROADMAP TOÀN CẢNH 1440x900 (TỪ assets/maps/world_map.png)
-// ============================================================================
-export function buildWorldCampaignCanvas() {
-    const worldImg = mapAssets.getImage('world_map');
-    if (worldMapBufferCache.canvas && (worldMapBufferCache.hasRealImage || !worldImg)) {
-        return worldMapBufferCache.canvas;
-    }
-
-    const c = worldMapBufferCache.canvas || document.createElement('canvas');
-    c.width = WORLD_MAP_WIDTH;
-    c.height = WORLD_MAP_HEIGHT;
-    const ctx = c.getContext('2d');
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT);
-
+    // 1. Vẽ ảnh bản đồ tổng thể World_map.png
+    const worldImg = typeof AssetLoader !== 'undefined' ? AssetLoader.getMap('World_map') : null;
     if (worldImg) {
-        ctx.drawImage(worldImg, 0, 0, WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT);
-        worldMapBufferCache.hasRealImage = true;
+      ctx.drawImage(worldImg, 0, 0, w, h);
     } else {
-        // Nền dự phòng 6 quần xã nếu ảnh world_map.png chưa nạp xong
-        ctx.fillStyle = '#0284c7';
-        ctx.fillRect(0, 0, WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT);
-
-        ctx.fillStyle = '#65a30d';
-        ctx.fillRect(40, 120, 420, 740);
-        ctx.fillStyle = '#c2410c';
-        ctx.fillRect(460, 110, 470, 410);
-        ctx.fillStyle = '#bae6fd';
-        ctx.fillRect(930, 90, 470, 320);
-        ctx.fillStyle = '#1c1917';
-        ctx.fillRect(930, 410, 480, 270);
-        ctx.fillStyle = '#3f4a2c';
-        ctx.fillRect(850, 680, 520, 190);
-        ctx.fillStyle = '#f472b6';
-        ctx.fillRect(455, 520, 405, 355);
-        worldMapBufferCache.hasRealImage = false;
+      ctx.fillStyle = '#0C4A6E';
+      ctx.fillRect(0, 0, w, h);
     }
 
-    worldMapBufferCache.canvas = c;
-    return c;
-}
-
-/**
- * Vẽ lớp tương tác động 60-120 FPS lên World Campaign Roadmap:
- * - Đường nối nét đứt chạy động từ 01 -> 54 (đã vượt: vàng-xanh sáng | chưa mở: trắng mờ)
- * - 54 huy hiệu chuẩn hóa 01 -> 54 tại đúng tọa độ (rx, ry) trên world_map.png
- * - Dải 3 sao ★★★, vòng Radar & cờ chỉ huy tại Level hiện tại
- */
-export function renderWorldCampaignDynamicOverlay(ctx, timeSec, currentLevel, maxUnlockedLevel, getStarsFn) {
-    // 1. Đường nối nét đứt chạy động từ 01 -> 54
+    // 2. Vẽ đường nối lộ trình 54 ải
     ctx.save();
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    for (let i = 0; i < LEVELS.length - 1; i++) {
-        const m1 = LEVELS[i];
-        const m2 = LEVELS[i + 1];
-        const isClearedSeg = m2.id <= maxUnlockedLevel;
-
-        ctx.strokeStyle = 'rgba(15, 23, 42, 0.72)';
-        ctx.lineWidth = 6.5;
-        ctx.beginPath();
-        ctx.moveTo(m1.worldPos.x, m1.worldPos.y);
-        ctx.lineTo(m2.worldPos.x, m2.worldPos.y);
-        ctx.stroke();
-
-        ctx.strokeStyle = isClearedSeg ? '#fde047' : 'rgba(255, 255, 255, 0.72)';
-        ctx.lineWidth = 3.2;
-        ctx.setLineDash([8, 6]);
-        ctx.lineDashOffset = -(timeSec * 22) % 14;
-        ctx.beginPath();
-        ctx.moveTo(m1.worldPos.x, m1.worldPos.y);
-        ctx.lineTo(m2.worldPos.x, m2.worldPos.y);
-        ctx.stroke();
+    ctx.beginPath();
+    for (let i = 0; i < this.screenNodes.length; i++) {
+      const n = this.screenNodes[i];
+      if (i === 0) ctx.moveTo(n.screenX, n.screenY);
+      else ctx.lineTo(n.screenX, n.screenY);
     }
-    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.72)';
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    ctx.setLineDash([6, 5]);
+    ctx.strokeStyle = '#FACC15';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
     ctx.restore();
 
-    // 2. Vẽ 54 Huy Hiệu Mốc Chiến Dịch chuẩn hóa 01 -> 54 tại đúng tọa độ (rx, ry)
-    for (let i = 0; i < LEVELS.length; i++) {
-        const m = LEVELS[i];
-        const lv = m.id;
-        const { x, y } = m.worldPos;
-        const unlocked = lv <= maxUnlockedLevel;
-        const isCurrent = lv === currentLevel;
-        const stars = typeof getStarsFn === 'function' ? getStarsFn(lv) : (m.stars || 0);
+    // 3. Vẽ từng node Level & Vòng hào quang vàng kim xoay quanh node đang hover
+    for (let i = 0; i < this.screenNodes.length; i++) {
+      const node = this.screenNodes[i];
+      const isHovered = this.hoveredNode && this.hoveredNode.level === node.level;
+      const isSelected = metaState.selectedStage === node.level;
+      const scale = isHovered ? WORLD_MAP_CONFIG.hoverScale : (isSelected ? 1.12 : 1.0);
+      const radius = WORLD_MAP_CONFIG.visualRadius * scale;
 
+      ctx.save();
+      ctx.translate(node.screenX, node.screenY);
+
+      // Vòng hào quang xoay vàng kim (#FACC15) khi hover hoặc đang chọn
+      if (isHovered || isSelected) {
         ctx.save();
-        ctx.translate(x, y);
-
-        // 2 Vòng sóng Radar lan tỏa đồng tâm & Mũi tên chỉ huy cho Level hiện tại
-        if (isCurrent) {
-            for (let rIdx = 0; rIdx < 2; rIdx++) {
-                const phase = (timeSec * 1.15 + rIdx * 0.5) % 1;
-                ctx.strokeStyle = `rgba(253, 224, 71, ${(1 - phase) * 0.92})`;
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(0, 0, 18 + phase * 28, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-
-            const bob = Math.sin(timeSec * 6) * 4;
-            ctx.fillStyle = '#fde047';
-            ctx.strokeStyle = '#0f172a';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, -32 + bob);
-            ctx.lineTo(-8, -43 + bob);
-            ctx.lineTo(8, -43 + bob);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-        }
-
-        // Bóng đổ huy hiệu
-        ctx.fillStyle = 'rgba(2, 6, 23, 0.55)';
+        ctx.rotate(this.haloAngle);
         ctx.beginPath();
-        ctx.arc(1.5, 2.5, 16.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Nền huy hiệu tròn viền sắc nét đè chuẩn lên nút trên world_map.png
-        ctx.fillStyle = !unlocked
-            ? '#334155'
-            : (isCurrent ? '#f59e0b' : (stars > 0 ? '#16a34a' : '#eab308'));
-        ctx.strokeStyle = isCurrent ? '#ffffff' : '#0f172a';
-        ctx.lineWidth = isCurrent ? 3.2 : 2.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, 16, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(0, 0, radius + 7, 0, Math.PI * 2);
+        ctx.strokeStyle = WORLD_MAP_CONFIG.haloColor;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([7, 4]);
         ctx.stroke();
-
-        // Số thứ tự chuẩn hóa 01 -> 54
-        ctx.fillStyle = !unlocked ? '#94a3b8' : (stars > 0 || isCurrent ? '#ffffff' : '#0f172a');
-        ctx.font = '900 12.5px "Chakra Petch", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(lv).padStart(2, '0'), 0, 0.5);
-
-        // Dãy 3 sao ★★★ phía trên điểm mốc hoặc ổ khóa
-        if (unlocked) {
-            ctx.font = '900 9.5px sans-serif';
-            for (let s = 0; s < 3; s++) {
-                const sx = (s - 1) * 10;
-                const sy = -22;
-                ctx.fillStyle = s < stars ? '#facc15' : 'rgba(15, 23, 42, 0.72)';
-                ctx.fillText('★', sx, sy);
-            }
-        } else {
-            ctx.font = '900 9.5px sans-serif';
-            ctx.fillText('🔒', 0, -22);
-        }
-
         ctx.restore();
-    }
+      }
 
-    // 3. Bóng mây trôi nhẹ qua toàn cảnh lục địa
-    ctx.save();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    for (let c = 0; c < 4; c++) {
-        const cx = ((timeSec * 18 + c * 380) % (WORLD_MAP_WIDTH + 300)) - 150;
-        const cy = 140 + c * 195;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, 130, 44, 0.1, 0, Math.PI * 2);
-        ctx.fill();
+      // Nền tròn node Level
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      if (!node.unlocked) {
+        ctx.fillStyle = '#1E293B';
+      } else if (node.stars >= 3) {
+        ctx.fillStyle = '#15803D';
+      } else if (isSelected || isHovered) {
+        ctx.fillStyle = '#B45309';
+      } else {
+        ctx.fillStyle = '#0F172A';
+      }
+      ctx.fill();
+
+      ctx.lineWidth = isHovered || isSelected ? 2.5 : 2;
+      ctx.strokeStyle = !node.unlocked ? '#64748B' : (isHovered || isSelected ? '#FACC15' : '#38BDF8');
+      ctx.stroke();
+
+      // Số Level tương phản cao có viền đen
+      ctx.font = '900 11px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const label = node.unlocked ? String(node.level) : '🔒';
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+      ctx.lineWidth = 3;
+      ctx.strokeText(label, 0, 0.5);
+      ctx.fillStyle = node.unlocked ? '#F8FAFC' : '#CBD5E1';
+      ctx.fillText(label, 0, 0.5);
+
+      ctx.restore();
     }
-    ctx.restore();
-}
+  },
+
+  /**
+   * Vẽ khung xem trước bản đồ thật của ải đang chọn tại Sảnh chính (Phần 1.2)
+   */
+  renderLobbyMiniMap() {
+    const miniCanvas = document.getElementById('lobby-mini-map-canvas');
+    if (!miniCanvas) return;
+    const ctx = miniCanvas.getContext('2d');
+    const w = miniCanvas.width;
+    const h = miniCanvas.height;
+
+    const stage = STAGE_CATALOG[clamp(metaState.selectedStage - 1, 0, STAGE_CATALOG.length - 1)];
+    const mapImg = typeof AssetLoader !== 'undefined' ? AssetLoader.getMap(stage.mapKey) : null;
+
+    ctx.clearRect(0, 0, w, h);
+    if (mapImg) {
+      ctx.drawImage(mapImg, 0, 0, w, h);
+    } else {
+      ctx.fillStyle = '#1E293B';
+      ctx.fillRect(0, 0, w, h);
+    }
+  }
+};

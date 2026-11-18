@@ -1,1028 +1,1378 @@
-/* ============================================================================
-   TINY BATTLE - LOBBY, TOP BAR, 5 TABS, SHOP, CHALLENGE & SKILL TREE (css/lobby.css)
-   Bright Mobile UI • Glassmorphism Top Bar • 54 Maps • 5 Tabs Sliding Indicator
-   ============================================================================ */
+/**
+ * ============================================================================
+ * TINY BATTLE - LOBBY, WORLD ROADMAP, SKILL TREE & IN-BATTLE HUD (css/lobby.css)
+ * Hỗ trợ nền sảnh lobby_bg, Tooltip World_map, Cây Kỹ Năng 6 nhánh & Battle HUD
+ * ============================================================================
+ */
 
-/* ============================================================================
-   1. KHUNG SẢNH CHÍNH & TOP BAR KÍNH MỜ 4 LOẠI TIỀN TỆ
-   ============================================================================ */
-.lobby-wrapper {
-    position: absolute;
-    inset: 0;
-    z-index: 40;
-    display: none;
-    flex-direction: column;
-    background: linear-gradient(180deg, #38bdf8 0%, #bae6fd 56%, #65a30d 56%, #3f6212 100%);
-    overflow: hidden;
+/* --------------------------------------------------------------------------
+ * 1. KHUNG SẢNH CHÍNH & CHUYỂN TAB (#lobby-screen)
+ * -------------------------------------------------------------------------- */
+#lobby-screen {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-viewport);
 }
 
-.lobby-wrapper.active {
-    display: flex;
+.lobby-tab-panel {
+  position: relative;
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.lobby-top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 5px 6px;
-    gap: 4px;
-    background: rgba(15, 23, 42, 0.74);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-bottom: 3px solid #0f172a;
-    flex-shrink: 0;
-    z-index: 5;
+.lobby-tab-panel.active {
+  display: flex;
 }
 
-.profile-settings-group {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-shrink: 0;
+/* --------------------------------------------------------------------------
+ * 2. TAB 1: CỬA HÀNG GACHA & CHIP (#tab-shop)
+ * -------------------------------------------------------------------------- */
+.crate-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
 }
 
-.player-profile-pill {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    background: #ffffff;
-    border: 2.5px solid #0f172a;
-    border-radius: 12px;
-    padding: 2.5px 7px 2.5px 3.5px;
-    box-shadow: 0 3px 0 #0f172a;
-    cursor: pointer;
-    transition: transform 0.08s ease;
+.crate-legendary-box {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.94) 0%, rgba(15, 23, 42, 0.96) 100%);
+  border-color: var(--border-gold);
 }
 
-.player-profile-pill:active {
-    transform: scale(0.96) translateY(2px);
+.crate-epic-box {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(12, 74, 110, 0.45) 100%);
+  border-color: var(--border-cyan);
 }
 
-.avatar-box {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    background: #1e293b;
-    border: 2px solid #0f172a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    flex-shrink: 0;
+.crate-visual-wrap {
+  width: 78px;
+  min-width: 78px;
+  height: 78px;
+  border-radius: var(--radius-sm);
+  background: rgba(5, 8, 17, 0.65);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
 }
 
-.player-name-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    line-height: 1.05;
+.crate-sprite {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.85));
 }
 
-.player-name-text {
-    font-size: 11px;
-    font-weight: 900;
-    color: #0f172a;
-    max-width: 64px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.crate-info {
+  flex: 1;
+  min-width: 0;
 }
 
-.admin-status-mini-badge {
-    font-size: 7.5px;
-    font-weight: 900;
-    background: #f59e0b;
-    color: #0f172a;
-    padding: 0 4px;
-    border-radius: 4px;
-    border: 1px solid #0f172a;
-    margin-top: 1px;
+.crate-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 4px;
 }
 
-.btn-settings-gear {
-    width: 34px;
-    height: 34px;
-    border-radius: 11px;
-    background: linear-gradient(180deg, #f8fafc 0%, #cbd5e1 100%);
-    border: 2.5px solid #0f172a;
-    box-shadow: 0 3px 0 #0f172a;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1);
+.crate-name {
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
 }
 
-.btn-settings-gear:hover .gear-icon {
-    transform: rotate(35deg);
-    display: inline-block;
-    transition: transform 0.25s ease;
+.pity-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.16);
+  border: 1px solid var(--border-gold);
+  color: var(--text-gold);
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.btn-settings-gear:active {
-    transform: scale(0.94) translateY(2px);
+.crate-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.35;
 }
 
-.btn-settings-gear.admin-active-gear {
-    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-    box-shadow: 0 3px 0 #0f172a, 0 0 10px rgba(250, 204, 21, 0.85);
+.crate-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
 }
 
-.gear-icon {
-    font-size: 16px;
+.btn-gacha-open {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: var(--shadow-text);
 }
 
-/* Nhóm 4 ô tiền tệ trên Top Bar: Ngọc Trai Trắng, Huy Chương, Gems, Vàng */
-.currency-group {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    flex-wrap: nowrap;
+.btn-gacha-open:hover {
+  border-color: var(--border-gold);
+  background: rgba(51, 65, 85, 0.98);
 }
 
-.currency-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2.5px;
-    min-width: 44px;
-    padding: 2.5px 5.5px 2.5px 4px;
-    border-radius: 999px;
-    background: #0f172a;
-    border: 2px solid #475569;
-    box-shadow: 0 2.5px 0 #020617;
-    color: #ffffff;
-    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+.btn-gacha-billion {
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.45) 0%, rgba(88, 28, 135, 0.85) 100%);
+  border-color: #E879F9;
+  color: #FEF08A;
 }
 
-.currency-pill.pearl-pill {
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    border-color: #f8fafc;
-    box-shadow: 0 2.5px 0 #020617, 0 0 8px rgba(248, 250, 252, 0.35);
+.chip-shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
 }
 
-.currency-pill.medal-pill {
-    border-color: #fbbf24;
+.chip-shop-card {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
 }
 
-.currency-pill.admin-infinite-pill {
-    border-color: #fde047;
-    box-shadow: 0 2.5px 0 #020617, 0 0 10px rgba(250, 204, 21, 0.65);
+.chip-shop-title {
+  font-size: 12.5px;
+  font-weight: 900;
+  text-shadow: var(--shadow-text);
 }
 
-.currency-icon {
-    font-size: 11.5px;
-    line-height: 1;
+.chip-shop-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.3;
 }
 
-.currency-val {
-    font-size: 14.5px;
-    font-weight: 800;
-    line-height: 1;
-    color: #ffffff;
+/* --------------------------------------------------------------------------
+ * 3. TAB 3: SẢNH CHIẾN ĐẤU TRUNG TÂM (#tab-battle & lobby_bg)
+ * -------------------------------------------------------------------------- */
+.lobby-bg-artwork {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #163020;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
 }
 
-.medal-currency-val {
-    color: #fde047;
+/* Lớp phủ tối cực nhẹ ở mép trên/dưới để làm nổi bật HUD & nút START */
+.lobby-contrast-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(5, 8, 17, 0.62) 0%,
+    rgba(5, 8, 17, 0.14) 26%,
+    rgba(5, 8, 17, 0.18) 68%,
+    rgba(5, 8, 17, 0.82) 100%
+  );
 }
 
-/* ============================================================================
-   2. KHUNG CHỨA NỘI DUNG 5 TAB & THANH ĐIỀU HƯỚNG DƯỚI ĐÁY
-   ============================================================================ */
-.lobby-main-content {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+.battle-lobby-layout {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px 10px 12px;
+  overflow: hidden;
 }
 
-.lobby-tab-pane {
-    display: none;
-    width: 100%;
-    height: 100%;
-    flex-direction: column;
-    overflow: hidden;
+/* Biển báo Màn Chơi Phía Trên */
+.lobby-stage-banner {
+  align-self: center;
+  text-align: center;
+  padding: 7px 16px;
+  border-radius: var(--radius-md);
+  background: rgba(11, 17, 32, 0.84);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(4px);
+  box-shadow: var(--shadow-card);
 }
 
-.lobby-tab-pane.active {
-    display: flex;
+.stage-biome-pill {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--text-cyan);
+  text-shadow: var(--shadow-text);
 }
 
-.lobby-bottom-nav,
-.lobby-bottom-nav.five-tabs {
-    position: relative;
-    height: 62px;
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    background: #1e293b;
-    border-top: 3.5px solid #0f172a;
-    flex-shrink: 0;
-    z-index: 6;
+.stage-main-title {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+  margin: 1px 0;
+}
+
+.stage-stars-row {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-gold);
+  text-shadow: var(--shadow-text);
+}
+
+/* Khu vực giữa: 2 cột nút tính năng + Mini Viewport Map thật */
+.lobby-center-hub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: auto 0;
+}
+
+.lobby-side-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 68px;
+  flex-shrink: 0;
+}
+
+.lobby-icon-btn {
+  position: relative;
+  width: 68px;
+  min-height: 60px;
+  padding: 6px 4px;
+  border-radius: var(--radius-md);
+  background: rgba(15, 23, 42, 0.90);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.65);
+}
+
+.lobby-icon-btn:hover {
+  border-color: var(--border-gold);
+  transform: translateY(-1px);
+}
+
+.lobby-icon-btn.btn-gold-tint {
+  background: linear-gradient(180deg, #FACC15 0%, #EAB308 100%);
+  border-color: #FEF08A;
+}
+
+.lobby-icon-btn.btn-gold-tint .lobby-btn-label,
+.lobby-icon-btn.btn-gold-tint .lobby-btn-glyph {
+  color: var(--text-on-bright);
+  text-shadow: none;
+}
+
+.lobby-btn-art {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.lobby-btn-glyph {
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.lobby-btn-label {
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.notify-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F43F5E;
+  border: 2px solid #0B1120;
+  color: #FFFFFF;
+  font-size: 10px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Khung xem trước bản đồ thật (Mini Map Viewport) */
+.lobby-map-viewport {
+  position: relative;
+  flex: 1;
+  max-width: 224px;
+  aspect-ratio: 11 / 16;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 2px solid var(--border-gold);
+  background: #0F172A;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8), 0 0 16px rgba(250, 204, 21, 0.25);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.lobby-map-viewport:hover {
+  transform: scale(1.025);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.9), 0 0 22px rgba(250, 204, 21, 0.45);
+}
+
+#lobby-mini-map-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map-preview-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 18px 8px 8px;
+  background: linear-gradient(180deg, transparent 0%, rgba(5, 8, 17, 0.92) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.map-preview-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.2);
+  border: 1px solid var(--border-gold);
+  color: var(--text-gold);
+  font-size: 10px;
+  font-weight: 900;
+  text-shadow: var(--shadow-text);
+}
+
+.map-preview-hint {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+}
+
+/* Khu vực đáy sảnh: Chọn chế độ & Nút START BATTLE */
+.lobby-bottom-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mode-selector-wrap {
+  position: relative;
+}
+
+.btn-mode-trigger {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.mode-tag {
+  color: var(--text-secondary);
+  font-weight: 800;
+}
+
+.mode-arrow {
+  color: var(--text-gold);
+  font-size: 11px;
+}
+
+.mode-popover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 60;
+  max-height: 290px;
+  overflow-y: auto;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: rgba(11, 17, 32, 0.98);
+  border: 1px solid var(--border-gold);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.92);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mode-option-item {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid transparent;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-option-item strong {
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+}
+
+.mode-option-item span {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.mode-option-item.active,
+.mode-option-item:hover {
+  background: rgba(30, 41, 59, 0.98);
+  border-color: var(--border-gold);
+}
+
+.mode-option-item.active strong {
+  color: var(--text-gold);
+}
+
+.btn-start-main {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, #4ADE80 0%, #16A34A 100%);
+  border: 1px solid #BBF7D0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-shadow: 0 4px 0 #14532D, 0 8px 24px rgba(34, 197, 94, 0.45);
+}
+
+.start-title {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--text-on-bright);
+}
+
+.start-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #052E16;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. TAB 4: THỬ THÁCH XÁC SỐNG (#tab-challenge)
+ * -------------------------------------------------------------------------- */
+.challenge-banner-card {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(136, 19, 55, 0.45) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(251, 113, 133, 0.55);
+  margin-bottom: 10px;
+}
+
+.biome-filter-pills {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  padding-top: 8px;
+  scrollbar-width: none;
+}
+
+.biome-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.biome-pill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.biome-pill.active {
+  background: rgba(251, 113, 133, 0.24);
+  border-color: #FB7185;
+  color: var(--text-primary);
+}
+
+.challenge-stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.challenge-stage-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
+.challenge-stage-card.cleared {
+  border-color: rgba(74, 222, 128, 0.5);
+}
+
+/* --------------------------------------------------------------------------
+ * 5. TAB 5: CÂY KỸ NĂNG 6 NHÁNH (#tab-skill-tree)
+ * -------------------------------------------------------------------------- */
+.skill-tree-header {
+  padding: 10px 12px 8px;
+  background: rgba(11, 17, 32, 0.96);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 5;
+}
+
+.skill-tree-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.skill-zoom-controls {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-zoom-sm {
+  padding: 3px 9px;
+  border-radius: 6px;
+  background: #1E293B;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-size: 11.5px;
+  font-weight: 900;
+}
+
+.skill-branch-tabs {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.skill-branch-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.branch-tab-btn {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.branch-tab-btn.active {
+  background: rgba(56, 189, 248, 0.22);
+  border-color: var(--border-cyan);
+  color: var(--text-primary);
+}
+
+/* Vùng kéo thả & phóng to cây kỹ năng */
+.skill-tree-viewport {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, #172033 0%, #070B14 100%);
+  cursor: grab;
+  touch-action: none;
+}
+
+.skill-tree-viewport:active {
+  cursor: grabbing;
+}
+
+.skill-tree-canvas-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 960px;
+  height: 700px;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.skill-tree-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.skill-tree-nodes {
+  position: absolute;
+  inset: 0;
+}
+
+.skill-node-btn {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  background: #0F172A;
+  border: 2px solid #475569;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+}
+
+.skill-node-btn.available {
+  border-color: #38BDF8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.skill-node-btn.unlocked {
+  background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+  border-color: #4ADE80;
+  box-shadow: 0 0 14px rgba(74, 222, 128, 0.4);
+}
+
+.skill-node-btn.maxed {
+  border-color: #FACC15;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.55);
+}
+
+.skill-node-btn.ultimate {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border-width: 3px;
+}
+
+.skill-node-btn.selected {
+  outline: 3px solid #FACC15;
+  outline-offset: 2px;
+  z-index: 10;
+}
+
+.skill-node-btn.dimmed {
+  opacity: 0.24;
+}
+
+.skill-node-title {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.skill-node-lv {
+  margin-top: 2px;
+  font-size: 9.5px;
+  font-weight: 900;
+  color: var(--text-gold);
+}
+
+/* Bảng Inspector Nâng Cấp Dưới Đáy Cây Kỹ Năng */
+.skill-inspector-panel {
+  padding: 10px 12px;
+  background: rgba(11, 17, 32, 0.98);
+  border-top: 1px solid var(--border-gold);
+  z-index: 6;
+}
+
+.skill-insp-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.skill-branch-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-cyan);
+  display: block;
+}
+
+.skill-insp-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+}
+
+.skill-lv-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(250, 204, 21, 0.16);
+  border: 1px solid var(--border-gold);
+  color: var(--text-gold);
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.skill-insp-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.skill-insp-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.btn-upgrade-skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, #38BDF8 0%, #0284C7 100%);
+  color: var(--text-on-bright);
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 3px 0 #075985;
+}
+
+/* --------------------------------------------------------------------------
+ * 6. THANH ĐIỀU HƯỚNG 5 TAB DƯỚI CÙNG (#lobby-bottom-nav)
+ * -------------------------------------------------------------------------- */
+#lobby-bottom-nav {
+  position: relative;
+  z-index: 40;
+  height: var(--bottom-nav-h);
+  min-height: var(--bottom-nav-h);
+  background: #070B14;
+  border-top: 1px solid var(--border-subtle);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .nav-tab-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
-    border-right: 2px solid #0f172a;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 2px 1px;
-    transition: background 0.14s ease, color 0.14s ease;
-}
-
-.nav-tab-btn:last-child {
-    border-right: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--text-secondary);
+  border-top: 3px solid transparent;
 }
 
 .nav-tab-btn.active {
-    background: linear-gradient(180deg, #fde047 0%, #f59e0b 100%);
-    color: #0f172a;
+  color: var(--text-gold);
+  border-top-color: var(--text-gold);
+  background: linear-gradient(180deg, rgba(250, 204, 21, 0.14) 0%, transparent 100%);
 }
 
-.nav-tab-btn[data-tab="challenge"].active {
-    background: linear-gradient(180deg, #fb7185 0%, #be123c 100%);
-    color: #ffffff;
+.nav-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.nav-label {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  text-shadow: var(--shadow-text);
+}
+
+/* --------------------------------------------------------------------------
+ * 7. BẢN ĐỒ THẾ GIỚI TOÀN CẢNH 54 ẢI & TOOLTIP HOVER (#world-roadmap-overlay)
+ * -------------------------------------------------------------------------- */
+.fullscreen-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  background: #050811;
+  display: flex;
+  flex-direction: column;
 }
 
-.nav-tab-btn[data-tab="skilltree"].active {
-    background: linear-gradient(180deg, #4ade80 0%, #15803d 100%);
-    color: #ffffff;
+.roadmap-top-bar {
+  padding: 10px 12px;
+  background: rgba(11, 17, 32, 0.96);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.roadmap-title {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text-gold);
+  text-shadow: var(--shadow-text);
 }
-
-.nav-tab-icon {
-    font-size: 18px;
-    line-height: 1;
-    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.nav-tab-label {
-    font-size: 8.5px;
-    font-weight: 900;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-}
-
-/* ============================================================================
-   3. TAB 1: SHOP (GACHA CRATES O(1), CỬA HÀNG CHIP & BẢNG TRA CỨU 41 RARITY)
-   ============================================================================ */
-.shop-scroll-area {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px 10px 18px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-}
-
-.shop-banner-ribbon {
-    background: linear-gradient(90deg, #b45309 0%, #f59e0b 50%, #b45309 100%);
-    border: 3px solid #0f172a;
-    border-radius: 14px;
-    padding: 7px 10px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 900;
-    color: #ffffff;
-    text-shadow: 0 2px 0 #0f172a;
-    box-shadow: 0 4px 0 #0f172a;
-    flex-shrink: 0;
-}
-
-.shop-discount-notice {
-    background: rgba(30, 41, 59, 0.92);
-    border: 2px solid #475569;
-    border-radius: 12px;
-    padding: 7px 9px;
-    font-size: 10.5px;
-    color: #e2e8f0;
-    text-align: center;
-    line-height: 1.35;
-    flex-shrink: 0;
-}
-
-.crate-card {
-    background: #1e293b;
-    border: 3.5px solid #0f172a;
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 6px 0 rgba(15, 23, 42, 0.7);
-    flex-shrink: 0;
-}
-
-.crate-card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 12px;
-    border-bottom: 2.5px solid #0f172a;
-}
-
-.crate-legendary .crate-card-header {
-    background: linear-gradient(90deg, #d97706 0%, #facc15 100%);
-}
-
-.crate-epic .crate-card-header {
-    background: linear-gradient(90deg, #7e22ce 0%, #c084fc 100%);
-}
-
-.crate-title {
-    font-size: 13px;
-    font-weight: 900;
-    color: #ffffff;
-    text-shadow: 0 2px 0 #0f172a;
-}
-
-.crate-price-unit-tag {
-    font-size: 10px;
-    font-weight: 900;
-    background: rgba(15, 23, 42, 0.85);
-    color: #fde047;
-    padding: 2px 8px;
-    border-radius: 999px;
-}
-
-.crate-card-body {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 10px;
-}
-
-.crate-visual-box {
-    position: relative;
-    width: 84px;
-    height: 84px;
-    border-radius: 14px;
-    background: #0f172a;
-    border: 2.5px solid #334155;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.crate-glow-ring {
-    position: absolute;
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(250, 204, 21, 0.55) 0%, transparent 70%);
-}
-
-.crate-glow-ring.purple-glow {
-    background: radial-gradient(circle, rgba(192, 132, 252, 0.55) 0%, transparent 70%);
-}
-
-.crate-art-icon {
-    position: relative;
-    z-index: 2;
-    font-size: 36px;
-}
-
-.crate-rate-tag {
-    position: relative;
-    z-index: 2;
-    font-size: 7.5px;
-    font-weight: 900;
-    color: #fde68a;
-    text-align: center;
-    margin-top: 2px;
-}
-
-.crate-info-box {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.crate-desc-main {
-    font-size: 10.5px;
-    font-weight: 700;
-    color: #e2e8f0;
-    line-height: 1.3;
-    margin: 0;
-}
-
-.crate-odds-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2px 6px;
-    font-size: 9.5px;
-    font-weight: 700;
-    color: #cbd5e1;
-    background: rgba(15, 23, 42, 0.65);
-    padding: 4px 7px;
-    border-radius: 8px;
-}
-
-.crate-card-footer {
-    padding: 0 10px 10px 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.crate-quick-btns {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 7px;
-}
-
-.crate-buy-btn {
-    flex-direction: column;
-    padding: 6px 4px;
-    gap: 2px;
-}
-
-.discount-pill {
-    position: absolute;
-    top: -6px;
-    right: -4px;
-    background: #ef4444;
-    color: #ffffff;
-    border: 1.5px solid #0f172a;
-    border-radius: 999px;
-    padding: 0 5px;
-    font-size: 11px;
-}
-
-.buy-label {
-    font-size: 11px;
-    font-weight: 900;
-}
-
-.buy-price {
-    font-size: 14px;
-    font-weight: 800;
-}
-
-.crate-custom-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.custom-input-wrap {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #0f172a;
-    border: 2px solid #475569;
-    border-radius: 10px;
-    padding: 4px 8px;
-}
-
-.custom-input-label {
-    font-size: 9.5px;
-    font-weight: 800;
-    color: #94a3b8;
-}
-
-.crate-custom-input {
-    width: 92px;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #fde047;
-    font-size: 15px;
-    font-weight: 800;
-    text-align: right;
-}
-
-.crate-custom-buy-btn {
-    padding: 7px 10px;
-    font-size: 10px;
-    white-space: nowrap;
-}
-
-.crate-preset-qty-row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.preset-row-label {
-    font-size: 9.5px;
-    font-weight: 800;
-    color: #94a3b8;
-    margin-right: 2px;
-}
-
-.crate-preset-qty-btn {
-    flex: 1;
-    padding: 3.5px 2px;
-    font-size: 12px;
-    border-radius: 8px;
-}
-
-/* Cửa hàng Chip Mod trong Tab SHOP */
-.shop-chips-card {
-    background: #1e293b;
-    border: 3.5px solid #0f172a;
-    border-radius: 18px;
-    overflow: hidden;
-    box-shadow: 0 6px 0 rgba(15, 23, 42, 0.65);
-    flex-shrink: 0;
-}
-
-.shop-chips-header {
-    background: linear-gradient(90deg, #0284c7 0%, #0ea5e9 100%);
-    padding: 6px 12px;
-    border-bottom: 2.5px solid #0f172a;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12.5px;
-    font-weight: 900;
-    color: #ffffff;
-    text-shadow: 0 2px 0 #0f172a;
-}
-
-.shop-chips-list {
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-}
-
-.shop-chip-item-row {
-    background: #0f172a;
-    border: 2px solid #334155;
-    border-radius: 12px;
-    padding: 7px 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-/* Bảng tra cứu 41 bậc độ hiếm */
-.shop-rarity-encyclopedia-card {
-    background: #1e293b;
-    border: 3px solid #0f172a;
-    border-radius: 16px;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.shop-encyclopedia-header {
-    background: #0f172a;
-    padding: 6px 10px;
-    font-size: 10.5px;
-    font-weight: 900;
-    color: #38bdf8;
-    text-align: center;
-}
-
-.shop-encyclopedia-body {
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.rarity-tier-group-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 4px;
-}
-
-/* ============================================================================
-   4. TAB 3: BATTLE (MÀN HÌNH CHÍNH GIỮA - AUTO-ZOOM WORLD VIEWPORT & SIDEBARS)
-   ============================================================================ */
-.battle-tab-layout {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 6px 8px 8px 8px;
-    overflow: hidden;
-}
-
-/* Khu vực Trung tâm: Sidebar Trái (3 nút) | Auto-Zoom Map Card | Sidebar Phải (4 nút) */
-.battle-center-stage {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    width: 100%;
-    max-width: 386px;
-    margin: 0 auto;
-}
-
-.battle-side-column {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.battle-side-column.four-btns {
-    gap: 5px;
-}
-
-.side-feature-btn {
-    position: relative;
-    width: 58px;
-    height: 54px;
-    border-radius: 14px;
-    background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
-    border: 2.5px solid #0f172a;
-    box-shadow: 0 4px 0 #0f172a;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease;
-}
-
-.battle-side-column.four-btns .side-feature-btn {
-    width: 58px;
-    height: 46px;
-    border-radius: 12px;
-}
-
-.side-feature-btn:hover {
-    filter: brightness(1.06);
-    transform: translateY(-2px);
-}
-
-.side-feature-btn:active {
-    transform: scale(0.95) translateY(2px);
-}
-
-.side-feature-btn.talent-feature-btn {
-    background: linear-gradient(180deg, #fef08a 0%, #f59e0b 100%);
-}
-
-.side-feature-btn.wheel-feature-btn {
-    background: linear-gradient(180deg, #fbcfe8 0%, #f43f5e 100%);
-}
-
-.side-feature-btn.index-feature-btn {
-    background: linear-gradient(180deg, #f3e8ff 0%, #c084fc 100%);
-}
-
-.side-feature-btn.chip-feature-btn {
-    background: linear-gradient(180deg, #bae6fd 0%, #38bdf8 100%);
-}
-
-.side-feature-btn.minigame-feature-btn {
-    background: linear-gradient(180deg, #bbf7d0 0%, #22c55e 100%);
-}
-
-.side-btn-icon {
-    font-size: 18px;
-    line-height: 1;
-}
-
-.battle-side-column.four-btns .side-btn-icon {
-    font-size: 15.5px;
-}
-
-.side-btn-text {
-    font-size: 8.5px;
-    font-weight: 900;
-    color: #0f172a;
-    margin-top: 2px;
-    letter-spacing: 0.2px;
-}
-
-.battle-side-column.four-btns .side-btn-text {
-    font-size: 7.8px;
-    margin-top: 1px;
-}
-
-.notif-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    min-width: 17px;
-    height: 17px;
-    padding: 0 3px;
-    border-radius: 999px;
-    background: #ef4444;
-    border: 2px solid #0f172a;
-    color: #ffffff;
-    font-size: 9.5px;
-    font-weight: 900;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: notifPulse 0.75s ease-in-out infinite alternate;
-    z-index: 4;
-}
-
-.notif-badge.amber-notif {
-    background: #f59e0b;
-    color: #0f172a;
-}
-
-/* Nút START khổng lồ với nhịp thở phát sáng */
-.battle-footer-zone {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    padding-top: 2px;
-    flex-shrink: 0;
-}
-
-@keyframes startBtnGlowBreath {
-    0%, 100% {
-        box-shadow: 0 5px 0 #0f172a, 0 8px 18px rgba(22, 163, 74, 0.45);
-    }
-    50% {
-        box-shadow: 0 5px 0 #0f172a, 0 8px 26px rgba(74, 222, 128, 0.85);
-    }
-}
-
-.btn-start-huge {
-    width: 236px;
-    height: 48px;
-    background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
-    color: #ffffff;
-    font-size: 22px;
-    letter-spacing: 2px;
-    border-radius: 16px;
-    text-shadow: 0 2.5px 0 #0f172a;
-    animation: startBtnGlowBreath 2.2s ease-in-out infinite;
-}
-
-/* ============================================================================
-   5. TAB 4: CHALLENGE (LỘ TRÌNH DỌC 54 MAP THỦ THÀNH ZOMBIE 20 WAVE)
-   ============================================================================ */
-#tab-challenge {
-    background:
-        radial-gradient(circle at 50% 15%, rgba(225, 29, 72, 0.28) 0%, transparent 55%),
-        linear-gradient(180deg, #1f1024 0%, #090d16 100%);
-}
-
-.challenge-header-banner {
-    background: linear-gradient(90deg, #881337 0%, #be123c 50%, #881337 100%);
-    border-bottom: 3.5px solid #0f172a;
-    padding: 8px 12px;
-    text-align: center;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
-}
-
-.challenge-roadmap-scroll {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 14px 24px 14px;
-    position: relative;
-}
-
-.challenge-roadmap-list {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-left: 24px;
-}
-
-.challenge-roadmap-list::before {
-    content: '';
-    position: absolute;
-    top: 16px;
-    bottom: 16px;
-    left: 11px;
-    width: 4px;
-    background: linear-gradient(180deg, #f43f5e 0%, #a855f7 50%, #38bdf8 100%);
-    border-radius: 999px;
-    box-shadow: 0 0 10px rgba(244, 63, 94, 0.65);
-}
-
-.challenge-stage-node {
-    position: relative;
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    border: 3px solid #334155;
-    border-radius: 16px;
-    padding: 9px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    box-shadow: 0 5px 0 #020617;
-    transition: transform 0.1s ease, border-color 0.15s ease;
-}
-
-.challenge-stage-node::before {
-    content: '';
-    position: absolute;
-    left: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #475569;
-    border: 3px solid #0f172a;
-    z-index: 2;
-}
-
-.challenge-stage-node.unlocked {
-    border-color: #fb7185;
-}
-
-.challenge-stage-node.unlocked::before {
-    background: #f43f5e;
-    box-shadow: 0 0 10px #f43f5e;
-}
-
-.challenge-stage-node.cleared {
-    border-color: #4ade80;
-    background: linear-gradient(180deg, #064e3b 0%, #0f172a 100%);
-}
-
-.challenge-stage-node.cleared::before {
-    background: #4ade80;
-    box-shadow: 0 0 10px #4ade80;
-}
-
-.challenge-stage-node.locked {
-    opacity: 0.58;
-    filter: grayscale(65%);
-}
-
-/* ============================================================================
-   6. TAB 5: SKILL TREE (CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY - 40 KỸ NĂNG)
-   ============================================================================ */
-#tab-skilltree {
-    background:
-        radial-gradient(circle at 50% 78%, rgba(16, 185, 129, 0.25) 0%, transparent 62%),
-        linear-gradient(180deg, #042f2e 0%, #022c22 50%, #090d16 100%);
-}
-
-.skilltree-top-banner {
-    background: linear-gradient(90deg, #065f46 0%, #047857 50%, #065f46 100%);
-    border-bottom: 3px solid #0f172a;
-    padding: 7px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-}
-
-.skilltree-branch-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 4px;
-    padding: 5px 8px;
-    background: rgba(15, 23, 42, 0.92);
-    border-bottom: 2px solid #0f172a;
-    flex-shrink: 0;
-}
-
-.st-branch-jump-btn {
-    padding: 3.5px 2px;
-    border-radius: 8px;
-    border: 1.5px solid #334155;
-    background: #1e293b;
-    color: #cbd5e1;
-    font-size: 8.5px;
-    font-weight: 900;
-    text-align: center;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+
+.roadmap-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
 }
 
-.st-branch-jump-btn.active {
-    border-color: #fde047;
-    background: #065f46;
-    color: #ffffff;
+.roadmap-biome-bar {
+  display: flex;
+  gap: 5px;
+  padding: 6px 10px;
+  background: #0B1120;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
-
-.skilltree-scroll-viewport {
-    flex: 1;
-    overflow: auto;
-    position: relative;
-    cursor: grab;
-    touch-action: pan-x pan-y;
-}
-
-.skilltree-scroll-viewport:active {
-    cursor: grabbing;
-}
-
-.skilltree-canopy-world {
-    position: relative;
-    width: 720px;
-    height: 760px;
-    margin: 0 auto;
-}
-
-.skilltree-svg-bg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 1;
+
+.roadmap-biome-bar::-webkit-scrollbar {
+  display: none;
 }
 
-.skilltree-nodes-layer {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
+.biome-jump-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.st-tree-node {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    border: 3px solid #475569;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 0 #020617;
-    transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease, box-shadow 0.15s ease;
-    padding: 2px;
-}
-
-.st-tree-node:hover {
-    transform: translate(-50%, -50%) scale(1.08);
-}
-
-.st-tree-node:active {
-    transform: translate(-50%, -50%) scale(0.92);
-}
-
-.st-tree-node.unlocked {
-    border-color: #38bdf8;
-}
+.biome-jump-btn.active {
+  background: rgba(250, 204, 21, 0.2);
+  border-color: var(--border-gold);
+  color: var(--text-gold);
+}
 
-.st-tree-node.leveled {
-    border-color: #4ade80;
-    background: linear-gradient(180deg, #065f46 0%, #0f172a 100%);
-    box-shadow: 0 4px 0 #020617, 0 0 12px rgba(74, 222, 128, 0.55);
+.roadmap-canvas-container {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: #0C4A6E;
+}
+
+#worldRoadmapCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Tooltip nổi khi di chuột trong bán kính 46px quanh node Level (Phần 3) */
+.world-node-tooltip {
+  position: absolute;
+  z-index: 30;
+  pointer-events: none;
+  transform: translate(-50%, -118%);
+  min-width: 175px;
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(11, 17, 32, 0.96);
+  border: 1.5px solid var(--border-gold);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9);
+  text-align: center;
+}
+
+.tooltip-biome {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-cyan);
+  text-shadow: var(--shadow-text);
+}
+
+.tooltip-title {
+  font-size: 12.5px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+  margin: 2px 0;
+}
+
+.tooltip-stars {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-gold);
+}
+
+.tooltip-action-hint {
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-green);
+}
+
+.roadmap-bottom-bar {
+  padding: 10px 12px;
+  background: rgba(11, 17, 32, 0.98);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.st-tree-node.selected-node {
-    outline: 3px solid #fde047;
-    z-index: 5;
+.roadmap-selected-info {
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
-.st-tree-node.locked {
-    opacity: 0.55;
-    filter: grayscale(75%);
+/* Hiệu ứng chuyển cảnh xuyên mây */
+.cloud-dive-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 250;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(248, 250, 252, 0.95) 0%, rgba(186, 230, 253, 0.85) 55%, rgba(15, 23, 42, 0.92) 100%);
+  animation: cloudDiveFade 0.65s ease-in-out forwards;
 }
 
-/* Nút thứ 10 của mỗi nhánh: Kỹ Năng Đặc Biệt (Keystone) */
-.st-tree-node.special-keystone {
-    width: 68px;
-    height: 68px;
-    border-width: 3.5px;
-    border-color: #facc15;
-    background: radial-gradient(circle, #78350f 0%, #1e1b4b 75%, #090d16 100%);
-    box-shadow: 0 5px 0 #020617, 0 0 18px rgba(250, 204, 21, 0.65);
+@keyframes cloudDiveFade {
+  0%   { opacity: 0; transform: scale(1.25); }
+  45%  { opacity: 1; transform: scale(1.0); }
+  100% { opacity: 0; transform: scale(0.85); }
+}
+
+/* --------------------------------------------------------------------------
+ * 8. MÀN HÌNH CHIẾN ĐẤU TRONG TRẬN (#battle-screen & HUD)
+ * -------------------------------------------------------------------------- */
+#battle-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  background: #050811;
+  overflow: hidden;
+}
+
+#battleCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
-.st-tree-node.special-keystone.leveled {
-    border-color: #00f2fe;
-    background: radial-gradient(circle, #065f46 0%, #0284c7 65%, #090d16 100%);
-    box-shadow: 0 5px 0 #020617, 0 0 24px rgba(0, 242, 254, 0.9);
+/* Top Battle HUD */
+.battle-top-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 8px 10px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: linear-gradient(180deg, rgba(5, 8, 17, 0.82) 0%, transparent 100%);
+}
+
+.base-hp-box {
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(11, 17, 32, 0.86);
+  border: 1px solid var(--border-subtle);
+}
+
+.enemy-base-box {
+  border-color: rgba(251, 113, 133, 0.55);
 }
 
-.st-node-lv-tag {
-    font-family: var(--font-pixel, monospace);
-    font-size: 11px;
-    line-height: 1;
-    color: #fde047;
-    background: rgba(2, 6, 23, 0.85);
-    padding: 0 4px;
-    border-radius: 999px;
-    margin-top: 1px;
+.player-base-box {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.base-hp-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+  margin-bottom: 3px;
+}
+
+.hp-bar-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #050811;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
-.skilltree-inspector-dock {
-    position: relative;
-    z-index: 4;
-    background: #0f172a;
-    border-top: 3px solid #38bdf8;
-    padding: 8px 10px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-shrink: 0;
+.hp-bar-fill {
+  height: 100%;
+  transition: width 0.12s linear;
+}
+
+.enemy-fill {
+  background: linear-gradient(90deg, #E11D48 0%, #FB7185 100%);
+}
+
+.player-fill {
+  background: linear-gradient(90deg, #0284C7 0%, #38BDF8 100%);
+}
+
+.battle-status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.wave-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(11, 17, 32, 0.88);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-text);
+}
+
+.mode-mini-tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(250, 204, 21, 0.2);
+  color: var(--text-gold);
+  font-size: 9.5px;
+  font-weight: 900;
+}
+
+.battle-speed-controls {
+  pointer-events: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.btn-hud-ctrl {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  font-size: 11px;
+  font-weight: 900;
+  text-shadow: var(--shadow-text);
+}
+
+.btn-hud-ctrl.active {
+  background: #FACC15;
+  border-color: #FEF08A;
+  color: var(--text-on-bright);
+  text-shadow: none;
+}
+
+/* Thanh EXP Roguelike */
+.battle-exp-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.battle-lv-tag {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #1E293B;
+  border: 1px solid var(--border-gold);
+  color: var(--text-gold);
+  font-size: 10.5px;
+  font-weight: 900;
+}
+
+.exp-bar-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(5, 8, 17, 0.85);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.exp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #A855F7 0%, #38BDF8 100%);
+  transition: width 0.15s ease;
+}
+
+.btn-levelup-pulse {
+  pointer-events: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #FACC15 0%, #F59E0B 100%);
+  color: var(--text-on-bright);
+  font-size: 11px;
+  font-weight: 900;
+  animation: pulseScale 0.9s infinite alternate;
+}
+
+@keyframes pulseScale {
+  from { transform: scale(1); }
+  to   { transform: scale(1.07); }
+}
+
+.special-mode-hud {
+  position: absolute;
+  top: 104px;
+  left: 12px;
+  right: 12px;
+  z-index: 19;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(11, 17, 32, 0.9);
+  border: 1px solid var(--border-danger, #FB7185);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.raid-title-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.tactic-targeting-banner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 25;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(11, 17, 32, 0.94);
+  border: 1px solid var(--border-gold);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Bottom Battle HUD */
+.battle-bottom-hud {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 8px 8px 10px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: linear-gradient(0deg, rgba(5, 8, 17, 0.92) 0%, transparent 100%);
+}
+
+.commander-actions-row {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.tactic-skills-group {
+  display: flex;
+  gap: 5px;
+}
+
+.tactic-skill-btn {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: #0F172A;
+  border: 1.5px solid var(--border-gold);
+  overflow: hidden;
+  padding: 3px;
+}
+
+.skill-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.skill-hotkey {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: rgba(5, 8, 17, 0.88);
+  color: var(--text-gold);
+  font-size: 9.5px;
+  font-weight: 900;
+}
+
+.skill-cd-mask {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(rgba(5, 8, 17, 0.84) var(--cd-pct, 0%), transparent 0%);
+  pointer-events: none;
+}
+
+/* Bộ nạp Xăng triển khai quân */
+.gas-generator-box {
+  flex: 1;
+  max-width: 195px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gas-readout-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.gas-segments-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 3px;
+  height: 5px;
+}
+
+.gas-seg {
+  border-radius: 2px;
+  background: #1E293B;
+}
+
+.gas-seg.filled {
+  background: #FACC15;
+  box-shadow: 0 0 6px rgba(250, 204, 21, 0.65);
+}
+
+.btn-gas-upgrade {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(250, 204, 21, 0.16);
+  border: 1px solid var(--border-gold);
+  color: var(--text-primary);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+/* Thanh Deck Thẻ Bài Trong Trận (5 hoặc 6 ô) */
+.battle-deck-slots {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+  gap: 5px;
+}
+
+.battle-deck-card {
+  position: relative;
+  height: 68px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1.5px solid var(--border-strong);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.battle-deck-card.ready {
+  border-color: #4ADE80;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+}
+
+.battle-deck-card img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.deck-card-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(5, 8, 17, 0.88);
+  color: var(--text-gold);
+  font-size: 10.5px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }

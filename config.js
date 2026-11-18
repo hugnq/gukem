@@ -1,2108 +1,1167 @@
-/* ============================================================================
-   TINY BATTLE - CORE CONFIGURATION & CATALOGS (js/config.js)
-   Save Key: tiny_battle_meta_save_v3 (Tương thích ngược 100%)
-   Tích hợp: 7 Ảnh Map Gốc (assets/maps/*.png) • 54 Maps (6 Biomes x 9 Levels)
-              Tọa độ chuẩn hóa (rx, ry) • 18 Binh Chủng • 14 Zombie & Boss •
-              41 Bậc Độ Hiếm • Cây Cổ Thụ 4 Nhánh (40 Kỹ Năng)
-   ============================================================================ */
+/**
+ * ============================================================================
+ * TINY BATTLE - CONFIGURATION & GAME DATA (js/config.js)
+ * Kiến trúc Pixel-Art Asset chuẩn hóa, 54 Maps, 6-Branch Skill Tree & Mixed Waves
+ * ============================================================================
+ */
 
-export const STORAGE_KEY = 'tiny_battle_meta_save_v3';
-export const META_SAVE_KEY = STORAGE_KEY;
-export const ADMIN_PASSWORD = 'HUNGADMINDZ';
+'use strict';
 
-/* 0. HẰNG SỐ ĐỘNG CƠ CANVAS, WORLD ROADMAP, ẢNH MAP GỐC & LƯỚI ĐỊA HÌNH 42x71 */
-export const LOGICAL_WIDTH = 420;
-export const LOGICAL_HEIGHT = 840;
-export const BOTTOM_UI_HEIGHT = 126;
-export const PLAYFIELD_HEIGHT = LOGICAL_HEIGHT - BOTTOM_UI_HEIGHT; // 714px
-export const MAX_DECK_SLOTS = 5;
-export const MAX_CUSTOM_UNIT_SLOTS = 4;
-export const MAX_WAVES = 10;
+/* --------------------------------------------------------------------------
+ * 1. DANH MỤC NẠP ASSET TRUNG TÂM (112 ASSETS TRONG 9 THƯ MỤC)
+ * Quy ước:
+ * - sprites2x2: Tự động tách nền #00FF00, khử viền xanh, lọc rác góc, cắt lưới 2x2
+ * - singleChroma: Tách nền #00FF00 + lọc rác góc, giữ nguyên 1 khung hình
+ * - fullOpaque: Ảnh nền bản đồ / sảnh giữ nguyên toàn bộ pixel
+ * -------------------------------------------------------------------------- */
+const ASSET_MANIFEST = {
+  maps: {
+    World_map: { path: 'assets/maps/World_map', mode: 'fullOpaque' },
+    // Vùng 1: Thảo Nguyên Xanh (map1 -> map9)
+    map1:  { path: 'assets/maps/biome_1/map1',  mode: 'fullOpaque' },
+    map2:  { path: 'assets/maps/biome_1/map2',  mode: 'fullOpaque' },
+    map3:  { path: 'assets/maps/biome_1/map3',  mode: 'fullOpaque' },
+    map4:  { path: 'assets/maps/biome_1/map4',  mode: 'fullOpaque' },
+    map5:  { path: 'assets/maps/biome_1/map5',  mode: 'fullOpaque' },
+    map6:  { path: 'assets/maps/biome_1/map6',  mode: 'fullOpaque' },
+    map7:  { path: 'assets/maps/biome_1/map7',  mode: 'fullOpaque' },
+    map8:  { path: 'assets/maps/biome_1/map8',  mode: 'fullOpaque' },
+    map9:  { path: 'assets/maps/biome_1/map9',  mode: 'fullOpaque' },
+    // Vùng 2: Hẻm Núi Hoang Mạc (map10 -> map18)
+    map10: { path: 'assets/maps/biome_2/map10', mode: 'fullOpaque' },
+    map11: { path: 'assets/maps/biome_2/map11', mode: 'fullOpaque' },
+    map12: { path: 'assets/maps/biome_2/map12', mode: 'fullOpaque' },
+    map13: { path: 'assets/maps/biome_2/map13', mode: 'fullOpaque' },
+    map14: { path: 'assets/maps/biome_2/map14', mode: 'fullOpaque' },
+    map15: { path: 'assets/maps/biome_2/map15', mode: 'fullOpaque' },
+    map16: { path: 'assets/maps/biome_2/map16', mode: 'fullOpaque' },
+    map17: { path: 'assets/maps/biome_2/map17', mode: 'fullOpaque' },
+    map18: { path: 'assets/maps/biome_2/map18', mode: 'fullOpaque' },
+    // Vùng 3: Lãnh Nguyên Băng Giá (map19 -> map27)
+    map19: { path: 'assets/maps/biome_3/map19', mode: 'fullOpaque' },
+    map20: { path: 'assets/maps/biome_3/map20', mode: 'fullOpaque' },
+    map21: { path: 'assets/maps/biome_3/map21', mode: 'fullOpaque' },
+    map22: { path: 'assets/maps/biome_3/map22', mode: 'fullOpaque' },
+    map23: { path: 'assets/maps/biome_3/map23', mode: 'fullOpaque' },
+    map24: { path: 'assets/maps/biome_3/map24', mode: 'fullOpaque' },
+    map25: { path: 'assets/maps/biome_3/map25', mode: 'fullOpaque' },
+    map26: { path: 'assets/maps/biome_3/map26', mode: 'fullOpaque' },
+    map27: { path: 'assets/maps/biome_3/map27', mode: 'fullOpaque' },
+    // Vùng 4: Miệng Núi Lửa Dung Nham (map28 -> map36)
+    map28: { path: 'assets/maps/biome_4/map28', mode: 'fullOpaque' },
+    map29: { path: 'assets/maps/biome_4/map29', mode: 'fullOpaque' },
+    map30: { path: 'assets/maps/biome_4/map30', mode: 'fullOpaque' },
+    map31: { path: 'assets/maps/biome_4/map31', mode: 'fullOpaque' },
+    map32: { path: 'assets/maps/biome_4/map32', mode: 'fullOpaque' },
+    map33: { path: 'assets/maps/biome_4/map33', mode: 'fullOpaque' },
+    map34: { path: 'assets/maps/biome_4/map34', mode: 'fullOpaque' },
+    map35: { path: 'assets/maps/biome_4/map35', mode: 'fullOpaque' },
+    map36: { path: 'assets/maps/biome_4/map36', mode: 'fullOpaque' },
+    // Vùng 5: Đầm Lầy Độc Tố Axit (map37 -> map45)
+    map37: { path: 'assets/maps/biome_5/map37', mode: 'fullOpaque' },
+    map38: { path: 'assets/maps/biome_5/map38', mode: 'fullOpaque' },
+    map39: { path: 'assets/maps/biome_5/map39', mode: 'fullOpaque' },
+    map40: { path: 'assets/maps/biome_5/map40', mode: 'fullOpaque' },
+    map41: { path: 'assets/maps/biome_5/map41', mode: 'fullOpaque' },
+    map42: { path: 'assets/maps/biome_5/map42', mode: 'fullOpaque' },
+    map43: { path: 'assets/maps/biome_5/map43', mode: 'fullOpaque' },
+    map44: { path: 'assets/maps/biome_5/map44', mode: 'fullOpaque' },
+    map45: { path: 'assets/maps/biome_5/map45', mode: 'fullOpaque' },
+    // Vùng 6: Thung Lũng Hoa Anh Đào (map46 -> map54 - tự động fallback .jpg)
+    map46: { path: 'assets/maps/biome_6/map46', mode: 'fullOpaque' },
+    map47: { path: 'assets/maps/biome_6/map47', mode: 'fullOpaque' },
+    map48: { path: 'assets/maps/biome_6/map48', mode: 'fullOpaque' },
+    map49: { path: 'assets/maps/biome_6/map49', mode: 'fullOpaque' },
+    map50: { path: 'assets/maps/biome_6/map50', mode: 'fullOpaque' },
+    map51: { path: 'assets/maps/biome_6/map51', mode: 'fullOpaque' },
+    map52: { path: 'assets/maps/biome_6/map52', mode: 'fullOpaque' },
+    map53: { path: 'assets/maps/biome_6/map53', mode: 'fullOpaque' },
+    map54: { path: 'assets/maps/biome_6/map54', mode: 'fullOpaque' }
+  },
 
-// Kích thước World Campaign Roadmap toàn cảnh (54 Levels / 6 Biomes)
-export const WORLD_MAP_WIDTH = 1440;
-export const WORLD_MAP_HEIGHT = 900;
-export const TOTAL_CAMPAIGN_LEVELS = 54;
-export const MAX_CAMPAIGN_STARS = TOTAL_CAMPAIGN_LEVELS * 3; // 162 Sao
+  units: {
+    infantry:       { path: 'assets/units/infantry',       mode: 'sprites2x2', recolorEnemy: true },
+    bazooka:        { path: 'assets/units/bazooka',        mode: 'sprites2x2', recolorEnemy: true },
+    sniper:         { path: 'assets/units/sniper',         mode: 'sprites2x2', recolorEnemy: true },
+    humvee:         { path: 'assets/units/humvee',         mode: 'sprites2x2', recolorEnemy: true },
+    apc:            { path: 'assets/units/apc',            mode: 'sprites2x2', recolorEnemy: true },
+    tank:           { path: 'assets/units/tank',           mode: 'sprites2x2', recolorEnemy: true },
+    heavy_tank:     { path: 'assets/units/heavy_tank',     mode: 'sprites2x2', recolorEnemy: true },
+    heli:           { path: 'assets/units/heli',           mode: 'sprites2x2', recolorEnemy: true },
+    patrol_boat:    { path: 'assets/units/patrol_boat',    mode: 'sprites2x2', recolorEnemy: true },
+    destroyer:      { path: 'assets/units/destroyer',      mode: 'sprites2x2', recolorEnemy: true },
+    battleship:     { path: 'assets/units/battleship',     mode: 'sprites2x2', recolorEnemy: true },
+    pyromancer:     { path: 'assets/units/pyromancer',     mode: 'sprites2x2', recolorEnemy: true },
+    cryomancer:     { path: 'assets/units/cryomancer',     mode: 'sprites2x2', recolorEnemy: true },
+    cleric:         { path: 'assets/units/cleric',         mode: 'sprites2x2', recolorEnemy: true },
+    necromancer:    { path: 'assets/units/necromancer',    mode: 'sprites2x2', recolorEnemy: true },
+    mecha_paladin:  { path: 'assets/units/mecha_paladin',  mode: 'sprites2x2', recolorEnemy: true },
+    railgun_walker: { path: 'assets/units/railgun_walker', mode: 'sprites2x2', recolorEnemy: true },
+    skeleton:       { path: 'assets/units/skeleton',       mode: 'sprites2x2', recolorEnemy: true },
+    airstrike:      { path: 'assets/units/airstrike',      mode: 'sprites2x2', recolorEnemy: true }
+  },
 
-// Danh mục 7 file ảnh bản đồ gốc trong thư mục assets/maps/
-export const MAP_IMAGE_ASSETS = {
-    world_map: 'assets/maps/world_map.png',
-    biome_1:   'assets/maps/biome_1.png',
-    biome_2:   'assets/maps/biome_2.png',
-    biome_3:   'assets/maps/biome_3.png',
-    biome_4:   'assets/maps/biome_4.png',
-    biome_5:   'assets/maps/biome_5.png',
-    biome_6:   'assets/maps/biome_6.png'
+  bosses: {
+    boss_butcher:      { path: 'assets/bosses/boss_butcher',      mode: 'sprites2x2', recolorEnemy: false },
+    boss_chimera:      { path: 'assets/bosses/boss_chimera',      mode: 'sprites2x2', recolorEnemy: false },
+    boss_omega_tyrant: { path: 'assets/bosses/boss_omega_tyrant', mode: 'sprites2x2', recolorEnemy: false },
+    raid_boss:         { path: 'assets/bosses/raid_boss',         mode: 'sprites2x2', recolorEnemy: false }
+  },
+
+  zombies: {
+    zombie_walker:    { path: 'assets/zombies/zombie_walker',    mode: 'sprites2x2', recolorEnemy: false },
+    zombie_runner:    { path: 'assets/zombies/zombie_runner',    mode: 'sprites2x2', recolorEnemy: false },
+    zombie_brute:     { path: 'assets/zombies/zombie_brute',     mode: 'sprites2x2', recolorEnemy: false },
+    zombie_spitter:   { path: 'assets/zombies/zombie_spitter',   mode: 'sprites2x2', recolorEnemy: false },
+    zombie_bomber:    { path: 'assets/zombies/zombie_bomber',    mode: 'sprites2x2', recolorEnemy: false },
+    zombie_necrolord: { path: 'assets/zombies/zombie_necrolord', mode: 'sprites2x2', recolorEnemy: false }
+  },
+
+  turrets: {
+    turret_gatling: { path: 'assets/turrets/turret_gatling', mode: 'singleChroma' },
+    turret_laser:   { path: 'assets/turrets/turret_laser',   mode: 'singleChroma' },
+    turret_missile: { path: 'assets/turrets/turret_missile', mode: 'singleChroma' },
+    turret_tesla:   { path: 'assets/turrets/turret_tesla',   mode: 'singleChroma' }
+  },
+
+  projectiles: {
+    proj_bullet:   { path: 'assets/projectiles/proj_bullet',   mode: 'singleChroma', baseAngleOffset: Math.PI / 4 },
+    proj_rocket:   { path: 'assets/projectiles/proj_rocket',   mode: 'singleChroma', baseAngleOffset: Math.PI / 4 },
+    proj_shell:    { path: 'assets/projectiles/proj_shell',    mode: 'singleChroma', baseAngleOffset: Math.PI / 4 },
+    proj_fireball: { path: 'assets/projectiles/proj_fireball', mode: 'singleChroma', baseAngleOffset: Math.PI / 4 },
+    proj_iceshard: { path: 'assets/projectiles/proj_iceshard', mode: 'singleChroma', baseAngleOffset: Math.PI / 4 },
+    proj_darkorb:  { path: 'assets/projectiles/proj_darkorb',  mode: 'singleChroma', baseAngleOffset: 0 }
+  },
+
+  props: {
+    prop_landmine:      { path: 'assets/props/prop_landmine',      mode: 'singleChroma' },
+    prop_airdrop_crate: { path: 'assets/props/prop_airdrop_crate', mode: 'singleChroma' },
+    prop_rally_flag:    { path: 'assets/props/prop_rally_flag',    mode: 'singleChroma' },
+    prop_target_dummy:  { path: 'assets/props/prop_target_dummy',  mode: 'singleChroma' }
+  },
+
+  skills: {
+    skill_airdrop:   { path: 'assets/skills/skill_airdrop',   mode: 'singleChroma' },
+    skill_minefield: { path: 'assets/skills/skill_minefield', mode: 'singleChroma' },
+    skill_emp:       { path: 'assets/skills/skill_emp',       mode: 'singleChroma' },
+    skill_blitz:     { path: 'assets/skills/skill_blitz',     mode: 'singleChroma' }
+  },
+
+  ui: {
+    lobby_bg:        { path: 'assets/ui/lobby_bg',        mode: 'fullOpaque' },
+    crate_legendary: { path: 'assets/ui/crate_legendary', mode: 'singleChroma' },
+    crate_epic:      { path: 'assets/ui/crate_epic',      mode: 'singleChroma' },
+    chest_gold:      { path: 'assets/ui/chest_gold',      mode: 'singleChroma' },
+    lucky_wheel:     { path: 'assets/ui/lucky_wheel',     mode: 'singleChroma' },
+    icon_coin:       { path: 'assets/ui/icon_coin',       mode: 'singleChroma' },
+    icon_gem:        { path: 'assets/ui/icon_gem',        mode: 'singleChroma' },
+    icon_medal:      { path: 'assets/ui/icon_medal',      mode: 'singleChroma' },
+    icon_pearl:      { path: 'assets/ui/icon_pearl',      mode: 'singleChroma' },
+    icon_fuel:       { path: 'assets/ui/icon_fuel',       mode: 'singleChroma' }
+  }
 };
 
-// Lưới điều hướng Flow-Field 10x10px
-export const NAV_CELL = 10;
-export const GRID_W = Math.floor(LOGICAL_WIDTH / NAV_CELL);     // 42 cột
-export const GRID_H = Math.floor(PLAYFIELD_HEIGHT / NAV_CELL);  // 71 hàng
+/* --------------------------------------------------------------------------
+ * 2. CẤU HÌNH HITBOX & TÂM NGẮM MANSION XANH / ĐỎ (PHẦN 2)
+ * -------------------------------------------------------------------------- */
+const MANSION_CONFIG = {
+  blue: {
+    label: 'MANSION XANH',
+    centerXRatio: 0.5,
+    bottomOffset: 95,
+    hitWidth: 150,
+    hitHeight: 95,
+    hitRadius: 68,
+    turretOffsetY: -22
+  },
+  red: {
+    label: 'MANSION ĐỎ',
+    centerXRatio: 0.5,
+    topOffset: 95,
+    hitWidth: 150,
+    hitHeight: 95,
+    hitRadius: 68
+  }
+};
 
-export const T_OPEN = 0;
-export const T_ROAD = 1;
-export const T_WATER = 2;
-export const T_BRIDGE = 3;
-export const T_OBSTACLE = 4;
+/* --------------------------------------------------------------------------
+ * 3. CẤU HÌNH BÁN KÍNH TƯƠNG TÁC BẢN ĐỒ THẾ GIỚI (PHẦN 3)
+ * -------------------------------------------------------------------------- */
+const WORLD_MAP_CONFIG = {
+  hitRadius: 46,        // Bán kính bắt điểm từ tính 46px (gấp >2.5 lần node hiển thị)
+  visualRadius: 17,     // Bán kính vẽ node trên World_map
+  hoverScale: 1.18,     // Phóng to 1.18x khi hover
+  haloColor: '#FACC15'  // Vòng hào quang vàng kim
+};
 
-// Hằng số chế độ CHALLENGE (Tower Defense 20 Wave Zombie - Lưới ô vuông 7x11 Full Toàn Map)
-export const CHALLENGE_MAX_WAVES = 20;
-export const CHALLENGE_DECK_SLOTS = 6;
-export const CHALLENGE_COOLDOWN_MULT = 3.0;     // Tăng hồi chiêu đặt Tower gấp 3.0 lần (Hardcore)
-export const CHALLENGE_RELOCATE_HOLD_SEC = 3.0; // Nhấn giữ 3.0 giây lên Tower để nhấc và đổi vị trí
-export const TD_GRID_COLS = 7;
-export const TD_CELL_SIZE = 60;                 // 420px / 7 cột = 60x60px mỗi ô vuông
-export const TD_GRID_TOP_Y = 48;                // Phủ toàn bộ sân từ y = 48px đến y = 708px (11 hàng * 60px = 660px)
-export const TD_GRID_ROWS = 11;
+const CHALLENGE_COOLDOWN_MULT = 3.0;
+const BASE_DECK_SIZE_BATTLE = 5;
+const BASE_DECK_SIZE_CHALLENGE = 6;
+const ADMIN_SECRET_CODE = 'HUNGADMINDZ';
 
-export const BATTLE_SPEED_MULTIPLIERS = [1, 2, 4];
-
-export const GAS_UPGRADE_LEVELS = [
-    { interval: 3.0, cost: 4,  label: '➔ 2.4s' },
-    { interval: 2.4, cost: 6,  label: '➔ 1.9s' },
-    { interval: 1.9, cost: 8,  label: '➔ 1.5s' },
-    { interval: 1.5, cost: 11, label: '➔ 1.1s' },
-    { interval: 1.1, cost: 0,  label: 'MAX' }
+/* --------------------------------------------------------------------------
+ * 4. HỆ THỐNG 41 BẬC ĐỘ HIẾM (MÀU SÁNG TƯƠNG PHẢN CAO >= 4.5:1)
+ * -------------------------------------------------------------------------- */
+const RARITY_TIERS = [
+  { id: 'common',       name: 'Common',          color: '#E2E8F0', mult: 1.00, weight: 320000 },
+  { id: 'uncommon',     name: 'Uncommon',        color: '#86EFAC', mult: 1.18, weight: 210000 },
+  { id: 'rare',         name: 'Rare',            color: '#7DD3FC', mult: 1.40, weight: 140000 },
+  { id: 'super_rare',   name: 'Super Rare',      color: '#38BDF8', mult: 1.65, weight: 95000 },
+  { id: 'epic',         name: 'Epic',            color: '#D8B4FE', mult: 1.95, weight: 65000 },
+  { id: 'super_epic',   name: 'Super Epic',      color: '#C084FC', mult: 2.30, weight: 45000 },
+  { id: 'ultra_epic',   name: 'Ultra Epic',      color: '#A855F7', mult: 2.75, weight: 32000 },
+  { id: 'legendary',    name: 'Legendary',       color: '#FDE047', mult: 3.30, weight: 24000 },
+  { id: 'super_leg',    name: 'Super Legend',    color: '#FACC15', mult: 3.95, weight: 18000 },
+  { id: 'ultra_leg',    name: 'Ultra Legend',    color: '#F59E0B', mult: 4.75, weight: 13500 },
+  { id: 'mythic',       name: 'Mythic',          color: '#FDA4AF', mult: 5.70, weight: 10000 },
+  { id: 'super_mythic', name: 'Super Mythic',    color: '#FB7185', mult: 6.85, weight: 7500 },
+  { id: 'ultra_mythic', name: 'Ultra Mythic',    color: '#F43F5E', mult: 8.20, weight: 5600 },
+  { id: 'ancient1',     name: 'Ancient I',       color: '#FDBA74', mult: 9.85, weight: 4200 },
+  { id: 'ancient2',     name: 'Ancient II',      color: '#FB923C', mult: 11.8, weight: 3200 },
+  { id: 'ancient3',     name: 'Ancient III',     color: '#F97316', mult: 14.2, weight: 2400 },
+  { id: 'celestial1',   name: 'Celestial I',     color: '#67E8F9', mult: 17.0, weight: 1800 },
+  { id: 'celestial2',   name: 'Celestial II',    color: '#22D3EE', mult: 20.5, weight: 1350 },
+  { id: 'celestial3',   name: 'Celestial III',   color: '#06B6D4', mult: 24.6, weight: 1000 },
+  { id: 'divine1',      name: 'Divine I',        color: '#FEF08A', mult: 29.5, weight: 750 },
+  { id: 'divine2',      name: 'Divine II',       color: '#FDE047', mult: 35.4, weight: 560 },
+  { id: 'divine3',      name: 'Divine III',      color: '#FACC15', mult: 42.5, weight: 420 },
+  { id: 'immortal1',    name: 'Immortal I',      color: '#6EE7B7', mult: 51.0, weight: 310 },
+  { id: 'immortal2',    name: 'Immortal II',     color: '#34D399', mult: 61.2, weight: 230 },
+  { id: 'immortal3',    name: 'Immortal III',    color: '#10B981', mult: 73.5, weight: 170 },
+  { id: 'transcend1',   name: 'Transcendent I',  color: '#A5B4FC', mult: 88.2, weight: 125 },
+  { id: 'transcend2',   name: 'Transcendent II', color: '#818CF8', mult: 106,  weight: 92 },
+  { id: 'transcend3',   name: 'Transcendent III',color: '#6366F1', mult: 127,  weight: 68 },
+  { id: 'master1',      name: 'Master I',        color: '#5EEAD4', mult: 152,  weight: 50 },
+  { id: 'master2',      name: 'Master II',       color: '#2DD4BF', mult: 183,  weight: 36 },
+  { id: 'master3',      name: 'Master III',      color: '#14B8A6', mult: 220,  weight: 26 },
+  { id: 'demon1',       name: 'Demon Lord I',    color: '#F0ABFC', mult: 265,  weight: 19 },
+  { id: 'demon2',       name: 'Demon Lord II',   color: '#E879F9', mult: 318,  weight: 14 },
+  { id: 'demon3',       name: 'Demon Lord III',  color: '#D946EF', mult: 382,  weight: 10 },
+  { id: 'demon4',       name: 'Abyssal IV',      color: '#C084FC', mult: 460,  weight: 7 },
+  { id: 'demon5',       name: 'Abyssal V',       color: '#A855F7', mult: 552,  weight: 5 },
+  { id: 'demon6',       name: 'Abyssal VI',      color: '#9333EA', mult: 665,  weight: 3.5 },
+  { id: 'demon7',       name: 'Overlord VII',    color: '#FB7185', mult: 800,  weight: 2.2 },
+  { id: 'demon8',       name: 'Overlord VIII',   color: '#F43F5E', mult: 960,  weight: 1.4 },
+  { id: 'demon9',       name: 'Overlord IX',     color: '#FF6B6B', mult: 1155, weight: 0.8 },
+  { id: 'demon10',      name: 'APEX DEMON X',    color: '#FFE066', mult: 1400, weight: 0.4 }
 ];
 
-/* 1. HỆ THỐNG 41 BẬC ĐỘ HIẾM (COMMON 1.0x ➔ MASTER +8 120x ➔ DEMON +10 777x) */
-export const RARITY_ORDER = [
-    'common', 'uncommon', 'rare',
-    'epic', 'epic1', 'epic2',
-    'legendary', 'legendary1', 'legendary2', 'legendary3',
-    'mythic', 'mythic1', 'mythic2', 'mythic3', 'mythic4',
-    'secret', 'secret1', 'secret2', 'secret3', 'secret4', 'secret5',
-    'master', 'master1', 'master2', 'master3', 'master4', 'master5', 'master6', 'master7', 'master8',
-    'demon', 'demon1', 'demon2', 'demon3', 'demon4', 'demon5', 'demon6', 'demon7', 'demon8', 'demon9', 'demon10'
-];
-
-export const MAX_RARITY_RANK = RARITY_ORDER.length - 1; // Rank 40 (demon10)
-
-export const RARITY_CONFIG = {
-    // --- BẬC 0 ➔ 20: COMMON ĐẾN SECRET +5 ---
-    common:     { id: 'common',     rank: 0,  next: 'uncommon',   plusLabel: '',   name: 'Common',       mult: 1.00,  statMult: 1.00,  color: '#94a3b8', glowColor: '#cbd5e1', auraType: 'none',        css: 'rarity-common',     cssClass: 'rarity-common' },
-    uncommon:   { id: 'uncommon',   rank: 1,  next: 'rare',       plusLabel: '',   name: 'Uncommon',     mult: 1.20,  statMult: 1.20,  color: '#4ade80', glowColor: '#86efac', auraType: 'none',        css: 'rarity-uncommon',   cssClass: 'rarity-uncommon' },
-    rare:       { id: 'rare',       rank: 2,  next: 'epic',       plusLabel: '',   name: 'Rare',         mult: 1.42,  statMult: 1.42,  color: '#60a5fa', glowColor: '#93c5fd', auraType: 'none',        css: 'rarity-rare',       cssClass: 'rarity-rare' },
-    epic:       { id: 'epic',       rank: 3,  next: 'epic1',      plusLabel: '',   name: 'Epic',         mult: 1.65,  statMult: 1.65,  color: '#c084fc', glowColor: '#d8b4fe', auraType: 'none',        css: 'rarity-epic',       cssClass: 'rarity-epic' },
-    epic1:      { id: 'epic1',      rank: 4,  next: 'epic2',      plusLabel: '+1', name: 'Epic +1',      mult: 1.88,  statMult: 1.88,  color: '#d8b4fe', glowColor: '#e9d5ff', auraType: 'none',        css: 'rarity-epic1',      cssClass: 'rarity-epic1' },
-    epic2:      { id: 'epic2',      rank: 5,  next: 'legendary',  plusLabel: '+2', name: 'Epic +2',      mult: 2.15,  statMult: 2.15,  color: '#e879f9', glowColor: '#f5d0fe', auraType: 'none',        css: 'rarity-epic2',      cssClass: 'rarity-epic2' },
-    legendary:  { id: 'legendary',  rank: 6,  next: 'legendary1', plusLabel: '',   name: 'Legendary',    mult: 2.60,  statMult: 2.60,  color: '#f59e0b', glowColor: '#fcd34d', auraType: 'gold',        css: 'rarity-legendary',  cssClass: 'rarity-legendary' },
-    legendary1: { id: 'legendary1', rank: 7,  next: 'legendary2', plusLabel: '+1', name: 'Legendary +1', mult: 3.05,  statMult: 3.05,  color: '#fbbf24', glowColor: '#fde047', auraType: 'gold',        css: 'rarity-legendary1', cssClass: 'rarity-legendary1' },
-    legendary2: { id: 'legendary2', rank: 8,  next: 'legendary3', plusLabel: '+2', name: 'Legendary +2', mult: 3.55,  statMult: 3.55,  color: '#facc15', glowColor: '#fef08a', auraType: 'gold',        css: 'rarity-legendary2', cssClass: 'rarity-legendary2' },
-    legendary3: { id: 'legendary3', rank: 9,  next: 'mythic',     plusLabel: '+3', name: 'Legendary +3', mult: 4.10,  statMult: 4.10,  color: '#fde047', glowColor: '#fef9c3', auraType: 'gold',        css: 'rarity-legendary3', cssClass: 'rarity-legendary3' },
-    mythic:     { id: 'mythic',     rank: 10, next: 'mythic1',    plusLabel: '',   name: 'Mythic',       mult: 5.00,  statMult: 5.00,  color: '#fb7185', glowColor: '#fda4af', auraType: 'crimson',     css: 'rarity-mythic',     cssClass: 'rarity-mythic' },
-    mythic1:    { id: 'mythic1',    rank: 11, next: 'mythic2',    plusLabel: '+1', name: 'Mythic +1',    mult: 5.90,  statMult: 5.90,  color: '#f43f5e', glowColor: '#fb7185', auraType: 'crimson',     css: 'rarity-mythic1',    cssClass: 'rarity-mythic1' },
-    mythic2:    { id: 'mythic2',    rank: 12, next: 'mythic3',    plusLabel: '+2', name: 'Mythic +2',    mult: 6.90,  statMult: 6.90,  color: '#ef4444', glowColor: '#f87171', auraType: 'crimson',     css: 'rarity-mythic2',    cssClass: 'rarity-mythic2' },
-    mythic3:    { id: 'mythic3',    rank: 13, next: 'mythic4',    plusLabel: '+3', name: 'Mythic +3',    mult: 8.00,  statMult: 8.00,  color: '#dc2626', glowColor: '#ef4444', auraType: 'crimson',     css: 'rarity-mythic3',    cssClass: 'rarity-mythic3' },
-    mythic4:    { id: 'mythic4',    rank: 14, next: 'secret',     plusLabel: '+4', name: 'Mythic +4',    mult: 9.20,  statMult: 9.20,  color: '#b91c1c', glowColor: '#f97316', auraType: 'crimson',     css: 'rarity-mythic4',    cssClass: 'rarity-mythic4' },
-    secret:     { id: 'secret',     rank: 15, next: 'secret1',    plusLabel: '',   name: 'Secret',       mult: 11.50, statMult: 11.50, color: '#18181b', glowColor: '#71717a', auraType: 'dark_void',   css: 'rarity-secret',     cssClass: 'rarity-secret' },
-    secret1:    { id: 'secret1',    rank: 16, next: 'secret2',    plusLabel: '+1', name: 'Secret +1',    mult: 13.80, statMult: 13.80, color: '#18181b', glowColor: '#a1a1aa', auraType: 'dark_void',   css: 'rarity-secret1',    cssClass: 'rarity-secret1' },
-    secret2:    { id: 'secret2',    rank: 17, next: 'secret3',    plusLabel: '+2', name: 'Secret +2',    mult: 16.40, statMult: 16.40, color: '#09090b', glowColor: '#cbd5e1', auraType: 'dark_void',   css: 'rarity-secret2',    cssClass: 'rarity-secret2' },
-    secret3:    { id: 'secret3',    rank: 18, next: 'secret4',    plusLabel: '+3', name: 'Secret +3',    mult: 19.30, statMult: 19.30, color: '#09090b', glowColor: '#e2e8f0', auraType: 'dark_void',   css: 'rarity-secret3',    cssClass: 'rarity-secret3' },
-    secret4:    { id: 'secret4',    rank: 19, next: 'secret5',    plusLabel: '+4', name: 'Secret +4',    mult: 22.50, statMult: 22.50, color: '#000000', glowColor: '#f1f5f9', auraType: 'dark_void',   css: 'rarity-secret4',    cssClass: 'rarity-secret4' },
-    secret5:    { id: 'secret5',    rank: 20, next: 'master',     plusLabel: '+5', name: 'Secret +5',    mult: 26.00, statMult: 26.00, color: '#000000', glowColor: '#ffffff', auraType: 'dark_void',   css: 'rarity-secret5',    cssClass: 'rarity-secret5' },
-
-    // --- CHUỖI 9 BẬC MASTER (RANK 21 ➔ 29 | 33.0x ➔ 120.0x) ---
-    master:     { id: 'master',     rank: 21, next: 'master1',    plusLabel: '',   name: 'Master',       mult: 33.00, statMult: 33.00, color: '#00f2fe', glowColor: '#0284c7', auraType: 'master_aqua', css: 'rarity-master',     cssClass: 'rarity-master' },
-    master1:    { id: 'master1',    rank: 22, next: 'master2',    plusLabel: '+1', name: 'Master +1',    mult: 40.00, statMult: 40.00, color: '#00f2fe', glowColor: '#0284c7', auraType: 'master_aqua', css: 'rarity-master1',    cssClass: 'rarity-master1' },
-    master2:    { id: 'master2',    rank: 23, next: 'master3',    plusLabel: '+2', name: 'Master +2',    mult: 48.00, statMult: 48.00, color: '#00f2fe', glowColor: '#38bdf8', auraType: 'master_aqua', css: 'rarity-master2',    cssClass: 'rarity-master2' },
-    master3:    { id: 'master3',    rank: 24, next: 'master4',    plusLabel: '+3', name: 'Master +3',    mult: 57.00, statMult: 57.00, color: '#00f2fe', glowColor: '#38bdf8', auraType: 'master_aqua', css: 'rarity-master3',    cssClass: 'rarity-master3' },
-    master4:    { id: 'master4',    rank: 25, next: 'master5',    plusLabel: '+4', name: 'Master +4',    mult: 67.00, statMult: 67.00, color: '#38bdf8', glowColor: '#7dd3fc', auraType: 'master_aqua', css: 'rarity-master4',    cssClass: 'rarity-master4' },
-    master5:    { id: 'master5',    rank: 26, next: 'master6',    plusLabel: '+5', name: 'Master +5',    mult: 78.00, statMult: 78.00, color: '#38bdf8', glowColor: '#7dd3fc', auraType: 'master_aqua', css: 'rarity-master5',    cssClass: 'rarity-master5' },
-    master6:    { id: 'master6',    rank: 27, next: 'master7',    plusLabel: '+6', name: 'Master +6',    mult: 90.00, statMult: 90.00, color: '#7dd3fc', glowColor: '#bae6fd', auraType: 'master_aqua', css: 'rarity-master6',    cssClass: 'rarity-master6' },
-    master7:    { id: 'master7',    rank: 28, next: 'master8',    plusLabel: '+7', name: 'Master +7',    mult: 104.0, statMult: 104.0, color: '#bae6fd', glowColor: '#e0f2fe', auraType: 'master_aqua', css: 'rarity-master7',    cssClass: 'rarity-master7' },
-    master8:    { id: 'master8',    rank: 29, next: 'demon',      plusLabel: '+8', name: 'Master +8',    mult: 120.0, statMult: 120.0, color: '#e0f2fe', glowColor: '#ffffff', auraType: 'master_aqua', css: 'rarity-master8',    cssClass: 'rarity-master8' },
-
-    // --- CHUỖI 11 BẬC DEMON (RANK 30 ➔ 40 | 155.0x ➔ 777.0x) ---
-    demon:      { id: 'demon',      rank: 30, next: 'demon1',     plusLabel: '',    name: 'Demon',        mult: 155.0, statMult: 155.0, color: '#a855f7', glowColor: '#7e22ce', auraType: 'demon_abyss', css: 'rarity-demon',      cssClass: 'rarity-demon' },
-    demon1:     { id: 'demon1',     rank: 31, next: 'demon2',     plusLabel: '+1',  name: 'Demon +1',     mult: 190.0, statMult: 190.0, color: '#a855f7', glowColor: '#9333ea', auraType: 'demon_abyss', css: 'rarity-demon1',     cssClass: 'rarity-demon1' },
-    demon2:     { id: 'demon2',     rank: 32, next: 'demon3',     plusLabel: '+2',  name: 'Demon +2',     mult: 230.0, statMult: 230.0, color: '#c084fc', glowColor: '#9333ea', auraType: 'demon_abyss', css: 'rarity-demon2',     cssClass: 'rarity-demon2' },
-    demon3:     { id: 'demon3',     rank: 33, next: 'demon4',     plusLabel: '+3',  name: 'Demon +3',     mult: 275.0, statMult: 275.0, color: '#c084fc', glowColor: '#a855f7', auraType: 'demon_abyss', css: 'rarity-demon3',     cssClass: 'rarity-demon3' },
-    demon4:     { id: 'demon4',     rank: 34, next: 'demon5',     plusLabel: '+4',  name: 'Demon +4',     mult: 325.0, statMult: 325.0, color: '#d946ef', glowColor: '#a855f7', auraType: 'demon_abyss', css: 'rarity-demon4',     cssClass: 'rarity-demon4' },
-    demon5:     { id: 'demon5',     rank: 35, next: 'demon6',     plusLabel: '+5',  name: 'Demon +5',     mult: 385.0, statMult: 385.0, color: '#d946ef', glowColor: '#c084fc', auraType: 'demon_abyss', css: 'rarity-demon5',     cssClass: 'rarity-demon5' },
-    demon6:     { id: 'demon6',     rank: 36, next: 'demon7',     plusLabel: '+6',  name: 'Demon +6',     mult: 450.0, statMult: 450.0, color: '#e879f9', glowColor: '#c084fc', auraType: 'demon_abyss', css: 'rarity-demon6',     cssClass: 'rarity-demon6' },
-    demon7:     { id: 'demon7',     rank: 37, next: 'demon8',     plusLabel: '+7',  name: 'Demon +7',     mult: 520.0, statMult: 520.0, color: '#e879f9', glowColor: '#d946ef', auraType: 'demon_abyss', css: 'rarity-demon7',     cssClass: 'rarity-demon7' },
-    demon8:     { id: 'demon8',     rank: 38, next: 'demon9',     plusLabel: '+8',  name: 'Demon +8',     mult: 600.0, statMult: 600.0, color: '#f0abfc', glowColor: '#d946ef', auraType: 'demon_abyss', css: 'rarity-demon8',     cssClass: 'rarity-demon8' },
-    demon9:     { id: 'demon9',     rank: 39, next: 'demon10',    plusLabel: '+9',  name: 'Demon +9',     mult: 685.0, statMult: 685.0, color: '#f5d0fe', glowColor: '#e879f9', auraType: 'demon_abyss', css: 'rarity-demon9',     cssClass: 'rarity-demon9' },
-    demon10:    { id: 'demon10',    rank: 40, next: null,         plusLabel: '+10', name: 'Demon +10',    mult: 777.0, statMult: 777.0, color: '#fae8ff', glowColor: '#ffffff', auraType: 'demon_abyss', css: 'rarity-demon10',    cssClass: 'rarity-demon10' }
-};
-export const RARITY_TIERS = RARITY_CONFIG;
-
-export function isMasterRarity(rarityId) {
-    const r = RARITY_CONFIG[rarityId];
-    return !!(r && r.rank >= 21 && r.rank <= 29);
-}
-
-export function isDemonRarity(rarityId) {
-    const r = RARITY_CONFIG[rarityId];
-    return !!(r && r.rank >= 30 && r.rank <= 40);
-}
-
-/* 2. CẤU HÌNH ĐỘ KHÓ (54 MAP) VÀ CHẾ ĐỘ CHIẾN ĐẤU */
-export const DIFFICULTY_ORDER = ['easy', 'difficult'];
-export const BATTLE_MODE_ORDER = ['destroy', 'survival'];
-export const MAP_ENEMY_SCALE_PER_LEVEL = 0.095;
-
-export const DIFFICULTY_CONFIG = {
-    easy:      { id: 'easy',      name: 'Dễ',  shortLabel: 'DỄ',  statMult: 1.20, baseHpMult: 1.25, medalReward: 0 },
-    difficult: { id: 'difficult', name: 'Khó', shortLabel: 'KHÓ', statMult: 1.85, baseHpMult: 2.10, medalReward: 3 }
-};
-
-export const BATTLE_MODE_CONFIG = {
-    destroy:       { id: 'destroy',       name: 'Phá Căn Cứ',          shortLabel: 'PHÁ CĂN CỨ' },
-    survival:      { id: 'survival',      name: 'Sinh Tồn 10 Wave',    shortLabel: '10 WAVE' },
-    endless:       { id: 'endless',       name: 'Thủ Thành Vô Tận',    shortLabel: 'VÔ TẬN' },
-    endless_siege: { id: 'endless_siege', name: 'Thủ Thành Vô Tận',    shortLabel: 'VÔ TẬN' },
-    autobattler:   { id: 'autobattler',   name: 'Đặt Trận Tự Động',    shortLabel: 'ĐẶT TRẬN' },
-    auto_battler:  { id: 'auto_battler',  name: 'Đặt Trận Tự Động',    shortLabel: 'ĐẶT TRẬN' },
-    night_fog:     { id: 'night_fog',     name: 'Chiến Dịch Đêm Mù',   shortLabel: 'ĐÊM MÙ' },
-    fog_of_war:    { id: 'fog_of_war',    name: 'Chiến Dịch Đêm Mù',   shortLabel: 'ĐÊM MÙ' },
-    raid_boss:     { id: 'raid_boss',     name: 'Đấu Trường Siêu Boss', shortLabel: 'SIÊU BOSS' },
-    bossrush:      { id: 'bossrush',      name: 'Đấu Trường Siêu Boss', shortLabel: 'SIÊU BOSS' },
-    challenge:     { id: 'challenge',     name: 'Thủ Thành Zombie 20W', shortLabel: 'ZOMBIE TD' }
-};
-
-export function calcStageRewardCoins(mapLv, diffId, modeId) {
-    const m = Math.max(1, Number(mapLv) || 1);
-    let coins = diffId === 'difficult' ? (650 + m * 150) : (200 + m * 65);
-    if (modeId === 'survival' || modeId === 'endless' || modeId === 'endless_siege') {
-        coins = Math.round(coins * 1.35);
-    } else if (modeId === 'raid_boss' || modeId === 'bossrush') {
-        coins = Math.round(coins * 1.5);
-    } else if (modeId === 'challenge') {
-        coins = 12000 + m * 3500;
-    }
-    return coins;
-}
-
-export function calcChallengeEntryCostCoins(mapLv) {
-    const m = Math.max(1, Number(mapLv) || 1);
-    return 5000 + (m - 1) * 1500;
-}
-
-export function calcChallengeRewards(mapLv, pearlBonusPct = 0) {
-    const m = Math.max(1, Number(mapLv) || 1);
-    const pearlMult = 1 + Math.max(0, Number(pearlBonusPct) || 0);
-    const pearls = Math.max(10, Math.round((12 + m * 3) * pearlMult));
-    const gems = 250 + m * 35;
-    const coins = 12000 + m * 3500;
-    return { pearls, gems, coins };
-}
-
-/* 3. CẤU HÌNH RƯƠNG GACHA SHOP & BẢNG GIÁ NÂNG CẤP */
-export const MAX_CRATE_OPEN_QTY = 1000000000;
-export const CRATE_PRESET_QUANTITIES = [1000, 1000000, 100000000, 1000000000];
-
-export const CRATE_CONFIG = {
-    legendary: {
-        id: 'legendary',
-        name: 'LEGENDARY CRATE',
-        singlePrice: 300,
-        tenPrice: 2700,
-        maxCustomQty: MAX_CRATE_OPEN_QTY,
-        rates: [
-            { rarity: 'uncommon',  weight: 50.0 },
-            { rarity: 'rare',      weight: 35.0 },
-            { rarity: 'epic',      weight: 12.0 },
-            { rarity: 'legendary', weight: 3.0 }
-        ]
-    },
-    epic: {
-        id: 'epic',
-        name: 'EPIC CRATE',
-        singlePrice: 150,
-        tenPrice: 1350,
-        maxCustomQty: MAX_CRATE_OPEN_QTY,
-        rates: [
-            { rarity: 'common',   weight: 55.0 },
-            { rarity: 'uncommon', weight: 30.0 },
-            { rarity: 'rare',     weight: 12.0 },
-            { rarity: 'epic',     weight: 3.0 }
-        ]
-    }
-};
-
-export const UPGRADE_TIER_BASE_PRICES = [100, 280, 750, 1800, 4200, 9500, 20000];
-
-/* 4. DANH MỤC GIFTCODE (11 MÃ CHÍNH THỨC + GÓI SIÊU CẤP DEV) */
-export const OFFICIAL_GIFTCODES = [
-    'HUNGDEPTRAI', 'HUNGDZ01', 'HUNGDZ02', 'HUNGDZ03', 'HUNGDZ04',
-    'HUNGDZ05', 'HUNGDZ06', 'HUNGDZ07', 'HUNGDZ08', 'HUNGDZ09', 'HUNGDZ10'
-];
-export const GIFTCODE_REWARD_GEMS = 1500;
-export const GIFTCODE_REWARD_COINS = 15000;
-export const GIFTCODE_REWARD_MEDALS = 15;
-export const GIFTCODE_REWARD_PEARLS = 25;
-
-export const GIFT_CODES = {
-    'HUNGDEPTRAI': { gems: 999999, coins: 999999999, medals: 500, pearls: 9999, desc: 'Gói Siêu Cấp Dev' }
-};
-OFFICIAL_GIFTCODES.forEach(code => {
-    if (code !== 'HUNGDEPTRAI') {
-        GIFT_CODES[code] = {
-            gems: GIFTCODE_REWARD_GEMS,
-            coins: GIFTCODE_REWARD_COINS,
-            medals: GIFTCODE_REWARD_MEDALS,
-            pearls: GIFTCODE_REWARD_PEARLS,
-            desc: 'Quà Tặng Chỉ Huy'
-        };
-    }
-});
-
-/* 5. BỘ KỸ NĂNG CHIẾN THUẬT CHỦ ĐỘNG (Q, W, E, R) */
-export const COMMANDER_TACTICS = {
-    airdrop: {
-        id: 'airdrop',
-        engineKey: 'airdrop',
-        key: 'Q',
-        name: 'Chi Viện Dù',
-        shortName: 'CHI VIỆN',
-        icon: '🪂',
-        cooldown: 16.0,
-        healRatio: 0.40,
-        atkSpeedBuff: 0.30,
-        buffDuration: 6.0,
-        paratroopUnits: ['infantry', 'bazooka', 'infantry'],
-        needsTarget: false,
-        desc: 'Thả 3 lính nhảy dù tinh nhuệ xuống giữa chiến trường và hồi 40% HP toàn quân.'
-    },
-    landmines: {
-        id: 'landmines',
-        engineKey: 'minefield',
-        key: 'W',
-        name: 'Mìn Chống Tăng',
-        shortName: 'RẢI MÌN',
-        icon: '💣',
-        cooldown: 18.0,
-        mineCount: 5,
-        mineDamage: 240,
-        mineSplash: 54,
-        needsTarget: false,
-        desc: 'Đặt 5 quả mìn chống tăng dọc chiến tuyến, nổ lan sát thương lớn (240 DMG).'
-    },
-    emp: {
-        id: 'emp',
-        engineKey: 'emp_blast',
-        key: 'E',
-        name: 'Xung Điện EMP',
-        shortName: 'XUNG EMP',
-        icon: '⚡',
-        cooldown: 22.0,
-        stunDuration: 4.0,
-        empDamage: 48,
-        bossEmpDamage: 180,
-        needsTarget: false,
-        desc: 'Làm tê liệt toàn bộ quân địch trong 4 giây và gây sát thương điện từ.'
-    },
-    blitzkrieg: {
-        id: 'blitzkrieg',
-        engineKey: 'blitzkrieg',
-        key: 'R',
-        name: 'Tăng Tốc Cơ Động',
-        shortName: 'THẦN TỐC',
-        icon: '🚀',
-        cooldown: 24.0,
-        fireRateMult: 1.55,
-        speedMult: 1.42,
-        duration: 6.0,
-        needsTarget: false,
-        desc: 'Tăng 55% tốc bắn và 42% tốc độ di chuyển toàn quân trong 6 giây.'
-    }
-};
-Object.defineProperties(COMMANDER_TACTICS, {
-    minefield: { value: COMMANDER_TACTICS.landmines, enumerable: false },
-    mines:     { value: COMMANDER_TACTICS.landmines, enumerable: false },
-    emp_blast: { value: COMMANDER_TACTICS.emp,       enumerable: false },
-    blitz:     { value: COMMANDER_TACTICS.blitzkrieg, enumerable: false }
-});
-
-/* 6. CÂY KỸ NĂNG BỊ ĐỘNG LOBBY (6 NHÁNH META-TALENTS - MAX LV.10 | DÙNG 🎖️ HUY CHƯƠNG) */
-export const META_TALENTS = {
-    oil_refining: {
-        id: 'oil_refining',
-        name: 'Công Nghệ Lọc Dầu',
-        icon: '🛢️',
-        maxLevel: 10,
-        baseCost: 5,
-        costStep: 4,
-        desc: 'Giảm chu kỳ hồi Xăng (-0.06s/cấp, tối đa -0.60s ở Lv.10).',
-        getEffectText(lv) { return `Chu kỳ xăng: ${(3.0 - lv * 0.06).toFixed(2)}s / điểm (-${(lv * 0.06).toFixed(2)}s)`; }
-    },
-    high_grade_steel: {
-        id: 'high_grade_steel',
-        name: 'Thép Tôi Cao Cấp',
-        icon: '🛡️',
-        maxLevel: 10,
-        baseCost: 5,
-        costStep: 4,
-        desc: 'Tăng HP & Giáp giảm sát thương toàn quân (+3%/cấp, tối đa +30%).',
-        getEffectText(lv) { return `HP & Giáp cộng thêm: +${lv * 3}%`; }
-    },
-    optimal_logistics: {
-        id: 'optimal_logistics',
-        name: 'Hậu Cần Tối Ưu',
-        icon: '📦',
-        maxLevel: 10,
-        baseCost: 5,
-        costStep: 4,
-        desc: 'Tăng Xăng đầu trận (+1 mỗi 2 cấp) & giảm hồi chiêu Q/W/E/R (-3%/cấp, tối đa -30%).',
-        getEffectText(lv) { return `Xăng đầu trận: +${Math.floor(lv / 2)} | Hồi chiêu QWER: -${lv * 3}%`; }
-    },
-    critical_firepower: {
-        id: 'critical_firepower',
-        name: 'Hỏa Lực Chí Mạng',
-        icon: '🎯',
-        maxLevel: 10,
-        baseCost: 5,
-        costStep: 4,
-        desc: 'Tăng tỷ lệ Bạo kích (+2.5%/cấp, đòn chí mạng gây 1.75x sát thương).',
-        getEffectText(lv) { return `Tỷ lệ Bạo kích: +${(lv * 2.5).toFixed(1)}% (1.75x DMG)`; }
-    },
-    battlefield_harvest: {
-        id: 'battlefield_harvest',
-        name: 'Thu Hoạch Chiến Trường',
-        icon: '💰',
-        maxLevel: 10,
-        baseCost: 5,
-        costStep: 4,
-        desc: 'Tăng +8%/cấp Vàng thắng trận và hoàn lại 15% chi phí Xăng khi quân hy sinh.',
-        getEffectText(lv) { return `Thưởng Vàng: +${lv * 8}% | Hoàn Xăng hy sinh: ${lv > 0 ? '15%' : '0%'}`; }
-    },
-    immortal_bastion: {
-        id: 'immortal_bastion',
-        name: 'Pháo Đài Bất Tử',
-        icon: '🗼',
-        maxLevel: 10,
-        baseCost: 5,
-        costStep: 4,
-        desc: 'Tăng +10%/cấp HP Căn Cứ Xanh và +8%/cấp sát thương cho Ụ Pháo Căn Cứ.',
-        getEffectText(lv) { return `HP Căn Cứ: +${lv * 10}% | DMG Ụ Pháo: +${lv * 8}%`; }
-    }
-};
-
-/* 7. HỆ THỐNG CHIP / NGỌC BỔ TRỢ (MUA BẰNG 2,500 🪙 HOẶC 150 💎 | MỞ KHE 2 = 500 💎) */
-export const CHIP_SOCKET_2_UNLOCK_GEMS = 500;
-export const CHIP_BUY_COST_COINS = 2500;
-export const CHIP_BUY_COST_GEMS = 150;
-
-export const UNIT_CHIPS = {
-    napalm_rocket: {
-        id: 'napalm_rocket',
-        name: 'Đầu Đạn Napalm',
-        shortName: 'Napalm',
-        icon: '🔥',
-        dotCss: 'chip-napalm',
-        buyCoins: CHIP_BUY_COST_COINS,
-        buyGems: CHIP_BUY_COST_GEMS,
-        burnDps: 18,
-        burnDuration: 3.0,
-        splashBonus: 14,
-        recommendedUnits: ['bazooka', 'tank', 'heavy_tank', 'heli', 'battleship', 'pyromancer'],
-        desc: 'Đạn nổ đốt cháy mục tiêu trong 3s (18 DPS) và +14 bán kính nổ.'
-    },
-    tactical_radar: {
-        id: 'tactical_radar',
-        name: 'Radar Chiến Thuật',
-        shortName: 'Radar +28 & Choáng',
-        icon: '📡',
-        dotCss: 'chip-radar',
-        buyCoins: CHIP_BUY_COST_COINS,
-        buyGems: CHIP_BUY_COST_GEMS,
-        rangeBonusFlat: 28,
-        nightVisionBonus: 65,
-        stunChance: 0.14,
-        stunDuration: 1.2,
-        recommendedUnits: ['humvee', 'apc', 'sniper', 'destroyer', 'patrol_boat', 'cryomancer', 'necromancer', 'railgun_walker'],
-        desc: '+28 tầm bắn, +14% tỷ lệ bắn gây choáng điện từ (1.2s) và +65px tầm nhìn đêm.'
-    },
-    reactive_armor: {
-        id: 'reactive_armor',
-        name: 'Giáp Phản Ứng Nổ',
-        shortName: 'Giáp ERA',
-        icon: '🟣',
-        dotCss: 'chip-armor',
-        buyCoins: CHIP_BUY_COST_COINS,
-        buyGems: CHIP_BUY_COST_GEMS,
-        hpBonusPct: 0.18,
-        damageReductionPct: 0.15,
-        recommendedUnits: ['tank', 'heavy_tank', 'apc', 'destroyer', 'battleship', 'mecha_paladin', 'cleric'],
-        desc: 'Tăng 18% HP tối đa và giảm 15% sát thương nhận vào.'
-    },
-    overclock_core: {
-        id: 'overclock_core',
-        name: 'Lõi Xung Nhịp Cao',
-        shortName: 'Ép Xung & Choáng',
-        icon: '🔋',
-        dotCss: 'chip-overclock',
-        buyCoins: CHIP_BUY_COST_COINS,
-        buyGems: CHIP_BUY_COST_GEMS,
-        speedBonusPct: 0.20,
-        cooldownReductionPct: 0.15,
-        stunChance: 0.14,
-        stunDuration: 1.2,
-        recommendedUnits: ['infantry', 'rifleman', 'sniper', 'humvee', 'heli', 'pyromancer', 'cryomancer', 'cleric', 'railgun_walker'],
-        desc: '+20% tốc chạy, -15% hồi chiêu gọi quân và 14% tỷ lệ gây choáng điện từ (1.2s).'
-    }
-};
-Object.defineProperties(UNIT_CHIPS, {
-    overclock_servo: { value: UNIT_CHIPS.overclock_core, enumerable: false }
-});
-
-/* 8. CÂY KỸ NĂNG CỔ THỤ 4 NHÁNH TÁN CÂY (40 KỸ NĂNG & 4 KỸ NĂNG ĐẶC BIỆT MỐC 10 - DÙNG ⚪ NGỌC TRAI TRẮNG) */
-export const SKILL_TREE_BRANCHES = [
-    { id: 'firepower', name: '🔥 Hỏa Lực & Nguyên Tố', shortName: '🔥 HỎA LỰC', color: '#f97316', rootX: 110 },
-    { id: 'fortress',  name: '🛡️ Pháo Đài & Sinh Mệnh', shortName: '🛡️ PHÁO ĐÀI', color: '#38bdf8', rootX: 275 },
-    { id: 'summon',    name: '💀 Triệu Hồi & Khống Chế', shortName: '💀 TRIỆU HỒI', color: '#c084fc', rootX: 445 },
-    { id: 'economy',   name: '⛽ Kinh Tế & Hậu Cần',    shortName: '⛽ KINH TẾ',  color: '#4ade80', rootX: 610 }
-];
-
-export const ANCIENT_SKILL_TREE = {
-    // ==================== NHÁNH 1: HỎA LỰC & NGUYÊN TỐ (10 KỸ NĂNG) ====================
-    fp_1: {
-        id: 'fp_1', branch: 'firepower', order: 1, x: 110, y: 610,
-        name: 'Cường Hóa Đạn Đạo', icon: '🔫', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
-        statType: 'physDmgPct', perLevel: 0.08,
-        desc: '+8%/cấp Sát thương vật lý cho toàn bộ đơn vị và Tower.',
-        getEffectText(lv) { return `DMG Vật Lý: +${lv * 8}%`; }
-    },
-    fp_2: {
-        id: 'fp_2', branch: 'firepower', order: 2, x: 75, y: 540,
-        name: 'Tâm Nhãn Xạ Thủ', icon: '🎯', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['fp_1'],
-        statType: 'critChance', perLevel: 0.025,
-        desc: '+2.5%/cấp Tỷ lệ Bạo kích (gây 1.75x sát thương).',
-        getEffectText(lv) { return `Tỷ lệ Bạo kích: +${(lv * 2.5).toFixed(1)}%`; }
-    },
-    fp_3: {
-        id: 'fp_3', branch: 'firepower', order: 3, x: 145, y: 540,
-        name: 'Nguyên Tố Bùng Nổ', icon: '🔥', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['fp_1'],
-        statType: 'elemDmgPct', perLevel: 0.10,
-        desc: '+10%/cấp Sát thương nguyên tố (Lửa, Băng, Ám, Railgun).',
-        getEffectText(lv) { return `DMG Nguyên Tố: +${lv * 10}%`; }
-    },
-    fp_4: {
-        id: 'fp_4', branch: 'firepower', order: 4, x: 75, y: 465,
-        name: 'Cò Súng Tự Động', icon: '⚡', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['fp_2'],
-        statType: 'fireRatePct', perLevel: 0.07,
-        desc: '+7%/cấp Tốc độ bắn cho toàn bộ đơn vị và Tower.',
-        getEffectText(lv) { return `Tốc độ bắn: +${lv * 7}%`; }
-    },
-    fp_5: {
-        id: 'fp_5', branch: 'firepower', order: 5, x: 145, y: 465,
-        name: 'Đầu Đạn Xuyên Giáp', icon: '💥', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['fp_3'],
-        statType: 'allDmgPct', perLevel: 0.07,
-        desc: '+7%/cấp Tổng sát thương đầu ra cho mọi binh chủng.',
-        getEffectText(lv) { return `Tổng Sát Thương: +${lv * 7}%`; }
-    },
-    fp_6: {
-        id: 'fp_6', branch: 'firepower', order: 6, x: 75, y: 390,
-        name: 'Thuốc Nổ Cấp Cao', icon: '💣', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['fp_4'],
-        statType: 'splashBonus', perLevel: 6,
-        desc: '+6px/cấp Bán kính nổ lan cho đạn pháo, tên lửa & phép thuật.',
-        getEffectText(lv) { return `Bán kính nổ lan: +${lv * 6}px`; }
-    },
-    fp_7: {
-        id: 'fp_7', branch: 'firepower', order: 7, x: 145, y: 390,
-        name: 'Ngọn Lửa Vĩnh Cửu', icon: '🌋', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['fp_5'],
-        statType: 'burnBonusPct', perLevel: 0.25,
-        desc: '+25%/cấp Sát thương thiêu đốt theo thời gian (Burn DPS).',
-        getEffectText(lv) { return `Hiệu quả Thiêu Đốt: +${lv * 25}%`; }
-    },
-    fp_8: {
-        id: 'fp_8', branch: 'firepower', order: 8, x: 75, y: 315,
-        name: 'Nòng Pháo Viễn Trinh', icon: '🔭', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['fp_6'],
-        statType: 'rangeBonus', perLevel: 8,
-        desc: '+8px/cấp Tầm bắn xa cho toàn bộ đơn vị và Tower.',
-        getEffectText(lv) { return `Tầm bắn cộng thêm: +${lv * 8}px`; }
-    },
-    fp_9: {
-        id: 'fp_9', branch: 'firepower', order: 9, x: 145, y: 315,
-        name: 'Cuồng Nộ Chiến Trường', icon: '💢', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['fp_7'],
-        statType: 'allDmgPct', perLevel: 0.12,
-        desc: '+12%/cấp Sát thương toàn diện trước thềm sức mạnh tối thượng.',
-        getEffectText(lv) { return `Sát Thương Tinh Anh: +${lv * 12}%`; }
-    },
-    fp_10: {
-        id: 'fp_10', branch: 'firepower', order: 10, x: 110, y: 215, isKeystone: true,
-        name: '🌪️ BÃO THIÊN THẠCH (ĐẶC BIỆT)', icon: '☄️', maxLevel: 1, baseCost: 180, costStep: 0, requires: ['fp_8', 'fp_9'],
-        specialKey: 'meteor_storm',
-        desc: '[KỸ NĂNG ĐẶC BIỆT] Cứ mỗi 14 giây trong trận, tự động gọi 3 thiên thạch giáng xuống cụm địch đông nhất gây nổ lan 320 DMG & thiêu đốt!',
-        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Gọi 3 Thiên Thạch mỗi 14s!' : 'Chưa mở khóa (Cần 180 ⚪)'; }
-    },
-
-    // ==================== NHÁNH 2: PHÁO ĐÀI & SINH MỆNH (10 KỸ NĂNG) ====================
-    ft_1: {
-        id: 'ft_1', branch: 'fortress', order: 1, x: 275, y: 610,
-        name: 'Rễ Sinh Mệnh', icon: '💚', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
-        statType: 'hpPct', perLevel: 0.10,
-        desc: '+10%/cấp Máu (HP) tối đa cho toàn bộ đơn vị và Tower.',
-        getEffectText(lv) { return `HP Toàn Quân & Tower: +${lv * 10}%`; }
-    },
-    ft_2: {
-        id: 'ft_2', branch: 'fortress', order: 2, x: 240, y: 540,
-        name: 'Giáp Composite', icon: '🛡️', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['ft_1'],
-        statType: 'armorPct', perLevel: 0.03,
-        desc: '+3%/cấp Giảm sát thương nhận vào cho toàn quân Xanh.',
-        getEffectText(lv) { return `Giảm Sát Thương: +${lv * 3}%`; }
-    },
-    ft_3: {
-        id: 'ft_3', branch: 'fortress', order: 3, x: 310, y: 540,
-        name: 'Tường Thành Kiên Cố', icon: '🏰', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['ft_1'],
-        statType: 'baseHpPct', perLevel: 0.15,
-        desc: '+15%/cấp Máu tối đa cho Căn Cứ Xanh.',
-        getEffectText(lv) { return `HP Căn Cứ Xanh: +${lv * 15}%`; }
-    },
-    ft_4: {
-        id: 'ft_4', branch: 'fortress', order: 4, x: 240, y: 465,
-        name: 'Huyết Thanh Tái Tạo', icon: '💉', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['ft_2'],
-        statType: 'hpRegenPct', perLevel: 0.006,
-        desc: 'Toàn bộ đơn vị và Tower tự hồi +0.6%/cấp HP mỗi giây.',
-        getEffectText(lv) { return `Hồi phục tự động: +${(lv * 0.6).toFixed(1)}% HP/s`; }
-    },
-    ft_5: {
-        id: 'ft_5', branch: 'fortress', order: 5, x: 310, y: 465,
-        name: 'Tháp Phòng Thủ Tự Động', icon: '🗼', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['ft_3'],
-        statType: 'turretDmgPct', perLevel: 0.14,
-        desc: '+14%/cấp Sát thương cho Ụ Pháo gắn trên Căn Cứ Xanh.',
-        getEffectText(lv) { return `DMG Ụ Pháo Căn Cứ: +${lv * 14}%`; }
-    },
-    ft_6: {
-        id: 'ft_6', branch: 'fortress', order: 6, x: 240, y: 390,
-        name: 'Linh Hồn Hấp Huyết', icon: '🩸', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['ft_4'],
-        statType: 'lifestealPct', perLevel: 0.04,
-        desc: 'Đơn vị phe Xanh hồi máu bằng +4%/cấp sát thương gây ra.',
-        getEffectText(lv) { return `Hút máu đòn đánh: +${lv * 4}%`; }
-    },
-    ft_7: {
-        id: 'ft_7', branch: 'fortress', order: 7, x: 310, y: 390,
-        name: 'Phúc Lành Thánh Quang', icon: '✨', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['ft_5'],
-        statType: 'healBonusPct', perLevel: 0.18,
-        desc: '+18%/cấp Hiệu quả hồi máu của Mục Sư & Chi Viện Dù.',
-        getEffectText(lv) { return `Hiệu quả Hồi Máu: +${lv * 18}%`; }
-    },
-    ft_8: {
-        id: 'ft_8', branch: 'fortress', order: 8, x: 240, y: 315,
-        name: 'Kháng Hiệu Ứng Bất Lợi', icon: '💠', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['ft_6'],
-        statType: 'ccResistPct', perLevel: 0.15,
-        desc: 'Giảm -15%/cấp thời gian bị Choáng, Đóng Băng & Axit làm chậm.',
-        getEffectText(lv) { return `Kháng Khống Chế: -${lv * 15}% thời gian`; }
-    },
-    ft_9: {
-        id: 'ft_9', branch: 'fortress', order: 9, x: 310, y: 315,
-        name: 'Thân Thể Bất Hoại', icon: '🦾', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['ft_7'],
-        statType: 'hpPct', perLevel: 0.15,
-        desc: '+15%/cấp HP tối đa toàn diện bảo vệ tiền tuyến.',
-        getEffectText(lv) { return `HP Bất Hoại: +${lv * 15}%`; }
-    },
-    ft_10: {
-        id: 'ft_10', branch: 'fortress', order: 10, x: 275, y: 215, isKeystone: true,
-        name: '🛡️ KHIÊN PHẢN CHẤN VĨNH CỬU (ĐẶC BIỆT)', icon: '🔰', maxLevel: 1, baseCost: 180, costStep: 0, requires: ['ft_8', 'ft_9'],
-        specialKey: 'eternal_shield',
-        desc: '[KỸ NĂNG ĐẶC BIỆT] Căn Cứ Xanh và toàn bộ Tower nhận lớp Khiên Năng Lượng bằng 25% HP tối đa, tự động hồi đầy sau mỗi Wave!',
-        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Khiên 25% HP hồi đầy mỗi Wave!' : 'Chưa mở khóa (Cần 180 ⚪)'; }
-    },
-
-    // ==================== NHÁNH 3: TRIỆU HỒI & KHỐNG CHẾ (10 KỸ NĂNG) ====================
-    sm_1: {
-        id: 'sm_1', branch: 'summon', order: 1, x: 445, y: 610,
-        name: 'Cành Săn Xác Sống', icon: '🗡️', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
-        statType: 'zombieDmgPct', perLevel: 0.18,
-        desc: '+18%/cấp Sát thương gây lên toàn bộ Zombie & Boss trong CHALLENGE.',
-        getEffectText(lv) { return `DMG Diệt Zombie & Boss: +${lv * 18}%`; }
-    },
-    sm_2: {
-        id: 'sm_2', branch: 'summon', order: 2, x: 410, y: 540,
-        name: 'Hàn Băng Vĩnh Cửu', icon: '❄️', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['sm_1'],
-        statType: 'ccDurationPct', perLevel: 0.12,
-        desc: '+12%/cấp Thời gian Đóng Băng & Làm Choáng kẻ địch.',
-        getEffectText(lv) { return `Thời gian Khống Chế: +${lv * 12}%`; }
-    },
-    sm_3: {
-        id: 'sm_3', branch: 'summon', order: 3, x: 480, y: 540,
-        name: 'Cành Tinh Anh', icon: '⏱️', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['sm_1'],
-        statType: 'cdReductionPct', perLevel: 0.03,
-        desc: 'Giảm -3%/cấp thời gian hồi chiêu đặt Tower & gọi quân.',
-        getEffectText(lv) { return `Giảm Hồi Chiêu Quân: -${lv * 3}%`; }
-    },
-    sm_4: {
-        id: 'sm_4', branch: 'summon', order: 4, x: 410, y: 465,
-        name: 'Tụ Điện Cao Áp', icon: '⚡', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['sm_2'],
-        statType: 'stunChanceBonus', perLevel: 0.03,
-        desc: '+3%/cấp Tỷ lệ đòn đánh thường gây Choáng điện từ (1.0s).',
-        getEffectText(lv) { return `Tỷ lệ Choáng Thêm: +${lv * 3}%`; }
-    },
-    sm_5: {
-        id: 'sm_5', branch: 'summon', order: 5, x: 480, y: 465,
-        name: 'Xương Cốt Cương Thiết', icon: '💀', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['sm_3'],
-        statType: 'skeletonStatPct', perLevel: 0.25,
-        desc: '+25%/cấp HP & Sát thương cho Chiến Binh Xương triệu hồi.',
-        getEffectText(lv) { return `Sức mạnh Chiến Binh Xương: +${lv * 25}%`; }
-    },
-    sm_6: {
-        id: 'sm_6', branch: 'summon', order: 6, x: 410, y: 390,
-        name: 'Chiến Thuật Chỉ Huy', icon: '🎖️', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['sm_4'],
-        statType: 'tacticCdPct', perLevel: 0.05,
-        desc: 'Giảm -5%/cấp thời gian hồi 4 kỹ năng Chỉ huy [Q/W/E/R].',
-        getEffectText(lv) { return `Hồi chiêu Q/W/E/R: -${lv * 5}%`; }
-    },
-    sm_7: {
-        id: 'sm_7', branch: 'summon', order: 7, x: 480, y: 390,
-        name: 'Binh Đoàn Vong Linh', icon: '👻', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['sm_5'],
-        statType: 'extraSkeletonCap', perLevel: 1,
-        desc: '+1/cấp Giới hạn Chiến Binh Xương tối đa của mỗi Pháp Sư Chiêu Hồn.',
-        getEffectText(lv) { return `Giới hạn Xương: +${lv} con`; }
-    },
-    sm_8: {
-        id: 'sm_8', branch: 'summon', order: 8, x: 410, y: 315,
-        name: 'Bước Chân Thần Tốc', icon: '👟', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['sm_6'],
-        statType: 'moveSpeedPct', perLevel: 0.06,
-        desc: '+6%/cấp Tốc độ di chuyển cho toàn bộ đơn vị trên chiến trường.',
-        getEffectText(lv) { return `Tốc độ di chuyển: +${lv * 6}%`; }
-    },
-    sm_9: {
-        id: 'sm_9', branch: 'summon', order: 9, x: 480, y: 315,
-        name: 'Áp Đảo Bóng Tối', icon: '🌑', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['sm_7'],
-        statType: 'zombieDmgPct', perLevel: 0.25,
-        desc: '+25%/cấp Sát thương kết liễu Zombie & Boss.',
-        getEffectText(lv) { return `Sát Thương Hư Không: +${lv * 25}%`; }
-    },
-    sm_10: {
-        id: 'sm_10', branch: 'summon', order: 10, x: 445, y: 215, isKeystone: true,
-        name: '💀 LÃNH CHÚA HƯ KHÔNG (ĐẶC BIỆT)', icon: '👑', maxLevel: 1, baseCost: 200, costStep: 0, requires: ['sm_8', 'sm_9'],
-        specialKey: 'void_lord',
-        desc: '[KỸ NĂNG ĐẶC BIỆT] Nhân đôi giới hạn Chiến Binh Xương, đồng thời mỗi khi lính Xanh hy sinh có 25% tỷ lệ hồi sinh ngay thành Chiến Binh Xương!',
-        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Xương x2 & 25% Hồi sinh Xương!' : 'Chưa mở khóa (Cần 200 ⚪)'; }
-    },
-
-    // ==================== NHÁNH 4: KINH TẾ & HẬU CẦN (10 KỸ NĂNG) ====================
-    ec_1: {
-        id: 'ec_1', branch: 'economy', order: 1, x: 610, y: 610,
-        name: 'Rễ Tiếp Tế', icon: '⛽', maxLevel: 5, baseCost: 5, costStep: 2, requires: [],
-        statType: 'startGasFlat', perLevel: 1,
-        desc: '+1 Xăng khởi đầu ngay khi vừa bước vào mọi trận đấu.',
-        getEffectText(lv) { return `Xăng khởi đầu trận: +${lv}`; }
-    },
-    ec_2: {
-        id: 'ec_2', branch: 'economy', order: 2, x: 575, y: 540,
-        name: 'Bơm Áp Suất Cao', icon: '⚡', maxLevel: 5, baseCost: 8, costStep: 3, requires: ['ec_1'],
-        statType: 'gasRegenPct', perLevel: 0.05,
-        desc: '+5%/cấp Tốc độ hồi phục Xăng tự động trong trận.',
-        getEffectText(lv) { return `Tốc độ hồi Xăng: +${lv * 5}%`; }
-    },
-    ec_3: {
-        id: 'ec_3', branch: 'economy', order: 3, x: 645, y: 540,
-        name: 'Khai Thác Vàng Ròng', icon: '🪙', maxLevel: 5, baseCost: 10, costStep: 3, requires: ['ec_1'],
-        statType: 'goldBonusPct', perLevel: 0.10,
-        desc: '+10%/cấp Lượng Vàng nhận được sau mỗi trận chiến.',
-        getEffectText(lv) { return `Thưởng Vàng Chiến Dịch: +${lv * 10}%`; }
-    },
-    ec_4: {
-        id: 'ec_4', branch: 'economy', order: 4, x: 575, y: 465,
-        name: 'Sổ Tay Kinh Nghiệm', icon: '📘', maxLevel: 5, baseCost: 14, costStep: 4, requires: ['ec_2'],
-        statType: 'expGainPct', perLevel: 0.12,
-        desc: '+12%/cấp EXP nhận được khi hạ địch để tích lũy LEVEL UP nhanh hơn.',
-        getEffectText(lv) { return `Tốc độ nhận EXP trận: +${lv * 12}%`; }
-    },
-    ec_5: {
-        id: 'ec_5', branch: 'economy', order: 5, x: 645, y: 465,
-        name: 'Kho Báu Ngọc Trai', icon: '⚪', maxLevel: 5, baseCost: 18, costStep: 4, requires: ['ec_3'],
-        statType: 'pearlBonusPct', perLevel: 0.15,
-        desc: '+15%/cấp Lượng Ngọc Trai Trắng nhận được khi vượt ải CHALLENGE.',
-        getEffectText(lv) { return `Thưởng Ngọc Trai Trắng: +${lv * 15}%`; }
-    },
-    ec_6: {
-        id: 'ec_6', branch: 'economy', order: 6, x: 575, y: 390,
-        name: 'Tái Chế Khí Tài', icon: '♻️', maxLevel: 4, baseCost: 22, costStep: 5, requires: ['ec_4'],
-        statType: 'deathGasRefundPct', perLevel: 0.04,
-        desc: 'Hoàn lại thêm +4%/cấp chi phí Xăng khi đơn vị phe Xanh hy sinh.',
-        getEffectText(lv) { return `Hoàn Xăng hy sinh: +${lv * 4}%`; }
-    },
-    ec_7: {
-        id: 'ec_7', branch: 'economy', order: 7, x: 645, y: 390,
-        name: 'Bình Chứa Mở Rộng', icon: '🛢️', maxLevel: 4, baseCost: 26, costStep: 5, requires: ['ec_5'],
-        statType: 'maxGasFlat', perLevel: 2,
-        desc: '+2/cấp Giới hạn dự trữ Xăng tối đa trong trận.',
-        getEffectText(lv) { return `Trần Xăng tối đa: +${lv * 2}`; }
-    },
-    ec_8: {
-        id: 'ec_8', branch: 'economy', order: 8, x: 575, y: 315,
-        name: 'Chiến Lợi Phẩm Nóng', icon: '💰', maxLevel: 4, baseCost: 30, costStep: 5, requires: ['ec_6'],
-        statType: 'killGasChance', perLevel: 0.04,
-        desc: '+4%/cấp Tỷ lệ nhận ngay +0.5 Xăng mỗi khi tiêu diệt 1 kẻ địch.',
-        getEffectText(lv) { return `Tỷ lệ rơi Xăng khi diệt địch: +${lv * 4}%`; }
-    },
-    ec_9: {
-        id: 'ec_9', branch: 'economy', order: 9, x: 645, y: 315,
-        name: 'Tiếp Vận Siêu Tốc', icon: '🚀', maxLevel: 3, baseCost: 35, costStep: 5, requires: ['ec_7'],
-        statType: 'gasRegenPct', perLevel: 0.10,
-        desc: '+10%/cấp Tốc độ hồi phục Xăng cực đại.',
-        getEffectText(lv) { return `Tốc hồi Xăng Tinh Anh: +${lv * 10}%`; }
-    },
-    ec_10: {
-        id: 'ec_10', branch: 'economy', order: 10, x: 610, y: 215, isKeystone: true,
-        name: '⚛️ LÒ PHẢN ỨNG VÔ CỰC (ĐẶC BIỆT)', icon: '🔋', maxLevel: 1, baseCost: 220, costStep: 0, requires: ['ec_8', 'ec_9'],
-        specialKey: 'infinite_reactor',
-        desc: '[KỸ NĂNG ĐẶC BIỆT] Tăng giới hạn Xăng tối đa lên 30 và cứ mỗi khi tiêu tốn đủ 5 Xăng sẽ hoàn lại ngay 1 Xăng tức thì!',
-        getEffectText(lv) { return lv > 0 ? 'ĐÃ KÍCH HOẠT: Trần 30 Xăng & Hoàn 1⛽ mỗi 5⛽ tiêu!' : 'Chưa mở khóa (Cần 220 ⚪)'; }
-    }
-};
-
-// Sơ đồ các đoạn nối hình Cây Cổ Thụ Tự Nhiên (Gốc -> Thân -> Tỏa 4 Nhánh Độc Lập, không giao chéo)
-export const ANCIENT_TREE_BRANCH_LINES = [
-    { from: { x: 360, y: 745 }, to: { x: 360, y: 675 }, reqNode: null },
-    { from: { x: 360, y: 675 }, to: { x: 110, y: 610 }, reqNode: 'fp_1' },
-    { from: { x: 360, y: 675 }, to: { x: 275, y: 610 }, reqNode: 'ft_1' },
-    { from: { x: 360, y: 675 }, to: { x: 445, y: 610 }, reqNode: 'sm_1' },
-    { from: { x: 360, y: 675 }, to: { x: 610, y: 610 }, reqNode: 'ec_1' },
-
-    // Nhánh 1: Hỏa Lực
-    { from: 'fp_1', to: 'fp_2' }, { from: 'fp_1', to: 'fp_3' },
-    { from: 'fp_2', to: 'fp_4' }, { from: 'fp_3', to: 'fp_5' },
-    { from: 'fp_4', to: 'fp_6' }, { from: 'fp_5', to: 'fp_7' },
-    { from: 'fp_6', to: 'fp_8' }, { from: 'fp_7', to: 'fp_9' },
-    { from: 'fp_8', to: 'fp_10' }, { from: 'fp_9', to: 'fp_10' },
-
-    // Nhánh 2: Pháo Đài
-    { from: 'ft_1', to: 'ft_2' }, { from: 'ft_1', to: 'ft_3' },
-    { from: 'ft_2', to: 'ft_4' }, { from: 'ft_3', to: 'ft_5' },
-    { from: 'ft_4', to: 'ft_6' }, { from: 'ft_5', to: 'ft_7' },
-    { from: 'ft_6', to: 'ft_8' }, { from: 'ft_7', to: 'ft_9' },
-    { from: 'ft_8', to: 'ft_10' }, { from: 'ft_9', to: 'ft_10' },
-
-    // Nhánh 3: Triệu Hồi
-    { from: 'sm_1', to: 'sm_2' }, { from: 'sm_1', to: 'sm_3' },
-    { from: 'sm_2', to: 'sm_4' }, { from: 'sm_3', to: 'sm_5' },
-    { from: 'sm_4', to: 'sm_6' }, { from: 'sm_5', to: 'sm_7' },
-    { from: 'sm_6', to: 'sm_8' }, { from: 'sm_7', to: 'sm_9' },
-    { from: 'sm_8', to: 'sm_10' }, { from: 'sm_9', to: 'sm_10' },
-
-    // Nhánh 4: Kinh Tế
-    { from: 'ec_1', to: 'ec_2' }, { from: 'ec_1', to: 'ec_3' },
-    { from: 'ec_2', to: 'ec_4' }, { from: 'ec_3', to: 'ec_5' },
-    { from: 'ec_4', to: 'ec_6' }, { from: 'ec_5', to: 'ec_7' },
-    { from: 'ec_6', to: 'ec_8' }, { from: 'ec_7', to: 'ec_9' },
-    { from: 'ec_8', to: 'ec_10' }, { from: 'ec_9', to: 'ec_10' }
-];
-
-export function getSkillTreeNodeCost(nodeId, currentLv) {
-    const node = ANCIENT_SKILL_TREE[nodeId];
-    if (!node) return 999;
-    const lv = Math.max(0, Math.floor(Number(currentLv) || 0));
-    return node.baseCost + lv * node.costStep;
-}
-
-/* 9. DANH MỤC 17 BINH CHỦNG + KHÔNG KÍCH + CHIẾN BINH XƯƠNG */
-export const UNIT_CATALOG = [
-    {
-        id: 'infantry',
-        aliasId: 'rifleman',
-        name: 'Bộ Binh',
-        role: 'Lính Xung Kích',
-        category: 'infantry',
-        element: 'physical',
-        isWalker: true,
-        cost: 2,
-        cooldown: 1.5,
-        hp: 150,
-        damage: 22,
-        dmg: 22,
-        range: 95,
-        speed: 45,
-        fireRate: 0.85,
-        atkSpeed: 0.85,
-        radius: 11,
-        attackType: 'beam',
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'bazooka',
-        name: 'Lính Tên Lửa',
-        role: 'Khắc Tinh Cơ Giới',
-        category: 'infantry',
-        element: 'physical',
-        isWalker: true,
-        cost: 3,
-        cooldown: 2.2,
-        hp: 135,
-        damage: 58,
-        dmg: 58,
-        range: 125,
-        speed: 37,
-        fireRate: 0.65,
-        atkSpeed: 0.65,
-        splash: 28,
-        radius: 11,
-        attackType: 'projectile',
-        projType: 'rocket_short',
-        projSpeed: 250,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'sniper',
-        name: 'Lính Bắn Tỉa',
-        role: 'Xạ Thủ Tầm Xa',
-        category: 'infantry',
-        element: 'physical',
-        isWalker: true,
-        cost: 3,
-        cooldown: 2.8,
-        hp: 110,
-        damage: 95,
-        dmg: 95,
-        range: 195,
-        speed: 35,
-        fireRate: 0.50,
-        atkSpeed: 0.50,
-        radius: 11,
-        attackType: 'beam',
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'humvee',
-        name: 'Xe Humvee',
-        role: 'Trinh Sát Cơ Động',
-        category: 'vehicle',
-        element: 'physical',
-        cost: 4,
-        cooldown: 3.0,
-        hp: 340,
-        damage: 32,
-        dmg: 32,
-        range: 115,
-        speed: 62,
-        fireRate: 1.65,
-        atkSpeed: 1.65,
-        radius: 14,
-        attackType: 'beam',
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'apc',
-        name: 'Xe Thiết Giáp APC',
-        role: 'Đỡ Đạn Tuyến Đầu',
-        category: 'vehicle',
-        element: 'physical',
-        cost: 5,
-        cooldown: 3.8,
-        hp: 620,
-        damage: 40,
-        dmg: 40,
-        range: 108,
-        speed: 46,
-        fireRate: 1.15,
-        atkSpeed: 1.15,
-        radius: 15,
-        attackType: 'projectile',
-        projType: 'shell',
-        projSpeed: 270,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'tank',
-        name: 'Xe Tăng Chiến Đấu',
-        role: 'Chủ Lực Mặt Đất',
-        category: 'vehicle',
-        element: 'physical',
-        cost: 6,
-        cooldown: 4.5,
-        hp: 840,
-        damage: 118,
-        dmg: 118,
-        range: 142,
-        speed: 36,
-        fireRate: 0.60,
-        atkSpeed: 0.60,
-        splash: 34,
-        arcHeight: 24,
-        radius: 15,
-        attackType: 'projectile',
-        projType: 'shell',
-        projSpeed: 250,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'heavy_tank',
-        name: 'Siêu Tăng Hạng Nặng',
-        role: 'Pháo Đài Di Động',
-        category: 'vehicle',
-        element: 'physical',
-        cost: 8,
-        cooldown: 6.2,
-        hp: 1480,
-        damage: 198,
-        dmg: 198,
-        range: 158,
-        speed: 27,
-        fireRate: 0.48,
-        atkSpeed: 0.48,
-        splash: 44,
-        arcHeight: 30,
-        radius: 17,
-        attackType: 'projectile',
-        projType: 'arc_missile',
-        projSpeed: 235,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'heli',
-        name: 'Trực Thăng Vũ Trang',
-        role: 'Không Quân Yểm Trợ',
-        category: 'air',
-        element: 'physical',
-        isAir: true,
-        cost: 6,
-        cooldown: 5.0,
-        hp: 520,
-        damage: 86,
-        dmg: 86,
-        range: 148,
-        speed: 58,
-        fireRate: 0.90,
-        atkSpeed: 0.90,
-        splash: 28,
-        altitude: 26,
-        radius: 15,
-        attackType: 'projectile',
-        projType: 'air_missile',
-        projSpeed: 280,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'patrol_boat',
-        name: 'Thuyền Tuần Tra',
-        role: 'Thủy Quân Cơ Động',
-        category: 'naval',
-        element: 'physical',
-        isNaval: true,
-        cost: 3,
-        cooldown: 2.5,
-        hp: 360,
-        damage: 38,
-        dmg: 38,
-        range: 122,
-        speed: 56,
-        fireRate: 1.45,
-        atkSpeed: 1.45,
-        radius: 14,
-        attackType: 'beam',
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'destroyer',
-        name: 'Tàu Khu Trục',
-        role: 'Pháo Hạm Đa Năng',
-        category: 'naval',
-        element: 'physical',
-        isNaval: true,
-        cost: 5,
-        cooldown: 4.2,
-        hp: 780,
-        damage: 98,
-        dmg: 98,
-        range: 162,
-        speed: 40,
-        fireRate: 0.72,
-        atkSpeed: 0.72,
-        splash: 32,
-        arcHeight: 22,
-        radius: 15,
-        attackType: 'projectile',
-        projType: 'shell',
-        projSpeed: 255,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'battleship',
-        name: 'Thiết Giáp Hạm',
-        role: 'Bá Chủ Đại Dương',
-        category: 'naval',
-        element: 'physical',
-        isNaval: true,
-        cost: 8,
-        cooldown: 6.5,
-        hp: 1580,
-        damage: 218,
-        dmg: 218,
-        range: 195,
-        speed: 28,
-        fireRate: 0.45,
-        atkSpeed: 0.45,
-        splash: 48,
-        arcHeight: 34,
-        radius: 17,
-        attackType: 'projectile',
-        projType: 'arc_missile',
-        projSpeed: 230,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'pyromancer',
-        name: 'Phù Thủy Lửa',
-        role: 'Pháp Sư Hỏa Cầu (Thiêu Đốt)',
-        category: 'infantry',
-        element: 'elemental',
-        isWalker: true,
-        cost: 4,
-        cooldown: 3.5,
-        hp: 190,
-        damage: 64,
-        dmg: 64,
-        range: 138,
-        speed: 38,
-        fireRate: 0.70,
-        atkSpeed: 0.70,
-        splash: 38,
-        arcHeight: 28,
-        radius: 12,
-        innateBurnDps: 22,
-        innateBurnDuration: 3.0,
-        attackType: 'projectile',
-        projType: 'fireball',
-        projSpeed: 245,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'cryomancer',
-        name: 'Pháp Sư Băng Giá',
-        role: 'Khống Chế Đóng Băng (-55% Tốc)',
-        category: 'infantry',
-        element: 'elemental',
-        isWalker: true,
-        cost: 4,
-        cooldown: 3.8,
-        hp: 205,
-        damage: 45,
-        dmg: 45,
-        range: 145,
-        speed: 38,
-        fireRate: 0.75,
-        atkSpeed: 0.75,
-        splash: 42,
-        arcHeight: 18,
-        radius: 12,
-        chillSlowPct: 0.55,
-        chillDuration: 2.5,
-        attackType: 'projectile',
-        projType: 'ice_shard',
-        projSpeed: 255,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'cleric',
-        name: 'Mục Sư Thánh Quang',
-        role: 'Hồi Máu 2 Đồng Minh Thấp HP',
-        category: 'infantry',
-        element: 'elemental',
-        isWalker: true,
-        isHealer: true,
-        healTargetsCount: 2,
-        cost: 3,
-        cooldown: 3.2,
-        hp: 220,
-        damage: 35,
-        dmg: 35,
-        range: 120,
-        speed: 42,
-        fireRate: 1.00,
-        atkSpeed: 1.00,
-        radius: 11,
-        attackType: 'heal_beam',
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'necromancer',
-        name: 'Pháp Sư Chiêu Hồn',
-        role: 'Triệu Hồi Chiến Binh Xương',
-        category: 'infantry',
-        element: 'elemental',
-        isWalker: true,
-        isNecromancer: true,
-        soulHarvestRadius: 135,
-        maxSkeletons: 4,
-        cost: 6,
-        cooldown: 5.5,
-        hp: 280,
-        damage: 55,
-        dmg: 55,
-        range: 150,
-        speed: 34,
-        fireRate: 0.65,
-        atkSpeed: 0.65,
-        splash: 26,
-        arcHeight: 16,
-        radius: 12,
-        attackType: 'projectile',
-        projType: 'dark_orb',
-        projSpeed: 245,
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'mecha_paladin',
-        name: 'Robot Hộ Vệ Titan',
-        role: 'Khiên Lục Giác (-35% Đạn Xa)',
-        category: 'vehicle',
-        element: 'elemental',
-        rangedShieldReductionPct: 0.35,
-        cost: 7,
-        cooldown: 5.8,
-        hp: 1350,
-        damage: 110,
-        dmg: 110,
-        range: 92,
-        speed: 33,
-        fireRate: 0.85,
-        atkSpeed: 0.85,
-        radius: 17,
-        attackType: 'beam',
-        sockets: [null, null],
-        defaultChips: [null, null]
-    },
-    {
-        id: 'railgun_walker',
-        name: 'Pháo Điện Từ Railgun',
-        role: 'Bắn Xuyên Tuyến & Làm Choáng',
-        category: 'vehicle',
-        element: 'elemental',
-        isRailgunLine: true,
-        lineStunDuration: 0.8,
-        cost: 8,
-        cooldown: 6.5,
-        hp: 760,
-        damage: 215,
-        dmg: 215,
-        range: 210,
-        speed: 28,
-        fireRate: 0.42,
-        atkSpeed: 0.42,
-        radius: 16,
-        attackType: 'railgun_line',
-        sockets: [null, null],
-        defaultChips: [null, null]
-    }
-];
-
-export const SKELETON_SUMMON_SPEC = {
-    id: 'skeleton',
-    name: 'Chiến Binh Xương',
-    role: 'Vong Linh Triệu Hồi',
-    category: 'infantry',
-    element: 'elemental',
-    isWalker: true,
-    isSummonedSkeleton: true,
-    cost: 0,
-    cooldown: 1.0,
-    hp: 165,
-    damage: 32,
-    dmg: 32,
-    range: 42,
-    speed: 54,
-    fireRate: 1.25,
-    atkSpeed: 1.25,
-    radius: 10,
-    attackType: 'beam',
-    sockets: [null, null],
-    defaultChips: [null, null]
-};
-
-export const AIRSTRIKE_SPEC = {
-    id: 'airstrike',
-    name: 'Không Kích',
-    role: 'Oanh Tạc Chiến Thuật',
-    category: 'air',
-    element: 'physical',
-    isAir: true,
-    isAirstrike: true,
-    cost: 5,
+/* --------------------------------------------------------------------------
+ * 5. DANH SÁCH 17 BINH CHỦNG CHÍNH + 2 ĐƠN VỊ TRIỆU HỒI ĐẶC BIỆT
+ * Tất cả dùng sprite 2x2 trong assets/units/, gắn movementType & projectileKey
+ * -------------------------------------------------------------------------- */
+const UNIT_CATALOG = [
+  {
+    id: 'infantry',
+    name: 'Bộ Binh Xung Kích',
+    role: 'Tuyến đầu • Chi phí thấp',
+    movementType: 'ground',
+    spriteKey: 'infantry',
+    projectileKey: 'proj_bullet',
+    cost: 20,
+    cooldown: 1.8,
+    hp: 160,
+    atk: 24,
+    atkSpeed: 1.1,
+    range: 105,
+    speed: 58,
+    armor: 0.05,
+    armorPierce: 0,
+    aoeRadius: 0,
+    desc: 'Lính bộ binh cơ động trang bị súng trường tự động, tốc độ triển khai nhanh.'
+  },
+  {
+    id: 'bazooka',
+    name: 'Xạ Thủ Bazooka',
+    role: 'Phá giáp • Sát thương nổ',
+    movementType: 'ground',
+    spriteKey: 'bazooka',
+    projectileKey: 'proj_rocket',
+    cost: 35,
+    cooldown: 2.6,
+    hp: 145,
+    atk: 68,
+    atkSpeed: 0.65,
+    range: 175,
+    speed: 48,
+    armor: 0.05,
+    armorPierce: 0.35,
+    aoeRadius: 42,
+    desc: 'Bắn tên lửa chống tăng gây nổ diện rộng và xuyên giáp cơ giới.'
+  },
+  {
+    id: 'sniper',
+    name: 'Bắn Tỉa Ngụy Trang',
+    role: 'Tầm siêu xa • Chí mạng',
+    movementType: 'ground',
+    spriteKey: 'sniper',
+    projectileKey: 'proj_bullet',
+    cost: 45,
+    cooldown: 3.2,
+    hp: 120,
+    atk: 125,
+    atkSpeed: 0.5,
+    range: 290,
+    speed: 44,
+    armor: 0,
+    armorPierce: 0.5,
+    aoeRadius: 0,
+    critBonus: 0.25,
+    desc: 'Tiêu diệt mục tiêu giá trị cao từ khoảng cách cực xa với độ chính xác tuyệt đối.'
+  },
+  {
+    id: 'humvee',
+    name: 'Xe Thiết Giáp Humvee',
+    role: 'Cơ giới nhanh • Càn quét',
+    movementType: 'ground',
+    spriteKey: 'humvee',
+    projectileKey: 'proj_bullet',
+    cost: 55,
+    cooldown: 3.5,
+    hp: 340,
+    atk: 46,
+    atkSpeed: 1.6,
+    range: 145,
+    speed: 78,
+    armor: 0.18,
+    armorPierce: 0.1,
+    aoeRadius: 0,
+    desc: 'Xe trinh sát hạng nhẹ gắn đại liên hạng nặng, tốc độ di chuyển cao.'
+  },
+  {
+    id: 'apc',
+    name: 'Thiết Vận Xa APC',
+    role: 'Bọc thép • Hỏa lực liên thanh',
+    movementType: 'ground',
+    spriteKey: 'apc',
+    projectileKey: 'proj_bullet',
+    cost: 70,
+    cooldown: 4.2,
+    hp: 560,
+    atk: 58,
+    atkSpeed: 1.4,
+    range: 155,
+    speed: 62,
+    armor: 0.28,
+    armorPierce: 0.15,
+    aoeRadius: 24,
+    desc: 'Xe bọc thép 6 bánh chịu đòn bền bỉ, yểm trợ bộ binh tiến công.'
+  },
+  {
+    id: 'tank',
+    name: 'Xe Tăng Chiến Đấu',
+    role: 'Chủ lực • Pháo nổ mạnh',
+    movementType: 'ground',
+    spriteKey: 'tank',
+    projectileKey: 'proj_shell',
+    cost: 95,
+    cooldown: 5.0,
+    hp: 880,
+    atk: 145,
+    atkSpeed: 0.72,
+    range: 195,
+    speed: 46,
+    armor: 0.38,
+    armorPierce: 0.3,
+    aoeRadius: 50,
+    desc: 'Cỗ máy chiến tranh chủ lực với lớp giáp dày và pháo nòng trơn uy lực.'
+  },
+  {
+    id: 'heavy_tank',
+    name: 'Siêu Tăng Nòng Đôi',
+    role: 'Pháo đài di động • Hủy diệt',
+    movementType: 'ground',
+    spriteKey: 'heavy_tank',
+    projectileKey: 'proj_shell',
+    cost: 140,
+    cooldown: 6.8,
+    hp: 1550,
+    atk: 235,
+    atkSpeed: 0.65,
+    range: 210,
+    speed: 36,
+    armor: 0.5,
+    armorPierce: 0.45,
+    aoeRadius: 65,
+    desc: 'Khai hỏa đồng thời hai nòng pháo hạng nặng, nghiền nát mọi tuyến phòng ngự.'
+  },
+  {
+    id: 'heli',
+    name: 'Trực Thăng Vũ Trang',
+    role: 'Không quân • Bay vượt địa hình',
+    movementType: 'air',
+    spriteKey: 'heli',
+    projectileKey: 'proj_rocket',
+    cost: 110,
     cooldown: 5.5,
-    hp: 100,
-    damage: 95,
-    dmg: 95,
-    baseDamage: 95,
-    range: 300,
-    speed: 440,
-    fireRate: 1.0,
+    hp: 520,
+    atk: 115,
+    atkSpeed: 1.15,
+    range: 190,
+    speed: 82,
+    armor: 0.15,
+    armorPierce: 0.3,
+    aoeRadius: 45,
+    desc: 'Bay lượn tự do qua sông hồ và vực thẳm, phóng loạt tên lửa dẫn đường.'
+  },
+  {
+    id: 'patrol_boat',
+    name: 'Tàu Tuần Tra Cao Tốc',
+    role: 'Hải quân • Bắn tỉa nhanh',
+    movementType: 'naval',
+    spriteKey: 'patrol_boat',
+    projectileKey: 'proj_bullet',
+    cost: 65,
+    cooldown: 3.8,
+    hp: 460,
+    atk: 64,
+    atkSpeed: 1.5,
+    range: 185,
+    speed: 74,
+    armor: 0.2,
+    armorPierce: 0.15,
+    aoeRadius: 0,
+    desc: 'Tàu tuần tra trang bị pháo tự động nòng đôi cơ động cao.'
+  },
+  {
+    id: 'destroyer',
+    name: 'Tàu Khu Trục Tên Lửa',
+    role: 'Hải quân • Pháo hạm tầm xa',
+    movementType: 'naval',
+    spriteKey: 'destroyer',
+    projectileKey: 'proj_shell',
+    cost: 125,
+    cooldown: 6.0,
+    hp: 1120,
+    atk: 175,
+    atkSpeed: 0.85,
+    range: 245,
+    speed: 54,
+    armor: 0.35,
+    armorPierce: 0.35,
+    aoeRadius: 55,
+    desc: 'Oanh tạc mục tiêu từ xa bằng pháo hạm hai đầu mũi và đuôi tàu.'
+  },
+  {
+    id: 'battleship',
+    name: 'Thiết Giáp Hạm Yamato',
+    role: 'Hải quân tối thượng • Oanh kích',
+    movementType: 'naval',
+    spriteKey: 'battleship',
+    projectileKey: 'proj_shell',
+    cost: 180,
+    cooldown: 8.5,
+    hp: 2200,
+    atk: 320,
+    atkSpeed: 0.55,
+    range: 285,
+    speed: 40,
+    armor: 0.52,
+    armorPierce: 0.5,
+    aoeRadius: 80,
+    desc: 'Siêu chiến hạm bọc thép dày đặc, trút mưa đạn pháo hạng nặng lên căn cứ địch.'
+  },
+  {
+    id: 'pyromancer',
+    name: 'Pháp Sư Hỏa Ngục',
+    role: 'Nguyên tố Lửa • Thiêu đốt AoE',
+    movementType: 'ground',
+    spriteKey: 'pyromancer',
+    projectileKey: 'proj_fireball',
+    cost: 75,
+    cooldown: 4.0,
+    hp: 260,
+    atk: 105,
+    atkSpeed: 0.85,
+    range: 180,
+    speed: 50,
+    armor: 0.08,
+    armorPierce: 0.25,
+    aoeRadius: 58,
+    burnDps: 28,
+    desc: 'Triệu hồi cầu lửa khổng lồ thiêu rụi bầy quái đông và gây sát thương cháy theo giây.'
+  },
+  {
+    id: 'cryomancer',
+    name: 'Nữ Vương Băng Giá',
+    role: 'Nguyên tố Băng • Làm chậm',
+    movementType: 'ground',
+    spriteKey: 'cryomancer',
+    projectileKey: 'proj_iceshard',
+    cost: 75,
+    cooldown: 4.0,
+    hp: 270,
+    atk: 88,
+    atkSpeed: 0.9,
+    range: 185,
+    speed: 52,
+    armor: 0.1,
+    armorPierce: 0.2,
+    aoeRadius: 54,
+    slowPct: 0.42,
+    desc: 'Phóng bão tinh thể băng xuyên thấu kẻ địch và giảm 42% tốc độ di chuyển.'
+  },
+  {
+    id: 'cleric',
+    name: 'Thánh Sư Hồi Phục',
+    role: 'Hỗ trợ • Hồi máu đồng minh',
+    movementType: 'ground',
+    spriteKey: 'cleric',
+    projectileKey: 'proj_darkorb',
+    cost: 60,
+    cooldown: 4.4,
+    hp: 290,
+    atk: 55,
     atkSpeed: 1.0,
-    splash: 52,
-    sockets: [null, null],
-    defaultChips: [null, null]
-};
-
-export const UNIT_BY_ID = {};
-UNIT_CATALOG.forEach(u => {
-    UNIT_BY_ID[u.id] = u;
-});
-UNIT_BY_ID['rifleman'] = UNIT_BY_ID['infantry'];
-UNIT_BY_ID['airstrike'] = AIRSTRIKE_SPEC;
-UNIT_BY_ID['skeleton'] = SKELETON_SUMMON_SPEC;
-export const UNIT_MAP = UNIT_BY_ID;
-
-/* 10. DANH MỤC 14 LOẠI ZOMBIE & BOSS (GÓC NHÌN FRONT-TOP VIEW CHO CHẾ ĐỘ CHALLENGE) */
-export const ZOMBIE_CATALOG = [
-    {
-        id: 'zombie_walker',
-        name: 'Walker Zombie',
-        role: 'Xác Sống Bầy Đàn',
-        hp: 210,
-        damage: 24,
-        speed: 32,
-        range: 28,
-        fireRate: 0.90,
-        radius: 12,
-        scale: 1.0,
-        expReward: 8,
-        desc: 'Da xanh tái, mắt lờ đờ, áo rách, tiến chậm theo bầy đông.'
-    },
-    {
-        id: 'zombie_runner',
-        name: 'Crawler Runner Zombie',
-        role: 'Tốc Độ Cực Nhanh',
-        hp: 155,
-        damage: 28,
-        speed: 68,
-        range: 26,
-        fireRate: 1.25,
-        radius: 11,
-        scale: 1.0,
-        expReward: 10,
-        desc: 'Dáng lao gù sát đất, mắt đỏ rực, lao cực nhanh áp sát Tower.'
-    },
-    {
-        id: 'zombie_bunny_rider',
-        name: 'Zombie Cưỡi Thỏ Đột Biến',
-        role: 'Nhảy Lắt Léo Cơ Động',
-        hp: 280,
-        damage: 34,
-        speed: 62,
-        range: 30,
-        fireRate: 1.15,
-        radius: 14,
-        scale: 1.08,
-        zigzagAmp: 22,
-        expReward: 14,
-        desc: 'Zombie cưỡi trên lưng thỏ khổng lồ tai dài mắt đỏ, nhảy lắt léo tốc độ cao.'
-    },
-    {
-        id: 'zombie_horse_knight',
-        name: 'Kỵ Sĩ Ngựa Xương',
-        role: 'Xung Kích Phá Tháp',
-        hp: 640,
-        damage: 58,
-        speed: 48,
-        range: 32,
-        fireRate: 0.85,
-        radius: 16,
-        scale: 1.15,
-        towerBonusMult: 1.35,
-        expReward: 22,
-        desc: 'Zombie mặc giáp sắt rỉ sét cưỡi chiến mã thây ma, HP cao, húc phá Tower.'
-    },
-    {
-        id: 'zombie_tiger_lord',
-        name: 'Chúa Tể Cưỡi Hổ Răng Kiếm',
-        role: 'Sát Thủ Cận Chiến Mạnh',
-        hp: 760,
-        damage: 86,
-        speed: 56,
-        range: 34,
-        fireRate: 1.10,
-        radius: 17,
-        scale: 1.20,
-        expReward: 28,
-        desc: 'Thủ lĩnh zombie cưỡi hổ vằn đột biến hung dữ, tốc độ nhanh và sát thương cận chiến rất mạnh.'
-    },
-    {
-        id: 'zombie_spitter',
-        name: 'Zombie Phun Axit',
-        role: 'Xạ Thủ Độc Tố (-40% Tốc Bắn)',
-        hp: 260,
-        damage: 32,
-        speed: 34,
-        range: 148,
-        fireRate: 0.70,
-        radius: 12,
-        scale: 1.0,
-        attackType: 'projectile',
-        projType: 'acid_glob',
-        projSpeed: 235,
-        acidSlowFireRatePct: 0.40,
-        acidDuration: 3.0,
-        expReward: 15,
-        desc: 'Đeo bình hóa chất xanh phát sáng sau lưng, phun đạn axit làm giảm 40% tốc độ bắn của Tower.'
-    },
-    {
-        id: 'zombie_bomber',
-        name: 'Zombie Cảm Tử Ôm Bom',
-        role: 'Nổ Cảm Tử Diện Rộng',
-        hp: 240,
-        damage: 210,
-        speed: 52,
-        range: 28,
-        fireRate: 1.0,
-        radius: 13,
-        scale: 1.05,
-        isBomber: true,
-        splash: 75,
-        expReward: 16,
-        desc: 'Ôm thùng thuốc nổ TNT đỏ nhấp nháy trước ngực, phát nổ diện rộng khi chạm vào Tower.'
-    },
-    {
-        id: 'zombie_necromancer',
-        name: 'Pháp Sư Zombie Gọi Hồn',
-        role: 'Triệu Hồi Walker Zombie',
-        hp: 420,
-        damage: 40,
-        speed: 30,
-        range: 145,
-        fireRate: 0.65,
-        radius: 13,
-        scale: 1.08,
-        attackType: 'projectile',
-        projType: 'dark_orb',
-        projSpeed: 230,
-        summonCooldown: 5.5,
-        expReward: 24,
-        desc: 'Đội mũ đầu lâu, cầm trượng xương tím, định kỳ triệu hồi thêm Walker Zombie xung quanh.'
-    },
-    {
-        id: 'zombie_riot',
-        name: 'Zombie Khiên Chống Bạo Động',
-        role: 'Khiên Thép (-50% DMG Trước)',
-        hp: 720,
-        damage: 36,
-        speed: 28,
-        range: 28,
-        fireRate: 0.80,
-        radius: 14,
-        scale: 1.08,
-        frontalShieldReductionPct: 0.50,
-        expReward: 20,
-        desc: 'Cầm khiên thép chữ nhật lớn che trước mặt, giảm 50% sát thương từ các đòn bắn phía trước.'
-    },
-    {
-        id: 'zombie_cyborg',
-        name: 'Cyborg Zombie',
-        role: 'Lưỡi Cưa & Kháng Khống Chế',
-        hp: 680,
-        damage: 74,
-        speed: 44,
-        range: 30,
-        fireRate: 1.20,
-        radius: 14,
-        scale: 1.10,
-        ccImmune: true,
-        expReward: 25,
-        desc: 'Nửa khuôn mặt bọc thép với mắt laser đỏ, tay phải là lưỡi cưa máy, miễn nhiễm làm chậm/đóng băng.'
-    },
-    {
-        id: 'zombie_mecha',
-        name: 'Mecha-Zombie MK-IV',
-        role: 'Cỗ Máy Bắn Tên Lửa',
-        hp: 1150,
-        damage: 68,
-        speed: 26,
-        range: 165,
-        fireRate: 0.60,
-        radius: 17,
-        scale: 1.22,
-        attackType: 'projectile',
-        projType: 'arc_missile',
-        projSpeed: 230,
-        splash: 38,
-        expReward: 34,
-        desc: 'Cỗ máy chiến đấu bọc thép có lồng kính chứa đầu zombie bên trong, vừa tiến vừa bắn tên lửa vào Tower.'
-    },
-    {
-        id: 'boss_butcher',
-        name: 'BOSS: Đồ Tể Khổng Lồ',
-        role: 'BOSS Wave 7 • Chém Lan',
-        hp: 4600,
-        damage: 145,
-        speed: 24,
-        range: 42,
-        fireRate: 0.75,
-        radius: 24,
-        scale: 2.0,
-        isBoss: true,
-        bossWave: 7,
-        cleaveRadius: 68,
-        expReward: 120,
-        desc: 'Kích thước gấp 2.0 lần, mặt khâu chằng chịt, cầm dao phay khổng lồ chém lan nhiều Tower cùng lúc.'
-    },
-    {
-        id: 'boss_chimera',
-        name: 'BOSS: Quái Thú Chimera',
-        role: 'BOSS Wave 14 • Gầm Choáng',
-        hp: 8200,
-        damage: 185,
-        speed: 28,
-        range: 46,
-        fireRate: 0.85,
-        radius: 25,
-        scale: 2.0,
-        isBoss: true,
-        bossWave: 14,
-        roarCooldown: 6.5,
-        roarRadius: 135,
-        roarStunDuration: 2.2,
-        expReward: 200,
-        desc: 'Kích thước gấp 2.0 lần, quái thú đột biến 2 đầu có sừng, gầm rú sóng âm làm choáng các Tower diện rộng.'
-    },
-    {
-        id: 'boss_omega_tyrant',
-        name: 'BOSS: Bạo Chúa Omega',
-        role: 'BOSS Wave 20 • 4 Nòng Plasma',
-        hp: 15500,
-        damage: 240,
-        speed: 20,
-        range: 185,
-        fireRate: 0.75,
-        radius: 28,
-        scale: 2.2,
-        isBoss: true,
-        bossWave: 20,
-        attackType: 'projectile',
-        projType: 'arc_missile',
-        projSpeed: 245,
-        splash: 46,
-        summonCooldown: 7.0,
-        expReward: 400,
-        desc: 'Kích thước gấp 2.2 lần, đại boss Zombie-Robot trang bị 4 nòng pháo plasma, giáp dày và liên tục gọi viện binh.'
-    }
+    range: 165,
+    speed: 52,
+    armor: 0.12,
+    armorPierce: 0,
+    aoeRadius: 75,
+    healAmount: 65,
+    desc: 'Nâng quyền trượng ánh sáng hồi phục sinh lực cho toàn bộ đồng minh xung quanh.'
+  },
+  {
+    id: 'necromancer',
+    name: 'Pháp Sư Chiêu Hồn',
+    role: 'Triệu hồi • Đội quân xương',
+    movementType: 'ground',
+    spriteKey: 'necromancer',
+    projectileKey: 'proj_darkorb',
+    cost: 90,
+    cooldown: 5.2,
+    hp: 310,
+    atk: 82,
+    atkSpeed: 0.85,
+    range: 190,
+    speed: 48,
+    armor: 0.1,
+    armorPierce: 0.2,
+    aoeRadius: 40,
+    summonInterval: 4.5,
+    desc: 'Phóng cầu hắc ám và liên tục gọi dậy các Chiến Binh Xương từ lòng đất.'
+  },
+  {
+    id: 'mecha_paladin',
+    name: 'Hiệp Sĩ Cơ Giáp Mecha',
+    role: 'Đấu sĩ cận chiến • Khiên năng lượng',
+    movementType: 'ground',
+    spriteKey: 'mecha_paladin',
+    projectileKey: 'proj_bullet',
+    cost: 120,
+    cooldown: 5.8,
+    hp: 1380,
+    atk: 195,
+    atkSpeed: 1.15,
+    range: 68,
+    speed: 64,
+    armor: 0.46,
+    armorPierce: 0.35,
+    aoeRadius: 48,
+    desc: 'Trang bị khiên năng lượng xanh và kiếm plasma chém quét mục tiêu cận chiến.'
+  },
+  {
+    id: 'railgun_walker',
+    name: 'Nhện Máy Railgun',
+    role: 'Siêu vũ khí • Xuyên giáp tuyệt đối',
+    movementType: 'ground',
+    spriteKey: 'railgun_walker',
+    projectileKey: 'proj_shell',
+    cost: 160,
+    cooldown: 7.5,
+    hp: 1450,
+    atk: 310,
+    atkSpeed: 0.6,
+    range: 265,
+    speed: 46,
+    armor: 0.42,
+    armorPierce: 0.75,
+    aoeRadius: 45,
+    desc: 'Robot 4 chân bắn tia điện từ Railgun xuyên thủng 75% giáp của mục tiêu.'
+  }
 ];
 
-export const ZOMBIE_BY_ID = {};
-ZOMBIE_CATALOG.forEach(z => {
-    ZOMBIE_BY_ID[z.id] = z;
+/* Đơn vị triệu hồi của Necromancer */
+const SKELETON_SUMMON_SPEC = {
+  id: 'skeleton',
+  name: 'Chiến Binh Xương',
+  movementType: 'ground',
+  spriteKey: 'skeleton',
+  projectileKey: 'proj_bullet',
+  hp: 135,
+  atk: 34,
+  atkSpeed: 1.25,
+  range: 52,
+  speed: 68,
+  armor: 0.08,
+  armorPierce: 0.1,
+  aoeRadius: 0
+};
+
+/* Đơn vị Không Kích Oanh Tạc */
+const AIRSTRIKE_SPEC = {
+  id: 'airstrike',
+  name: 'Tiêm Kích Oanh Tạc',
+  movementType: 'air',
+  spriteKey: 'airstrike',
+  projectileKey: 'proj_rocket',
+  hp: 9999,
+  atk: 260,
+  atkSpeed: 2.0,
+  range: 220,
+  speed: 240,
+  armor: 0.9,
+  armorPierce: 0.6,
+  aoeRadius: 85
+};
+
+/* --------------------------------------------------------------------------
+ * 6. DANH MỤC 6 LOẠI ZOMBIE (DÙNG CHO CẢ CHALLENGE & CAMPAIGN MIXED WAVES)
+ * -------------------------------------------------------------------------- */
+const ZOMBIE_CATALOG = [
+  {
+    id: 'zombie_walker',
+    name: 'Xác Sống Lang Thang',
+    movementType: 'ground',
+    spriteKey: 'zombie_walker',
+    projectileKey: 'proj_bullet',
+    hp: 140,
+    atk: 22,
+    atkSpeed: 1.0,
+    range: 46,
+    speed: 42,
+    armor: 0,
+    rewardCoins: 6,
+    exp: 10
+  },
+  {
+    id: 'zombie_runner',
+    name: 'Xác Sống Điên Cuồng',
+    movementType: 'ground',
+    spriteKey: 'zombie_runner',
+    projectileKey: 'proj_bullet',
+    hp: 115,
+    atk: 32,
+    atkSpeed: 1.5,
+    range: 46,
+    speed: 86,
+    armor: 0,
+    rewardCoins: 8,
+    exp: 14
+  },
+  {
+    id: 'zombie_brute',
+    name: 'Khổng Lồ Đột Biến',
+    movementType: 'ground',
+    spriteKey: 'zombie_brute',
+    projectileKey: 'proj_shell',
+    hp: 780,
+    atk: 85,
+    atkSpeed: 0.75,
+    range: 56,
+    speed: 34,
+    armor: 0.32,
+    aoeRadius: 42,
+    rewardCoins: 22,
+    exp: 35
+  },
+  {
+    id: 'zombie_spitter',
+    name: 'Quái Phun Axit',
+    movementType: 'ground',
+    spriteKey: 'zombie_spitter',
+    projectileKey: 'proj_darkorb',
+    hp: 210,
+    atk: 54,
+    atkSpeed: 0.85,
+    range: 175,
+    speed: 44,
+    armor: 0.05,
+    aoeRadius: 38,
+    rewardCoins: 14,
+    exp: 22
+  },
+  {
+    id: 'zombie_bomber',
+    name: 'Cảm Tử Thùng Nổ',
+    movementType: 'ground',
+    spriteKey: 'zombie_bomber',
+    projectileKey: 'proj_fireball',
+    hp: 165,
+    atk: 240,
+    atkSpeed: 1.0,
+    range: 48,
+    speed: 76,
+    armor: 0.05,
+    aoeRadius: 78,
+    isSuicideBomber: true,
+    rewardCoins: 16,
+    exp: 25
+  },
+  {
+    id: 'zombie_necrolord',
+    name: 'Chúa Tể Gọi Hồn',
+    movementType: 'ground',
+    spriteKey: 'zombie_necrolord',
+    projectileKey: 'proj_darkorb',
+    hp: 520,
+    atk: 78,
+    atkSpeed: 0.8,
+    range: 195,
+    speed: 38,
+    armor: 0.15,
+    aoeRadius: 45,
+    summonInterval: 5.0,
+    rewardCoins: 30,
+    exp: 48
+  }
+];
+
+/* --------------------------------------------------------------------------
+ * 7. DANH MỤC 4 TRÙM CUỐI (BOSSES)
+ * -------------------------------------------------------------------------- */
+const BOSS_CATALOG = [
+  {
+    id: 'boss_butcher',
+    name: 'Đồ Tể Xích Sắt',
+    movementType: 'ground',
+    spriteKey: 'boss_butcher',
+    projectileKey: 'proj_shell',
+    hp: 3600,
+    atk: 190,
+    atkSpeed: 0.8,
+    range: 72,
+    speed: 38,
+    armor: 0.35,
+    aoeRadius: 68,
+    rewardCoins: 120,
+    exp: 180
+  },
+  {
+    id: 'boss_chimera',
+    name: 'Quái Thú Ba Đầu Chimera',
+    movementType: 'ground',
+    spriteKey: 'boss_chimera',
+    projectileKey: 'proj_fireball',
+    hp: 5200,
+    atk: 230,
+    atkSpeed: 0.95,
+    range: 165,
+    speed: 46,
+    armor: 0.38,
+    aoeRadius: 74,
+    rewardCoins: 180,
+    exp: 260
+  },
+  {
+    id: 'boss_omega_tyrant',
+    name: 'Bạo Chúa Sinh Học Omega',
+    movementType: 'ground',
+    spriteKey: 'boss_omega_tyrant',
+    projectileKey: 'proj_rocket',
+    hp: 8400,
+    atk: 295,
+    atkSpeed: 0.9,
+    range: 185,
+    speed: 40,
+    armor: 0.45,
+    aoeRadius: 80,
+    rewardCoins: 260,
+    exp: 380
+  },
+  {
+    id: 'raid_boss',
+    name: 'Pháo Đài Chiến Xa Leviathan',
+    movementType: 'ground',
+    spriteKey: 'raid_boss',
+    projectileKey: 'proj_shell',
+    hp: 16000,
+    atk: 360,
+    atkSpeed: 1.1,
+    range: 230,
+    speed: 28,
+    armor: 0.52,
+    aoeRadius: 95,
+    rewardCoins: 500,
+    exp: 650
+  }
+];
+
+/* --------------------------------------------------------------------------
+ * 8. DANH MỤC 4 Ụ PHÁO GẮN TRÊN NÓC MANSION XANH (PHẦN 1.2)
+ * -------------------------------------------------------------------------- */
+const TURRET_CATALOG = [
+  {
+    id: 'turret_gatling',
+    name: 'Ụ Pháo Gatling',
+    spriteKey: 'turret_gatling',
+    projectileKey: 'proj_bullet',
+    atk: 22,
+    atkSpeed: 3.4,
+    range: 255,
+    aoeRadius: 0,
+    unlockCost: 0,
+    upgBaseCost: 150,
+    desc: 'Súng máy xoay 6 nòng tốc độ bắn cực cao, dọn dẹp lính bộ binh áp sát.'
+  },
+  {
+    id: 'turret_laser',
+    name: 'Pháo Năng Lượng Laser',
+    spriteKey: 'turret_laser',
+    projectileKey: 'proj_iceshard',
+    atk: 65,
+    atkSpeed: 1.6,
+    range: 285,
+    aoeRadius: 20,
+    armorPierce: 0.45,
+    unlockCost: 600,
+    upgBaseCost: 260,
+    desc: 'Bắn chùm tia năng lượng xuyên giáp, khắc chế xe tăng và quái khổng lồ.'
+  },
+  {
+    id: 'turret_missile',
+    name: 'Bệ Phóng Tên Lửa 6 Nòng',
+    spriteKey: 'turret_missile',
+    projectileKey: 'proj_rocket',
+    atk: 115,
+    atkSpeed: 0.95,
+    range: 320,
+    aoeRadius: 62,
+    unlockCost: 1200,
+    upgBaseCost: 380,
+    desc: 'Phóng loạt tên lửa tầm xa gây sát thương nổ diện rộng cực lớn.'
+  },
+  {
+    id: 'turret_tesla',
+    name: 'Tháp Sét Hồ Quang Tesla',
+    spriteKey: 'turret_tesla',
+    projectileKey: 'proj_darkorb',
+    atk: 85,
+    atkSpeed: 1.35,
+    range: 265,
+    aoeRadius: 55,
+    slowPct: 0.3,
+    unlockCost: 2000,
+    upgBaseCost: 500,
+    desc: 'Phóng hồ quang điện giật lan nhiều mục tiêu và làm tê liệt kẻ địch.'
+  }
+];
+
+/* --------------------------------------------------------------------------
+ * 9. 4 KỸ NĂNG CHỈ HUY CHỦ ĐỘNG (Q - W - E - R)
+ * -------------------------------------------------------------------------- */
+const COMMANDER_SKILLS = {
+  Q: {
+    id: 'Q',
+    key: 'airdrop',
+    name: 'Thả Dù Tiếp Viện',
+    iconKey: 'skill_airdrop',
+    propKey: 'prop_airdrop_crate',
+    cooldown: 16,
+    needsTarget: false,
+    desc: 'Thả hòm tiếp tế xuống chiến trường, triệu hồi 3 Bộ Binh tinh nhuệ và hồi +35 Xăng.'
+  },
+  W: {
+    id: 'W',
+    key: 'minefield',
+    name: 'Rải Bãi Mìn Chống Tăng',
+    iconKey: 'skill_minefield',
+    propKey: 'prop_landmine',
+    cooldown: 18,
+    baseMines: 5,
+    damage: 240,
+    radius: 56,
+    needsTarget: false,
+    desc: 'Rải hàng mìn chống tăng ngang phòng tuyến trước Mansion Xanh.'
+  },
+  E: {
+    id: 'E',
+    key: 'emp',
+    name: 'Xung Điện Từ EMP',
+    iconKey: 'skill_emp',
+    cooldown: 22,
+    baseStun: 3.0,
+    damage: 140,
+    needsTarget: false,
+    desc: 'Phóng xung điện từ làm choáng toàn bộ kẻ địch trên sân và gây sát thương.'
+  },
+  R: {
+    id: 'R',
+    key: 'blitz',
+    name: 'Tổng Tấn Công Blitzkrieg',
+    iconKey: 'skill_blitz',
+    cooldown: 28,
+    duration: 7.0,
+    atkBonus: 0.45,
+    spdBonus: 0.35,
+    needsTarget: false,
+    desc: 'Tăng +45% Sát thương và +35% Tốc độ đánh/chạy cho toàn quân trong 7 giây.'
+  }
+};
+
+/* --------------------------------------------------------------------------
+ * 10. CÂY KỸ NĂNG MỞ RỘNG 6 NHÁNH CHUYÊN SÂU (36 NODES - PHẦN 5)
+ * -------------------------------------------------------------------------- */
+const SKILL_TREE_BRANCHES = [
+  { id: 'fortification', name: '1. Công Sự & Pháo Đài', color: '#38BDF8' },
+  { id: 'firepower',     name: '2. Hỏa Lực & Tinh Nhuệ', color: '#FB7185' },
+  { id: 'necromancy',    name: '3. Chiêu Hồn & Quân Đoàn', color: '#C084FC' },
+  { id: 'logistics',     name: '4. Hậu Cần & Kinh Tế', color: '#FACC15' },
+  { id: 'tactics',       name: '5. Nghệ Thuật Chỉ Huy', color: '#4ADE80' },
+  { id: 'elemental',     name: '6. Nguyên Tố & Chí Mạng', color: '#FB923C' }
+];
+
+const ANCIENT_SKILL_TREE = [
+  // === NHÁNH 1: CÔNG SỰ & PHÁO ĐÀI (x = 90) ===
+  { id: 'fort_1', branch: 'fortification', branchName: 'Nhánh 1 • Công Sự', tier: 1, name: 'Gia Cố Tường Thành', maxLv: 5, baseCost: 1, costStep: 1, requires: null, pos: { x: 90, y: 70 }, statKey: 'baseHpPct', valPerLv: 0.15, desc: 'Tăng +15% HP tối đa cho Mansion Xanh mỗi cấp.' },
+  { id: 'fort_2', branch: 'fortification', branchName: 'Nhánh 1 • Công Sự', tier: 2, name: 'Giáp Thép Pháo Đài', maxLv: 5, baseCost: 2, costStep: 1, requires: 'fort_1', pos: { x: 90, y: 175 }, statKey: 'baseArmorPct', valPerLv: 0.06, desc: 'Giảm +6% sát thương nhận vào của Mansion Xanh mỗi cấp.' },
+  { id: 'fort_3', branch: 'fortification', branchName: 'Nhánh 1 • Công Sự', tier: 3, name: 'Nòng Pháo Cường Hóa', maxLv: 5, baseCost: 2, costStep: 2, requires: 'fort_2', pos: { x: 90, y: 280 }, statKey: 'turretAtkPct', valPerLv: 0.18, desc: 'Tăng +18% sát thương cho toàn bộ 4 loại Ụ Pháo Mansion.' },
+  { id: 'fort_4', branch: 'fortification', branchName: 'Nhánh 1 • Công Sự', tier: 4, name: 'Hệ Thống Nạp Đạn Nhanh', maxLv: 5, baseCost: 3, costStep: 2, requires: 'fort_3', pos: { x: 90, y: 385 }, statKey: 'turretSpdPct', valPerLv: 0.14, desc: 'Tăng +14% tốc độ bắn của Ụ Pháo Mansion mỗi cấp.' },
+  { id: 'fort_5', branch: 'fortification', branchName: 'Nhánh 1 • Công Sự', tier: 5, name: 'Pháo Đài Bất Khả Xâm', maxLv: 5, baseCost: 4, costStep: 2, requires: 'fort_4', pos: { x: 90, y: 490 }, statKey: 'baseHpPct', valPerLv: 0.25, desc: 'Tăng thêm +25% HP tối đa Mansion Xanh và +10% tầm bắn Ụ Pháo.' },
+  { id: 'fort_ult', branch: 'fortification', branchName: 'Nhánh 1 • Công Sự', tier: 6, isUltimate: true, name: 'TỐI THƯỢNG: Lá Chắn Pháo Đài', maxLv: 3, baseCost: 6, costStep: 4, requires: 'fort_5', pos: { x: 90, y: 600 }, statKey: 'fortressShieldPct', valPerLv: 0.20, desc: 'Tự động tạo lớp Giáp Ảo bằng 20% HP tối đa cho Mansion Xanh mỗi 20 giây.' },
+
+  // === NHÁNH 2: HỎA LỰC & TINH NHUỆ QUÂN ĐỘI (x = 240) ===
+  { id: 'fire_1', branch: 'firepower', branchName: 'Nhánh 2 • Hỏa Lực', tier: 1, name: 'Đạn Xuyên Phá Cơ Bản', maxLv: 5, baseCost: 1, costStep: 1, requires: null, pos: { x: 240, y: 70 }, statKey: 'unitAtkPct', valPerLv: 0.12, desc: 'Tăng +12% sát thương cơ bản cho toàn bộ binh chủng mỗi cấp.' },
+  { id: 'fire_2', branch: 'firepower', branchName: 'Nhánh 2 • Hỏa Lực', tier: 2, name: 'Huấn Luyện Xạ Kích', maxLv: 5, baseCost: 2, costStep: 1, requires: 'fire_1', pos: { x: 240, y: 175 }, statKey: 'unitAtkSpdPct', valPerLv: 0.10, desc: 'Tăng +10% tốc độ đánh cho toàn bộ quân đội mỗi cấp.' },
+  { id: 'fire_3', branch: 'firepower', branchName: 'Nhánh 2 • Hỏa Lực', tier: 3, name: 'Giáp Composite Quân Đội', maxLv: 5, baseCost: 2, costStep: 2, requires: 'fire_2', pos: { x: 240, y: 280 }, statKey: 'unitHpPct', valPerLv: 0.14, desc: 'Tăng +14% HP tối đa cho mọi đơn vị quân triệu hồi.' },
+  { id: 'fire_4', branch: 'firepower', branchName: 'Nhánh 2 • Hỏa Lực', tier: 4, name: 'Mũi Khoan Hủy Diệt', maxLv: 5, baseCost: 3, costStep: 2, requires: 'fire_3', pos: { x: 240, y: 385 }, statKey: 'armorPierceBonus', valPerLv: 0.08, desc: 'Tăng +8% khả năng xuyên giáp cho Sniper, Railgun Walker và Tank.' },
+  { id: 'fire_5', branch: 'firepower', branchName: 'Nhánh 2 • Hỏa Lực', tier: 5, name: 'Quân Đoàn Tinh Nhuệ', maxLv: 5, baseCost: 4, costStep: 2, requires: 'fire_4', pos: { x: 240, y: 490 }, statKey: 'unitAtkPct', valPerLv: 0.20, desc: 'Tăng thêm +20% tổng sát thương toàn quân đội.' },
+  { id: 'fire_ult', branch: 'firepower', branchName: 'Nhánh 2 • Hỏa Lực', tier: 6, isUltimate: true, name: 'TỐI THƯỢNG: Cuồng Nộ Chiến Trường', maxLv: 3, baseCost: 6, costStep: 4, requires: 'fire_5', pos: { x: 240, y: 600 }, statKey: 'lowHpFrenzyPct', valPerLv: 0.25, desc: 'Khi HP Mansion Xanh dưới 50%, toàn quân tăng ngay +25% tốc độ bắn mỗi cấp.' },
+
+  // === NHÁNH 3: CHIÊU HỒN & QUÂN ĐOÀN ĐÔNG ĐẢO (x = 390) ===
+  { id: 'necro_1', branch: 'necromancy', branchName: 'Nhánh 3 • Chiêu Hồn', tier: 1, name: 'Xương Cốt Cứng Cáp', maxLv: 5, baseCost: 1, costStep: 1, requires: null, pos: { x: 390, y: 70 }, statKey: 'skeletonStatPct', valPerLv: 0.22, desc: 'Tăng +22% HP và Sát thương cho Chiến Binh Xương triệu hồi.' },
+  { id: 'necro_2', branch: 'necromancy', branchName: 'Nhánh 3 • Chiêu Hồn', tier: 2, name: 'Nghi Lễ Triệu Hồi Nhanh', maxLv: 5, baseCost: 2, costStep: 1, requires: 'necro_1', pos: { x: 390, y: 175 }, statKey: 'summonCdRedPct', valPerLv: 0.12, desc: 'Giảm 12% thời gian hồi chiêu gọi xương của Necromancer.' },
+  { id: 'necro_3', branch: 'necromancy', branchName: 'Nhánh 3 • Chiêu Hồn', tier: 3, name: 'Ánh Sáng Ban Phước', maxLv: 5, baseCost: 2, costStep: 2, requires: 'necro_2', pos: { x: 390, y: 280 }, statKey: 'healPowerPct', valPerLv: 0.20, desc: 'Tăng +20% lượng máu hồi phục của Thánh Sư Cleric.' },
+  { id: 'necro_4', branch: 'necromancy', branchName: 'Nhánh 3 • Chiêu Hồn', tier: 4, name: 'Quân Đoàn Bất Tử', maxLv: 5, baseCost: 3, costStep: 2, requires: 'necro_3', pos: { x: 390, y: 385 }, statKey: 'maxSkeletonBonus', valPerLv: 1, desc: 'Tăng +1 giới hạn Chiến Binh Xương tối đa trên sân mỗi cấp.' },
+  { id: 'necro_5', branch: 'necromancy', branchName: 'Nhánh 3 • Chiêu Hồn', tier: 5, name: 'Linh Hồn Cộng Hưởng', maxLv: 5, baseCost: 4, costStep: 2, requires: 'necro_4', pos: { x: 390, y: 490 }, statKey: 'deathGasRefundPct', valPerLv: 0.05, desc: 'Hoàn lại +5% chi phí Xăng khi quân đồng minh hy sinh.' },
+  { id: 'necro_ult', branch: 'necromancy', branchName: 'Nhánh 3 • Chiêu Hồn', tier: 6, isUltimate: true, name: 'TỐI THƯỢNG: Huyết Tế Hấp Thụ', maxLv: 3, baseCost: 6, costStep: 4, requires: 'necro_5', pos: { x: 390, y: 600 }, statKey: 'bloodSiphonPct', valPerLv: 0.05, desc: 'Mỗi khi tiêu diệt 1 kẻ địch, quân đồng minh xung quanh hồi 5% HP tối đa.' },
+
+  // === NHÁNH 4: HẬU CẦN & KINH TẾ CHIẾN TRANH (x = 540) ===
+  { id: 'logi_1', branch: 'logistics', branchName: 'Nhánh 4 • Hậu Cần', tier: 1, name: 'Lọc Nhiên Liệu Cao Cấp', maxLv: 5, baseCost: 1, costStep: 1, requires: null, pos: { x: 540, y: 70 }, statKey: 'gasRegenPct', valPerLv: 0.10, desc: 'Tăng +10% tốc độ hồi Xăng triển khai quân trong trận.' },
+  { id: 'logi_2', branch: 'logistics', branchName: 'Nhánh 4 • Hậu Cần', tier: 2, name: 'Chiến Lợi Phẩm Vàng', maxLv: 5, baseCost: 2, costStep: 1, requires: 'logi_1', pos: { x: 540, y: 175 }, statKey: 'coinRewardPct', valPerLv: 0.15, desc: 'Tăng +15% lượng Coins nhận được sau mỗi trận thắng.' },
+  { id: 'logi_3', branch: 'logistics', branchName: 'Nhánh 4 • Hậu Cần', tier: 3, name: 'Tối Ưu Tuyến Tiếp Vận', maxLv: 5, baseCost: 2, costStep: 2, requires: 'logi_2', pos: { x: 540, y: 280 }, statKey: 'deployCostRedPct', valPerLv: 0.05, desc: 'Giảm 5% giá Xăng triệu hồi toàn bộ thẻ bài binh chủng.' },
+  { id: 'logi_4', branch: 'logistics', branchName: 'Nhánh 4 • Hậu Cần', tier: 4, name: 'Kho Dự Trữ Năng Lượng', maxLv: 5, baseCost: 3, costStep: 2, requires: 'logi_3', pos: { x: 540, y: 385 }, statKey: 'maxGasBonus', valPerLv: 25, desc: 'Tăng +25 giới hạn bình chứa Xăng tối đa trong trận.' },
+  { id: 'logi_5', branch: 'logistics', branchName: 'Nhánh 4 • Hậu Cần', tier: 5, name: 'Thợ Săn Đá Quý', maxLv: 5, baseCost: 4, costStep: 2, requires: 'logi_4', pos: { x: 540, y: 490 }, statKey: 'gemRewardPct', valPerLv: 0.15, desc: 'Tăng +15% lượng Gems thưởng thêm khi hoàn thành màn chơi.' },
+  { id: 'logi_ult', branch: 'logistics', branchName: 'Nhánh 4 • Hậu Cần', tier: 6, isUltimate: true, name: 'TỐI THƯỢNG: Tiếp Viện Tức Thì', maxLv: 3, baseCost: 6, costStep: 4, requires: 'logi_5', pos: { x: 540, y: 600 }, statKey: 'startGasBonus', valPerLv: 150, desc: 'Bắt đầu mỗi trận đấu với +150 Xăng triển khai sẵn (tối đa +450 Xăng).' },
+
+  // === NHÁNH 5: NGHỆ THUẬT CHỈ HUY Q-W-E-R (x = 690) ===
+  { id: 'tac_1', branch: 'tactics', branchName: 'Nhánh 5 • Chỉ Huy', tier: 1, name: 'Liên Lạc Vệ Tinh', maxLv: 5, baseCost: 1, costStep: 1, requires: null, pos: { x: 690, y: 70 }, statKey: 'skillCdRedPct', valPerLv: 0.08, desc: 'Giảm 8% thời gian hồi chiêu cả 4 kỹ năng Chỉ Huy Q-W-E-R.' },
+  { id: 'tac_2', branch: 'tactics', branchName: 'Nhánh 5 • Chỉ Huy', tier: 2, name: 'Bãi Mìn Dày Đặc', maxLv: 5, baseCost: 2, costStep: 1, requires: 'tac_1', pos: { x: 690, y: 175 }, statKey: 'extraMinesCount', valPerLv: 1, desc: 'Kỹ năng Rải Mìn [W] thả thêm +1 quả mìn và tăng +15% sát thương nổ.' },
+  { id: 'tac_3', branch: 'tactics', branchName: 'Nhánh 5 • Chỉ Huy', tier: 3, name: 'Tụ Điện Quá Tải EMP', maxLv: 5, baseCost: 2, costStep: 2, requires: 'tac_2', pos: { x: 690, y: 280 }, statKey: 'empStunBonus', valPerLv: 0.6, desc: 'Kéo dài thời gian làm choáng của kỹ năng EMP [E] thêm +0.6 giây.' },
+  { id: 'tac_4', branch: 'tactics', branchName: 'Nhánh 5 • Chỉ Huy', tier: 4, name: 'Hòm Tiếp Tế Hạng Nặng', maxLv: 5, baseCost: 3, costStep: 2, requires: 'tac_3', pos: { x: 690, y: 385 }, statKey: 'airdropGasBonus', valPerLv: 15, desc: 'Thả Dù [Q] cộng thêm +15 Xăng và triệu hồi lính cấp cao hơn.' },
+  { id: 'tac_5', branch: 'tactics', branchName: 'Nhánh 5 • Chỉ Huy', tier: 5, name: 'Hiệu Lệnh Blitzkrieg', maxLv: 5, baseCost: 4, costStep: 2, requires: 'tac_4', pos: { x: 690, y: 490 }, statKey: 'blitzDurationBonus', valPerLv: 1.2, desc: 'Tăng thời gian duy trì kỹ năng Blitzkrieg [R] thêm +1.2 giây.' },
+  { id: 'tac_ult', branch: 'tactics', branchName: 'Nhánh 5 • Chỉ Huy', tier: 6, isUltimate: true, name: 'TỐI THƯỢNG: Không Kích Yểm Trợ', maxLv: 3, baseCost: 6, costStep: 4, requires: 'tac_5', pos: { x: 690, y: 600 }, statKey: 'airstrikeProcChance', valPerLv: 0.15, desc: 'Mỗi lần dùng kỹ năng Q/W/E/R có 15% tỷ lệ gọi thêm 1 phi đội Tiêm Kích ném bom!' },
+
+  // === NHÁNH 6: NGUYÊN TỐ & SÁT THƯƠNG CHÍ MẠNG (x = 840) ===
+  { id: 'elem_1', branch: 'elemental', branchName: 'Nhánh 6 • Nguyên Tố', tier: 1, name: 'Điểm Yếu Chí Mạng', maxLv: 5, baseCost: 1, costStep: 1, requires: null, pos: { x: 840, y: 70 }, statKey: 'critRateBonus', valPerLv: 0.05, desc: 'Tăng +5% tỷ lệ đánh chí mạng cho toàn bộ binh chủng & ụ pháo.' },
+  { id: 'elem_2', branch: 'elemental', branchName: 'Nhánh 6 • Nguyên Tố', tier: 2, name: 'Đòn Đánh Hủy Diệt', maxLv: 5, baseCost: 2, costStep: 1, requires: 'elem_1', pos: { x: 840, y: 175 }, statKey: 'critDmgBonus', valPerLv: 0.25, desc: 'Tăng +25% sát thương chí mạng mỗi cấp.' },
+  { id: 'elem_3', branch: 'elemental', branchName: 'Nhánh 6 • Nguyên Tố', tier: 3, name: 'Ngọn Lửa Địa Ngục', maxLv: 5, baseCost: 2, costStep: 2, requires: 'elem_2', pos: { x: 840, y: 280 }, statKey: 'burnDmgPct', valPerLv: 0.25, desc: 'Tăng +25% sát thương thiêu đốt của Pyromancer & cầu lửa.' },
+  { id: 'elem_4', branch: 'elemental', branchName: 'Nhánh 6 • Nguyên Tố', tier: 4, name: 'Hàn Băng Vĩnh Cửu', maxLv: 5, baseCost: 3, costStep: 2, requires: 'elem_3', pos: { x: 840, y: 385 }, statKey: 'slowEffectBonus', valPerLv: 0.08, desc: 'Tăng thêm +8% hiệu quả làm chậm và kéo dài thời gian đóng băng của Cryomancer.' },
+  { id: 'elem_5', branch: 'elemental', branchName: 'Nhánh 6 • Nguyên Tố', tier: 5, name: 'Bão Tố Nguyên Tố', maxLv: 5, baseCost: 4, costStep: 2, requires: 'elem_4', pos: { x: 840, y: 490 }, statKey: 'aoeRadiusPct', valPerLv: 0.12, desc: 'Mở rộng +12% bán kính vụ nổ và vùng sát thương diện rộng toàn quân.' },
+  { id: 'elem_ult', branch: 'elemental', branchName: 'Nhánh 6 • Nguyên Tố', tier: 6, isUltimate: true, name: 'TỐI THƯỢNG: Nhiệt Sốc Nguyên Tố', maxLv: 3, baseCost: 6, costStep: 4, requires: 'elem_5', pos: { x: 840, y: 600 }, statKey: 'thermalShockPct', valPerLv: 0.30, desc: 'Đánh chí mạng lên mục tiêu đang bị Cháy hoặc Làm Chậm gây nổ +30% sát thương lan!' }
+];
+
+/* --------------------------------------------------------------------------
+ * 11. DỮ LIỆU 6 VÙNG BIOME & 54 MÀN CHƠI (BẢN ĐỒ THẬT + ĐỊA HÌNH + ZOMBIE MIX)
+ * -------------------------------------------------------------------------- */
+const BIOME_CONFIG = [
+  {
+    id: 1,
+    name: 'Vùng 1: Thảo Nguyên Xanh',
+    shortName: 'Thảo Nguyên',
+    levels: [1, 9],
+    themeColor: '#4ADE80',
+    mapKeys: ['map1', 'map2', 'map3', 'map4', 'map5', 'map6', 'map7', 'map8', 'map9']
+  },
+  {
+    id: 2,
+    name: 'Vùng 2: Hẻm Núi Hoang Mạc',
+    shortName: 'Sa Mạc',
+    levels: [10, 18],
+    themeColor: '#FB923C',
+    mapKeys: ['map10', 'map11', 'map12', 'map13', 'map14', 'map15', 'map16', 'map17', 'map18']
+  },
+  {
+    id: 3,
+    name: 'Vùng 3: Lãnh Nguyên Băng Giá',
+    shortName: 'Băng Tuyết',
+    levels: [19, 27],
+    themeColor: '#38BDF8',
+    mapKeys: ['map19', 'map20', 'map21', 'map22', 'map23', 'map24', 'map25', 'map26', 'map27']
+  },
+  {
+    id: 4,
+    name: 'Vùng 4: Miệng Núi Lửa Dung Nham',
+    shortName: 'Núi Lửa',
+    levels: [28, 36],
+    themeColor: '#FB7185',
+    mapKeys: ['map28', 'map29', 'map30', 'map31', 'map32', 'map33', 'map34', 'map35', 'map36']
+  },
+  {
+    id: 5,
+    name: 'Vùng 5: Đầm Lầy Độc Tố Axit',
+    shortName: 'Đầm Lầy',
+    levels: [37, 45],
+    themeColor: '#A3E635',
+    mapKeys: ['map37', 'map38', 'map39', 'map40', 'map41', 'map42', 'map43', 'map44', 'map45']
+  },
+  {
+    id: 6,
+    name: 'Vùng 6: Thung Lũng Hoa Anh Đào',
+    shortName: 'Anh Đào',
+    levels: [46, 54],
+    themeColor: '#F472B6',
+    mapKeys: ['map46', 'map47', 'map48', 'map49', 'map50', 'map51', 'map52', 'map53', 'map54']
+  }
+];
+
+const STAGE_NAMES_54 = [
+  // Biome 1 (1-9)
+  'Cầu Qua Sông', 'Đường Đèo Chữ S', 'Tàn Tích Đồng Cỏ', 'Hồ Ngọc Trung Tâm', 'Rừng Thông Rậm Rạp',
+  'Làng Mạc Thanh Bình', 'Hồ Đảo Song Cầu', 'Bùng Binh Tượng Đài', 'Vòng Xoay Phòng Thủ',
+  // Biome 2 (10-18)
+  'Cầu Sắt Vực Sâu', 'Trại Lửa Hoang Mạc', 'Phế Tích Thành Cát', 'Tháp Khoan Dầu', 'Sông Hẻm Núi Đỏ',
+  'Ba Hành Lang Đá', 'Mỏ Khai Thác Goòng', 'Chiến Hào Bao Cát', 'Chòi Canh Biên Ải',
+  // Biome 3 (19-27)
+  'Sông Băng Song Cầu', 'Đèo Tuyết Bốn Khúc', 'Pháo Đài Tuyết Phủ', 'Hồ Băng Đóng Cứng', 'Khe Nứt Vực Băng',
+  'Hẻm Núi Pha Lê', 'Đường Hầm Tàu Băng', 'Rừng Thông Tuyết Trắng', 'Thành Lũy Băng Giá',
+  // Biome 4 (28-36)
+  'Sông Dung Nham Ba Cầu', 'Đèo Thác Dung Nham', 'Tàn Tích Hắc Diện Thạch', 'Miệng Núi Lửa Sôi', 'Dòng Nham Thạch Chéo',
+  'Khe Nứt Núi Lửa', 'Mỏ Khai Thác Nham Thạch', 'Cầu Sắt Rực Lửa', 'Pháo Đài Obsidian',
+  // Biome 5 (37-45)
+  'Đầm Lầy Axit Bốn Cầu', 'Vực Khí Độc Xanh', 'Phế Tích Đầm Lầy', 'Hồ Axit Trung Tâm', 'Hẻm Núi Độc Tố',
+  'Con Đường Rắn Độc', 'Đường Ray Đầm Lầy', 'Suối Axit Uốn Lượn', 'Pháo Đài Đầm Lầy',
+  // Biome 6 (46-54)
+  'Tam Cầu Hoa Anh Đào', 'Cổng Đền Torii Cổ', 'Đền Thờ Rêu Phong', 'Hồ Sen Anh Đào', 'Suối Đào Ba Nhịp Cầu',
+  'Thung Lũng Suối Hoa', 'Song Hồ Anh Đào', 'Khúc Quanh Đá Rêu', 'Thành Cổ Hoa Anh Đào'
+];
+
+/* Tọa độ 54 node phân bố khớp 6 quần xã trên ảnh World_map.png (normalized 0..1) */
+const WORLD_MAP_NODE_COORDS = [
+  // Biome 1: Thảo Nguyên Xanh (Góc Trên-Trái của World_map)
+  { x: 0.14, y: 0.68 }, { x: 0.11, y: 0.60 }, { x: 0.19, y: 0.57 },
+  { x: 0.13, y: 0.49 }, { x: 0.21, y: 0.46 }, { x: 0.16, y: 0.37 },
+  { x: 0.24, y: 0.35 }, { x: 0.19, y: 0.26 }, { x: 0.27, y: 0.25 },
+  // Biome 2: Hẻm Núi Hoang Mạc (Giữa-Trên của World_map)
+  { x: 0.36, y: 0.27 }, { x: 0.45, y: 0.23 }, { x: 0.52, y: 0.29 },
+  { x: 0.41, y: 0.36 }, { x: 0.49, y: 0.41 }, { x: 0.39, y: 0.47 },
+  { x: 0.47, y: 0.52 }, { x: 0.56, y: 0.55 }, { x: 0.61, y: 0.48 },
+  // Biome 3: Lãnh Nguyên Băng Giá (Góc Trên-Phải của World_map)
+  { x: 0.62, y: 0.34 }, { x: 0.61, y: 0.23 }, { x: 0.69, y: 0.21 },
+  { x: 0.72, y: 0.31 }, { x: 0.77, y: 0.24 }, { x: 0.82, y: 0.32 },
+  { x: 0.74, y: 0.39 }, { x: 0.68, y: 0.43 }, { x: 0.79, y: 0.44 },
+  // Biome 4: Miệng Núi Lửa Dung Nham (Cực Phải của World_map)
+  { x: 0.87, y: 0.36 }, { x: 0.93, y: 0.26 }, { x: 0.95, y: 0.38 },
+  { x: 0.89, y: 0.47 }, { x: 0.94, y: 0.55 }, { x: 0.86, y: 0.58 },
+  { x: 0.79, y: 0.56 }, { x: 0.83, y: 0.66 }, { x: 0.91, y: 0.67 },
+  // Biome 5: Đầm Lầy Độc Tố Axit (Góc Dưới-Phải của World_map)
+  { x: 0.78, y: 0.74 }, { x: 0.72, y: 0.68 }, { x: 0.66, y: 0.73 },
+  { x: 0.73, y: 0.80 }, { x: 0.65, y: 0.84 }, { x: 0.72, y: 0.89 },
+  { x: 0.80, y: 0.86 }, { x: 0.85, y: 0.79 }, { x: 0.77, y: 0.93 },
+  // Biome 6: Thung Lũng Hoa Anh Đào (Dưới-Giữa của World_map)
+  { x: 0.58, y: 0.88 }, { x: 0.55, y: 0.78 }, { x: 0.49, y: 0.72 },
+  { x: 0.46, y: 0.82 }, { x: 0.48, y: 0.91 }, { x: 0.40, y: 0.88 },
+  { x: 0.38, y: 0.77 }, { x: 0.32, y: 0.83 }, { x: 0.29, y: 0.91 }
+];
+
+/* Phân loại hình dạng địa hình nước/cầu đặc trưng cho từng màn (dùng cho TerrainNavGrid) */
+const MAP_TERRAIN_PROFILES = {
+  map1: 'river_center_bridge',
+  map4: 'lake_center_ring',
+  map7: 'lake_island_dual_bridge',
+  map10: 'river_center_bridge',
+  map14: 'diagonal_river_dual_bridge',
+  map19: 'diagonal_river_dual_bridge',
+  map22: 'lake_center_ring',
+  map23: 'river_center_bridge',
+  map25: 'river_center_bridge',
+  map28: 'river_center_bridge',
+  map30: 'lake_center_ring',
+  map31: 'lake_center_ring',
+  map32: 'diagonal_river_dual_bridge',
+  map33: 'river_center_bridge',
+  map34: 'lake_center_ring',
+  map35: 'river_center_bridge',
+  map37: 'diagonal_river_dual_bridge',
+  map38: 'river_center_bridge',
+  map39: 'lake_center_ring',
+  map40: 'lake_center_ring',
+  map41: 'diagonal_river_dual_bridge',
+  map42: 'river_center_bridge',
+  map43: 'lake_center_ring',
+  map44: 'river_center_bridge',
+  map45: 'river_center_bridge',
+  map46: 'diagonal_river_dual_bridge',
+  map49: 'lake_center_ring',
+  map50: 'diagonal_river_dual_bridge',
+  map51: 'diagonal_river_dual_bridge',
+  map52: 'side_ponds',
+  map53: 'river_center_bridge',
+  map54: 'river_center_bridge'
+};
+
+const STAGE_CATALOG = Array.from({ length: 54 }, (_, idx) => {
+  const level = idx + 1;
+  const biomeObj = BIOME_CONFIG[Math.floor(idx / 9)];
+  const mapKey = `map${level}`;
+  return {
+    id: level,
+    level,
+    biomeId: biomeObj.id,
+    biomeName: biomeObj.name,
+    biomeShort: biomeObj.shortName,
+    name: STAGE_NAMES_54[idx] || `Màn ${level}`,
+    mapKey,
+    terrainProfile: MAP_TERRAIN_PROFILES[mapKey] || 'open_land',
+    worldPos: WORLD_MAP_NODE_COORDS[idx] || { x: 0.5, y: 0.5 },
+    enemyBaseHp: Math.round(900 * Math.pow(1.085, idx)),
+    rewardCoins: Math.round(120 + idx * 38),
+    rewardGems: 15 + Math.floor(idx / 3) * 5,
+    rewardPearls: level % 3 === 0 ? 1 + Math.floor(idx / 12) : 0,
+    bossId: level % 9 === 0 ? BOSS_CATALOG[Math.min(3, Math.floor(idx / 14))].id : null
+  };
 });
 
-/* 11. HỆ THỐNG CỘNG HƯỞNG ĐỘI HÌNH TRONG TRẬN (IN-BATTLE SYNERGIES) */
-export const BATTLE_SYNERGIES = {
-    thermal_shock: {
-        id: 'thermal_shock',
-        name: 'Sốc Nhiệt',
-        shortBadge: '🔥❄️ Sốc Nhiệt (+25% DMG)',
-        cssClass: 'synergy-thermal',
-        requiredUnits: ['pyromancer', 'cryomancer'],
-        trueDmgBonusPct: 0.25,
-        desc: 'Khi có mặt cả Phù Thủy Lửa & Pháp Sư Băng: Đòn đánh của cả hai gây thêm +25% sát thương chuẩn.'
-    },
-    immortal_fortress: {
-        id: 'immortal_fortress',
-        name: 'Pháo Đài Bất Tử',
-        shortBadge: '✨🛡️ Pháo Đài (+20% Hồi & +15% Giáp)',
-        cssClass: 'synergy-fortress',
-        requiredUnits: ['cleric', 'mecha_paladin'],
-        healBonusPct: 0.20,
-        globalArmorBonusPct: 0.15,
-        desc: 'Khi có mặt cả Mục Sư & Robot Hộ Vệ Titan: Tăng +20% hiệu quả hồi máu và +15% giáp toàn quân Xanh.'
-    },
-    dark_legion: {
-        id: 'dark_legion',
-        name: 'Quân Đoàn Bóng Đêm',
-        shortBadge: '💀😈 Quân Đoàn Ám (Xương x2)',
-        cssClass: 'synergy-darklegion',
-        requiredUnits: ['necromancer'],
-        requiresDemonUnit: true,
-        skeletonStatMult: 2.0,
-        desc: 'Khi có mặt Pháp Sư Chiêu Hồn cùng ít nhất 1 đơn vị bậc Demon trên sân: Chiến Binh Xương có HP & DMG gấp đôi.'
-    }
-};
-
-/* 12. HỆ THỐNG Ụ PHÁO PHÒNG THỦ CĂN CỨ XANH (BASE TURRET) */
-export const BASE_TURRET_CONFIG = {
-    gatling: {
-        id: 'gatling',
-        name: 'Pháo Gatling Phòng Thủ',
-        shortName: 'GATLING',
-        icon: '🔫',
-        baseDamage: 28,
-        fireRate: 2.2,
-        range: 185,
-        splash: 0,
-        color: '#38bdf8',
-        desc: 'Bắn liên thanh tốc độ cao (2.2 phát/s) tiêu diệt nhanh bộ binh và cơ giới nhẹ áp sát căn cứ.'
-    },
-    sam_missile: {
-        id: 'sam_missile',
-        name: 'Tên Lửa Phòng Thủ SAM',
-        shortName: 'SAM MISSILE',
-        icon: '🚀',
-        baseDamage: 72,
-        fireRate: 0.75,
-        range: 215,
-        splash: 44,
-        color: '#f97316',
-        desc: 'Phóng tên lửa tầm xa (215px) phát nổ diện rộng (bán kính 44px), khắc chế đội hình địch đông đúc.'
-    },
-    tesla_coil: {
-        id: 'tesla_coil',
-        name: 'Tháp Sét Từ Trường Tesla',
-        shortName: 'TESLA COIL',
-        icon: '⚡',
-        baseDamage: 46,
-        fireRate: 1.15,
-        range: 175,
-        chainTargets: 2,
-        stunDuration: 0.65,
-        chillDuration: 1.8,
-        color: '#c084fc',
-        desc: 'Phóng hồ quang điện giật 2 mục tiêu cùng lúc, làm choáng 0.65s và làm chậm 55% trong 1.8s.'
-    }
-};
-
-export function getBaseTurretUpgradeCost(currentLv) {
-    const lv = Math.max(1, Math.floor(Number(currentLv) || 1));
-    return Math.round(1500 * Math.pow(1.45, Math.min(25, lv - 1)));
+/**
+ * Lấy danh sách Zombie trộn vào đợt quái Campaign Mode theo tiến trình Level (Phần 6)
+ */
+function getCampaignZombiePool(level) {
+  if (level <= 15) {
+    return ['zombie_walker', 'zombie_runner'];
+  }
+  if (level <= 35) {
+    return ['zombie_walker', 'zombie_runner', 'zombie_spitter', 'zombie_brute'];
+  }
+  return ['zombie_runner', 'zombie_brute', 'zombie_spitter', 'zombie_bomber', 'zombie_necrolord'];
 }
 
-/* 13. HỆ THỐNG SỔ TAY INDEX (CODEX MILESTONES) */
-export const CODEX_MILESTONES = [
-    { id: 'mythic', label: 'MYTHIC 🔴', minRank: 10, rewardGems: 250,  rewardMedals: 2 },
-    { id: 'secret', label: 'SECRET ⚫', minRank: 15, rewardGems: 600,  rewardMedals: 5 },
-    { id: 'master', label: 'MASTER 🌊', minRank: 21, rewardGems: 1500, rewardMedals: 12 },
-    { id: 'demon',  label: 'DEMON 😈',  minRank: 30, rewardGems: 4000, rewardMedals: 30 }
+/* --------------------------------------------------------------------------
+ * 12. DANH MỤC CHIP BỔ TRỢ, THIÊN PHÚ, NHIỆM VỤ & GIFTCODES
+ * -------------------------------------------------------------------------- */
+const CHIP_CATALOG = [
+  { id: 'overclock_core',  name: 'Lõi Ép Xung',       color: '#38BDF8', cost: 300,  desc: 'Giảm 15% thời gian hồi chiêu thẻ bài.' },
+  { id: 'vampiric_fang',   name: 'Chip Hút Huyết',    color: '#FB7185', cost: 450,  desc: 'Hồi 8% sát thương gây ra thành HP.' },
+  { id: 'tungsten_rounds', name: 'Đầu Đạn Vonfram',   color: '#FACC15', cost: 400,  desc: 'Tăng +25% xuyên giáp và +15% sát thương.' },
+  { id: 'nano_plating',    name: 'Giáp Nano Tự Phục', color: '#4ADE80', cost: 350,  desc: 'Tăng +22% HP tối đa cho đơn vị.' },
+  { id: 'plasma_coil',     name: 'Cuộn Cảm Plasma',   color: '#C084FC', cost: 500,  desc: 'Tăng +20% tốc độ đánh và +15% phạm vi nổ.' }
 ];
 
-/* 14. CẤU HÌNH VÒNG QUAY MAY MẮN 8 Ô & PITY 100 */
-export const LUCKY_WHEEL_CONFIG = {
-    singlePrice: 200,
-    tenPrice: 1800,
-    pityMax: 100,
-    slices: [
-        { index: 0, id: 'coins_25k',      label: '+25K 🪙',    fullName: '+25,000 Vàng 🪙',                   icon: '🪙', type: 'coins',        amount: 25000, weight: 30.0, bgColor: '#eab308', textColor: '#0f172a' },
-        { index: 1, id: 'gems_500',       label: '+500 💎',    fullName: '+500 Gems 💎',                      icon: '💎', type: 'gems',         amount: 500,   weight: 25.0, bgColor: '#0284c7', textColor: '#ffffff' },
-        { index: 2, id: 'medals_15',      label: '+15 🎖️',     fullName: '+15 Huy Chương 🎖️',                 icon: '🎖️', type: 'medals',       amount: 15,    weight: 18.0, bgColor: '#16a34a', textColor: '#ffffff' },
-        { index: 3, id: 'card_epic',      label: 'EPIC 🟣',    fullName: '1 Thẻ Tướng Bậc EPIC 🟣',           icon: '🟣', type: 'card',         rarity: 'epic',      weight: 12.0, bgColor: '#7e22ce', textColor: '#ffffff' },
-        { index: 4, id: 'card_legendary', label: 'LEG 🟠',     fullName: '1 Thẻ Tướng Bậc LEGENDARY 🟠',      icon: '🟠', type: 'card',         rarity: 'legendary', weight: 8.0,  bgColor: '#ea580c', textColor: '#ffffff' },
-        { index: 5, id: 'card_mythic',    label: 'MYTHIC 🔴',  fullName: '1 Thẻ Tướng Bậc MYTHIC 🔴',         icon: '🔴', type: 'card',         rarity: 'mythic',    weight: 4.5,  bgColor: '#dc2626', textColor: '#ffffff' },
-        { index: 6, id: 'card_secret',    label: 'SECRET ⚫',  fullName: '1 Thẻ Tướng Bậc SECRET ⚫',         icon: '⚫', type: 'card',         rarity: 'secret',    weight: 2.0,  bgColor: '#18181b', textColor: '#fde047' },
-        { index: 7, id: 'card_jackpot',   label: 'JACKPOT 💠', fullName: 'JACKPOT: 1 Tướng MASTER / DEMON 💠', icon: '💠', type: 'jackpot_card', rarities: ['master', 'master1', 'master2', 'demon', 'demon1'], weight: 0.5, bgColor: '#a21caf', textColor: '#00f2fe' }
-    ]
+const META_TALENTS = [
+  { id: 'battlefield_harvest', name: 'Thu Hoạch Chiến Trường', maxLv: 5, baseCost: 200, desc: 'Hoàn lại 15% chi phí Xăng khi quân đồng minh hy sinh.' },
+  { id: 'command_logistics',   name: 'Tiếp Vận Chỉ Huy',      maxLv: 10, baseCost: 150, desc: 'Tăng +6% tốc độ hồi Xăng cơ bản mỗi cấp.' },
+  { id: 'fortress_masonry',    name: 'Kiến Trúc Mansion',     maxLv: 10, baseCost: 180, desc: 'Tăng +12% HP tối đa Mansion Xanh mỗi cấp.' },
+  { id: 'tactical_warfare',    name: 'Học Thuyết Quân Sự',    maxLv: 10, baseCost: 220, desc: 'Tăng +8% sát thương toàn quân đội mỗi cấp.' }
+];
+
+const MISSION_CATALOG = [
+  { id: 'm_kill_50',   title: 'Tiêu diệt 50 kẻ địch trên chiến trường', target: 50,  stat: 'totalKills',   rewardType: 'coins',  rewardVal: 500 },
+  { id: 'm_win_3',     title: 'Giành chiến thắng 3 trận bất kỳ',         target: 3,   stat: 'totalWins',    rewardType: 'gems',   rewardVal: 120 },
+  { id: 'm_summon_30', title: 'Triệu hồi 30 đơn vị quân ra trận',        target: 30,  stat: 'totalSummons', rewardType: 'pearls', rewardVal: 2 },
+  { id: 'm_gacha_5',   title: 'Mở 5 Rương tiếp tế trong Cửa Hàng',       target: 5,   stat: 'totalCrates',  rewardType: 'gems',   rewardVal: 150 }
+];
+
+const GIFTCODES = {
+  TINY2026:    { coins: 2500, gems: 300, pearls: 5, label: 'Quà Tân Thủ Tiny Battle 2026!' },
+  PIXELART:    { coins: 5000, gems: 500, pearls: 8, label: 'Gói Tài Nguyên Pixel-Art!' },
+  HUNGADMINDZ: { admin: true, label: 'ĐÃ KÍCH HOẠT CHẾ ĐỘ ADMIN TOÀN QUYỀN!' }
 };
-
-/* 15. CẤU HÌNH TRUNG TÂM 3 MINI-GAME GIẢI TRÍ */
-export const MINIGAME_CONFIG = {
-    mines: {
-        id: 'mines',
-        name: 'Đập Mìn Công Binh 5x5',
-        entryCostCoins: 1000,
-        gridSize: 25,
-        safeCells: 20,
-        mineCells: 5,
-        baseCoinsPerSafe: 380,
-        baseGemsPerSafe: 18,
-        medalChancePerSafe: 0.22,
-        multipliers: [
-            1.20, 1.50, 1.85, 2.25, 2.75,
-            3.35, 4.10, 5.00, 6.20, 7.60,
-            9.50, 12.0, 15.0, 19.0, 24.0,
-            31.0, 40.0, 52.0, 70.0, 100.0
-        ]
-    },
-    catcher: {
-        id: 'catcher',
-        name: 'Hứng Tiếp Tế Dù 30s',
-        durationSec: 30.0,
-        canvasWidth: 320,
-        canvasHeight: 210,
-        playerSpeed: 230,
-        spawnIntervalSec: 0.42,
-        items: [
-            { type: 'coins',  icon: '🪙', weight: 42, coins: 650,  gems: 0,  medals: 0, speed: 105, radius: 13, color: '#facc15' },
-            { type: 'gems',   icon: '💎', weight: 28, coins: 0,    gems: 35, medals: 0, speed: 120, radius: 13, color: '#38bdf8' },
-            { type: 'medals', icon: '🎖️', weight: 10, coins: 0,    gems: 0,  medals: 2, speed: 135, radius: 13, color: '#4ade80' },
-            { type: 'bomb',   icon: '💣', weight: 20, coins: -800, gems: -20, medals: 0, speed: 145, radius: 14, color: '#ef4444' }
-        ]
-    },
-    highlow: {
-        id: 'highlow',
-        name: 'Đoán Bài Chiến Thuật (Rank 0 ➔ 40)',
-        entryCostCoins: 1500,
-        initialPotCoins: 2000,
-        initialPotGems: 25,
-        winMultiplier: 1.85,
-        bonusCardStreakThreshold: 5
-    }
-};
-
-/* 16. DỮ LIỆU ĐỘT BIẾN ROGUELIKE & RAID BOSS */
-export const ROGUELIKE_MUTATIONS = [
-    { id: 'titan_armor',     name: 'Giáp Titan Hợp Kim',   desc: '+35% Máu tối đa toàn quân',                icon: '🛡️' },
-    { id: 'plasma_rounds',   name: 'Đầu Đạn Plasma',       desc: '+30% Sát thương cho mọi đơn vị',           icon: '🔥' },
-    { id: 'hyper_thrusters', name: 'Động Cơ Phản Lực',     desc: '+28% Tốc độ di chuyển toàn quân',          icon: '⚡' },
-    { id: 'sniper_optics',   name: 'Ống Ngắm Quang Học',   desc: '+35 Tầm bắn xa cho toàn bộ đơn vị',        icon: '🎯' },
-    { id: 'napalm_payload',  name: 'Đầu Đạn Napalm',       desc: 'Đạn để lại lửa cháy 3s & +18 Nổ lan',      icon: '💥' },
-    { id: 'nano_leech',      name: 'Nano Hút Máu',         desc: 'Hồi máu bằng 22% sát thương gây ra',       icon: '💉' },
-    { id: 'rapid_clone',     name: 'Dây Chuyền Nhân Bản',  desc: 'Giảm 25% thời gian hồi chiêu gọi quân',    icon: '⚙️' }
-];
-
-export const RAID_BOSS_CONFIG = {
-    id: 'iron_leviathan',
-    name: 'PHÁO ĐÀI HẠM LEVIATHAN MK-IX',
-    x: 210,
-    y: 82,
-    hullHp: 12000
-};
-
-/* 17. DANH MỤC 6 VÙNG ĐẤT (BIOMES) & 54 BẢN ĐỒ CHIẾN DỊCH VỚI TỌA ĐỘ CHUẨN (rx, ry) */
-export const WORLD_BIOMES = [
-    {
-        id: 1,
-        key: 'grass_village',
-        sheetKey: 'biome_1',
-        name: 'Thảo Nguyên & Làng Mạc',
-        shortLabel: '🌿 VÙNG 1 • THẢO NGUYÊN',
-        pillLabel: '🌿 Thảo Nguyên',
-        levelRange: [1, 9],
-        accentColor: '#4ade80',
-        focusRelPos: { rx: 0.215, ry: 0.460 },
-        focusPos: { x: Math.round(0.215 * WORLD_MAP_WIDTH), y: Math.round(0.460 * WORLD_MAP_HEIGHT) }
-    },
-    {
-        id: 2,
-        key: 'canyon_desert',
-        sheetKey: 'biome_2',
-        name: 'Hẻm Núi & Hoang Mạc',
-        shortLabel: '🏜️ VÙNG 2 • HOANG MẠC',
-        pillLabel: '🏜️ Hoang Mạc',
-        levelRange: [10, 18],
-        accentColor: '#fb923c',
-        focusRelPos: { rx: 0.502, ry: 0.415 },
-        focusPos: { x: Math.round(0.502 * WORLD_MAP_WIDTH), y: Math.round(0.415 * WORLD_MAP_HEIGHT) }
-    },
-    {
-        id: 3,
-        key: 'frozen_tundra',
-        sheetKey: 'biome_3',
-        name: 'Lãnh Nguyên Băng Giá',
-        shortLabel: '❄️ VÙNG 3 • BĂNG GIÁ',
-        pillLabel: '❄️ Băng Giá',
-        levelRange: [19, 27],
-        accentColor: '#38bdf8',
-        focusRelPos: { rx: 0.728, ry: 0.290 },
-        focusPos: { x: Math.round(0.728 * WORLD_MAP_WIDTH), y: Math.round(0.290 * WORLD_MAP_HEIGHT) }
-    },
-    {
-        id: 4,
-        key: 'obsidian_volcano',
-        sheetKey: 'biome_4',
-        name: 'Miệng Núi Lửa Dung Nham',
-        shortLabel: '🌋 VÙNG 4 • NÚI LỬA',
-        pillLabel: '🌋 Núi Lửa',
-        levelRange: [28, 36],
-        accentColor: '#f97316',
-        focusRelPos: { rx: 0.852, ry: 0.485 },
-        focusPos: { x: Math.round(0.852 * WORLD_MAP_WIDTH), y: Math.round(0.485 * WORLD_MAP_HEIGHT) }
-    },
-    {
-        id: 5,
-        key: 'toxic_swamp',
-        sheetKey: 'biome_5',
-        name: 'Đầm Lầy Độc Tố Axit',
-        shortLabel: '☣️ VÙNG 5 • ĐẦM LẦY',
-        pillLabel: '☣️ Đầm Lầy',
-        levelRange: [37, 45],
-        accentColor: '#a3e635',
-        focusRelPos: { rx: 0.726, ry: 0.800 },
-        focusPos: { x: Math.round(0.726 * WORLD_MAP_WIDTH), y: Math.round(0.800 * WORLD_MAP_HEIGHT) }
-    },
-    {
-        id: 6,
-        key: 'sakura_valley',
-        sheetKey: 'biome_6',
-        name: 'Thung Lũng Hoa Anh Đào',
-        shortLabel: '🌸 VÙNG 6 • ANH ĐÀO',
-        pillLabel: '🌸 Anh Đào',
-        levelRange: [46, 54],
-        accentColor: '#f472b6',
-        focusRelPos: { rx: 0.466, ry: 0.840 },
-        focusPos: { x: Math.round(0.466 * WORLD_MAP_WIDTH), y: Math.round(0.840 * WORLD_MAP_HEIGHT) }
-    }
-];
-
-export const WORLD_BIOME_BY_ID = {};
-WORLD_BIOMES.forEach(b => {
-    WORLD_BIOME_BY_ID[b.id] = b;
-});
-
-const ALL_54_MAPS_SPEC = [
-    // ==================== VÙNG 1 (LEVEL 01 – 09): THẢO NGUYÊN & LÀNG MẠC ====================
-    {
-        id: 1, biomeId: 1, theme: 'grass_village', rx: 0.125, ry: 0.655,
-        name: 'CẦU QUA SÔNG', hasWater: true, hasCoastFoam: false,
-        desc: 'Sông xanh cắt ngang chính giữa với 1 cầu gỗ ở tâm; đường đất vàng chia 2 nhánh vòng cung đối xứng.'
-    },
-    {
-        id: 2, biomeId: 1, theme: 'grass_village', rx: 0.165, ry: 0.625,
-        name: 'ĐƯỜNG ĐÈO CHỮ S', hasWater: false, hasCoastFoam: false,
-        desc: 'Đường nhựa xám uốn lượn hình chữ S lớn từ trên xuống dưới, hai bên có hàng rào gỗ và rừng thông.'
-    },
-    {
-        id: 3, biomeId: 1, theme: 'grass_village', rx: 0.195, ry: 0.545,
-        name: 'TÀN TÍCH ĐỒNG CỎ', hasWater: false, hasCoastFoam: false,
-        desc: 'Hai con đường đất thẳng song song hai cánh trái – phải; chính giữa là tàn tích tường đá cổ hình chữ U.'
-    },
-    {
-        id: 4, biomeId: 1, theme: 'grass_village', rx: 0.215, ry: 0.450,
-        name: 'HỒ NGỌC TRUNG TÂM', hasWater: true, hasCoastFoam: false,
-        desc: 'Hồ nước tròn lớn màu xanh ngọc ở trung tâm; đường đất bao quanh hồ thành vòng tròn cùng 4 lều dã chiến.'
-    },
-    {
-        id: 5, biomeId: 1, theme: 'grass_village', rx: 0.203, ry: 0.390,
-        name: 'RỪNG THÔNG RẬM RẠP', hasWater: false, hasCoastFoam: false,
-        desc: 'Rừng thông dày đặc kèm cụm đá xám chiếm trọn trung tâm; đường đất vòng qua cánh phải hình chữ S ngược.'
-    },
-    {
-        id: 6, biomeId: 1, theme: 'grass_village', rx: 0.205, ry: 0.335,
-        name: 'LÀNG MẠC THANH BÌNH', hasWater: false, hasCoastFoam: false,
-        desc: 'Làng mạc với các ngôi nhà gỗ mái nâu/xanh xếp thành 2 khu phố hai bên trục đường chữ thập và hàng rào gỗ.'
-    },
-    {
-        id: 7, biomeId: 1, theme: 'grass_village', rx: 0.242, ry: 0.295,
-        name: 'HỒ ĐẢO SONG CẦU', hasWater: true, hasCoastFoam: false,
-        desc: 'Hồ nước trung tâm có hòn đảo nhỏ ở giữa; 2 cây cầu gỗ bắc song song ở hai cánh trái và phải.'
-    },
-    {
-        id: 8, biomeId: 1, theme: 'grass_village', rx: 0.268, ry: 0.355,
-        name: 'BÙNG BINH TƯỢNG ĐÀI', hasWater: false, hasCoastFoam: false,
-        desc: 'Bùng binh đường đất tròn lớn ở giữa bao quanh tượng đài đá và hàng rào cây bụi; vách núi đá góc trái trên.'
-    },
-    {
-        id: 9, biomeId: 1, theme: 'grass_village', rx: 0.312, ry: 0.320,
-        name: 'VÒNG XOAY PHÒNG THỦ', hasWater: false, hasCoastFoam: false,
-        desc: 'Vòng xoay trung tâm xếp đầy bao cát và chướng ngại vật gỗ, tỏa ra 4 nhánh đường chéo hướng về hai căn cứ.'
-    },
-
-    // ==================== VÙNG 2 (LEVEL 10 – 18): HẺM NÚI & HOANG MẠC ====================
-    {
-        id: 10, biomeId: 2, theme: 'canyon_desert', rx: 0.388, ry: 0.240,
-        name: 'CẦU SẮT VỰC SÂU', hasWater: false, hasCoastFoam: false,
-        mechanicTag: '🏜️ Vực sâu hẻm núi ép toàn bộ bộ binh qua cầu sắt trung tâm',
-        desc: 'Hẻm núi vực sâu cắt ngang bản đồ với 1 cây cầu sắt đen bắc thẳng ở giữa; xung quanh là vách đá cam.'
-    },
-    {
-        id: 11, biomeId: 2, theme: 'canyon_desert', rx: 0.453, ry: 0.255,
-        name: 'TRẠI LỬA HOANG MẠC', hasWater: false, hasCoastFoam: false,
-        desc: 'Đường đất đỏ uốn lượn hình chữ S gấp khúc qua các đồi đá cam, điểm xuyết lều trại và đống lửa trại.'
-    },
-    {
-        id: 12, biomeId: 2, theme: 'canyon_desert', rx: 0.450, ry: 0.350,
-        name: 'PHẾ TÍCH THÀNH CÁT', hasWater: false, hasCoastFoam: false,
-        desc: 'Đường đất chạy vòng hình vuông quanh phế tích thành cổ tường đá vỡ vụn ở trung tâm.'
-    },
-    {
-        id: 13, biomeId: 2, theme: 'canyon_desert', rx: 0.518, ry: 0.335,
-        name: 'THÁP KHOAN DẦU SA MẠC', hasWater: false, hasCoastFoam: false, gasRateMult: 1.15,
-        mechanicTag: '🛢️ Giếng dầu sa mạc tăng +15% tốc độ hồi Xăng',
-        desc: 'Bãi đất trống rộng với vòng tròn hàng rào gỗ bao quanh tháp khoan dầu bằng sắt ở chính giữa.'
-    },
-    {
-        id: 14, biomeId: 2, theme: 'canyon_desert', rx: 0.612, ry: 0.385,
-        name: 'SÔNG HẺM NÚI ĐỎ', hasWater: true, hasCoastFoam: false,
-        desc: 'Dòng sông nước xanh xám uốn chéo từ góc trái trên xuống góc phải dưới với 2 cây cầu gỗ bắc qua.'
-    },
-    {
-        id: 15, biomeId: 2, theme: 'canyon_desert', rx: 0.468, ry: 0.545,
-        name: 'BA HÀNH LANG ĐÁ', hasWater: false, hasCoastFoam: false,
-        desc: 'Hai dải tường thành đá chắn ngang trên-dưới và cụm đá lớn ở giữa chia hẻm núi thành 3 hành lang.'
-    },
-    {
-        id: 16, biomeId: 2, theme: 'canyon_desert', rx: 0.578, ry: 0.535,
-        name: 'MỎ KHAI THÁC XE GOÒNG', hasWater: false, hasCoastFoam: false,
-        desc: 'Khu mỏ khai thác với đường ray xe goòng uốn lượn từ cửa hầm trên xuống cửa hầm dưới cùng xe xúc vàng.'
-    },
-    {
-        id: 17, biomeId: 2, theme: 'canyon_desert', rx: 0.548, ry: 0.440,
-        name: 'CHIẾN HÀO BAO CÁT', hasWater: false, hasCoastFoam: false,
-        desc: 'Hai tuyến đường thẳng hai bên kẹp giữa dải chiến hào bao cát chạy dọc chính giữa.'
-    },
-    {
-        id: 18, biomeId: 2, theme: 'canyon_desert', rx: 0.512, ry: 0.640,
-        name: 'CHÒI CANH BIÊN ẢI', hasWater: false, hasCoastFoam: false, rangeMult: 0.90,
-        mechanicTag: '🌪️ Gió bụi hoang mạc giảm -10% tầm bắn xa',
-        desc: 'Đường uốn lượn chữ S qua 3 chòi canh tháp đá kiên cố và các ụ bao cát phòng thủ.'
-    },
-
-    // ==================== VÙNG 3 (LEVEL 19 – 27): LÃNH NGUYÊN BĂNG GIÁ ====================
-    {
-        id: 19, biomeId: 3, theme: 'frozen_tundra', rx: 0.618, ry: 0.230,
-        name: 'SÔNG BĂNG SONG CẦU', hasWater: true, hasCoastFoam: false,
-        desc: 'Sông băng xanh uốn chéo từ phải trên xuống trái dưới với 2 cầu gỗ, rừng thông tuyết và pha lê băng.'
-    },
-    {
-        id: 20, biomeId: 3, theme: 'frozen_tundra', rx: 0.698, ry: 0.210,
-        name: 'ĐÈO TUYẾT BỐN KHÚC CUA', hasWater: false, hasCoastFoam: false,
-        desc: 'Đường tuyết uốn lượn 4 khúc cua chữ S gắt xuyên qua vách núi tuyết và các khối băng.'
-    },
-    {
-        id: 21, biomeId: 3, theme: 'frozen_tundra', rx: 0.758, ry: 0.265,
-        name: 'PHÁO ĐÀI TUYẾT PHỦ', hasWater: false, hasCoastFoam: false,
-        desc: 'Đường tuyết bao quanh phế tích pháo đài đá phủ tuyết hình vuông ở trung tâm.'
-    },
-    {
-        id: 22, biomeId: 3, theme: 'frozen_tundra', rx: 0.816, ry: 0.210,
-        name: 'HỒ BĂNG ĐÓNG CỨNG', hasWater: false, hasCoastFoam: false, vehicleIceSpeedBonus: 0.35,
-        mechanicTag: '❄️ Vùng băng trung tâm tăng +35% tốc chạy cho Xe cơ giới',
-        desc: 'Hồ băng tròn đóng cứng ở trung tâm với các mỏm băng nhô lên; đường tuyết chạy vòng tròn bao quanh.'
-    },
-    {
-        id: 23, biomeId: 3, theme: 'frozen_tundra', rx: 0.664, ry: 0.330,
-        name: 'KHE NỨT VỰC BĂNG CHỮ Y', hasWater: true, hasCoastFoam: false,
-        desc: 'Khe nứt vực băng sâu hình chữ Y ở trung tâm với 2 cây cầu gỗ bắc chéo qua khe vực.'
-    },
-    {
-        id: 24, biomeId: 3, theme: 'frozen_tundra', rx: 0.718, ry: 0.315,
-        name: 'HẺM NÚI PHA LÊ BĂNG', hasWater: false, hasCoastFoam: false,
-        desc: 'Hẻm núi băng với các cụm tinh thể pha lê băng xanh khổng lồ mọc dọc hai bên khúc cua chữ S.'
-    },
-    {
-        id: 25, biomeId: 3, theme: 'frozen_tundra', rx: 0.718, ry: 0.385,
-        name: 'ĐƯỜNG HẦM TÀU HỎA BĂNG', hasWater: false, hasCoastFoam: false, moveSpeedMult: 1.12,
-        mechanicTag: '🚂 Tuyến tiếp vận đường sắt tăng +12% tốc độ di chuyển',
-        desc: 'Đường ray tàu hỏa chạy vòng chữ U từ hầm núi trái sang hầm núi phải, băng qua khe vực tinh thể băng.'
-    },
-    {
-        id: 26, biomeId: 3, theme: 'frozen_tundra', rx: 0.758, ry: 0.355,
-        name: 'RỪNG THÔNG TUYẾT TRẮNG', hasWater: false, hasCoastFoam: false,
-        desc: 'Đường tuyết uốn lượn vòng cung quanh các cụm rừng thông tuyết xếp so le.'
-    },
-    {
-        id: 27, biomeId: 3, theme: 'frozen_tundra', rx: 0.802, ry: 0.315,
-        name: 'THÀNH LŨY BĂNG GIÁ', hasWater: false, hasCoastFoam: false,
-        desc: 'Mê cung thành lũy tuyết và 2 tháp canh băng đối xứng ở nửa trên chiến trường.'
-    },
-
-    // ==================== VÙNG 4 (LEVEL 28 – 36): MIỆNG NÚI LỬA DUNG NHAM ====================
-    {
-        id: 28, biomeId: 4, theme: 'obsidian_volcano', rx: 0.866, ry: 0.250,
-        name: 'SÔNG DUNG NHAM BA CẦU', hasWater: false, hasLava: true, hasCoastFoam: false,
-        mechanicTag: '🌋 Dung nham chặn Lục quân (Thủy quân bơi được trên nham thạch)',
-        desc: 'Dòng sông dung nham phân nhánh rộng với 3 cây cầu sắt bắc qua các đảo đá đen và lò luyện nham thạch.'
-    },
-    {
-        id: 29, biomeId: 4, theme: 'obsidian_volcano', rx: 0.916, ry: 0.315,
-        name: 'ĐÈO THÁC DUNG NHAM', hasWater: false, hasLava: true, hasCoastFoam: false,
-        desc: 'Đèo núi đá đen uốn lượn chữ S kẹp giữa 2 dòng thác dung nham hai bên sườn và 2 tháp canh gỗ.'
-    },
-    {
-        id: 30, biomeId: 4, theme: 'obsidian_volcano', rx: 0.955, ry: 0.435,
-        name: 'TÀN TÍCH HẮC DIỆN THẠCH', hasWater: false, hasLava: true, hasCoastFoam: false,
-        desc: 'Dòng dung nham bao quanh phế tích tường đá đen hình vuông ở chính giữa.'
-    },
-    {
-        id: 31, biomeId: 4, theme: 'obsidian_volcano', rx: 0.928, ry: 0.575,
-        name: 'MIỆNG NÚI LỬA SÔI SỤC', hasWater: false, hasLava: true, hasCoastFoam: false, scorchDurationMult: 1.8,
-        mechanicTag: '🔥 Nhiệt lượng miệng núi lửa kéo dài vệt cháy nổ x1.8',
-        desc: 'Miệng núi lửa tròn khổng lồ sôi sục dung nham ở trung tâm; đường đất đen chạy vòng tròn bao quanh.'
-    },
-    {
-        id: 32, biomeId: 4, theme: 'obsidian_volcano', rx: 0.858, ry: 0.545,
-        name: 'DÒNG NHAM THẠCH CHÉO', hasWater: false, hasLava: true, hasCoastFoam: false, scorchDurationMult: 2.0,
-        mechanicTag: '🔥 Vệt cháy nổ trên cầu sắt tồn tại lâu gấp đôi',
-        desc: 'Dòng sông dung nham chảy chéo từ góc phải trên xuống góc trái dưới với 2 cây cầu sắt bắc song song.'
-    },
-    {
-        id: 33, biomeId: 4, theme: 'obsidian_volcano', rx: 0.774, ry: 0.450,
-        name: 'KHE NỨT NÚI LỬA', hasWater: false, hasLava: true, hasCoastFoam: false,
-        desc: 'Hẻm núi đá đen dựng đứng với các khe nứt dung nham chảy len lỏi quanh con đường chữ S.'
-    },
-    {
-        id: 34, biomeId: 4, theme: 'obsidian_volcano', rx: 0.750, ry: 0.535,
-        name: 'MỎ KHAI THÁC NHAM THẠCH', hasWater: false, hasLava: true, hasCoastFoam: false,
-        desc: 'Khu mỏ nham thạch với đường ray xe goòng uốn lượn qua các hồ dung nham và cần cẩu khai thác.'
-    },
-    {
-        id: 35, biomeId: 4, theme: 'obsidian_volcano', rx: 0.796, ry: 0.605,
-        name: 'CẦU SẮT RỰC LỬA', hasWater: false, hasLava: true, hasCoastFoam: false,
-        desc: 'Dòng dung nham cắt ngang bản đồ với 1 cây cầu sắt ở bên phải và đường vòng chữ S ở nửa trên.'
-    },
-    {
-        id: 36, biomeId: 4, theme: 'obsidian_volcano', rx: 0.836, ry: 0.680,
-        name: 'PHÁO ĐÀI OBSIDIAN', hasWater: false, hasLava: false, hasCoastFoam: false, gasRateMult: 1.20,
-        mechanicTag: '⚡ Địa nhiệt núi lửa tăng +20% tốc hồi Xăng',
-        desc: 'Pháo đài hắc diện thạch kiên cố có 4 tháp canh rực lửa bảo vệ khu vực tiền tuyến.'
-    },
-
-    // ==================== VÙNG 5 (LEVEL 37 – 45): ĐẦM LẦY ĐỘC TỐ AXIT ====================
-    {
-        id: 37, biomeId: 5, theme: 'toxic_swamp', rx: 0.812, ry: 0.775,
-        name: 'SÔNG AXIT BA CẦU GỖ', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
-        mechanicTag: '☣️ Bộ binh đi ngoài cầu gỗ bị rút 1.5% HP/giây bởi độc tố',
-        desc: 'Dòng sông axit xanh neon uốn lượn từ trên xuống dưới với 3 cây cầu gỗ bắc qua và cây khô chết.'
-    },
-    {
-        id: 38, biomeId: 5, theme: 'toxic_swamp', rx: 0.792, ry: 0.855,
-        name: 'ĐÈO KHÓI ĐỘC RÊU TỐI', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.012,
-        desc: 'Đèo hẻm núi rêu tối uốn lượn chữ S với các khe suối axit bốc khói độc hai bên sườn.'
-    },
-    {
-        id: 39, biomeId: 5, theme: 'toxic_swamp', rx: 0.752, ry: 0.735,
-        name: 'PHẾ TÍCH THÙNG HÓA CHẤT', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
-        desc: 'Dòng axit bao quanh phế tích tường đá đổ nát ở giữa, kèm các thùng phuy hóa chất xanh rò rỉ.'
-    },
-    {
-        id: 40, biomeId: 5, theme: 'toxic_swamp', rx: 0.710, ry: 0.720,
-        name: 'HỒ AXIT PHÁT SÁNG', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
-        desc: 'Hồ axit tròn phát sáng rực rỡ ở trung tâm; đường đất bùn bao quanh hình tròn cùng tháp khoan rỉ sét.'
-    },
-    {
-        id: 41, biomeId: 5, theme: 'toxic_swamp', rx: 0.728, ry: 0.805,
-        name: 'NGÃ TƯ SÔNG AXIT CHỮ X', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
-        desc: 'Hai nhánh sông axit giao nhau hình chữ X ở trung tâm với 3 cây cầu gỗ bắc qua các nhánh.'
-    },
-    {
-        id: 42, biomeId: 5, theme: 'toxic_swamp', rx: 0.652, ry: 0.845,
-        name: 'HẺM NÚI RÊU PHONG', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false,
-        desc: 'Hẻm núi đá xám rêu phong với dòng suối axit xanh len lỏi bên cạnh con đường đèo chữ S.'
-    },
-    {
-        id: 43, biomeId: 5, theme: 'toxic_swamp', rx: 0.694, ry: 0.825,
-        name: 'ĐƯỜNG RAY MỎ ĐỘC TỐ', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false,
-        desc: 'Đường ray mỏ độc tố chạy chéo từ hầm trái trên xuống phải dưới với đoàn tàu chở khoáng sản.'
-    },
-    {
-        id: 44, biomeId: 5, theme: 'toxic_swamp', rx: 0.672, ry: 0.915,
-        name: 'MÊ CUNG ĐẦM LẦY NEON', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, swampInfantryDotPct: 0.015,
-        desc: 'Mê cung đường đất uốn lượn nhiều tầng xen kẽ các vũng axit xanh phát sáng và cụm đá rêu.'
-    },
-    {
-        id: 45, biomeId: 5, theme: 'toxic_swamp', rx: 0.672, ry: 0.745,
-        name: 'THÀNH CỔ ĐẦM LẦY AXIT', hasWater: false, hasToxicSwamp: true, hasCoastFoam: false, empExtraStunSec: 1.2,
-        mechanicTag: '⚛️ Từ trường đầm lầy tăng +1.2s choáng cho Xung EMP [E]',
-        desc: 'Thành cổ đầm lầy 4 tháp canh bao quanh bởi hào nước axit xanh phát sáng.'
-    },
-
-    // ==================== VÙNG 6 (LEVEL 46 – 54): THUNG LŨNG HOA ANH ĐÀO ====================
-    {
-        id: 46, biomeId: 6, theme: 'sakura_valley', rx: 0.585, ry: 0.895,
-        name: 'SUỐI NGỌC ANH ĐÀO', hasWater: true, hasCoastFoam: false,
-        mechanicTag: '🌸 Suối ngọc bích uốn lượn với 3 cầu gỗ đỏ cong',
-        desc: 'Dòng suối xanh ngọc chia nhánh ôm lấy các đảo hoa anh đào nhỏ, nối liền bằng 3 cây cầu gỗ đỏ cong.'
-    },
-    {
-        id: 47, biomeId: 6, theme: 'sakura_valley', rx: 0.570, ry: 0.805,
-        name: 'ĐÈO CỔNG TORII ĐỎ', hasWater: false, hasCoastFoam: false,
-        desc: 'Con đường đèo uốn lượn đi qua 3 cổng Torii màu đỏ son giữa rừng hoa anh đào và vách núi đá.'
-    },
-    {
-        id: 48, biomeId: 6, theme: 'sakura_valley', rx: 0.518, ry: 0.775,
-        name: 'ĐỀN CỔ HOA ANH ĐÀO', hasWater: false, hasCoastFoam: false,
-        desc: 'Đường đất hình vuông bao quanh phế tích đền cổ Nhật Bản và đèn lồng đá dưới tán hoa anh đào.'
-    },
-    {
-        id: 49, biomeId: 6, theme: 'sakura_valley', rx: 0.520, ry: 0.875,
-        name: 'HỒ SEN CÁNH HOA RƠI', hasWater: true, hasCoastFoam: false,
-        desc: 'Hồ sen tròn trong vắt điểm xuyết cánh hoa hồng rơi ở trung tâm; đường đất chạy vòng tròn bao quanh.'
-    },
-    {
-        id: 50, biomeId: 6, theme: 'sakura_valley', rx: 0.472, ry: 0.935,
-        name: 'SUỐI ĐÈN LỒNG ĐÁ', hasWater: true, hasCoastFoam: false,
-        desc: 'Dòng suối ngọc bích chảy chéo từ phải trên xuống trái dưới với 2 cầu gỗ cong và dãy đèn lồng đá.'
-    },
-    {
-        id: 51, biomeId: 6, theme: 'sakura_valley', rx: 0.415, ry: 0.905,
-        name: 'HẺM NÚI SUỐI ANH ĐÀO', hasWater: true, hasCoastFoam: false,
-        desc: 'Hẻm núi đá xanh rêu với con đường mòn song song dòng suối nhỏ uốn lượn dưới tán anh đào.'
-    },
-    {
-        id: 52, biomeId: 6, theme: 'sakura_valley', rx: 0.385, ry: 0.825,
-        name: 'VƯỜN TRE TRUYỀN THỐNG', hasWater: true, hasCoastFoam: false,
-        desc: 'Khu vườn cổ với 2 hồ nước ở hai bên, hàng rào tre và các công trình gỗ truyền thống.'
-    },
-    {
-        id: 53, biomeId: 6, theme: 'sakura_valley', rx: 0.435, ry: 0.735,
-        name: 'ĐƯỜNG ĐÈO ĐÁ CUỘI', hasWater: true, hasCoastFoam: false,
-        desc: 'Đường đất uốn lượn chữ S ngang qua dòng suối nhỏ ở nửa dưới và dãy đá cuội ở trung tâm.'
-    },
-    {
-        id: 54, biomeId: 6, theme: 'sakura_valley', rx: 0.305, ry: 0.855,
-        name: 'DOANH TRẠI THUNG LŨNG CUỐI', hasWater: true, hasCoastFoam: false, gasRateMult: 1.30,
-        mechanicTag: '👑 Đại bản doanh cuối cùng: Tốc độ hồi Xăng cả 2 phe tăng +30%',
-        desc: 'Doanh trại cuối cùng với dòng suối ngang có 2 cầu gỗ ở phía dưới và hệ thống chiến hào, 3 chòi canh gỗ.'
-    }
-];
-
-export function buildAllMapsData() {
-    return ALL_54_MAPS_SPEC.map(spec => {
-        const i = spec.id;
-        const biomeId = spec.biomeId || Math.ceil(i / 9);
-        const biomeObj = WORLD_BIOME_BY_ID[biomeId] || WORLD_BIOMES[0];
-        const localIdx = (i - 1) % 9;
-        const sheetCol = localIdx % 3;
-        const sheetRow = Math.floor(localIdx / 3);
-        const rx = typeof spec.rx === 'number' ? spec.rx : 0.5;
-        const ry = typeof spec.ry === 'number' ? spec.ry : 0.5;
-
-        return {
-            id: i,
-            level: i,
-            biomeId,
-            biomeName: biomeObj.name,
-            sheetKey: `biome_${biomeId}`,
-            sheetCol,
-            sheetRow,
-            name: spec.name,
-            theme: spec.theme,
-            biome: spec.theme,
-            rx,
-            ry,
-            worldPos: {
-                x: Math.round(rx * WORLD_MAP_WIDTH),
-                y: Math.round(ry * WORLD_MAP_HEIGHT)
-            },
-            stars: 0,
-            hasWater: !!spec.hasWater,
-            hasLava: !!spec.hasLava,
-            hasToxicSwamp: !!spec.hasToxicSwamp,
-            hasCoastFoam: !!spec.hasCoastFoam,
-            scorchDurationMult: spec.scorchDurationMult || 1.0,
-            vehicleIceSpeedBonus: spec.vehicleIceSpeedBonus || 0,
-            rangeMult: spec.rangeMult || 1.0,
-            swampInfantryDotPct: spec.swampInfantryDotPct || 0,
-            moveSpeedMult: spec.moveSpeedMult || 1.0,
-            projSpeedMult: spec.projSpeedMult || 1.0,
-            empExtraStunSec: spec.empExtraStunSec || 0,
-            airCooldownMult: spec.airCooldownMult || 1.0,
-            gasRateMult: spec.gasRateMult || 1.0,
-            mechanicTag: spec.mechanicTag || null,
-            desc: spec.desc,
-            enemyBaseHp: 260 + i * 50,
-            playerBaseHp: 250 + Math.floor(i / 5) * 10,
-            startingGas: 6
-        };
-    });
-}
-
-export const LEVELS = buildAllMapsData();
-export const MAPS_DATA = LEVELS;
-
-/* 18. DANH MỤC NHIỆM VỤ CHIẾN DỊCH */
-export const MISSIONS_CATALOG = [
-    { id: 'kill_50',     title: 'Tiêu diệt 50 quân địch',           target: 50,      rewardGems: 150,  rewardCoins: 2000,   statKey: 'kills' },
-    { id: 'kill_250',    title: 'Tiêu diệt 250 quân địch',          target: 250,     rewardGems: 400,  rewardCoins: 6000,   statKey: 'kills' },
-    { id: 'kill_1000',   title: 'Tiêu diệt 1,000 quân địch',        target: 1000,    rewardGems: 1200, rewardCoins: 25000,  statKey: 'kills' },
-    { id: 'win_3',       title: 'Chiến thắng 3 trận bất kỳ',        target: 3,       rewardGems: 200,  rewardCoins: 3000,   statKey: 'wins' },
-    { id: 'win_10',      title: 'Chiến thắng 10 trận',              target: 10,      rewardGems: 600,  rewardCoins: 10000,  statKey: 'wins' },
-    { id: 'pull_10',     title: 'Mở 10 Rương Quân Nhu',             target: 10,      rewardGems: 300,  rewardCoins: 4500,   statKey: 'cratesOpened' },
-    { id: 'pull_1000',   title: 'Mở 1,000 Rương Quân Nhu',          target: 1000,    rewardGems: 1500, rewardCoins: 35000,  statKey: 'cratesOpened' },
-    { id: 'pull_1m',     title: 'Mở 1,000,000 Rương Quân Nhu',      target: 1000000, rewardGems: 5000, rewardCoins: 150000, statKey: 'cratesOpened' },
-    { id: 'merge_5',     title: 'Ghép tiến hóa tướng 5 lần',        target: 5,       rewardGems: 250,  rewardCoins: 5000,   statKey: 'merges' },
-    { id: 'merge_500',   title: 'Ghép tiến hóa tướng 500 lần',      target: 500,     rewardGems: 1800, rewardCoins: 45000,  statKey: 'merges' },
-    { id: 'upgrade_20',  title: 'Nâng cấp Level Tướng 20 lần',      target: 20,      rewardGems: 500,  rewardCoins: 12000,  statKey: 'upgrades' }
-];
